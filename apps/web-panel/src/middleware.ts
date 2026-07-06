@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import type { NextRequest } from 'next/server';
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const url = req.nextUrl;
   const hostname = req.headers.get('host') || '';
 
@@ -9,19 +10,90 @@ export function middleware(req: NextRequest) {
   const currentHost = hostname.split(':')[0]; // remove port
   const subdomain = currentHost.split('.')[0];
 
-  // Route based on subdomain
-  if (subdomain === 'admin') {
-    return NextResponse.rewrite(new URL(`/(super-admin)${url.pathname}`, req.url));
-  } else if (subdomain === 'school') {
-    return NextResponse.rewrite(new URL(`/(school-admin)${url.pathname}`, req.url));
+  let response = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  });
+
+  // Create Supabase client for middleware
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          req.cookies.set({ name, value, ...options });
+          response = NextResponse.next({
+            request: { headers: req.headers },
+          });
+          response.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: CookieOptions) {
+          req.cookies.set({ name, value: '', ...options });
+          response = NextResponse.next({
+            request: { headers: req.headers },
+          });
+          response.cookies.set({ name, value: '', ...options });
+        },
+      },
+    }
+  );
+
+  // Refresh session
+  const { data: { session } } = await supabase.auth.getSession();
+
+  // Bypass subdomain rewrite for internal Next.js assets, API routes, and static files
+  if (
+    url.pathname.startsWith('/_next') ||
+    url.pathname.startsWith('/api') ||
+    url.pathname.includes('.')
+  ) {
+    return response;
   }
 
-  // Default fallback (could be a landing page or 404)
-  return NextResponse.next();
+  // Route based on subdomain
+  if (subdomain === 'admin') {
+    // Login page is always accessible
+    if (url.pathname === '/login' || url.pathname.startsWith('/api/auth')) {
+      return NextResponse.rewrite(new URL(`/login`, req.url), { headers: response.headers });
+    }
+
+    // Protect super-admin routes
+    if (!session) {
+      return NextResponse.redirect(new URL('/login', req.url));
+    }
+
+    return NextResponse.rewrite(
+      new URL(`/super-admin${url.pathname === '/' ? '' : url.pathname}`, req.url),
+      { headers: response.headers }
+    );
+  } else if (subdomain === 'school') {
+    // Login page is always accessible
+    if (url.pathname === '/login' || url.pathname.startsWith('/api/auth')) {
+      return NextResponse.rewrite(new URL(`/login`, req.url), { headers: response.headers });
+    }
+
+    // Protect school-admin routes
+    if (!session) {
+      return NextResponse.redirect(new URL('/login', req.url));
+    }
+
+    return NextResponse.rewrite(
+      new URL(`/school-admin${url.pathname === '/' ? '' : url.pathname}`, req.url),
+      { headers: response.headers }
+    );
+  }
+
+  // Default — allow login and other pages
+  return response;
 }
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

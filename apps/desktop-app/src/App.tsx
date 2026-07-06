@@ -1,58 +1,62 @@
-import { useState, useEffect } from "react";
+import { useState } from 'react';
+import Login from './components/Login';
+import ExamInterface from './components/ExamInterface';
+
+type Step = 'login' | 'exam' | 'submitted';
 
 function App() {
-  const [timeLeft, setTimeLeft] = useState(10800); // 3 hours
+  const [step, setStep] = useState<Step>('login');
+  const [studentProfile, setStudentProfile] = useState<any>(null);
+  const [selectedExam, setSelectedExam] = useState<any>(null);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const handleLoginSuccess = (profile: any, exam: any) => {
+    setStudentProfile(profile);
+    setSelectedExam(exam);
+    setStep('exam');
   };
 
+  const handleExamSubmitted = () => {
+    setStep('submitted');
+  };
+
+  const handleReset = () => {
+    setStudentProfile(null);
+    setSelectedExam(null);
+    setStep('login');
+  };
+
+  if (step === 'login') {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  if (step === 'exam') {
+    return (
+      <ExamInterface
+        studentProfile={studentProfile}
+        exam={selectedExam}
+        onExamSubmitted={handleExamSubmitted}
+      />
+    );
+  }
+
   return (
-    <div className="exam-container">
-      <header className="exam-header">
-        <div className="exam-title">JEE Main Mock Test</div>
-        <div className="exam-timer">
-          <strong>Time Left:</strong> {formatTime(timeLeft)}
+    <div className="min-h-screen flex items-center justify-center bg-[#070b13] px-4 font-sans text-slate-100">
+      <div className="w-full max-w-md bg-[#111827] border border-slate-800 rounded-3xl p-8 shadow-2xl text-center">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-400 mb-4">
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
         </div>
-        <div className="student-info">John Doe (App: #12345)</div>
-      </header>
-      <div className="exam-body">
-        <main className="question-area">
-          <h2>Question 1</h2>
-          <p>If the sum of the first n terms of an AP is cn^2, then the sum of squares of these n terms is:</p>
-          <div style={{ marginTop: '20px' }}>
-            <div><input type="radio" name="q1" id="opt1" /> <label htmlFor="opt1">Option A</label></div>
-            <div><input type="radio" name="q1" id="opt2" /> <label htmlFor="opt2">Option B</label></div>
-            <div><input type="radio" name="q1" id="opt3" /> <label htmlFor="opt3">Option C</label></div>
-            <div><input type="radio" name="q1" id="opt4" /> <label htmlFor="opt4">Option D</label></div>
-          </div>
-        </main>
-        <aside className="question-palette">
-          <h3>Question Palette</h3>
-          <div className="palette-grid">
-            <div className="palette-btn answered">1</div>
-            <div className="palette-btn unanswered">2</div>
-            <div className="palette-btn review">3</div>
-            <div className="palette-btn">4</div>
-            <div className="palette-btn">5</div>
-            <div className="palette-btn">6</div>
-          </div>
-          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><span className="palette-btn answered" style={{ padding: '2px 10px' }}>&nbsp;</span> Answered</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><span className="palette-btn unanswered" style={{ padding: '2px 10px' }}>&nbsp;</span> Not Answered</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><span className="palette-btn review" style={{ padding: '2px 10px' }}>&nbsp;</span> Marked for Review</div>
-          </div>
-        </aside>
+        <h2 className="text-2xl font-bold text-white mb-2">Test Submitted Successfully!</h2>
+        <p className="text-slate-400 text-sm mb-6">
+          Your answers have been uploaded. You can safely close this application or return to the login screen.
+        </p>
+        <button
+          onClick={handleReset}
+          className="w-full py-3 bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 font-medium rounded-xl transition-colors text-sm"
+        >
+          Return to Login
+        </button>
       </div>
     </div>
   );
