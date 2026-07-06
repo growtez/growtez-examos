@@ -74,7 +74,7 @@ export default function SchoolAdminLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-950">
+    <div className="flex min-h-screen bg-white">
       {/* Sidebar */}
       <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gray-50 border-r border-gray-200 transition-all duration-300 flex flex-col`}>
         <div className="h-16 flex items-center px-5 border-b border-gray-200">

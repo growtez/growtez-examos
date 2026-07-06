@@ -187,6 +187,20 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- 13. Policies Setup
 -- ============================================================
 
+-- Enable RLS on all tables first
+ALTER TABLE public.schools ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.super_admins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.school_admins ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teachers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.exam_subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.exam_subject_teachers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.exam_students ENABLE ROW LEVEL SECURITY;
+
+
 -- Policies for schools
 DROP POLICY IF EXISTS "Super admins can do all on schools" ON public.schools;
 CREATE POLICY "Super admins can do all on schools" ON public.schools
@@ -433,7 +447,293 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+  FOR ALL USING (school_id = public.get_current_user_school_id());
+
+DROP POLICY IF EXISTS "Students can view their own profile" ON public.students;
+CREATE POLICY "Students can view their own profile" ON public.students
+  FOR SELECT USING (id = auth.uid());
+
+-- Policies for exams
+DROP POLICY IF EXISTS "Super admins can do all on exams" ON public.exams;
+CREATE POLICY "Super admins can do all on exams" ON public.exams
+  FOR ALL USING (public.is_super_admin());
+
+DROP POLICY IF EXISTS "School users can view exams in their school" ON public.exams;
+CREATE POLICY "School users can view exams in their school" ON public.exams
+  FOR SELECT USING (school_id = public.get_current_user_school_id());
+
+DROP POLICY IF EXISTS "School admins/teachers can manage exams in their school" ON public.exams;
+CREATE POLICY "School admins/teachers can manage exams in their school" ON public.exams
+  FOR ALL USING (school_id = public.get_current_user_school_id() AND public.is_school_admin_or_teacher());
+
+-- Policies for questions
+DROP POLICY IF EXISTS "Super admins can do all on questions" ON public.questions;
+CREATE POLICY "Super admins can do all on questions" ON public.questions
+  FOR ALL USING (public.is_super_admin());
+
+DROP POLICY IF EXISTS "School users can view questions in their school" ON public.questions;
+CREATE POLICY "School users can view questions in their school" ON public.questions
+  FOR SELECT USING (school_id = public.get_current_user_school_id());
+
+DROP POLICY IF EXISTS "School admins/teachers can manage questions in their school" ON public.questions;
+CREATE POLICY "School admins/teachers can manage questions in their school" ON public.questions
+  FOR ALL USING (school_id = public.get_current_user_school_id() AND 
+  (EXISTS (SELECT 1 FROM public.school_admins WHERE id = auth.uid()) OR EXISTS (SELECT 1 FROM public.teachers WHERE id = auth.uid())));
+
+-- Policies for results
+DROP POLICY IF EXISTS "Super admins can do all on results" ON public.results;
+CREATE POLICY "Super admins can do all on results" ON public.results
+  FOR ALL USING (public.is_super_admin());
+
+DROP POLICY IF EXISTS "School admins/teachers can view results in their school" ON public.results;
+CREATE POLICY "School admins/teachers can view results in their school" ON public.results
+  FOR SELECT USING (school_id = public.get_current_user_school_id() AND 
+  (EXISTS (SELECT 1 FROM public.school_admins WHERE id = auth.uid()) OR EXISTS (SELECT 1 FROM public.teachers WHERE id = auth.uid())));
+
+DROP POLICY IF EXISTS "Students can view and insert their own results" ON public.results;
+CREATE POLICY "Students can view and insert their own results" ON public.results
+  FOR ALL USING (student_id = auth.uid());
+
+-- Policies for exam_subjects
+DROP POLICY IF EXISTS "Super admins can do all on exam_subjects" ON public.exam_subjects;
+CREATE POLICY "Super admins can do all on exam_subjects" ON public.exam_subjects
+  FOR ALL USING (public.is_super_admin());
+
+DROP POLICY IF EXISTS "School users can view exam_subjects in their school" ON public.exam_subjects;
+CREATE POLICY "School users can view exam_subjects in their school" ON public.exam_subjects
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.exams e
+      WHERE e.id = exam_subjects.exam_id
+      AND e.school_id = public.get_current_user_school_id()
+    )
+  );
+
+DROP POLICY IF EXISTS "School admins can manage exam_subjects" ON public.exam_subjects;
+CREATE POLICY "School admins can manage exam_subjects" ON public.exam_subjects
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.exams e
+      WHERE e.id = exam_subjects.exam_id
+      AND e.school_id = public.get_current_user_school_id()
+    )
+    AND EXISTS (
+      SELECT 1 FROM public.school_admins u
+      WHERE u.id = auth.uid()
+    )
+  );
+
+-- Policies for exam_subject_teachers
+DROP POLICY IF EXISTS "Super admins can do all on exam_subject_teachers" ON public.exam_subject_teachers;
+CREATE POLICY "Super admins can do all on exam_subject_teachers" ON public.exam_subject_teachers
+  FOR ALL USING (public.is_super_admin());
+
+DROP POLICY IF EXISTS "School users can view exam_subject_teachers" ON public.exam_subject_teachers;
+CREATE POLICY "School users can view exam_subject_teachers" ON public.exam_subject_teachers
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.exam_subjects es
+      JOIN public.exams e ON e.id = es.exam_id
+      WHERE es.id = exam_subject_teachers.exam_subject_id
+      AND e.school_id = public.get_current_user_school_id()
+    )
+  );
+
+DROP POLICY IF EXISTS "School admins can manage exam_subject_teachers" ON public.exam_subject_teachers;
+CREATE POLICY "School admins can manage exam_subject_teachers" ON public.exam_subject_teachers
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.exam_subjects es
+      JOIN public.exams e ON e.id = es.exam_id
+      WHERE es.id = exam_subject_teachers.exam_subject_id
+      AND e.school_id = public.get_current_user_school_id()
+    )
+    AND EXISTS (
+      SELECT 1 FROM public.school_admins u
+      WHERE u.id = auth.uid()
+    )
+  );
+
+-- Policies for exam_students
+DROP POLICY IF EXISTS "Super admins can do all on exam_students" ON public.exam_students;
+CREATE POLICY "Super admins can do all on exam_students" ON public.exam_students
+  FOR ALL USING (public.is_super_admin());
+
+CREATE OR REPLACE FUNCTION public.is_school_admin_or_teacher()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN (
+    EXISTS (SELECT 1 FROM public.school_admins WHERE id = auth.uid()) OR 
+    EXISTS (SELECT 1 FROM public.teachers WHERE id = auth.uid())
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.check_exam_school_access(p_exam_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_school_id UUID;
+  v_user_school_id UUID;
+BEGIN
+  v_user_school_id := public.get_current_user_school_id();
+  SELECT school_id INTO v_school_id FROM public.exams WHERE id = p_exam_id;
+  RETURN v_school_id = v_user_school_id AND public.is_school_admin_or_teacher();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP POLICY IF EXISTS "School admins/teachers can manage exam_students" ON public.exam_students;
+CREATE POLICY "School admins/teachers can manage exam_students" ON public.exam_students
+  FOR ALL USING (public.check_exam_school_access(exam_id));
+
+DROP POLICY IF EXISTS "Students can view their own exam assignments" ON public.exam_students;
+CREATE POLICY "Students can view their own exam assignments" ON public.exam_students
+  FOR SELECT USING (student_id = auth.uid());
+
+DROP POLICY IF EXISTS "Students can update their own exam status" ON public.exam_students;
+CREATE POLICY "Students can update their own exam status" ON public.exam_students
+  FOR UPDATE USING (student_id = auth.uid());
+
+-- ============================================================
+-- 14. Auth Triggers for profile creation
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_role TEXT;
+  v_school_id UUID;
+  v_full_name TEXT;
+  v_roll_number TEXT;
+  v_date_of_birth DATE;
+BEGIN
+  -- Get metadata values
+  v_role := COALESCE(new.raw_user_meta_data->>'role', 'student');
+  v_full_name := COALESCE(new.raw_user_meta_data->>'full_name', 'New User');
+  v_roll_number := new.raw_user_meta_data->>'roll_number';
+  
+  IF new.raw_user_meta_data->>'date_of_birth' IS NOT NULL THEN
+    v_date_of_birth := (new.raw_user_meta_data->>'date_of_birth')::DATE;
+  ELSE
+    v_date_of_birth := NULL;
+  END IF;
+
+  IF new.raw_user_meta_data->>'school_id' IS NOT NULL THEN
+    v_school_id := (new.raw_user_meta_data->>'school_id')::UUID;
+  ELSE
+    v_school_id := NULL;
+  END IF;
+
+  -- Only allow growtezexamos@gmail.com to be super_admin
+  IF new.email = 'growtezexamos@gmail.com' THEN
+    v_role := 'super_admin';
+  END IF;
+
+  -- Insert into respective profile table based on role
+  IF v_role = 'super_admin' THEN
+    INSERT INTO public.super_admins (id, full_name, email)
+    VALUES (new.id, v_full_name, new.email);
+  ELSIF v_role = 'school_admin' THEN
+    INSERT INTO public.school_admins (id, school_id, full_name, email)
+    VALUES (new.id, v_school_id, v_full_name, new.email);
+  ELSIF v_role = 'teacher' THEN
+    INSERT INTO public.teachers (id, school_id, full_name, email)
+    VALUES (new.id, v_school_id, v_full_name, new.email);
+  ELSE -- student
+    INSERT INTO public.students (id, school_id, full_name, email, roll_number, date_of_birth)
+    VALUES (new.id, v_school_id, v_full_name, new.email, v_roll_number, v_date_of_birth);
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger execution
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
 -- Manually confirm the email of the super admin if it exists
 UPDATE auth.users
 SET email_confirmed_at = NOW()
 WHERE email = 'growtezexamos@gmail.com';
+
+-- ============================================================
+-- 15. Fix Foreign Key Verification Permissions
+-- ============================================================
+-- Supabase RLS can aggressively block internal foreign key checks for the authenticated role.
+-- To ensure exams can be created and students can be assigned without database permission errors,
+-- (The UI enforces logical integrity, but PostgREST needs the FKs for joins).
+
+-- ============================================================
+-- 16. RPC Functions
+-- ============================================================
+-- Bulletproof RPC function to assign students that bypasses all insert-related RLS quirks
+CREATE OR REPLACE FUNCTION public.assign_students(p_exam_id UUID, p_student_ids UUID[])
+RETURNS VOID AS $$
+DECLARE
+  v_has_access BOOLEAN;
+BEGIN
+  -- Check if user is super admin
+  IF public.is_super_admin() THEN
+    v_has_access := TRUE;
+  ELSE
+    -- Check if user is school admin or teacher for the exam's school
+    v_has_access := public.check_exam_school_access(p_exam_id);
+  END IF;
+
+  IF NOT v_has_access THEN
+    RAISE EXCEPTION 'Access denied to this exam';
+  END IF;
+
+  -- Insert students
+  INSERT INTO public.exam_students (exam_id, student_id, status)
+  SELECT p_exam_id, unnest(p_student_ids), 'assigned'
+  ON CONFLICT (exam_id, student_id) DO NOTHING;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Bulletproof RPC function for students to submit exams, bypassing complex RLS inserts
+CREATE OR REPLACE FUNCTION public.submit_exam(
+  p_exam_id UUID,
+  p_school_id UUID,
+  p_answers JSONB,
+  p_total_marks INTEGER,
+  p_section_scores JSONB,
+  p_time_taken_seconds INTEGER
+)
+RETURNS VOID AS $$
+BEGIN
+  -- Insert result
+  INSERT INTO public.results (
+    exam_id,
+    student_id,
+    school_id,
+    answers,
+    total_marks,
+    section_scores,
+    time_taken_seconds
+  ) VALUES (
+    p_exam_id,
+    auth.uid(),
+    p_school_id,
+    p_answers,
+    p_total_marks,
+    p_section_scores,
+    p_time_taken_seconds
+  )
+  ON CONFLICT (exam_id, student_id) 
+  DO UPDATE SET
+    answers = EXCLUDED.answers,
+    total_marks = EXCLUDED.total_marks,
+    section_scores = EXCLUDED.section_scores,
+    time_taken_seconds = EXCLUDED.time_taken_seconds,
+    submitted_at = NOW();
+
+  -- Update exam_students status
+  UPDATE public.exam_students
+  SET status = 'submitted', submitted_at = NOW()
+  WHERE exam_id = p_exam_id AND student_id = auth.uid();
+  
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

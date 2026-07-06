@@ -183,18 +183,19 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted }:
         };
       });
 
-      await supabase.from('results').insert({
-        exam_id: exam.id,
-        student_id: studentProfile.id,
-        school_id: exam.school_id,
-        answers: formattedAnswers,
-        total_marks: finalScore,
-        section_scores: sectionScores,
-        time_taken_seconds: (exam.duration_minutes * 60) - timeLeft
+      const { error } = await supabase.rpc('submit_exam', {
+        p_exam_id: exam.id,
+        p_school_id: exam.school_id,
+        p_answers: formattedAnswers,
+        p_total_marks: finalScore,
+        p_section_scores: sectionScores,
+        p_time_taken_seconds: (exam.duration_minutes * 60) - timeLeft
       });
 
-      await supabase.from('exam_students').update({ status: 'submitted', submitted_at: new Date().toISOString() })
-        .eq('exam_id', exam.id).eq('student_id', studentProfile.id);
+      if (error) {
+        console.error('RPC Submit Error:', error);
+        throw error;
+      }
 
       await supabase.auth.signOut();
       onExamSubmitted();

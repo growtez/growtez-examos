@@ -81,11 +81,21 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
   const handleAssignStudents = async () => {
     setAssigning(true);
-    const inserts = selectedStudentIds.map(sid => ({ exam_id: params.id, student_id: sid, status: 'assigned' }));
-    await supabase.from('exam_students').upsert(inserts, { onConflict: 'exam_id,student_id' });
-    setShowAssignModal(false);
-    setSelectedStudentIds([]);
-    fetchExamData();
+    
+    // Call the bulletproof RPC function that bypasses all RLS quirks
+    const { error } = await supabase.rpc('assign_students', {
+      p_exam_id: params.id,
+      p_student_ids: selectedStudentIds
+    });
+    
+    if (error) {
+      alert('Failed to assign students: ' + error.message);
+      console.error(error);
+    } else {
+      setShowAssignModal(false);
+      setSelectedStudentIds([]);
+      fetchExamData();
+    }
     setAssigning(false);
   };
 

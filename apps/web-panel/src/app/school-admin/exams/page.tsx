@@ -33,7 +33,7 @@ export default function ExamsListPage() {
 
       const { data } = await supabase
         .from('exams')
-        .select('*')
+        .select('*, exam_students(count)')
         .eq('school_id', schoolId)
         .order('created_at', { ascending: false });
 
@@ -71,6 +71,7 @@ export default function ExamsListPage() {
               <tr className="border-b border-gray-200">
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Title</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Duration</th>
+                <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Students</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Status</th>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Created</th>
                 <th className="text-right px-6 py-4 text-sm font-medium text-gray-500">Actions</th>
@@ -84,6 +85,7 @@ export default function ExamsListPage() {
                     {exam.description && <p className="text-gray-400 text-xs mt-0.5">{exam.description}</p>}
                   </td>
                   <td className="px-6 py-4 text-gray-500 text-sm">{exam.duration_minutes} min</td>
+                  <td className="px-6 py-4 text-gray-500 text-sm">{exam.exam_students?.[0]?.count || 0}</td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-medium border ${statusColors[exam.status] || statusColors.draft}`}>
                       {exam.status?.charAt(0).toUpperCase() + exam.status?.slice(1)}
