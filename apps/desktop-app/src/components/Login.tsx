@@ -148,23 +148,23 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 font-sans">
 
-      {/* NTA Login Header */}
-      <header className="bg-white border-b-4 border-[#ea580c] py-4 px-8 flex items-center gap-4 shadow-sm">
-        <div className="w-16 h-16 bg-white rounded-full border-[3px] border-green-600 flex items-center justify-center relative overflow-hidden shrink-0">
-          <div className="absolute top-0 left-0 right-0 bottom-0 bg-orange-500 rounded-full scale-[0.8] clip-path-polygon" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 70%)' }}></div>
-          <svg className="w-10 h-10 text-green-600 absolute z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-        </div>
-        <div>
-          <h1 className="text-[#1e3b8a] text-[28px] font-extrabold tracking-wide uppercase m-0 leading-none">growtez ExamOS</h1>
-          <p className="text-white bg-[#22c55e] px-2 py-0.5 text-sm font-bold inline-block italic mt-1 tracking-wide">Excellence in Assessment</p>
+      {/* Premium Header */}
+      <header className="py-6 px-10 flex items-center justify-between border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Growtez Logo" className="w-10 h-10 object-contain" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">ParikshaOS</h1>
+          </div>
         </div>
       </header>
 
       {/* Login Container */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="bg-white w-full max-w-md border border-gray-300 shadow-lg">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col">
+        {/* Small top spacer keeps the card positioned high up */}
+        <div className="shrink-0 h-[3vh] md:h-[5vh] min-h-[20px]"></div>
 
-          <div className="bg-[#1e3b8a] text-white py-3 px-6 text-center font-bold text-lg border-b border-blue-800">
+        <div className="bg-white w-full max-w-md mx-auto rounded-[24px] p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-200 shrink-0">
+          <div className="bg-[#008080] text-white py-3 px-6 text-center font-bold text-lg border-b border-[#006666] rounded-t-[24px] -mt-8 -mx-10 mb-8">
             CANDIDATE LOGIN
           </div>
 
@@ -230,7 +230,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
               /* Exam Selection Form */
               <div className="space-y-6">
                 <div className="bg-blue-50 border border-blue-200 p-4 text-center">
-                  <p className="text-[#1e3b8a] text-base font-bold">Welcome, Candidate</p>
+                  <p className="text-[#008080] text-base font-bold">Welcome, Candidate</p>
                   <p className="text-gray-600 text-sm mt-1">Roll No: {rollNumber}</p>
                 </div>
 
@@ -278,7 +278,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
 
       {/* Footer */}
       <footer className="text-center py-4 text-gray-500 text-xs border-t border-gray-300 bg-white">
-        v1.0.0 | growtez ExamOS Simulation
+        v1.0.0 | ParikshaOS Simulation
       </footer>
     </div>
   );

@@ -58,13 +58,9 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-md px-6">
         {/* Logo / Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 mb-4 shadow-lg shadow-blue-500/25">
-            <svg className="w-8 h-8 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Growtez ExamOS</h1>
+        <div className="text-center mb-8 flex flex-col items-center">
+          <img src="/logo.png" alt="ParikshaOS Logo" className="w-16 h-16 object-contain mb-4" />
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">ParikshaOS</h1>
           <p className="text-gray-500 mt-2">Secure examination management system</p>
         </div>
 
@@ -112,7 +108,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-gray-900 font-medium rounded-xl hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/25"
+              className="w-full py-3 px-4 bg-[#008080] text-white font-medium rounded-xl hover:bg-[#006666] focus:outline-none focus:ring-2 focus:ring-[#008080]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#008080]/25"
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">
@@ -130,7 +126,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-gray-400 text-sm mt-6">
-          © {new Date().getFullYear()} Growtez ExamOS. All rights reserved.
+          © {new Date().getFullYear()} ParikshaOS. All rights reserved.
         </p>
       </div>
     </div>

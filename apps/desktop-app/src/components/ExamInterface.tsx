@@ -238,14 +238,9 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       {/* Top Header - White */}
       <header className="h-[90px] border-b flex items-center justify-between bg-white px-6">
         <div className="flex items-center gap-3">
-          {/* Mock NTA Logo */}
-          <div className="w-16 h-16 bg-white rounded-full border-[3px] border-green-600 flex items-center justify-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 bottom-0 bg-orange-500 rounded-full scale-[0.8] clip-path-polygon" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 70%)' }}></div>
-            <svg className="w-10 h-10 text-green-600 absolute z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-          </div>
+          <img src="/logo.png" alt="ParikshaOS Logo" className="w-12 h-12 object-contain" />
           <div>
-            <h1 className="text-[#1e3b8a] text-[22px] font-extrabold tracking-wide uppercase m-0 leading-tight">growtez ExamOS</h1>
-            <p className="text-white bg-[#22c55e] px-2 py-0.5 text-xs font-bold inline-block italic mt-0.5 tracking-wide">Excellence in Assessment</p>
+            <h1 className="text-[#008080] text-[22px] font-extrabold tracking-wide m-0 leading-tight">ParikshaOS</h1>
           </div>
         </div>
 
