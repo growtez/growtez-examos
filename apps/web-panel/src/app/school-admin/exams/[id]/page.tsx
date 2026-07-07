@@ -18,14 +18,19 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [endTime, setEndTime] = useState('');
   const [subjects, setSubjects] = useState<any[]>([]);
   const [questionCounts, setQuestionCounts] = useState<Record<string, number>>({});
-  const [students, setStudents] = useState<any[]>([]);
-  const [allStudents, setAllStudents] = useState<any[]>([]);
   const [assignedStudents, setAssignedStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
-  const [assigning, setAssigning] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
-  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [addingStudent, setAddingStudent] = useState(false);
+  const [addError, setAddError] = useState('');
+  const [addSuccess, setAddSuccess] = useState('');
+  // Add student form fields
+  const [newName, setNewName] = useState('');
+  const [newRoll, setNewRoll] = useState('');
+  const [newDob, setNewDob] = useState('');
+  const [importCsvMode, setImportCsvMode] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
 
   // Helper to format ISO string for datetime-local input
   const formatForInput = (isoString: string) => {
@@ -67,20 +72,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     }
     setQuestionCounts(counts);
 
-    // Fetch assigned students
+    // Fetch assigned students for this exam
     const { data: examStudents } = await supabase
       .from('exam_students')
-      .select('*, students:student_id(full_name, roll_number)')
-      .eq('exam_id', params.id);
+      .select('*, students:student_id(full_name, roll_number, date_of_birth)')
+      .eq('exam_id', params.id)
+      .order('created_at');
     setAssignedStudents(examStudents || []);
-
-    // Fetch all school students for assignment
-    const { data: allStudentsData } = await supabase
-      .from('students')
-      .select('*')
-      .eq('school_id', examData.school_id)
-      .order('roll_number');
-    setAllStudents(allStudentsData || []);
 
     setLoading(false);
   };
@@ -108,24 +106,97 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setPublishing(false);
   };
 
-  const handleAssignStudents = async () => {
-    setAssigning(true);
-    
-    // Call the bulletproof RPC function that bypasses all RLS quirks
-    const { error } = await supabase.rpc('assign_students', {
-      p_exam_id: params.id,
-      p_student_ids: selectedStudentIds
-    });
-    
-    if (error) {
-      alert('Failed to assign students: ' + error.message);
-      console.error(error);
-    } else {
-      setShowAssignModal(false);
-      setSelectedStudentIds([]);
+  const formatDobPassword = (dateStr: string) => {
+    const parts = dateStr.split('-');
+    return `${parts[2]}${parts[1]}${parts[0]}`;
+  };
+
+  const handleAddStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddError('');
+    setAddSuccess('');
+    setAddingStudent(true);
+    try {
+      const res = await fetch('/api/students/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: newName,
+          roll_number: newRoll,
+          date_of_birth: newDob,
+          exam_id: params.id,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to add student');
+      setAddSuccess(`Student "${newName}" added successfully!`);
+      setNewName(''); setNewRoll(''); setNewDob('');
       fetchExamData();
+    } catch (err: any) {
+      setAddError(err.message);
+    } finally {
+      setAddingStudent(false);
     }
-    setAssigning(false);
+  };
+
+  const handleCsvImport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!csvFile) return;
+    setAddError('');
+    setAddSuccess('');
+    setAddingStudent(true);
+    try {
+      const text = await csvFile.text();
+      const lines = text.split('\n').filter(l => l.trim());
+      const headers = lines[0].toLowerCase();
+      if (!headers.includes('name') || !headers.includes('roll')) {
+        throw new Error('CSV must have columns: name, roll_number, dob');
+      }
+      let imported = 0;
+      const errors: string[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(',').map(c => c.trim());
+        if (cols.length < 3) continue;
+        const [studentName, studentRoll, studentDob] = cols;
+        // Parse DD/MM/YYYY or YYYY-MM-DD
+        let formattedDob = studentDob;
+        if (studentDob.includes('/')) {
+          const [d, m, y] = studentDob.split('/');
+          formattedDob = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+        }
+        try {
+          const res = await fetch('/api/students/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ full_name: studentName, roll_number: studentRoll, date_of_birth: formattedDob, exam_id: params.id }),
+          });
+          if (res.ok) { imported++; } else {
+            const d = await res.json();
+            errors.push(`${studentRoll}: ${d.error || 'Failed'}`);
+          }
+        } catch { errors.push(`${studentRoll}: Failed`); }
+      }
+      setAddSuccess(`Imported ${imported} students${errors.length ? `. ${errors.length} failed.` : '.'}`);
+      setCsvFile(null);
+      fetchExamData();
+    } catch (err: any) {
+      setAddError(err.message);
+    } finally {
+      setAddingStudent(false);
+    }
+  };
+
+  const handleRemoveStudent = async (examStudentId: string, studentId: string) => {
+    if (!confirm('Remove this student from the exam? Their account will be deleted.')) return;
+    // Remove from exam_students first
+    await supabase.from('exam_students').delete().eq('id', examStudentId);
+    // Also delete the student user account via API
+    await fetch('/api/students/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_id: studentId }),
+    });
+    fetchExamData();
   };
 
   const handleAssignAll = () => {
@@ -291,65 +362,94 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Assigned Students */}
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
+      <div className="bg-white border-2 border-[#b2d8d8] p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Assigned Students ({assignedStudents.length})</h3>
-          <button onClick={() => setShowAssignModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg text-sm font-medium hover:bg-indigo-500/20 transition-colors">
-            Assign Students
-          </button>
-        </div>
-        {assignedStudents.length === 0 ? (
-          <p className="text-gray-500 text-sm">No students assigned yet.</p>
-        ) : (
-          <div className="flex flex-col gap-3">
-            {assignedStudents.map((as: any) => (
-              <div key={as.id} className="flex items-center justify-between bg-white border border-gray-300 rounded-xl p-3">
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded-md text-xs">{as.students?.roll_number}</span>
-                  <span className="text-gray-900 text-sm font-medium">{as.students?.full_name}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`text-xs px-2.5 py-1 rounded-md border font-medium ${
-                    as.status === 'submitted' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
-                    as.status === 'in_progress' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
-                    'bg-slate-500/10 text-slate-500 border-slate-500/20'
-                  }`}>
-                    {as.status === 'submitted' ? 'Submitted' : as.status === 'in_progress' ? 'In Progress' : 'Assigned'}
-                  </span>
-                  {(as.status === 'in_progress' || as.status === 'submitted') && (
-                    <button
-                      onClick={async () => {
-                        if (!confirm("Are you sure you want to reset this student's exam? This will delete their current progress and results.")) return;
-                        
-                        const { error } = await supabase.rpc('reset_student_exam', {
-                          p_exam_id: params.id,
-                          p_student_id: as.student_id
-                        });
-                        
-                        if (error) {
-                          alert('Failed to reset exam: ' + error.message);
-                        } else {
-                          fetchExamData();
-                        }
-                      }}
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-md text-xs font-medium transition-colors border border-transparent hover:border-red-200"
-                    >
-                      Retry / Reset
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="border-l-4 border-[#008080] pl-3">
+            <h3 className="text-base font-bold text-[#1a2e2e] uppercase tracking-wide">Students ({assignedStudents.length})</h3>
+            <p className="text-[#555555] text-xs mt-0.5">Students are specific to this exam</p>
           </div>
+          <div className="flex gap-2">
+            <button onClick={() => { setShowAddStudentModal(true); setImportCsvMode(false); setAddError(''); setAddSuccess(''); }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#008080] text-white text-xs font-bold hover:bg-[#006666] border-b-2 border-[#004d4d] uppercase tracking-wider transition-colors">
+              + Add Student
+            </button>
+            <button onClick={() => { setShowAddStudentModal(true); setImportCsvMode(true); setAddError(''); setAddSuccess(''); }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-[#1a2e2e] text-xs font-bold border-2 border-[#b2d8d8] hover:border-[#008080] hover:text-[#008080] uppercase tracking-wider transition-colors">
+              ↑ Import CSV
+            </button>
+          </div>
+        </div>
+
+        {addSuccess && <div className="bg-[#e0f2f2] border border-[#b2d8d8] p-3 text-[#008080] text-sm font-bold mb-4 uppercase">{addSuccess}</div>}
+
+        {assignedStudents.length === 0 ? (
+          <div className="text-center py-8 border-2 border-dashed border-[#b2d8d8]">
+            <p className="text-[#555555] text-sm">No students added yet.</p>
+            <p className="text-[#8aacac] text-xs mt-1">Students are specific to this exam. Add them using the button above.</p>
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="bg-[#008080]">
+                <th className="text-left px-4 py-2.5 text-xs font-bold text-white uppercase tracking-wider">Roll No.</th>
+                <th className="text-left px-4 py-2.5 text-xs font-bold text-white uppercase tracking-wider">Name</th>
+                <th className="text-left px-4 py-2.5 text-xs font-bold text-white uppercase tracking-wider">Status</th>
+                <th className="text-right px-4 py-2.5 text-xs font-bold text-white uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assignedStudents.map((as: any) => (
+                <tr key={as.id} className="border-b border-[#e0f2f2] hover:bg-[#f5f9f9] transition-colors">
+                  <td className="px-4 py-3">
+                    <span className="font-mono text-[#008080] bg-[#e0f2f2] border border-[#b2d8d8] px-2 py-0.5 text-xs font-bold">{as.students?.roll_number}</span>
+                  </td>
+                  <td className="px-4 py-3 text-[#1a2e2e] text-sm font-medium">{as.students?.full_name}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2.5 py-1 font-bold uppercase border ${
+                      as.status === 'submitted' ? 'bg-[#e0f2f2] text-[#008080] border-[#b2d8d8]' :
+                      as.status === 'in_progress' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                      'bg-[#f5f5f5] text-[#555555] border-[#cccccc]'
+                    }`}>
+                      {as.status === 'submitted' ? '✓ Submitted' : as.status === 'in_progress' ? '▶ In Progress' : 'Assigned'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right flex items-center justify-end gap-2">
+                    {(as.status === 'in_progress' || as.status === 'submitted') && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm("Reset this student's exam? This will delete their current progress and results.")) return;
+                          const { error } = await supabase.rpc('reset_student_exam', { p_exam_id: params.id, p_student_id: as.student_id });
+                          if (error) alert('Failed to reset: ' + error.message);
+                          else fetchExamData();
+                        }}
+                        className="text-amber-600 hover:text-amber-700 text-xs font-bold border border-amber-300 hover:bg-amber-50 px-2 py-1 uppercase transition-colors"
+                      >
+                        Reset
+                      </button>
+                    )}
+                    {as.status === 'assigned' && (
+                      <button
+                        onClick={() => handleRemoveStudent(as.id, as.student_id)}
+                        className="text-red-600 hover:text-red-700 text-xs font-bold border border-red-200 hover:bg-red-50 px-2 py-1 uppercase transition-colors"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
       {/* Publish Button */}
       {exam.status === 'draft' && (
-        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Publish Exam</h3>
-          <p className="text-gray-500 text-sm mb-6">
+        <div className="bg-white border-2 border-[#b2d8d8] p-6">
+          <div className="border-l-4 border-[#008080] pl-3 mb-4">
+            <h3 className="text-base font-bold text-[#1a2e2e] uppercase tracking-wide">Publish Exam</h3>
+          </div>
+          <p className="text-[#555555] text-sm mb-6">
             {allQuestionsReady
               ? 'All questions are ready. Set the start and end times, then publish the exam.'
               : 'Some subjects still need more questions. Add all required questions before publishing.'}
@@ -357,58 +457,110 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           
           <div className="grid grid-cols-2 gap-4 mb-6 max-w-xl">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Start Time (Auto-publish) *</label>
+              <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Start Time (Auto-publish) *</label>
               <input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} disabled={!allQuestionsReady || publishing}
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all disabled:opacity-50" />
+                className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] transition-all disabled:opacity-50" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">End Time (Auto-end) *</label>
+              <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">End Time (Auto-end) *</label>
               <input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} disabled={!allQuestionsReady || publishing}
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all disabled:opacity-50" />
+                className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] transition-all disabled:opacity-50" />
             </div>
           </div>
 
           <button onClick={handlePublish} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
-            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-gray-900 font-medium rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/25">
+            className="px-6 py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold border-b-2 border-[#004d4d] uppercase tracking-wider disabled:opacity-50 transition-colors">
             {publishing ? 'Publishing...' : 'Publish Exam'}
           </button>
         </div>
       )}
 
-      {/* Assign Modal */}
-      {showAssignModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowAssignModal(false)}>
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Assign Students</h3>
-            <button type="button" onClick={handleAssignAll} className="text-indigo-400 text-sm mb-4 hover:underline">Select all unassigned</button>
-            <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
-              {allStudents.map((s) => {
-                const alreadyAssigned = assignedStudents.some(a => a.student_id === s.id);
-                return (
-                  <label key={s.id} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${alreadyAssigned ? 'bg-slate-800/30 opacity-50' : selectedStudentIds.includes(s.id) ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-slate-800/50 border border-gray-300 hover:border-gray-400'}`}>
-                    <input type="checkbox" disabled={alreadyAssigned}
-                      checked={alreadyAssigned || selectedStudentIds.includes(s.id)}
-                      onChange={() => {
-                        if (alreadyAssigned) return;
-                        setSelectedStudentIds(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]);
-                      }}
-                      className="rounded border-gray-400" />
-                    <span className="font-mono text-xs text-gray-500">{s.roll_number}</span>
-                    <span className="text-gray-900 text-sm">{s.full_name}</span>
-                    {alreadyAssigned && <span className="text-xs text-emerald-400 ml-auto">Assigned</span>}
-                  </label>
-                );
-              })}
+      {/* Add Student Modal */}
+      {showAddStudentModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => { setShowAddStudentModal(false); setAddError(''); setAddSuccess(''); setImportCsvMode(false); }}>
+          <div className="bg-white border-2 border-[#008080] shadow-[4px_4px_0px_#004d4d] w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-[#008080] px-6 py-3 flex items-center justify-between">
+              <span className="text-white font-extrabold text-sm uppercase tracking-widest">Add Students to Exam</span>
+              <button onClick={() => { setShowAddStudentModal(false); setAddError(''); setAddSuccess(''); setImportCsvMode(false); }} className="text-white/70 hover:text-white">✕</button>
             </div>
-            <div className="flex gap-3">
-              <button onClick={handleAssignStudents} disabled={selectedStudentIds.length === 0 || assigning}
-                className="flex-1 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-gray-900 font-medium rounded-xl disabled:opacity-50">
-                {assigning ? 'Assigning...' : `Assign ${selectedStudentIds.length} Students`}
-              </button>
-              <button onClick={() => setShowAssignModal(false)}
-                className="px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors">
-                Cancel
-              </button>
+
+            <div className="p-6">
+              {/* Toggle between individual / CSV */}
+              <div className="flex mb-5 border-2 border-[#b2d8d8]">
+                <button
+                  onClick={() => setImportCsvMode(false)}
+                  className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${!importCsvMode ? 'bg-[#008080] text-white' : 'bg-white text-[#555555] hover:bg-[#f5f9f9]'}`}
+                >
+                  Add Individual
+                </button>
+                <button
+                  onClick={() => setImportCsvMode(true)}
+                  className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${importCsvMode ? 'bg-[#008080] text-white' : 'bg-white text-[#555555] hover:bg-[#f5f9f9]'}`}
+                >
+                  Import CSV
+                </button>
+              </div>
+
+              {addSuccess && <div className="bg-[#e0f2f2] border border-[#b2d8d8] p-3 text-[#008080] text-xs font-bold mb-4 uppercase">{addSuccess}</div>}
+              {addError && <div className="bg-red-50 border border-red-400 p-3 text-red-600 text-xs font-medium mb-4">⚠ {addError}</div>}
+
+              {!importCsvMode ? (
+                <form onSubmit={handleAddStudent} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Full Name</label>
+                    <input type="text" value={newName} onChange={e => setNewName(e.target.value)} required
+                      placeholder="Aarav Patel"
+                      className="w-full px-4 py-2.5 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] placeholder-[#8aacac] focus:outline-none focus:border-[#008080] text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Roll Number</label>
+                    <input type="text" value={newRoll} onChange={e => setNewRoll(e.target.value)} required
+                      placeholder="2024001"
+                      className="w-full px-4 py-2.5 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] placeholder-[#8aacac] focus:outline-none focus:border-[#008080] text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Date of Birth <span className="text-[#8aacac] normal-case">(password = DDMMYYYY)</span></label>
+                    <input type="date" value={newDob} onChange={e => setNewDob(e.target.value)} required
+                      className="w-full px-4 py-2.5 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] text-sm" />
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button type="submit" disabled={addingStudent}
+                      className="flex-1 py-2.5 bg-[#008080] hover:bg-[#006666] text-white font-bold disabled:opacity-50 border-b-2 border-[#004d4d] uppercase text-sm">
+                      {addingStudent ? 'Adding...' : 'Add Student'}
+                    </button>
+                    <button type="button" onClick={() => { setShowAddStudentModal(false); setAddError(''); }}
+                      className="px-4 py-2.5 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] font-bold hover:border-[#008080] uppercase text-sm">
+                      Close
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleCsvImport} className="space-y-4">
+                  <div className="bg-[#f5f9f9] border border-[#b2d8d8] p-4">
+                    <p className="text-[#1a2e2e] text-xs font-bold mb-2 uppercase tracking-wide">CSV Format:</p>
+                    <code className="text-xs text-[#008080] bg-white px-3 py-2 block border border-[#b2d8d8] font-mono">
+                      name, roll_number, dob<br />
+                      Aarav Patel, 2024001, 15/06/2005<br />
+                      Priya Singh, 2024002, 22/03/2005
+                    </code>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Select CSV File</label>
+                    <input type="file" accept=".csv,.txt" required onChange={e => setCsvFile(e.target.files?.[0] || null)}
+                      className="w-full px-4 py-2.5 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] file:mr-3 file:py-1 file:px-3 file:border-0 file:bg-[#008080] file:text-white file:text-xs file:font-bold file:uppercase text-sm" />
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button type="submit" disabled={addingStudent || !csvFile}
+                      className="flex-1 py-2.5 bg-[#008080] hover:bg-[#006666] text-white font-bold disabled:opacity-50 border-b-2 border-[#004d4d] uppercase text-sm">
+                      {addingStudent ? 'Importing...' : 'Import'}
+                    </button>
+                    <button type="button" onClick={() => { setShowAddStudentModal(false); setAddError(''); }}
+                      className="px-4 py-2.5 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] font-bold hover:border-[#008080] uppercase text-sm">
+                      Close
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         </div>

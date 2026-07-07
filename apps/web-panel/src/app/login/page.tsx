@@ -49,29 +49,39 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-50">
-      {/* Background decoration */}
+    <div className="min-h-screen flex items-center justify-center bg-[#f5f9f9]" style={{backgroundImage: 'linear-gradient(135deg, #f0f8f8 0%, #ffffff 50%, #e8f4f4 100%)'}}>
+      {/* Background geometric accent */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-[#008080]" />
+        <div className="absolute top-0 right-0 w-64 h-64 opacity-5" style={{background: 'linear-gradient(135deg, #008080, transparent)'}}>
+          <div className="absolute inset-0" style={{clipPath: 'polygon(100% 0, 0 0, 100% 100%)', background: '#008080'}} />
+        </div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 opacity-5">
+          <div className="absolute inset-0" style={{clipPath: 'polygon(0 100%, 0 0, 100% 100%)', background: '#008080'}} />
+        </div>
       </div>
 
       <div className="relative w-full max-w-md px-6">
         {/* Logo / Brand */}
         <div className="text-center mb-8 flex flex-col items-center">
-          <img src="/logo.png" alt="ParikshaOS Logo" className="w-16 h-16 object-contain mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">ParikshaOS</h1>
-          <p className="text-gray-500 mt-2">Secure examination management system</p>
+          <div className="mb-4 border-2 border-[#008080] p-3 inline-block" style={{background: 'white'}}>
+            <img src="/logo.png" alt="ParikshaOS Logo" className="w-14 h-14 object-contain" />
+          </div>
+          <h1 className="text-3xl font-extrabold text-[#1a2e2e] tracking-tight uppercase">ParikshaOS</h1>
+          <p className="text-[#555555] mt-2 text-sm font-medium">Secure Examination Management System</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white backdrop-blur-xl border border-gray-200 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign in to your account</h2>
+        <div className="bg-white border-2 border-[#008080] p-8 shadow-[4px_4px_0px_#008080]">
+          {/* Card header bar */}
+          <div className="-mx-8 -mt-8 mb-6 px-8 py-3 bg-[#008080]">
+            <h2 className="text-base font-bold text-white uppercase tracking-widest">Administrator Sign In</h2>
+          </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email address
+              <label htmlFor="email" className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">
+                Email Address
               </label>
               <input
                 id="email"
@@ -79,13 +89,13 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] placeholder-[#8aacac] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm"
                 placeholder="admin@school.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="password" className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">
                 Password
               </label>
               <input
@@ -94,24 +104,24 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] placeholder-[#8aacac] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm"
                 placeholder="••••••••"
               />
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-sm">
-                {error}
+              <div className="border border-red-400 bg-red-50 p-3 text-red-600 text-sm font-medium">
+                ⚠ {error}
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 bg-[#008080] text-white font-medium rounded-xl hover:bg-[#006666] focus:outline-none focus:ring-2 focus:ring-[#008080]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#008080]/25"
+              className="w-full py-3 px-4 bg-[#008080] text-white font-bold uppercase tracking-wider hover:bg-[#006666] focus:outline-none focus:ring-2 focus:ring-[#008080] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm border-b-4 border-[#004d4d] active:border-b-0 active:translate-y-[4px]"
             >
               {loading ? (
-                <span className="inline-flex items-center gap-2">
+                <span className="inline-flex items-center gap-2 justify-center">
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -119,14 +129,14 @@ export default function LoginPage() {
                   Signing in...
                 </span>
               ) : (
-                'Sign in'
+                'Sign In'
               )}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-gray-400 text-sm mt-6">
-          © {new Date().getFullYear()} ParikshaOS. All rights reserved.
+        <p className="text-center text-[#8aacac] text-xs mt-6 uppercase tracking-wider">
+          © {new Date().getFullYear()} Growtez ParikshaOS · All rights reserved
         </p>
       </div>
     </div>

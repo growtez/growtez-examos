@@ -35,15 +35,6 @@ const navItems = [
     ),
   },
   {
-    label: 'Students',
-    href: '/students',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-      </svg>
-    ),
-  },
-  {
     label: 'Results',
     href: '/results',
     icon: (
@@ -74,30 +65,32 @@ export default function SchoolAdminLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-[#f5f9f9]">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gray-50 border-r border-gray-200 transition-all duration-300 flex flex-col`}>
-        <div className="h-16 flex items-center px-5 border-b border-gray-200">
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-[#1a2e2e] border-r border-[#243f3f] transition-all duration-300 flex flex-col`}>
+        <div className="h-16 flex items-center px-4 border-b border-[#243f3f]">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="ParikshaOS Logo" className="w-9 h-9 object-contain flex-shrink-0" />
+            <div className="w-9 h-9 bg-[#008080] flex items-center justify-center flex-shrink-0">
+              <img src="/logo.png" alt="ParikshaOS Logo" className="w-7 h-7 object-contain" />
+            </div>
             {sidebarOpen && (
               <div>
-                <h1 className="text-gray-900 font-bold text-sm leading-tight">School Panel</h1>
-                <p className="text-gray-400 text-xs">ParikshaOS</p>
+                <h1 className="text-white font-bold text-sm leading-tight">School Panel</h1>
+                <p className="text-[#4da6a6] text-xs">ParikshaOS</p>
               </div>
             )}
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-2 py-4 space-y-0.5">
           {navItems.map((item) => {
-            const activeClass = "bg-teal-50 text-[#008080]";
-            const inactiveClass = "text-gray-600 hover:bg-gray-50";
+            const activeClass = "bg-[#008080] text-white border-l-4 border-[#00c8c8] pl-3";
+            const inactiveClass = "text-[#8ab8b8] hover:bg-[#243f3f] hover:text-white border-l-4 border-transparent pl-3";
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                className={`flex items-center gap-3 px-2 py-2.5 text-sm font-medium transition-all ${
                   isActive(item.href) ? activeClass : inactiveClass
                 }`}
               >
@@ -108,10 +101,10 @@ export default function SchoolAdminLayout({
           })}
         </nav>
 
-        <div className="px-3 py-4 border-t border-gray-200">
+        <div className="px-2 py-4 border-t border-[#243f3f]">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all w-full"
+            className="flex items-center gap-3 px-2 py-2.5 text-sm font-medium text-[#8ab8b8] hover:text-[#ff6b6b] hover:bg-[#3f1a1a] transition-all w-full border-l-4 border-transparent pl-3"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
@@ -122,18 +115,18 @@ export default function SchoolAdminLayout({
       </aside>
 
       <div className="flex-1 flex flex-col">
-        <header className="h-16 bg-gray-50 backdrop-blur-xl border-b border-gray-200 flex items-center justify-between px-6">
+        <header className="h-16 bg-white border-b-2 border-[#008080] flex items-center justify-between px-6 shadow-sm">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-gray-500 hover:text-gray-900 transition-colors"
+            className="text-[#555555] hover:text-[#008080] transition-colors p-1"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <span className="text-gray-900 text-xs font-bold">S</span>
+            <div className="w-8 h-8 bg-[#008080] flex items-center justify-center">
+              <span className="text-white text-xs font-bold">S</span>
             </div>
           </div>
         </header>

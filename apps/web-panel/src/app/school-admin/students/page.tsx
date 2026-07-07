@@ -165,18 +165,18 @@ export default function StudentsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Students</h2>
-          <p className="text-gray-500 mt-1">Manage your school&apos;s students</p>
+        <div className="border-l-4 border-[#008080] pl-4">
+          <h2 className="text-2xl font-extrabold text-[#1a2e2e] uppercase tracking-wide">Students</h2>
+          <p className="text-[#555555] mt-1 text-sm">Manage your school&apos;s students</p>
         </div>
         <div className="flex gap-3">
           <button onClick={() => setShowImportModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] font-bold hover:border-[#008080] hover:text-[#008080] transition-colors text-sm uppercase">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
             Import CSV
           </button>
           <button onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-gray-900 font-medium rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all shadow-lg shadow-indigo-500/25 text-sm">
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#008080] text-white font-bold hover:bg-[#006666] transition-all border-b-2 border-[#004d4d] text-sm uppercase tracking-wider">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             Add Student
           </button>
@@ -184,44 +184,44 @@ export default function StudentsPage() {
       </div>
 
       {success && (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-emerald-400 text-sm mb-6">{success}</div>
+        <div className="bg-[#e0f2f2] border border-[#b2d8d8] p-4 text-[#008080] text-sm font-bold mb-6 uppercase">{success}</div>
       )}
 
       {/* Students Info Box */}
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6">
-        <p className="text-gray-500 text-sm">
-          <strong className="text-gray-700">Student Login:</strong> Roll number is the user ID, Date of Birth (DDMMYYYY) is the password. Students use the desktop app to take exams.
+      <div className="bg-[#f5f9f9] border border-[#b2d8d8] p-4 mb-6">
+        <p className="text-[#555555] text-sm">
+          <strong className="text-[#1a2e2e]">Student Login:</strong> Roll number is the user ID, Date of Birth (DDMMYYYY) is the password. Students use the desktop app to take exams.
         </p>
       </div>
 
       {/* Table */}
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
+      <div className="bg-white border-2 border-[#b2d8d8] overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-500">Loading...</div>
+          <div className="p-12 text-center text-[#555555]">Loading...</div>
         ) : students.length === 0 ? (
           <div className="p-12 text-center">
-            <h3 className="text-gray-900 font-semibold text-lg">No students yet</h3>
-            <p className="text-gray-500 mt-1">Add students individually or import via CSV</p>
+            <h3 className="text-[#1a2e2e] font-bold text-lg uppercase">No students yet</h3>
+            <p className="text-[#555555] mt-1 text-sm">Add students individually or import via CSV</p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Roll No.</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Name</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">DOB</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Added</th>
+              <tr className="bg-[#008080]">
+                <th className="text-left px-6 py-3 text-xs font-bold text-white uppercase tracking-wider">Roll No.</th>
+                <th className="text-left px-6 py-3 text-xs font-bold text-white uppercase tracking-wider">Name</th>
+                <th className="text-left px-6 py-3 text-xs font-bold text-white uppercase tracking-wider">DOB</th>
+                <th className="text-left px-6 py-3 text-xs font-bold text-white uppercase tracking-wider">Added</th>
               </tr>
             </thead>
             <tbody>
               {students.map((s) => (
-                <tr key={s.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                <tr key={s.id} className="border-b border-[#e0f2f2] hover:bg-[#f5f9f9] transition-colors">
                   <td className="px-6 py-4">
-                    <span className="inline-flex px-2.5 py-1 bg-white border border-gray-300 rounded-lg text-gray-900 text-sm font-mono">{s.roll_number}</span>
+                    <span className="inline-flex px-2.5 py-1 bg-[#e0f2f2] border border-[#b2d8d8] text-[#008080] text-sm font-mono font-bold">{s.roll_number}</span>
                   </td>
-                  <td className="px-6 py-4 text-gray-900 font-medium">{s.full_name}</td>
-                  <td className="px-6 py-4 text-gray-500 text-sm">{s.date_of_birth ? new Date(s.date_of_birth).toLocaleDateString() : '—'}</td>
-                  <td className="px-6 py-4 text-gray-500 text-sm">{new Date(s.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-[#1a2e2e] font-medium">{s.full_name}</td>
+                  <td className="px-6 py-4 text-[#555555] text-sm">{s.date_of_birth ? new Date(s.date_of_birth).toLocaleDateString() : '—'}</td>
+                  <td className="px-6 py-4 text-[#555555] text-sm">{new Date(s.created_at).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -231,36 +231,38 @@ export default function StudentsPage() {
 
       {/* Add Student Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Student</h3>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
+          <div className="bg-white border-2 border-[#008080] shadow-[4px_4px_0px_#004d4d] p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-[#008080] -mx-6 -mt-6 mb-5 px-6 py-3">
+              <h3 className="text-sm font-extrabold text-white uppercase tracking-widest">Add Student</h3>
+            </div>
             <form onSubmit={handleAddStudent} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+                <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Full Name</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] placeholder-[#8aacac] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm"
                   placeholder="Aarav Patel" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Roll Number</label>
+                <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Roll Number</label>
                 <input type="text" value={rollNumber} onChange={(e) => setRollNumber(e.target.value)} required
-                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] placeholder-[#8aacac] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm"
                   placeholder="2024001" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Date of Birth</label>
+                <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Date of Birth</label>
                 <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} required
-                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm" />
               </div>
-              <p className="text-gray-400 text-xs">Password will be DOB in DDMMYYYY format</p>
-              {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-sm">{error}</div>}
+              <p className="text-[#8aacac] text-xs">Password will be DOB in DDMMYYYY format</p>
+              {error && <div className="border border-red-400 bg-red-50 p-3 text-red-600 text-sm">⚠ {error}</div>}
               <div className="flex gap-3 pt-2">
                 <button type="submit" disabled={formLoading}
-                  className="flex-1 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-gray-900 font-medium rounded-xl disabled:opacity-50">
+                  className="flex-1 py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold disabled:opacity-50 border-b-2 border-[#004d4d] uppercase tracking-wider text-sm">
                   {formLoading ? 'Adding...' : 'Add Student'}
                 </button>
                 <button type="button" onClick={() => setShowModal(false)}
-                  className="px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors">
+                  className="px-4 py-3 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] font-bold hover:border-[#008080] transition-colors uppercase text-sm">
                   Cancel
                 </button>
               </div>
@@ -271,12 +273,14 @@ export default function StudentsPage() {
 
       {/* Import CSV Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowImportModal(false)}>
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Import Students via CSV</h3>
-            <div className="bg-white border border-gray-300 rounded-xl p-4 mb-4">
-              <p className="text-gray-700 text-sm font-medium mb-2">CSV Format:</p>
-              <code className="text-xs text-indigo-400 bg-gray-50 px-3 py-2 rounded-lg block">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowImportModal(false)}>
+          <div className="bg-white border-2 border-[#008080] shadow-[4px_4px_0px_#004d4d] p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-[#008080] -mx-6 -mt-6 mb-5 px-6 py-3">
+              <h3 className="text-sm font-extrabold text-white uppercase tracking-widest">Import Students via CSV</h3>
+            </div>
+            <div className="bg-[#f5f9f9] border border-[#b2d8d8] p-4 mb-4">
+              <p className="text-[#1a2e2e] text-sm font-bold mb-2 uppercase tracking-wide">CSV Format:</p>
+              <code className="text-xs text-[#008080] bg-white px-3 py-2 block border border-[#b2d8d8] font-mono">
                 name, roll_number, dob<br />
                 Aarav Patel, 2024001, 15/06/2005<br />
                 Priya Singh, 2024002, 22/03/2005
@@ -284,18 +288,18 @@ export default function StudentsPage() {
             </div>
             <form onSubmit={handleCsvImport} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Select CSV File</label>
+                <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Select CSV File</label>
                 <input type="file" ref={fileInputRef} accept=".csv,.txt" required
-                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-indigo-500/20 file:text-indigo-400 file:text-sm file:font-medium" />
+                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] file:mr-4 file:py-1 file:px-3 file:border-0 file:bg-[#008080] file:text-white file:text-sm file:font-bold file:uppercase" />
               </div>
-              {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-red-400 text-sm">{error}</div>}
+              {error && <div className="border border-red-400 bg-red-50 p-3 text-red-600 text-sm">⚠ {error}</div>}
               <div className="flex gap-3 pt-2">
                 <button type="submit" disabled={formLoading}
-                  className="flex-1 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-gray-900 font-medium rounded-xl disabled:opacity-50">
+                  className="flex-1 py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold disabled:opacity-50 border-b-2 border-[#004d4d] uppercase tracking-wider text-sm">
                   {formLoading ? 'Importing...' : 'Import'}
                 </button>
                 <button type="button" onClick={() => setShowImportModal(false)}
-                  className="px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors">
+                  className="px-4 py-3 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] font-bold hover:border-[#008080] transition-colors uppercase text-sm">
                   Cancel
                 </button>
               </div>
