@@ -7,6 +7,7 @@ interface LoginProps {
 
 export default function Login({ onLoginSuccess }: LoginProps) {
   const [schools, setSchools] = useState<any[]>([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(true);
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
   const [rollNumber, setRollNumber] = useState('');
   const [dob, setDob] = useState('');
@@ -19,6 +20,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   // Fetch active schools on mount
   useEffect(() => {
     const fetchSchools = async () => {
+      setSchoolsLoading(true);
       const { data, error } = await supabase
         .from('schools')
         .select('id, name, domain')
@@ -30,6 +32,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           setSelectedSchoolId(data[0].id);
         }
       }
+      setSchoolsLoading(false);
     };
     fetchSchools();
   }, []);
@@ -134,139 +137,155 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 font-sans">
-
-      {/* NTA Login Header */}
-      <header className="bg-white border-b-4 border-[#ea580c] py-4 px-8 flex items-center gap-4 shadow-sm">
-        <div className="w-16 h-16 bg-white rounded-full border-[3px] border-green-600 flex items-center justify-center relative overflow-hidden shrink-0">
-          <div className="absolute top-0 left-0 right-0 bottom-0 bg-orange-500 rounded-full scale-[0.8] clip-path-polygon" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 70%)' }}></div>
-          <svg className="w-10 h-10 text-green-600 absolute z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-        </div>
-        <div>
-          <h1 className="text-[#1e3b8a] text-[28px] font-extrabold tracking-wide uppercase m-0 leading-none">growtez ExamOS</h1>
-          <p className="text-white bg-[#22c55e] px-2 py-0.5 text-sm font-bold inline-block italic mt-1 tracking-wide">Excellence in Assessment</p>
+    <div className="min-h-screen flex flex-col bg-white text-black font-sans selection:bg-[#475fa6] selection:text-white">
+      {/* Premium Header */}
+      <header className="py-6 px-10 flex items-center justify-between border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-[#475fa6] text-white flex items-center justify-center rounded-xl shadow-md">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">ParikshaOS</h1>
+          </div>
         </div>
       </header>
 
       {/* Login Container */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="bg-white w-full max-w-md border border-gray-300 shadow-lg">
-
-          <div className="bg-[#1e3b8a] text-white py-3 px-6 text-center font-bold text-lg border-b border-blue-800">
-            CANDIDATE LOGIN
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col">
+        {/* Small top spacer keeps the card positioned high up */}
+        <div className="shrink-0 h-[3vh] md:h-[5vh] min-h-[20px]"></div>
+        
+        <div className="bg-white w-full max-w-md mx-auto rounded-[24px] p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-200 shrink-0">
+          
+          <div className="mb-8 text-center">
+            <h2 className="text-2xl font-bold mb-2 tracking-tight">Welcome</h2>
+            <p className="text-gray-500 text-sm">Sign in to access your examinations</p>
           </div>
 
-          <div className="p-8">
-            {!authSuccess ? (
-              /* Credentials Form */
-              <form onSubmit={handleStudentAuth} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Select School / Center</label>
-                  <select
-                    value={selectedSchoolId}
-                    onChange={(e) => setSelectedSchoolId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-400 text-gray-900 focus:outline-none focus:border-[#ea580c] transition-colors text-sm rounded-none"
-                  >
-                    {schools.map((school) => (
+          {!authSuccess ? (
+            /* Credentials Form */
+            <form onSubmit={handleStudentAuth} className="space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">School / Center</label>
+                <select
+                  value={selectedSchoolId}
+                  onChange={(e) => setSelectedSchoolId(e.target.value)}
+                  disabled={schoolsLoading}
+                  className="w-full px-4 py-3.5 bg-white border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#475fa6] focus:border-transparent transition-all rounded-xl text-sm font-medium disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
+                >
+                  {schoolsLoading ? (
+                    <option value="">Loading centers...</option>
+                  ) : schools.length === 0 ? (
+                    <option value="">No centers available</option>
+                  ) : (
+                    schools.map((school) => (
                       <option key={school.id} value={school.id}>
                         {school.name}
                       </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Roll Number / Application No</label>
-                  <input
-                    type="text"
-                    value={rollNumber}
-                    onChange={(e) => setRollNumber(e.target.value)}
-                    required
-                    placeholder="Enter your roll number"
-                    className="w-full px-4 py-2.5 bg-white border border-gray-400 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-[#ea580c] transition-colors text-sm rounded-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Date of Birth</label>
-                  <input
-                    type="date"
-                    value={dob}
-                    onChange={(e) => setDob(e.target.value)}
-                    required
-                    className="w-full px-4 py-2.5 bg-white border border-gray-400 text-gray-900 focus:outline-none focus:border-[#ea580c] transition-colors text-sm rounded-none"
-                  />
-                </div>
-
-                {error && (
-                  <div className="bg-red-50 border border-red-200 p-3 text-red-600 text-sm font-medium text-center">
-                    {error}
-                  </div>
-                )}
-
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3 bg-[#4ade80] hover:bg-[#22c55e] text-white font-bold transition-colors disabled:opacity-50 text-sm border border-[#16a34a] shadow-[1px_1px_3px_rgba(0,0,0,0.3)] rounded-none"
-                  >
-                    {loading ? 'AUTHENTICATING...' : 'LOGIN'}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              /* Exam Selection Form */
-              <div className="space-y-6">
-                <div className="bg-blue-50 border border-blue-200 p-4 text-center">
-                  <p className="text-[#1e3b8a] text-base font-bold">Welcome, Candidate</p>
-                  <p className="text-gray-600 text-sm mt-1">Roll No: {rollNumber}</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Select Examination</label>
-                  <select
-                    value={selectedExamId}
-                    onChange={(e) => setSelectedExamId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-400 text-gray-900 focus:outline-none focus:border-[#ea580c] transition-colors text-sm rounded-none"
-                  >
-                    {assignedExams.map((exam) => (
-                      <option key={exam.id} value={exam.id}>
-                        {exam.title} ({exam.duration_minutes} mins)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {error && (
-                  <div className="bg-red-50 border border-red-200 p-3 text-red-600 text-sm font-medium text-center">
-                    {error}
-                  </div>
-                )}
-
-                <div className="flex gap-4 pt-2">
-                  <button
-                    onClick={handleStartExam}
-                    disabled={loading}
-                    className="flex-1 py-3 bg-[#4ade80] hover:bg-[#22c55e] text-white font-bold transition-colors shadow-[1px_1px_3px_rgba(0,0,0,0.3)] border border-[#16a34a] text-sm rounded-none"
-                  >
-                    {loading ? 'LOADING...' : 'START EXAM'}
-                  </button>
-                  <button
-                    onClick={() => { setAuthSuccess(false); setAssignedExams([]); }}
-                    className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold border border-gray-400 transition-colors text-sm rounded-none"
-                  >
-                    BACK
-                  </button>
-                </div>
+                    ))
+                  )}
+                </select>
               </div>
-            )}
-          </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Roll Number</label>
+                <input
+                  type="text"
+                  value={rollNumber}
+                  onChange={(e) => setRollNumber(e.target.value)}
+                  required
+                  placeholder="Enter your roll number"
+                  className="w-full px-4 py-3.5 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#475fa6] focus:border-transparent transition-all rounded-xl text-sm font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Date of Birth</label>
+                <input
+                  type="date"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  required
+                  className="w-full px-4 py-3.5 bg-white border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#475fa6] focus:border-transparent transition-all rounded-xl text-sm font-medium"
+                />
+              </div>
+
+              {error && (
+                <div className="bg-red-50/80 border border-red-100 p-3 rounded-xl text-red-600 text-sm font-semibold text-center">
+                  {error}
+                </div>
+              )}
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-4 bg-[#475fa6] hover:bg-[#394c86] text-white font-bold rounded-xl transition-all disabled:opacity-70 disabled:cursor-not-allowed text-sm shadow-lg hover:shadow-xl active:scale-[0.98]"
+                >
+                  {loading ? 'Authenticating...' : 'Sign In'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            /* Exam Selection Form */
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 text-center shadow-sm">
+                <div className="w-14 h-14 bg-[#475fa6] text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-md">
+                  <span className="font-bold text-xl">{rollNumber.charAt(0).toUpperCase()}</span>
+                </div>
+                <p className="text-gray-900 text-lg font-bold">Candidate Verified</p>
+                <p className="text-gray-500 text-sm mt-1 font-medium">Roll No: {rollNumber}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Available Examinations</label>
+                <select
+                  value={selectedExamId}
+                  onChange={(e) => setSelectedExamId(e.target.value)}
+                  className="w-full px-4 py-3.5 bg-white border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#475fa6] focus:border-transparent transition-all rounded-xl text-sm font-medium"
+                >
+                  {assignedExams.map((exam) => (
+                    <option key={exam.id} value={exam.id}>
+                      {exam.title} ({exam.duration_minutes} mins)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {error && (
+                <div className="bg-red-50/80 border border-red-100 p-3 rounded-xl text-red-600 text-sm font-semibold text-center">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3 pt-4">
+                <button
+                  onClick={handleStartExam}
+                  disabled={loading}
+                  className="w-full py-4 bg-[#475fa6] hover:bg-[#394c86] text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl active:scale-[0.98] text-sm"
+                >
+                  {loading ? 'Preparing Exam...' : 'Start Examination'}
+                </button>
+                <button
+                  onClick={() => { setAuthSuccess(false); setAssignedExams([]); }}
+                  className="w-full py-4 bg-white hover:bg-gray-50 text-[#475fa6] font-bold rounded-xl border border-gray-200 transition-all text-sm"
+                >
+                  Go Back
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+        
+        {/* Bottom Spacer (Expands to push card up) */}
+        <div className="flex-1 min-h-[40px]"></div>
       </div>
 
       {/* Footer */}
-      <footer className="text-center py-4 text-gray-500 text-xs border-t border-gray-300 bg-white">
-        v1.0.0 | growtez ExamOS Simulation
+      <footer className="text-center py-6 text-gray-400 text-xs bg-white font-medium tracking-wide">
+        &copy; {new Date().getFullYear()} ParikshaOS. All rights reserved.
       </footer>
     </div>
   );
