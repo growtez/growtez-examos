@@ -68,9 +68,10 @@ export async function POST(req: Request) {
     await new Promise(resolve => setTimeout(resolve, 500));
 
     // 3. Assign to exam
-    const { error: assignError } = await adminSupabase.rpc('assign_students', {
-      p_exam_id: exam_id,
-      p_student_ids: [authData.user.id]
+    const { error: assignError } = await adminSupabase.from('exam_students').insert({
+      exam_id: exam_id,
+      student_id: authData.user.id,
+      status: 'assigned'
     });
 
     if (assignError) {
