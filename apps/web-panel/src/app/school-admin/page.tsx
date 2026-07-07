@@ -33,41 +33,44 @@ export default async function SchoolAdminDashboard() {
     : { count: 0 };
 
   const stats = [
-    { label: 'Total Students', value: studentCount ?? 0, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { label: 'Teachers', value: teacherCount ?? 0, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { label: 'Total Exams', value: examCount ?? 0, color: 'text-violet-400', bg: 'bg-violet-500/10' },
-    { label: 'Active Exams', value: activeExamCount ?? 0, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { label: 'Total Students', value: studentCount ?? 0, color: 'text-[#008080]', bg: 'bg-[#e0f2f2]', border: 'border-[#b2d8d8]' },
+    { label: 'Teachers', value: teacherCount ?? 0, color: 'text-[#006666]', bg: 'bg-[#cceded]', border: 'border-[#99d4d4]' },
+    { label: 'Total Exams', value: examCount ?? 0, color: 'text-[#004d4d]', bg: 'bg-[#b3e0e0]', border: 'border-[#80cccc]' },
+    { label: 'Active Exams', value: activeExamCount ?? 0, color: 'text-[#008080]', bg: 'bg-[#008080]', border: 'border-[#006666]' },
   ];
 
   return (
     <div>
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-        <p className="text-gray-500 mt-1">Manage exams, teachers, and students for {schoolName}</p>
+      <div className="mb-8 border-l-4 border-[#008080] pl-4">
+        <h2 className="text-2xl font-extrabold text-[#1a2e2e] uppercase tracking-wide">Dashboard</h2>
+        <p className="text-[#555555] mt-1 text-sm">Manage exams, teachers, and students for {schoolName}</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        {stats.map((stat) => (
-          <div key={stat.label} className="bg-gray-50 border border-gray-200 rounded-2xl p-5">
-            <span className="text-gray-500 text-sm font-medium">{stat.label}</span>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+        {stats.map((stat, i) => (
+          <div key={stat.label} className={`border-2 p-5 ${i === 3 ? 'bg-[#008080] border-[#006666]' : `bg-white ${stat.border} border`}`}>
+            <span className={`text-xs font-bold uppercase tracking-wider ${i === 3 ? 'text-[#cceded]' : 'text-[#555555]'}`}>{stat.label}</span>
+            <p className={`text-3xl font-extrabold mt-2 ${i === 3 ? 'text-white' : stat.color}`}>{stat.value}</p>
+            <div className={`mt-3 h-1 ${i === 3 ? 'bg-[#006666]' : 'bg-[#e0f2f2]'}`} />
           </div>
         ))}
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+      <div className="bg-white border-2 border-[#b2d8d8] p-6">
+        <div className="border-l-4 border-[#008080] pl-3 mb-4">
+          <h3 className="text-base font-bold text-[#1a2e2e] uppercase tracking-wide">Quick Actions</h3>
+        </div>
         <div className="flex flex-wrap gap-3">
-          <Link href="/exams/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl text-sm font-medium hover:bg-indigo-500/20 transition-colors">
+          <Link href="/exams/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#008080] text-white text-sm font-bold uppercase tracking-wider hover:bg-[#006666] transition-colors border-b-2 border-[#004d4d]">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             Create Exam
           </Link>
-          <Link href="/teachers" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">
+          <Link href="/teachers" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] text-sm font-bold uppercase tracking-wider hover:border-[#008080] hover:text-[#008080] transition-colors">
             Manage Teachers
           </Link>
-          <Link href="/students" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">
+          <Link href="/students" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] text-sm font-bold uppercase tracking-wider hover:border-[#008080] hover:text-[#008080] transition-colors">
             Manage Students
           </Link>
         </div>

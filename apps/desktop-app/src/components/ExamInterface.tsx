@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 interface ExamInterfaceProps {
@@ -28,6 +28,8 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Prevent double auto-submit
+  const autoSubmittedRef = useRef(false);
 
   useEffect(() => {
     const fetchExamData = async () => {
@@ -60,15 +62,23 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
     fetchExamData();
   }, [exam.id]);
 
+  // Timer — re-syncs every second; auto-submits when time hits 0
   useEffect(() => {
+    if (loading) return; // Don't start timer until exam data is loaded
+
     if (timeLeft <= 0) {
-      handleSubmitExam();
+      // Auto-submit only once
+      if (!autoSubmittedRef.current) {
+        autoSubmittedRef.current = true;
+        handleAutoSubmit();
+      }
       return;
     }
+
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
+      setTimeLeft(() => {
         if (!exam.end_time) {
-          return Math.max(0, prev - 1);
+          return Math.max(0, timeLeft - 1);
         }
         const now = new Date(Date.now() + serverTimeOffset).getTime();
         const endTime = new Date(exam.end_time).getTime();
@@ -76,7 +86,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [exam.end_time, serverTimeOffset]);
+  }, [timeLeft, loading]);
 
 
   const formatTime = (seconds: number) => {
@@ -170,6 +180,55 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
     return { answered, review, answered_review, not_answered, not_visited };
   };
 
+  // Silent auto-submit called when timer reaches 0
+  const handleAutoSubmit = async () => {
+    setSubmitting(true);
+    try {
+      let finalScore = 0;
+      const sectionScores: any[] = subjects.map(sub => ({ subject_name: sub.subject_name, correct: 0, wrong: 0, unanswered: 0, marks: 0 }));
+
+      questions.forEach((q) => {
+        const studentAns = answers[q.id]?.answer;
+        const subIdx = subjects.findIndex(s => s.id === q.exam_subject_id);
+        const section = sectionScores[subIdx];
+        if (studentAns === null || studentAns === '') {
+          section.unanswered++;
+        } else if (studentAns === q.correct_option) {
+          section.correct++;
+          section.marks += q.positive_marks ?? 4;
+          finalScore += q.positive_marks ?? 4;
+        } else {
+          section.wrong++;
+          section.marks += q.negative_marks ?? 0;
+          finalScore += q.negative_marks ?? 0;
+        }
+      });
+
+      const formattedAnswers: Record<string, any> = {};
+      Object.keys(answers).forEach(qId => {
+        formattedAnswers[qId] = { question_id: qId, answer: answers[qId].answer, marked_for_review: answers[qId].marked, time_spent_seconds: 0 };
+      });
+
+      await supabase.rpc('submit_exam', {
+        p_exam_id: exam.id,
+        p_school_id: exam.school_id,
+        p_answers: formattedAnswers,
+        p_total_marks: finalScore,
+        p_section_scores: sectionScores,
+        p_time_taken_seconds: exam.duration_minutes * 60,
+      });
+      await supabase.auth.signOut();
+      onExamSubmitted();
+    } catch (err) {
+      console.error('Auto-submit failed:', err);
+      // Still sign out and move on so the student is not stuck
+      await supabase.auth.signOut();
+      onExamSubmitted();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmitExam = async () => {
     setSubmitting(true);
     try {
@@ -236,36 +295,50 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
     <div className="flex flex-col min-h-screen bg-white text-gray-900 font-sans text-[15px] select-none">
 
       {/* Top Header - White */}
-      <header className="h-[90px] border-b flex items-center justify-between bg-white px-6">
+      <header className="h-[90px] border-b-2 border-[#008080] flex items-center justify-between bg-white px-6">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="ParikshaOS Logo" className="w-12 h-12 object-contain" />
+          <div className="w-12 h-12 bg-[#008080] flex items-center justify-center">
+            <img src="/logo.png" alt="ParikshaOS Logo" className="w-10 h-10 object-contain" />
+          </div>
           <div>
-            <h1 className="text-[#008080] text-[22px] font-extrabold tracking-wide m-0 leading-tight">ParikshaOS</h1>
+            <h1 className="text-[#008080] text-[20px] font-extrabold tracking-widest m-0 leading-tight uppercase">ParikshaOS</h1>
+            <p className="text-[10px] text-[#555555] uppercase tracking-widest">Powered by Growtez</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3 text-sm">
-          <div className="w-16 h-16 border-2 border-gray-400 bg-gray-100 flex items-center justify-center">
-            <svg className="w-12 h-12 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
+          <div className="w-16 h-16 border-2 border-[#b2d8d8] bg-[#f5f9f9] flex items-center justify-center">
+            <svg className="w-12 h-12 text-[#8aacac]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
           </div>
           <div className="flex flex-col text-right">
-            <div className="text-gray-800"><span className="text-gray-500">Candidate Name :</span> <span className="text-orange-600 font-bold">[{studentProfile.full_name}]</span></div>
-            <div className="text-gray-800"><span className="text-gray-500">Subject Name :</span> <span className="text-orange-600 font-bold">[{exam.title}]</span></div>
-            <div className="text-gray-800"><span className="text-gray-500">Remaining Time :</span> <span className="bg-[#3b82f6] text-white px-2 py-0.5 rounded-sm font-bold ml-1">{formatTime(timeLeft)}</span></div>
+            <div className="text-[#1a2e2e]"><span className="text-[#555555]">Candidate Name :</span> <span className="text-[#008080] font-bold">[{studentProfile.full_name}]</span></div>
+            <div className="text-[#1a2e2e]"><span className="text-[#555555]">Subject Name :</span> <span className="text-[#008080] font-bold">[{exam.title}]</span></div>
+            <div className="text-[#1a2e2e]"><span className="text-[#555555]">Remaining Time :</span>
+              <span className={`px-2 py-0.5 font-bold ml-1 text-xs text-white ${
+                timeLeft <= 300 ? 'bg-red-600 animate-pulse' : 'bg-[#008080]'
+              }`}>{formatTime(timeLeft)}</span>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Secondary Bar - Orange */}
-      <div className="bg-[#f97316] h-[50px] flex items-center justify-between px-6 text-white font-bold uppercase shadow-sm">
+      {/* Low Time Warning Banner */}
+      {timeLeft <= 300 && timeLeft > 0 && (
+        <div className="bg-red-600 text-white text-center text-xs font-bold py-1.5 uppercase tracking-widest animate-pulse">
+          ⚠ Less than {Math.ceil(timeLeft / 60)} minute{timeLeft > 60 ? 's' : ''} remaining — Exam will auto-submit when time runs out!
+        </div>
+      )}
+
+      {/* Secondary Bar - Teal */}
+      <div className="bg-[#008080] h-[50px] flex items-center justify-between px-6 text-white font-bold uppercase shadow-sm">
         <div className="flex items-center gap-6 h-full">
-          <span className="text-lg tracking-wider">JEE MAIN</span>
+          <span className="text-sm tracking-widest">{exam.title?.toUpperCase() || 'EXAMINATION'}</span>
           <div className="flex h-full">
             {subjects.map((sub, idx) => (
               <button
                 key={sub.id}
                 onClick={() => { setCurrentSubjectIndex(idx); setCurrentQuestionIndex(0); }}
-                className={`px-6 h-full border-r border-[#ea580c] transition-colors hover:bg-[#1d4ed8] ${currentSubjectIndex === idx ? 'bg-[#2563eb]' : 'bg-[#3b82f6]'
+                className={`px-6 h-full border-r border-[#006666] transition-colors hover:bg-[#006666] text-sm ${currentSubjectIndex === idx ? 'bg-[#004d4d]' : 'bg-[#007070]'
                   }`}
               >
                 {sub.subject_name}
@@ -277,14 +350,14 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         <div className="flex items-center gap-8">
           <div className="flex flex-col items-center">
             <span className="text-[10px] leading-tight">DOWNLOAD PAPER IN:</span>
-            <button className="bg-[#3b82f6] hover:bg-[#2563eb] text-white text-xs px-4 py-1 flex items-center gap-1 border border-blue-400/50">
+            <button className="bg-[#006666] hover:bg-[#004d4d] text-white text-xs px-4 py-1 flex items-center gap-1 border border-[#004d4d]">
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               DOWNLOAD
             </button>
           </div>
           <div className="flex flex-col items-start gap-1">
             <span className="text-[11px] leading-none">Paper Language:</span>
-            <select className="text-black bg-white border border-gray-300 px-2 py-0.5 text-xs font-normal w-32 outline-none">
+            <select className="text-black bg-white border border-[#004d4d] px-2 py-0.5 text-xs font-normal w-32 outline-none">
               <option>English</option>
               <option>Hindi</option>
             </select>
@@ -351,38 +424,36 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           </div>
 
           {/* Action Buttons Footer */}
-          <div className="border-t border-gray-300 p-4 pb-0 bg-white">
-            <div className="flex items-center gap-2 mb-4">
-              <button onClick={handleSaveAndNext} className="bg-[#4ade80] hover:bg-[#22c55e] text-white px-4 py-2 font-bold text-xs shadow-[1px_1px_3px_rgba(0,0,0,0.3)] border border-green-600 transition-colors uppercase">
-                SAVE & NEXT
+          <div className="border-t-2 border-[#b2d8d8] p-4 pb-0 bg-white">
+            <div className="flex items-center gap-2 mb-3">
+              <button onClick={handleSaveAndNext} className="bg-[#008080] hover:bg-[#006666] text-white px-4 py-2 font-bold text-xs border-b-2 border-[#004d4d] transition-colors uppercase">
+                SAVE &amp; NEXT
               </button>
-              <button onClick={handleSaveAndMarkForReview} className="bg-[#fb923c] hover:bg-[#f97316] text-white px-4 py-2 font-bold text-xs shadow-[1px_1px_3px_rgba(0,0,0,0.3)] border border-orange-600 transition-colors uppercase">
-                SAVE & MARK FOR REVIEW
+              <button onClick={handleSaveAndMarkForReview} className="bg-[#555555] hover:bg-[#333333] text-white px-4 py-2 font-bold text-xs border-b-2 border-[#222222] transition-colors uppercase">
+                SAVE &amp; MARK FOR REVIEW
               </button>
-              <button onClick={handleClearResponse} className="bg-white hover:bg-gray-100 text-gray-700 px-4 py-2 font-bold text-xs shadow-[1px_1px_3px_rgba(0,0,0,0.3)] border border-gray-300 transition-colors uppercase">
+              <button onClick={handleClearResponse} className="bg-white hover:bg-[#f5f9f9] text-[#1a2e2e] px-4 py-2 font-bold text-xs border-2 border-[#b2d8d8] hover:border-[#008080] transition-colors uppercase">
                 CLEAR RESPONSE
               </button>
-              <button onClick={handleMarkForReviewAndNext} className="bg-[#3b82f6] hover:bg-[#2563eb] text-white px-4 py-2 font-bold text-xs shadow-[1px_1px_3px_rgba(0,0,0,0.3)] border border-blue-600 transition-colors uppercase">
-                MARK FOR REVIEW & NEXT
+              <button onClick={handleMarkForReviewAndNext} className="bg-[#004d4d] hover:bg-[#003333] text-white px-4 py-2 font-bold text-xs border-b-2 border-[#002222] transition-colors uppercase">
+                MARK FOR REVIEW &amp; NEXT
               </button>
             </div>
 
-            <div className="bg-gray-100 border border-gray-300 flex items-center justify-between p-2">
+            <div className="bg-[#e0f2f2] border border-[#b2d8d8] flex items-center justify-between p-2">
               <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                   disabled={currentQuestionIndex === 0}
-                  className="bg-white border border-gray-300 px-3 py-1 font-bold text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50">
-                  &lt;&lt; BACK
+                  className="bg-white border-2 border-[#b2d8d8] px-3 py-1 font-bold text-xs text-[#1a2e2e] hover:border-[#008080] disabled:opacity-50">&lt;&lt; BACK
                 </button>
                 <button
                   onClick={() => setCurrentQuestionIndex(prev => Math.min(currentQuestions.length - 1, prev + 1))}
                   disabled={currentQuestionIndex === currentQuestions.length - 1}
-                  className="bg-white border border-gray-300 px-3 py-1 font-bold text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50">
-                  NEXT &gt;&gt;
+                  className="bg-white border-2 border-[#b2d8d8] px-3 py-1 font-bold text-xs text-[#1a2e2e] hover:border-[#008080] disabled:opacity-50">NEXT &gt;&gt;
                 </button>
               </div>
-              <button onClick={() => setShowSubmitModal(true)} className="bg-[#4ade80] hover:bg-[#22c55e] text-white px-6 py-1 font-bold text-sm border border-green-600">
+              <button onClick={() => setShowSubmitModal(true)} className="bg-[#008080] hover:bg-[#006666] text-white px-6 py-1 font-bold text-sm border-b-2 border-[#004d4d] uppercase">
                 SUBMIT
               </button>
             </div>
@@ -390,12 +461,12 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         </div>
 
         {/* Right Area - Palette Sidebar */}
-        <aside className="w-[300px] bg-white flex flex-col">
+        <aside className="w-[300px] bg-white flex flex-col border-l-2 border-[#b2d8d8]">
           {/* Legend Table */}
-          <div className="p-4 bg-white border-b border-gray-300">
-            <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-[11px] font-medium text-gray-700">
+          <div className="p-4 bg-[#f5f9f9] border-b-2 border-[#b2d8d8]">
+            <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-[11px] font-medium text-[#1a2e2e]">
               <div className="flex items-center gap-1.5">
-                <div className="w-8 h-7 bg-gray-200 border border-gray-300 flex items-center justify-center relative shadow-sm" style={{ clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0 100%, 0 20%)' }}>
+                <div className="w-8 h-7 bg-[#e0e0e0] border border-[#b0b0b0] flex items-center justify-center relative shadow-sm" style={{ clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0 100%, 0 20%)' }}>
                   {summary.not_visited}
                 </div>
                 <span>Not Visited</span>
@@ -407,49 +478,49 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                 <span>Not Answered</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-8 h-7 bg-[#22c55e] text-white border border-[#16a34a] flex items-center justify-center relative shadow-sm" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }}>
+                <div className="w-8 h-7 bg-[#008080] text-white border border-[#006666] flex items-center justify-center relative shadow-sm" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' }}>
                   <div className="absolute top-0 right-0 w-3 h-3 bg-white" style={{ clipPath: 'polygon(100% 0, 0 100%, 100% 100%)' }}></div>
                   {summary.answered}
                 </div>
                 <span>Answered</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <div className="w-8 h-7 bg-[#7e22ce] text-white border border-[#6b21a8] flex items-center justify-center rounded-full shadow-sm">
+                <div className="w-8 h-7 bg-[#555555] text-white border border-[#333333] flex items-center justify-center shadow-sm">
                   {summary.review}
                 </div>
                 <span>Marked for Review</span>
               </div>
               <div className="flex items-start gap-1.5 col-span-2 mt-1">
-                <div className="w-8 h-7 bg-[#7e22ce] text-white border border-[#6b21a8] flex items-center justify-center rounded-full shadow-sm relative shrink-0">
-                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#22c55e] rounded-full border border-white"></div>
+                <div className="w-8 h-7 bg-[#555555] text-white border border-[#333333] flex items-center justify-center shadow-sm relative shrink-0">
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-[#008080] border border-white"></div>
                   {summary.answered_review}
                 </div>
-                <span className="leading-tight mt-0.5">Answered & Marked for Review (will be considered for evaluation)</span>
+                <span className="leading-tight mt-0.5">Answered &amp; Marked for Review (will be considered for evaluation)</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-[#3b82f6] text-white font-bold px-4 py-1 text-sm border-y border-blue-400">
+          <div className="bg-[#008080] text-white font-bold px-4 py-1 text-sm border-y border-[#006666]">
             {subjects[currentSubjectIndex]?.subject_name}
           </div>
 
           {/* Palette Grid */}
-          <div className="flex-1 overflow-y-auto p-4 bg-[#e5e7eb]/30">
+          <div className="flex-1 overflow-y-auto p-4 bg-[#e0f2f2]/30">
             <div className="grid grid-cols-5 gap-2">
               {currentQuestions.map((q, idx) => {
                 const status = getQuestionStatus(q.id);
                 const active = currentQuestionIndex === idx;
 
-                let btnStyle = { backgroundColor: '#e5e7eb', color: '#374151', border: '1px solid #d1d5db', clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0 100%, 0 20%)' }; // default not visited
+                let btnStyle = { backgroundColor: '#e0e0e0', color: '#374151', border: '1px solid #b0b0b0', clipPath: 'polygon(20% 0, 100% 0, 100% 100%, 0 100%, 0 20%)' }; // default not visited
 
                 if (status === 'answered') {
-                  btnStyle = { backgroundColor: '#22c55e', color: 'white', border: '1px solid #16a34a', clipPath: 'polygon(0 0, 80% 0, 100% 20%, 100% 100%, 0 100%)' }; // Green with clipped top-right
+                  btnStyle = { backgroundColor: '#008080', color: 'white', border: '1px solid #006666', clipPath: 'polygon(0 0, 80% 0, 100% 20%, 100% 100%, 0 100%)' };
                 } else if (status === 'review') {
-                  btnStyle = { backgroundColor: '#7e22ce', color: 'white', border: '1px solid #6b21a8', clipPath: 'circle(50% at 50% 50%)' }; // Purple circle
+                  btnStyle = { backgroundColor: '#555555', color: 'white', border: '1px solid #333333', clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' };
                 } else if (status === 'answered_review') {
-                  btnStyle = { backgroundColor: '#7e22ce', color: 'white', border: '1px solid #6b21a8', clipPath: 'circle(50% at 50% 50%)' }; // Purple circle with dot handled below
+                  btnStyle = { backgroundColor: '#555555', color: 'white', border: '1px solid #333333', clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)' };
                 } else if (status === 'not_answered') {
-                  btnStyle = { backgroundColor: '#ea580c', color: 'white', border: '1px solid #c2410c', clipPath: 'polygon(0 0, 100% 0, 100% 80%, 80% 100%, 0 100%)' }; // Orange with clipped bottom-right
+                  btnStyle = { backgroundColor: '#ea580c', color: 'white', border: '1px solid #c2410c', clipPath: 'polygon(0 0, 100% 0, 100% 80%, 80% 100%, 0 100%)' };
                 }
 
                 return (
@@ -475,17 +546,40 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         </aside>
       </div>
 
+      {/* Auto-submit overlay */}
+      {submitting && timeLeft <= 0 && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100]">
+          <div className="bg-white border-2 border-red-600 shadow-[4px_4px_0px_#991b1b] p-8 w-full max-w-sm mx-4 text-center">
+            <div className="bg-red-600 -mx-8 -mt-8 mb-6 px-8 py-3">
+              <span className="text-white font-extrabold text-sm uppercase tracking-widest">Time Up!</span>
+            </div>
+            <div className="w-14 h-14 bg-red-100 border-2 border-red-400 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-extrabold text-[#1a2e2e] uppercase tracking-wide mb-2">Auto Submitting...</h3>
+            <p className="text-[#555555] text-sm">Your exam time has expired. Your answers are being submitted automatically.</p>
+            <div className="mt-4 h-1.5 bg-[#e0f2f2] overflow-hidden">
+              <div className="h-full bg-red-500 animate-pulse w-full"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Submission Modal */}
       {showSubmitModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white border border-gray-300 p-8 w-full max-w-md mx-4 shadow-2xl">
-            <h3 className="text-xl font-bold text-gray-800 border-b pb-3 mb-4">Confirm Submission</h3>
-            <p className="text-gray-600 mb-6 text-sm">Are you sure you want to submit your exam? You will not be able to change your answers after submission.</p>
+          <div className="bg-white border-2 border-[#008080] p-8 w-full max-w-md mx-4 shadow-[4px_4px_0px_#004d4d]">
+            <div className="bg-[#008080] -mx-8 -mt-8 mb-6 px-8 py-3">
+              <h3 className="text-base font-extrabold text-white uppercase tracking-widest">Confirm Submission</h3>
+            </div>
+            <p className="text-[#555555] mb-6 text-sm">Are you sure you want to submit your exam? You will not be able to change your answers after submission.</p>
             <div className="flex gap-4 justify-end">
-              <button onClick={() => setShowSubmitModal(false)} disabled={submitting} className="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold text-sm border border-gray-300">
+              <button onClick={() => setShowSubmitModal(false)} disabled={submitting} className="px-5 py-2 bg-white hover:bg-[#f5f9f9] text-[#1a2e2e] font-bold text-sm border-2 border-[#b2d8d8] hover:border-[#008080] uppercase">
                 CANCEL
               </button>
-              <button onClick={handleSubmitExam} disabled={submitting} className="px-5 py-2 bg-[#4ade80] hover:bg-[#22c55e] text-white font-bold text-sm border border-green-600">
+              <button onClick={handleSubmitExam} disabled={submitting} className="px-5 py-2 bg-[#008080] hover:bg-[#006666] text-white font-bold text-sm border-b-4 border-[#004d4d] uppercase">
                 {submitting ? 'SUBMITTING...' : 'YES, SUBMIT'}
               </button>
             </div>
