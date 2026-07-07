@@ -5,8 +5,8 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Growtez ExamOS',
-  description: 'Secure, multi-tenant examination system.',
+  title: 'ParikshaOS',
+  description: 'Secure Examination Management System',
 };
 
 export default function RootLayout({

@@ -6,7 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "Growtez ExamOS",
+    "productName": "ParikshaOS",
     "version": "0.1.0"
   },
   "tauri": {
@@ -60,7 +60,7 @@
       {
         "fullscreen": true,
         "resizable": false,
-        "title": "Growtez ExamOS",
+        "title": "ParikshaOS",
         "decorations": false,
         "alwaysOnTop": true
       }
