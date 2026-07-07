@@ -18,7 +18,7 @@ dist/
 .turbo/
 
 # Tauri (Desktop App)
-src-tauri/target/
+apps/desktop-app/src-tauri/target/
 
 # misc
 .DS_Store
