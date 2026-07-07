@@ -5,15 +5,26 @@ interface ExamInterfaceProps {
   studentProfile: any;
   exam: any;
   onExamSubmitted: () => void;
+  serverTimeOffset?: number;
 }
 
-export default function ExamInterface({ studentProfile, exam, onExamSubmitted }: ExamInterfaceProps) {
+export default function ExamInterface({ studentProfile, exam, onExamSubmitted, serverTimeOffset = 0 }: ExamInterfaceProps) {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, { answer: string | null; marked: boolean; visited: boolean }>>({});
-  const [timeLeft, setTimeLeft] = useState(exam.duration_minutes * 60);
+  
+  // Calculate time remaining based on server time and exam end_time
+  const getInitialTimeLeft = () => {
+    if (!exam.end_time) return exam.duration_minutes * 60;
+    const now = new Date(Date.now() + serverTimeOffset).getTime();
+    const endTime = new Date(exam.end_time).getTime();
+    const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+    return remaining;
+  };
+
+  const [timeLeft, setTimeLeft] = useState(getInitialTimeLeft());
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -54,9 +65,19 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted }:
       handleSubmitExam();
       return;
     }
-    const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (!exam.end_time) {
+          return Math.max(0, prev - 1);
+        }
+        const now = new Date(Date.now() + serverTimeOffset).getTime();
+        const endTime = new Date(exam.end_time).getTime();
+        return Math.max(0, Math.floor((endTime - now) / 1000));
+      });
+    }, 1000);
     return () => clearInterval(timer);
-  }, [timeLeft]);
+  }, [exam.end_time, serverTimeOffset]);
+
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);

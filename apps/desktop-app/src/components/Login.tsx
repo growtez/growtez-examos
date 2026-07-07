@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 interface LoginProps {
-  onLoginSuccess: (studentData: any, selectedExam: any) => void;
+  onLoginSuccess: (studentData: any, selectedExam: any, initialStep?: string) => void;
+  serverTimeOffset?: number;
 }
 
-export default function Login({ onLoginSuccess }: LoginProps) {
+export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginProps) {
   const [schools, setSchools] = useState<any[]>([]);
   const [schoolsLoading, setSchoolsLoading] = useState(true);
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
@@ -118,17 +119,28 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         .eq('id', user.id)
         .single();
 
-      // Update student exam status to 'in_progress'
+      const now = new Date(Date.now() + serverTimeOffset);
+      const startTime = selectedExam.start_time ? new Date(selectedExam.start_time) : null;
+      const endTime = selectedExam.end_time ? new Date(selectedExam.end_time) : null;
+
+      // Check if we are outside the exam boundary
+      if ((startTime && now < startTime) || (endTime && now > endTime)) {
+        // Direct to waiting room if too early or too late
+        onLoginSuccess(profile, selectedExam, 'waiting_room');
+        return;
+      }
+
+      // If we are within time boundary, update student exam status to 'in_progress'
       await supabase
         .from('exam_students')
         .update({
           status: 'in_progress',
-          started_at: new Date().toISOString(),
+          started_at: new Date(now.getTime() - serverTimeOffset).toISOString(),
         })
         .eq('exam_id', selectedExamId)
         .eq('student_id', user.id);
 
-      onLoginSuccess(profile, selectedExam);
+      onLoginSuccess(profile, selectedExam, 'exam');
     } catch (err: any) {
       setError(err.message || 'Failed to start exam');
     } finally {
