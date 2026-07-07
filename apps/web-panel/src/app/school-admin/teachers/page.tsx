@@ -18,7 +18,8 @@ export default function TeachersPage() {
   const supabase = createClient();
 
   const fetchTeachers = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
     const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
     if (!profile?.school_id) return;
@@ -91,7 +92,27 @@ export default function TeachersPage() {
       {/* Table */}
       <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-500">Loading...</div>
+          <table className="w-full animate-pulse">
+            <thead>
+              <tr className="bg-gray-100/50">
+                <th className="px-6 py-4"></th>
+                <th className="px-6 py-4"></th>
+                <th className="px-6 py-4"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...Array(5)].map((_, i) => (
+                <tr key={i} className="border-b border-gray-200">
+                  <td className="px-6 py-4 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-200"></div>
+                    <div className="h-4 bg-gray-200 rounded w-48"></div>
+                  </td>
+                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-56"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         ) : teachers.length === 0 ? (
           <div className="p-12 text-center">
             <h3 className="text-gray-900 font-semibold text-lg">No teachers yet</h3>

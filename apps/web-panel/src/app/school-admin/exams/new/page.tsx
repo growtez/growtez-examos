@@ -31,7 +31,8 @@ export default function NewExamPage() {
 
   useEffect(() => {
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return;
       const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
       if (!profile?.school_id) return;
@@ -77,7 +78,8 @@ export default function NewExamPage() {
       if (!schoolId) throw new Error('No school found');
       if (subjects.some(s => !s.name.trim())) throw new Error('All subjects must have a name');
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
 
       // 1. Create exam
       const { data: exam, error: examError } = await supabase.from('exams').insert({
