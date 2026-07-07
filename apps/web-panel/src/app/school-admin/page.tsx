@@ -4,39 +4,55 @@ import Link from 'next/link';
 export default async function SchoolAdminDashboard() {
   const supabase = createClient();
 
-  // Get current user's school_id
-  const { data: { user } } = await supabase.auth.getUser();
+  // Get current user's school_id (using getSession avoids a slow network request to the auth server)
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   let schoolId: string | null = null;
   let schoolName = 'Your School';
 
   if (user) {
-    const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
-    schoolId = profile?.school_id ?? null;
-    if (schoolId) {
-      const { data: school } = await supabase.from('schools').select('name').eq('id', schoolId).single();
-      schoolName = school?.name ?? schoolName;
+    // Try to get school_id from metadata to save a database query
+    schoolId = user.user_metadata?.school_id ?? null;
+    
+    if (!schoolId) {
+      const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
+      schoolId = profile?.school_id ?? null;
     }
   }
 
-  // Fetch stats scoped to school
-  const { count: studentCount } = schoolId
-    ? await supabase.from('students').select('*', { count: 'exact', head: true }).eq('school_id', schoolId!)
-    : { count: 0 };
-  const { count: teacherCount } = schoolId
-    ? await supabase.from('teachers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId!)
-    : { count: 0 };
-  const { count: examCount } = schoolId
-    ? await supabase.from('exams').select('*', { count: 'exact', head: true }).eq('school_id', schoolId)
-    : { count: 0 };
-  const { count: activeExamCount } = schoolId
-    ? await supabase.from('exams').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).in('status', ['published', 'active'])
-    : { count: 0 };
+  // Fetch all other data concurrently if we have a schoolId
+  let studentCount = 0;
+  let teacherCount = 0;
+  let examCount = 0;
+  let activeExamCount = 0;
+
+  if (schoolId) {
+    const [
+      { data: school },
+      { count: sCount },
+      { count: tCount },
+      { count: eCount },
+      { count: aeCount }
+    ] = await Promise.all([
+      supabase.from('schools').select('name').eq('id', schoolId).single(),
+      supabase.from('students').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
+      supabase.from('teachers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
+      supabase.from('exams').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
+      supabase.from('exams').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).in('status', ['published', 'active'])
+    ]);
+
+    schoolName = school?.name ?? schoolName;
+    studentCount = sCount ?? 0;
+    teacherCount = tCount ?? 0;
+    examCount = eCount ?? 0;
+    activeExamCount = aeCount ?? 0;
+  }
 
   const stats = [
-    { label: 'Total Students', value: studentCount ?? 0, color: 'text-[#008080]', bg: 'bg-[#e0f2f2]', border: 'border-[#b2d8d8]' },
-    { label: 'Teachers', value: teacherCount ?? 0, color: 'text-[#006666]', bg: 'bg-[#cceded]', border: 'border-[#99d4d4]' },
-    { label: 'Total Exams', value: examCount ?? 0, color: 'text-[#004d4d]', bg: 'bg-[#b3e0e0]', border: 'border-[#80cccc]' },
-    { label: 'Active Exams', value: activeExamCount ?? 0, color: 'text-[#008080]', bg: 'bg-[#008080]', border: 'border-[#006666]' },
+    { label: 'Total Students', value: studentCount, color: 'text-[#008080]', bg: 'bg-[#e0f2f2]', border: 'border-[#b2d8d8]' },
+    { label: 'Teachers', value: teacherCount, color: 'text-[#006666]', bg: 'bg-[#cceded]', border: 'border-[#99d4d4]' },
+    { label: 'Total Exams', value: examCount, color: 'text-[#004d4d]', bg: 'bg-[#b3e0e0]', border: 'border-[#80cccc]' },
+    { label: 'Active Exams', value: activeExamCount, color: 'text-[#008080]', bg: 'bg-[#008080]', border: 'border-[#006666]' },
   ];
 
   return (
@@ -63,14 +79,14 @@ export default async function SchoolAdminDashboard() {
           <h3 className="text-base font-bold text-[#1a2e2e] uppercase tracking-wide">Quick Actions</h3>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Link href="/exams/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#008080] text-white text-sm font-bold uppercase tracking-wider hover:bg-[#006666] transition-colors border-b-2 border-[#004d4d]">
+          <Link href="/school-admin/exams/new" className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#008080] text-white text-sm font-bold uppercase tracking-wider hover:bg-[#006666] transition-colors border-b-2 border-[#004d4d]">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             Create Exam
           </Link>
-          <Link href="/teachers" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] text-sm font-bold uppercase tracking-wider hover:border-[#008080] hover:text-[#008080] transition-colors">
+          <Link href="/school-admin/teachers" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] text-sm font-bold uppercase tracking-wider hover:border-[#008080] hover:text-[#008080] transition-colors">
             Manage Teachers
           </Link>
-          <Link href="/students" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] text-sm font-bold uppercase tracking-wider hover:border-[#008080] hover:text-[#008080] transition-colors">
+          <Link href="/school-admin/students" className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] text-sm font-bold uppercase tracking-wider hover:border-[#008080] hover:text-[#008080] transition-colors">
             Manage Students
           </Link>
         </div>
@@ -78,3 +94,4 @@ export default async function SchoolAdminDashboard() {
     </div>
   );
 }
+

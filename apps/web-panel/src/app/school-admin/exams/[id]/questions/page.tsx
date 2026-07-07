@@ -112,7 +112,40 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
 
   const currentSubject = subjects.find(s => s.id === selectedSubject);
 
-  if (loading) return <div className="text-gray-500 p-12 text-center">Loading...</div>;
+  if (loading) return (
+    <div className="animate-pulse">
+      <div className="mb-6">
+        <div className="w-24 h-4 bg-gray-200 rounded mb-4"></div>
+        <div className="w-64 h-8 bg-gray-300 rounded"></div>
+      </div>
+      <div className="flex gap-2 mb-6">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="w-24 h-10 bg-gray-200 rounded-xl"></div>
+        ))}
+      </div>
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6 flex justify-between items-center">
+        <div className="w-48 h-5 bg-gray-300 rounded"></div>
+        <div className="w-32 h-9 bg-gray-200 rounded-xl"></div>
+      </div>
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-gray-50 border border-gray-200 rounded-2xl p-5">
+            <div className="flex justify-between mb-4">
+              <div className="w-32 h-6 bg-gray-200 rounded"></div>
+              <div className="w-12 h-4 bg-gray-200 rounded"></div>
+            </div>
+            <div className="w-full h-4 bg-gray-300 rounded mb-2"></div>
+            <div className="w-3/4 h-4 bg-gray-300 rounded mb-4"></div>
+            <div className="grid grid-cols-2 gap-2">
+              {[...Array(4)].map((_, j) => (
+                <div key={j} className="h-10 bg-gray-200 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div>

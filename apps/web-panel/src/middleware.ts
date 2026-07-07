@@ -50,6 +50,7 @@ export async function middleware(req: NextRequest) {
   if (
     url.pathname.startsWith('/_next') ||
     url.pathname.startsWith('/api') ||
+    url.pathname.startsWith('/register') ||
     url.pathname.includes('.')
   ) {
     return response;

@@ -14,7 +14,8 @@ export default function ResultsPage() {
 
   useEffect(() => {
     const fetchExams = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return;
       const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
       if (!profile?.school_id) return;
@@ -78,7 +79,7 @@ export default function ResultsPage() {
       <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">Select Exam</label>
         {loadingExams ? (
-          <div className="text-gray-400 text-sm">Loading exams...</div>
+          <div className="h-12 bg-gray-200 animate-pulse rounded-xl w-full max-w-md"></div>
         ) : exams.length === 0 ? (
           <div className="text-gray-400 text-sm">No exams created yet.</div>
         ) : (
@@ -99,7 +100,35 @@ export default function ResultsPage() {
       {/* Results Table */}
       <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
         {loadingResults ? (
-          <div className="p-12 text-center text-gray-500">Loading results...</div>
+          <table className="w-full animate-pulse">
+            <thead>
+              <tr className="bg-gray-100/50">
+                <th className="px-6 py-4"></th>
+                <th className="px-6 py-4"></th>
+                <th className="px-6 py-4"></th>
+                <th className="px-6 py-4"></th>
+                <th className="px-6 py-4"></th>
+                <th className="px-6 py-4"></th>
+                <th className="px-6 py-4"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...Array(5)].map((_, i) => (
+                <tr key={i} className="border-b border-gray-200">
+                  <td className="px-6 py-4"><div className="w-6 h-6 rounded-full bg-gray-200"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-40"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-12"></div></td>
+                  <td className="px-6 py-4">
+                    <div className="h-3 bg-gray-200 rounded w-32 mb-1.5"></div>
+                    <div className="h-3 bg-gray-100 rounded w-24"></div>
+                  </td>
+                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-32"></div></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         ) : !selectedExamId ? (
           <div className="p-12 text-center text-gray-500">Please select an exam to view results.</div>
         ) : results.length === 0 ? (

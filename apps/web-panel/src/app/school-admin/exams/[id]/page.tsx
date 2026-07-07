@@ -29,8 +29,17 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [newName, setNewName] = useState('');
   const [newRoll, setNewRoll] = useState('');
   const [newDob, setNewDob] = useState('');
-  const [importCsvMode, setImportCsvMode] = useState(false);
+  const [addMode, setAddMode] = useState<'individual' | 'csv' | 'link'>('link');
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Confirm',
+    confirmColor: 'bg-[#008080] hover:bg-[#006666] border-[#004d4d]',
+    onConfirm: () => {}
+  });
 
   // Helper to format ISO string for datetime-local input
   const formatForInput = (isoString: string) => {
@@ -186,23 +195,26 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const handleRemoveStudent = async (examStudentId: string, studentId: string) => {
-    if (!confirm('Remove this student from the exam? Their account will be deleted.')) return;
-    // Remove from exam_students first
-    await supabase.from('exam_students').delete().eq('id', examStudentId);
-    // Also delete the student user account via API
-    await fetch('/api/students/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ student_id: studentId }),
+  const handleRemoveStudent = (examStudentId: string, studentId: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Remove Student',
+      message: 'Are you sure you want to remove this student from the exam? Their account will be permanently deleted.',
+      confirmText: 'Remove Student',
+      confirmColor: 'bg-red-600 hover:bg-red-700 border-red-800',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        await supabase.from('exam_students').delete().eq('id', examStudentId);
+        await fetch('/api/students/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_id: studentId }),
+        });
+        fetchExamData();
+      }
     });
-    fetchExamData();
   };
 
-  const handleAssignAll = () => {
-    const alreadyAssigned = new Set(assignedStudents.map(a => a.student_id));
-    setSelectedStudentIds(allStudents.filter(s => !alreadyAssigned.has(s.id)).map(s => s.id));
-  };
 
   const handleDuplicate = async () => {
     const newTitle = prompt('Enter a title for the duplicated exam:', `${exam.title} (Copy)`);
@@ -224,36 +236,78 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const handleUnpublish = async () => {
-    if (!confirm('Are you sure you want to unpublish this exam? This will revert it to a draft state.')) return;
-    setPublishing(true);
-    const updates = {
-      status: 'draft',
-      start_time: null,
-      end_time: null
-    };
-    
-    const { error } = await supabase.from('exams').update(updates).eq('id', params.id);
-    if (!error) {
-      setExam({ ...exam, ...updates });
-    } else {
-      alert('Failed to unpublish exam.');
-    }
-    setPublishing(false);
+  const handleUnpublish = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Unpublish Exam',
+      message: 'Are you sure you want to unpublish this exam? This will revert it to a draft state.',
+      confirmText: 'Unpublish',
+      confirmColor: 'bg-orange-500 hover:bg-orange-600 border-orange-700',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        setPublishing(true);
+        const updates = { status: 'draft', start_time: null, end_time: null };
+        const { error } = await supabase.from('exams').update(updates).eq('id', params.id);
+        if (!error) setExam({ ...exam, ...updates });
+        else alert('Failed to unpublish exam.');
+        setPublishing(false);
+      }
+    });
   };
 
-  const handleTrash = async () => {
-    if (!confirm('Are you sure you want to move this exam to the trash?')) return;
-    
-    const { error } = await supabase.from('exams').update({ is_trashed: true }).eq('id', params.id);
-    if (!error) {
-      window.location.href = '/exams';
-    } else {
-      alert('Failed to move exam to trash.');
-    }
+  const handleTrash = () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Trash Exam',
+      message: 'Are you sure you want to move this exam to the trash?',
+      confirmText: 'Move to Trash',
+      confirmColor: 'bg-red-600 hover:bg-red-700 border-red-800',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        const { error } = await supabase.from('exams').update({ is_trashed: true }).eq('id', params.id);
+        if (!error) window.location.href = '/exams';
+        else alert('Failed to move exam to trash.');
+      }
+    });
   };
 
-  if (loading) return <div className="text-gray-500 p-12 text-center">Loading...</div>;
+  if (loading) return (
+    <div className="max-w-4xl animate-pulse">
+      <div className="mb-8">
+        <div className="w-24 h-4 bg-gray-200 rounded mb-4"></div>
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="w-64 h-8 bg-gray-300 rounded mb-2"></div>
+            <div className="w-96 h-4 bg-gray-200 rounded"></div>
+          </div>
+          <div className="w-32 h-10 bg-gray-200 rounded-lg"></div>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="bg-gray-50 border border-gray-200 rounded-2xl p-5">
+            <div className="w-20 h-4 bg-gray-200 rounded mb-3"></div>
+            <div className="w-24 h-7 bg-gray-300 rounded"></div>
+          </div>
+        ))}
+      </div>
+      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-6">
+        <div className="w-24 h-6 bg-gray-300 rounded mb-4"></div>
+        <div className="space-y-3">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="bg-gray-100 border border-gray-300 rounded-xl p-4 h-20"></div>
+          ))}
+        </div>
+      </div>
+      <div className="bg-white border-2 border-[#b2d8d8] p-6 mb-6">
+        <div className="flex justify-between mb-4">
+          <div className="w-32 h-6 bg-gray-300 rounded"></div>
+          <div className="w-48 h-10 bg-gray-200 rounded"></div>
+        </div>
+        <div className="w-full h-32 bg-gray-100 border-2 border-dashed border-[#b2d8d8] mt-4"></div>
+      </div>
+    </div>
+  );
   if (!exam) return <div className="text-gray-500 p-12 text-center">Exam not found</div>;
 
   const totalQuestionsNeeded = subjects.reduce((acc, s) => acc + s.question_count, 0);
@@ -369,11 +423,15 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             <p className="text-[#555555] text-xs mt-0.5">Students are specific to this exam</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => { setShowAddStudentModal(true); setImportCsvMode(false); setAddError(''); setAddSuccess(''); }}
+            <button onClick={() => { setShowAddStudentModal(true); setAddMode('link'); setAddError(''); setAddSuccess(''); }}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#008080] text-white text-xs font-bold hover:bg-[#006666] border-b-2 border-[#004d4d] uppercase tracking-wider transition-colors">
-              + Add Student
+              🔗 Share Link
             </button>
-            <button onClick={() => { setShowAddStudentModal(true); setImportCsvMode(true); setAddError(''); setAddSuccess(''); }}
+            <button onClick={() => { setShowAddStudentModal(true); setAddMode('individual'); setAddError(''); setAddSuccess(''); }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-[#1a2e2e] text-xs font-bold border-2 border-[#b2d8d8] hover:border-[#008080] hover:text-[#008080] uppercase tracking-wider transition-colors">
+              + Add Individual
+            </button>
+            <button onClick={() => { setShowAddStudentModal(true); setAddMode('csv'); setAddError(''); setAddSuccess(''); }}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-[#1a2e2e] text-xs font-bold border-2 border-[#b2d8d8] hover:border-[#008080] hover:text-[#008080] uppercase tracking-wider transition-colors">
               ↑ Import CSV
             </button>
@@ -416,11 +474,20 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   <td className="px-4 py-3 text-right flex items-center justify-end gap-2">
                     {(as.status === 'in_progress' || as.status === 'submitted') && (
                       <button
-                        onClick={async () => {
-                          if (!confirm("Reset this student's exam? This will delete their current progress and results.")) return;
-                          const { error } = await supabase.rpc('reset_student_exam', { p_exam_id: params.id, p_student_id: as.student_id });
-                          if (error) alert('Failed to reset: ' + error.message);
-                          else fetchExamData();
+                        onClick={() => {
+                          setConfirmDialog({
+                            isOpen: true,
+                            title: 'Reset Exam Attempt',
+                            message: "Are you sure you want to reset this student's exam? This will completely delete their current progress and results so they can retake it.",
+                            confirmText: 'Reset Exam',
+                            confirmColor: 'bg-amber-600 hover:bg-amber-700 border-amber-800',
+                            onConfirm: async () => {
+                              setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                              const { error } = await supabase.rpc('reset_student_exam', { p_exam_id: params.id, p_student_id: as.student_id });
+                              if (error) alert('Failed to reset: ' + error.message);
+                              else fetchExamData();
+                            }
+                          });
                         }}
                         className="text-amber-600 hover:text-amber-700 text-xs font-bold border border-amber-300 hover:bg-amber-50 px-2 py-1 uppercase transition-colors"
                       >
@@ -477,25 +544,31 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Add Student Modal */}
       {showAddStudentModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => { setShowAddStudentModal(false); setAddError(''); setAddSuccess(''); setImportCsvMode(false); }}>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => { setShowAddStudentModal(false); setAddError(''); setAddSuccess(''); setAddMode('link'); setLinkCopied(false); }}>
           <div className="bg-white border-2 border-[#008080] shadow-[4px_4px_0px_#004d4d] w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="bg-[#008080] px-6 py-3 flex items-center justify-between">
               <span className="text-white font-extrabold text-sm uppercase tracking-widest">Add Students to Exam</span>
-              <button onClick={() => { setShowAddStudentModal(false); setAddError(''); setAddSuccess(''); setImportCsvMode(false); }} className="text-white/70 hover:text-white">✕</button>
+              <button onClick={() => { setShowAddStudentModal(false); setAddError(''); setAddSuccess(''); setAddMode('link'); setLinkCopied(false); }} className="text-white/70 hover:text-white">✕</button>
             </div>
 
             <div className="p-6">
-              {/* Toggle between individual / CSV */}
+              {/* Tabs */}
               <div className="flex mb-5 border-2 border-[#b2d8d8]">
                 <button
-                  onClick={() => setImportCsvMode(false)}
-                  className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${!importCsvMode ? 'bg-[#008080] text-white' : 'bg-white text-[#555555] hover:bg-[#f5f9f9]'}`}
+                  onClick={() => setAddMode('link')}
+                  className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${addMode === 'link' ? 'bg-[#008080] text-white' : 'bg-white text-[#555555] hover:bg-[#f5f9f9]'}`}
                 >
-                  Add Individual
+                  Share Link
                 </button>
                 <button
-                  onClick={() => setImportCsvMode(true)}
-                  className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${importCsvMode ? 'bg-[#008080] text-white' : 'bg-white text-[#555555] hover:bg-[#f5f9f9]'}`}
+                  onClick={() => setAddMode('individual')}
+                  className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-colors border-l-2 border-[#b2d8d8] ${addMode === 'individual' ? 'bg-[#008080] text-white' : 'bg-white text-[#555555] hover:bg-[#f5f9f9]'}`}
+                >
+                  Individual
+                </button>
+                <button
+                  onClick={() => setAddMode('csv')}
+                  className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-colors border-l-2 border-[#b2d8d8] ${addMode === 'csv' ? 'bg-[#008080] text-white' : 'bg-white text-[#555555] hover:bg-[#f5f9f9]'}`}
                 >
                   Import CSV
                 </button>
@@ -504,7 +577,38 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               {addSuccess && <div className="bg-[#e0f2f2] border border-[#b2d8d8] p-3 text-[#008080] text-xs font-bold mb-4 uppercase">{addSuccess}</div>}
               {addError && <div className="bg-red-50 border border-red-400 p-3 text-red-600 text-xs font-medium mb-4">⚠ {addError}</div>}
 
-              {!importCsvMode ? (
+              {addMode === 'link' ? (
+                <div className="space-y-4">
+                  <div className="bg-[#f5f9f9] border border-[#b2d8d8] p-4 text-center">
+                    <p className="text-[#1a2e2e] text-sm font-bold mb-2 uppercase tracking-wide">Public Registration Link</p>
+                    <p className="text-[#555555] text-xs mb-4">Share this link with students. They will be automatically added to this exam upon completing the form.</p>
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="text" 
+                        readOnly 
+                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/register/${params.id}`}
+                        className="flex-1 px-3 py-2 bg-white border border-[#b2d8d8] text-xs text-[#008080] font-mono focus:outline-none truncate" 
+                      />
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/register/${params.id}`);
+                          setLinkCopied(true);
+                          setTimeout(() => setLinkCopied(false), 2000);
+                        }}
+                        className="px-3 py-2 bg-[#008080] hover:bg-[#006666] text-white text-xs font-bold uppercase transition-colors whitespace-nowrap"
+                      >
+                        {linkCopied ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex justify-end pt-2">
+                    <button type="button" onClick={() => { setShowAddStudentModal(false); setAddError(''); }}
+                      className="px-4 py-2.5 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] font-bold hover:border-[#008080] uppercase text-sm">
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : addMode === 'individual' ? (
                 <form onSubmit={handleAddStudent} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Full Name</label>
@@ -561,6 +665,37 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </form>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Dialog Modal */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]">
+          <div className="bg-white border-2 border-[#b2d8d8] shadow-[4px_4px_0px_#8aacac] w-full max-w-sm mx-4">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-[#f5f9f9] rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-[#b2d8d8]">
+                <svg className="w-6 h-6 text-[#008080]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-[#1a2e2e] mb-2 uppercase tracking-wide">{confirmDialog.title}</h3>
+              <p className="text-[#555555] text-sm mb-6">{confirmDialog.message}</p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                  className="flex-1 py-2.5 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] font-bold hover:border-[#8aacac] uppercase text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmDialog.onConfirm}
+                  className={`flex-1 py-2.5 text-white font-bold border-b-2 uppercase text-xs transition-colors ${confirmDialog.confirmColor}`}
+                >
+                  {confirmDialog.confirmText}
+                </button>
+              </div>
             </div>
           </div>
         </div>
