@@ -1,22 +1,40 @@
 import { useState } from 'react';
 import Login from './components/Login';
 import ExamInterface from './components/ExamInterface';
+import WaitingRoom from './components/WaitingRoom';
 
-type Step = 'login' | 'exam' | 'submitted';
+type Step = 'login' | 'waiting_room' | 'exam' | 'submitted';
 
 function App() {
   const [step, setStep] = useState<Step>('login');
   const [studentProfile, setStudentProfile] = useState<any>(null);
   const [selectedExam, setSelectedExam] = useState<any>(null);
+  const [serverTimeOffset, setServerTimeOffset] = useState<number>(0);
 
-  const handleLoginSuccess = (profile: any, exam: any) => {
+  const handleLoginSuccess = async (profile: any, exam: any, initialStep: Step = 'exam') => {
+    try {
+      const { supabase } = await import('./lib/supabase');
+      const { data, error } = await supabase.rpc('get_server_time');
+      if (!error && data) {
+        const serverTime = new Date(data).getTime();
+        const localTime = Date.now();
+        setServerTimeOffset(serverTime - localTime);
+      }
+    } catch (e) {
+      console.error('Failed to sync server time', e);
+    }
+    
     setStudentProfile(profile);
     setSelectedExam(exam);
-    setStep('exam');
+    setStep(initialStep);
   };
 
   const handleExamSubmitted = () => {
     setStep('submitted');
+  };
+
+  const handleStartFromWaitingRoom = () => {
+    setStep('exam');
   };
 
   const handleReset = () => {
@@ -26,7 +44,19 @@ function App() {
   };
 
   if (step === 'login') {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
+    return <Login onLoginSuccess={handleLoginSuccess} serverTimeOffset={serverTimeOffset} />;
+  }
+
+  if (step === 'waiting_room') {
+    return (
+      <WaitingRoom 
+        studentProfile={studentProfile} 
+        exam={selectedExam} 
+        onStartExam={handleStartFromWaitingRoom} 
+        onGoBack={handleReset} 
+        serverTimeOffset={serverTimeOffset}
+      />
+    );
   }
 
   if (step === 'exam') {
@@ -35,6 +65,7 @@ function App() {
         studentProfile={studentProfile}
         exam={selectedExam}
         onExamSubmitted={handleExamSubmitted}
+        serverTimeOffset={serverTimeOffset}
       />
     );
   }
