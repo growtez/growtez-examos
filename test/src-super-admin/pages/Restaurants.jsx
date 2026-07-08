@@ -1,68 +1,73 @@
-'use client';
-
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, ChevronLeft, ChevronRight, School as SchoolIcon, Globe, Plus, Hash } from 'lucide-react';
-import { TableRowsSkeleton } from '@/components/ui/Skeleton';
-import Link from 'next/link';
-import DeleteSchoolButton from './DeleteSchoolButton';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
+import { Mail, Phone, Calendar, Search, ExternalLink, Filter, SlidersHorizontal, ArrowUpDown, ArrowUp, ArrowDown, Download, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TableRowsSkeleton } from '../components/ui/Skeleton';
 
-export default function SchoolsListPage() {
-    const router = useRouter();
-    const [schools, setSchools] = useState<any[]>([]);
+export default function Restaurants({ openDrawer, setSyncAction }) {
+    const navigate = useNavigate();
+    const [restaurants, setRestaurants] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
     const [sortBy, setSortBy] = useState('newest');
+    const [error, setError] = useState(null);
     const [page, setPage] = useState(1);
     const [perPage, setPerPage] = useState(8);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const supabase = createClient();
 
     useEffect(() => {
-        fetchSchools();
+        fetchRestaurants();
     }, []);
 
-    const fetchSchools = async () => {
+    useEffect(() => {
+        if (setSyncAction) {
+            setSyncAction({
+                onSync: fetchRestaurants,
+                loading: loading
+            });
+        }
+    }, [loading, setSyncAction]);
+
+    const fetchRestaurants = async () => {
         setLoading(true);
+        setError(null);
         try {
             const { data, error } = await supabase
-                .from('schools')
+                .from('restaurants')
                 .select('*')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setSchools(data || []);
+            setRestaurants(data || []);
         } catch (err) {
-            console.error('Failed to fetch schools:', err);
+            console.error('Failed to fetch restaurants:', err);
+            setError(err.message);
         } finally {
             setLoading(false);
         }
     };
 
-    const filteredSchools = schools
-        .filter(sch => {
-            const matchesSearch = sch.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (sch.domain && sch.domain.toLowerCase().includes(searchQuery.toLowerCase()));
+    const filteredRestaurants = restaurants
+        .filter(res => {
+            const matchesSearch = res.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                res.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (res.contact_email && res.contact_email.toLowerCase().includes(searchQuery.toLowerCase()));
 
-            const matchesFilter = filterStatus === 'all' || 
-                (filterStatus === 'active' && sch.is_active !== false) ||
-                (filterStatus === 'inactive' && sch.is_active === false);
+            const matchesFilter = filterStatus === 'all' || res.status === filterStatus;
 
             return matchesSearch && matchesFilter;
         })
         .sort((a, b) => {
-            if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-            if (sortBy === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at);
+            if (sortBy === 'oldest') return new Date(a.created_at) - new Date(b.created_at);
             if (sortBy === 'name') return a.name.localeCompare(b.name);
-            if (sortBy === 'status') return (a.is_active !== false ? 'active' : 'inactive').localeCompare(b.is_active !== false ? 'active' : 'inactive');
-            return 0;
+            if (sortBy === 'status') return (a.status || '').localeCompare(b.status || '');
         });
 
-    const totalPages = Math.max(1, Math.ceil(filteredSchools.length / perPage));
+    const totalPages = Math.max(1, Math.ceil(filteredRestaurants.length / perPage));
     const safePage = Math.min(page, totalPages);
-    const pagedSchools = filteredSchools.slice((safePage - 1) * perPage, safePage * perPage);
+    const pagedRestaurants = filteredRestaurants.slice((safePage - 1) * perPage, safePage * perPage);
 
     const getPaginationPages = () => {
         if (totalPages <= 3) {
@@ -77,7 +82,7 @@ export default function SchoolsListPage() {
         return [safePage, '...', totalPages];
     };
 
-    const toggleSort = (newSort: string) => {
+    const toggleSort = (newSort) => {
         if (sortBy === newSort) {
             setSortBy(newSort === 'newest' ? 'oldest' : newSort === 'name' ? 'newest' : 'newest');
         } else {
@@ -85,28 +90,27 @@ export default function SchoolsListPage() {
         }
     };
 
-    const getSortIcon = (field: string) => {
+    const getSortIcon = (field) => {
         if (sortBy === field) return <ArrowUp size={14} />;
         if (field === 'newest' && sortBy === 'oldest') return <ArrowDown size={14} />;
-        return <ArrowUpDown size={14} className="opacity-30" />;
+        return <ArrowUpDown size={14} style={{ opacity: 0.3 }} />;
     };
 
     const handleExport = () => {
         const csvContent = "data:text/csv;charset=utf-8," 
-            + "Name,Domain,Status,Max Students,Created At\n"
-            + filteredSchools.map(r => `${r.name},${r.domain || ''},${r.is_active !== false ? 'Active' : 'Inactive'},${r.max_students ?? 500},${new Date(r.created_at).toLocaleDateString()}`).join("\n");
+            + "Name,Slug,Status,Plan,Email,Phone,Created At\n"
+            + filteredRestaurants.map(r => `${r.name},${r.slug},${r.status},${r.subscription_type || (r.subscription_status ? 'PRO PLAN' : 'TRIAL PLAN')},${r.contact_email || ''},${r.contact_phone || ''},${new Date(r.created_at).toLocaleDateString()}`).join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `schools_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `restaurants_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
     return (
-        <div className="space-y-4">
-            
+        <div className="space-y-3">
             {/* List Control */}
             <div className="flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border">
                 {/* Search Box */}
@@ -114,34 +118,34 @@ export default function SchoolsListPage() {
                     <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                     <input
                         type="text"
-                        placeholder="Search Schools..."
+                        placeholder="Search Restaurants..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full py-2 pl-4 pr-10 bg-surface-hover border border-border rounded-full text-text-main text-[13px] focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all"
                     />
                 </div>
 
-                {/* Inline Active Filters */}
+                {/* Inline Active Filters (Scrollable horizontally if needed) */}
                 <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0">
                     {(searchQuery || filterStatus !== 'all' || sortBy !== 'newest') ? (
                         <>
                             <span className="text-[11px] text-text-muted font-medium uppercase tracking-wider shrink-0 mr-1">Active:</span>
                             {searchQuery && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 text-[11px] font-medium border border-blue-500/20 shrink-0">
                                     "{searchQuery}"
-                                    <button onClick={() => setSearchQuery('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                                    <button onClick={() => setSearchQuery('')} className="hover:text-blue-800 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
                                 </span>
                             )}
                             {filterStatus !== 'all' && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 text-[11px] font-medium border border-blue-500/20 shrink-0">
                                     {filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1)}
-                                    <button onClick={() => setFilterStatus('all')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                                    <button onClick={() => setFilterStatus('all')} className="hover:text-blue-800 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
                                 </span>
                             )}
                             {sortBy !== 'newest' && (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 text-[11px] font-medium border border-blue-500/20 shrink-0">
                                     {sortBy === 'oldest' ? 'Oldest' : sortBy === 'name' ? 'A-Z' : sortBy === 'status' ? 'Status' : sortBy}
-                                    <button onClick={() => setSortBy('newest')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                                    <button onClick={() => setSortBy('newest')} className="hover:text-blue-800 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
                                 </span>
                             )}
                             <button 
@@ -165,7 +169,7 @@ export default function SchoolsListPage() {
                         {getPaginationPages().map((p, i) => p === '...' ? (
                             <div key={`ellipsis-${i}`} className="w-6 h-6 flex items-center justify-center text-[11px] text-text-muted">…</div>
                         ) : (
-                            <button key={p} onClick={() => setPage(p as number)} className={`w-6 h-6 flex items-center justify-center rounded text-[11px] font-semibold transition-colors border-none cursor-pointer ${safePage === p ? 'bg-accent-primary text-white' : 'text-text-muted hover:bg-surface-hover bg-transparent'}`}>{p as number}</button>
+                            <button key={p} onClick={() => setPage(p)} className={`w-6 h-6 flex items-center justify-center rounded text-[11px] font-semibold transition-colors border-none cursor-pointer ${safePage === p ? 'bg-accent-primary text-white' : 'text-text-muted hover:bg-surface-hover bg-transparent'}`}>{p}</button>
                         ))}
                     </div>
                     <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
@@ -185,10 +189,10 @@ export default function SchoolsListPage() {
                         >
                             <Filter size={14} className="text-accent-primary" /> Filter
                         </button>
-                        <div className={`absolute right-0 top-full mt-2 w-32 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col overflow-hidden py-1 ${
+                        <div className={`absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col overflow-hidden py-1 ${
                             isFilterOpen ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'
                         }`}>
-                            {['all', 'active', 'inactive'].map(status => (
+                            {['all', 'pending', 'approved', 'active', 'suspended', 'rejected'].map(status => (
                                 <button key={status} onClick={() => { setFilterStatus(status); setIsFilterOpen(false); }} className={`px-4 py-2 text-left text-[13px] hover:bg-surface-hover transition-colors ${filterStatus === status ? 'text-accent-primary font-medium bg-blue-500/5' : 'text-text-main'}`}>
                                     {status.charAt(0).toUpperCase() + status.slice(1)}
                                 </button>
@@ -198,14 +202,14 @@ export default function SchoolsListPage() {
                     
                     <button 
                         onClick={handleExport}
-                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors text-[12px] font-medium cursor-pointer border-none flex-1 md:flex-none"
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary text-white hover:bg-accent-hover transition-colors text-[12px] font-medium shadow-sm cursor-pointer border-none flex-1 md:flex-none"
                     >
                         <Download size={14} /> Export
                     </button>
                 </div>
             </div>
 
-            {/* Schools List Container */}
+            {/* Restaurants List Container */}
             <div className="w-full bg-surface rounded-xl shadow-sm border border-border overflow-hidden">
                 {/* Desktop View Table */}
                 <table className="hidden md:table w-full text-left border-collapse whitespace-nowrap table-fixed">
@@ -213,7 +217,7 @@ export default function SchoolsListPage() {
                         <tr className="border-b border-border">
                             <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[30%]" onClick={() => toggleSort('name')}>
                                 <div className="flex items-center gap-2">
-                                    School Name {getSortIcon('name')}
+                                    Name {getSortIcon('name')}
                                 </div>
                             </th>
                             <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[15%]" onClick={() => toggleSort('status')}>
@@ -221,66 +225,68 @@ export default function SchoolsListPage() {
                                     Status {getSortIcon('status')}
                                 </div>
                             </th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[25%]">Domain</th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">Max Students</th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-right w-[15%]">Actions</th>
+                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">Plan</th>
+                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[25%]">Email</th>
+                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">Phone</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
                             <TableRowsSkeleton rows={perPage} columns={5} />
-                        ) : filteredSchools.length === 0 ? (
+                        ) : filteredRestaurants.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="text-center py-10 text-text-muted text-[13px]">
-                                    No schools found matching your criteria.
+                                <td colSpan="5" className="text-center py-10 text-text-muted text-[13px]">
+                                    No restaurants found matching your criteria.
                                 </td>
                             </tr>
                         ) : (
                             <>
-                                {pagedSchools.map((sch) => (
+                                {pagedRestaurants.map((res) => (
                                     <tr
-                                        key={sch.id}
-                                        onClick={() => router.push(`/schools/${sch.id}`)}
-                                        className="group even:bg-bg hover:bg-surface-hover border-b border-border/40 last:border-b-0 transition-colors cursor-pointer"
+                                        key={res.id}
+                                        className="group even:bg-bg hover:bg-surface-hover border-b border-border/40 last:border-b-0 cursor-pointer transition-colors"
+                                        onClick={(e) => {
+                                            if (e.target.closest('a')) {
+                                                return;
+                                            }
+                                            navigate(`/restaurants/${res.id}`, { state: { name: res.name, logo_url: res.logo_url } });
+                                        }}
                                     >
                                         <td className="py-2.5 px-4 align-middle">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center font-bold text-blue-500 text-[12px] shrink-0">
-                                                    {sch.name[0].toUpperCase()}
+                                                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center font-bold text-blue-600 text-[12px] shrink-0">
+                                                    {res.name[0].toUpperCase()}
                                                 </div>
-                                                <span className="font-semibold text-text-main text-[13px] group-hover:text-accent-primary transition-colors max-w-[220px] truncate block" title={sch.name}>{sch.name}</span>
+                                                <span className="font-semibold text-text-main text-[13px] group-hover:text-accent-primary transition-colors max-w-[220px] truncate block" title={res.name}>{res.name}</span>
                                             </div>
                                         </td>
                                         <td className="py-2.5 px-4 align-middle">
-                                            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded bg-surface-hover border border-border/40 ${sch.is_active !== false ? 'text-green-500' : 'text-red-500'}`}>
-                                                {sch.is_active !== false ? 'ACTIVE' : 'INACTIVE'}
+                                            <span className={`text-[12px] font-bold ${res.status === 'active' ? 'text-green-600' : res.status === 'pending' ? 'text-amber-600' : 'text-red-600'}`}>
+                                                {(res.status || 'pending').toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td className="py-2.5 px-4 align-middle">
+                                            <span className={`text-[12px] font-bold ${res.subscription_status ? 'text-blue-600' : 'text-text-muted opacity-80'}`}>
+                                                {(res.subscription_type || (res.subscription_status ? 'PRO PLAN' : 'TRIAL PLAN')).toUpperCase()}
                                             </span>
                                         </td>
                                         <td className="py-2.5 px-4 align-middle">
                                             <div className="flex items-center gap-2 text-[12px] text-text-main">
-                                                <Globe size={12} className="text-blue-500 shrink-0" />
-                                                <span className="max-w-[200px] inline-block truncate" title={sch.domain || '—'}>{sch.domain || '—'}</span>
+                                                <Mail size={12} className="text-blue-500 shrink-0" />
+                                                <span className="max-w-[200px] inline-block truncate" title={res.contact_email || '—'}>{res.contact_email || '—'}</span>
                                             </div>
                                         </td>
                                         <td className="py-2.5 px-4 align-middle">
                                             <div className="flex items-center gap-2 text-[12px] text-text-main">
-                                                <Hash size={12} className="text-blue-500 shrink-0" />
-                                                <span>{sch.max_students ?? 500}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-2.5 px-4 align-middle text-right">
-                                            <div 
-                                                className="flex items-center justify-end gap-3"
-                                                onClick={(e) => e.stopPropagation()}
-                                            >
-                                                <DeleteSchoolButton schoolId={sch.id} />
+                                                <Phone size={12} className="text-blue-500 shrink-0" />
+                                                <span className="max-w-[110px] inline-block truncate" title={res.contact_phone || '—'}>{res.contact_phone || '—'}</span>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
-                                {perPage - pagedSchools.length > 0 && Array.from({ length: perPage - pagedSchools.length }).map((_, idx) => (
+                                {perPage - pagedRestaurants.length > 0 && Array.from({ length: perPage - pagedRestaurants.length }).map((_, idx) => (
                                     <tr key={`empty-${idx}`} className="border-b border-border/40 last:border-b-0 opacity-0 pointer-events-none">
-                                        <td colSpan={5} className="py-2.5 px-4 align-middle">
+                                        <td colSpan="5" className="py-2.5 px-4 align-middle">
                                             <div className="h-8"></div>
                                         </td>
                                     </tr>
@@ -303,47 +309,62 @@ export default function SchoolsListPage() {
                                         </div>
                                         <div className="h-4 bg-border/40 rounded w-16" />
                                     </div>
+                                    <div className="space-y-2 pl-11">
+                                        <div className="h-3.5 bg-border/40 rounded w-48" />
+                                        <div className="h-3.5 bg-border/40 rounded w-36" />
+                                    </div>
                                 </div>
                             ))}
                         </div>
-                    ) : filteredSchools.length === 0 ? (
+                    ) : filteredRestaurants.length === 0 ? (
                         <div className="text-center py-10 text-text-muted text-[13px]">
-                            No schools found matching your criteria.
+                            No restaurants found matching your criteria.
                         </div>
                     ) : (
-                        pagedSchools.map((sch) => (
+                        pagedRestaurants.map((res) => (
                             <div
-                                key={sch.id}
-                                className="p-4 hover:bg-surface-hover border-b border-border/40 last:border-b-0 transition-colors flex flex-col gap-2.5"
+                                key={res.id}
+                                className="p-4 hover:bg-surface-hover border-b border-border/40 last:border-b-0 cursor-pointer transition-colors flex flex-col gap-2.5 active:bg-surface-hover/80"
+                                onClick={(e) => {
+                                    if (e.target.closest('a')) {
+                                        return;
+                                    }
+                                    navigate(`/restaurants/${res.id}`, { state: { name: res.name, logo_url: res.logo_url } });
+                                }}
                             >
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="flex items-center gap-3 min-w-0">
-                                        <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center font-bold text-blue-500 text-[12px] shrink-0">
-                                            {sch.name[0].toUpperCase()}
+                                        <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center font-bold text-blue-600 text-[12px] shrink-0">
+                                            {res.name[0].toUpperCase()}
                                         </div>
-                                        <span className="font-semibold text-text-main text-[13px] group-hover:text-accent-primary transition-colors truncate" title={sch.name}>{sch.name}</span>
+                                        <span className="font-semibold text-text-main text-[13px] group-hover:text-accent-primary transition-colors truncate" title={res.name}>{res.name}</span>
                                     </div>
                                     <div className="flex items-center gap-1.5 shrink-0">
-                                        <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded bg-surface-hover border border-border/40 ${sch.is_active !== false ? 'text-green-500' : 'text-red-500'}`}>
-                                            {sch.is_active !== false ? 'ACTIVE' : 'INACTIVE'}
+                                        <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded bg-surface-hover border border-border/40 ${res.status === 'active' ? 'text-green-600' : res.status === 'pending' ? 'text-amber-600' : 'text-red-600'}`}>
+                                            {(res.status || 'pending').toUpperCase()}
                                         </span>
                                     </div>
                                 </div>
                                 
                                 <div className="flex flex-col gap-1.5 pl-11">
-                                    {sch.domain && (
+
+                                    <div className="flex items-center gap-2 text-[12px] text-text-main">
+                                        <Mail size={12} className="text-blue-500 shrink-0" />
+                                        <span className="truncate">{res.contact_email || '—'}</span>
+                                    </div>
+
+                                    {res.contact_phone && (
                                         <div className="flex items-center gap-2 text-[12px] text-text-main">
-                                            <Globe size={12} className="text-blue-500 shrink-0" />
-                                            <span className="truncate">{sch.domain}</span>
+                                            <Phone size={12} className="text-blue-500 shrink-0" />
+                                            <span>{res.contact_phone}</span>
                                         </div>
                                     )}
 
                                     <div className="flex items-center justify-between text-[11px] text-text-muted mt-1 pt-1.5 border-t border-border/20">
-                                        <span>Max Students: <span className="font-semibold text-text-main">{sch.max_students ?? 500}</span></span>
-                                        <div className="flex items-center gap-3">
-                                            <Link href={`/schools/${sch.id}`} prefetch={true} className="font-bold text-accent-primary">View</Link>
-                                            <DeleteSchoolButton schoolId={sch.id} />
-                                        </div>
+                                        <span>Plan</span>
+                                        <span className={`font-bold ${res.subscription_status ? 'text-blue-600' : 'text-text-muted'}`}>
+                                            {(res.subscription_type || (res.subscription_status ? 'PRO PLAN' : 'TRIAL PLAN')).toUpperCase()}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
