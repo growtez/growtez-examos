@@ -9,38 +9,27 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+        bg: "var(--color-bg)",
+        surface: "var(--color-surface)",
+        "surface-hover": "var(--color-surface-hover)",
+        "accent-primary": "var(--color-accent-primary)",
+        "accent-primary-glow": "var(--color-accent-primary-glow)",
+        "accent-secondary": "var(--color-accent-secondary)",
+        "accent-secondary-glow": "var(--color-accent-secondary-glow)",
+        "text-main": "var(--color-text-main)",
+        "text-muted": "var(--color-text-muted)",
+        border: "var(--color-border)",
+        sidebar: {
+          bg: "var(--color-sidebar-bg)",
+          text: "var(--color-sidebar-text)",
+          "text-muted": "var(--color-sidebar-text-muted)",
+          hover: "var(--color-sidebar-hover)",
+          border: "var(--color-sidebar-border)",
+          accent: "var(--color-sidebar-accent)",
         },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
-        },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+        glass: {
+          bg: "var(--color-glass-bg)",
+          border: "var(--color-glass-border)",
         },
       },
       borderRadius: {
