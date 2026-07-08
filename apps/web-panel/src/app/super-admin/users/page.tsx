@@ -1,6 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import UsersClientPage from './UsersClientPage';
 
+export const dynamic = 'force-dynamic';
+
 export default async function UsersPage() {
   const supabase = createAdminClient();
 

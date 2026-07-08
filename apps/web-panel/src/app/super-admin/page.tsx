@@ -4,6 +4,8 @@ import { School, Users, FileText, Plus, List } from 'lucide-react';
 import { StatCard } from '@/components/ui/StatCard';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SuperAdminDashboard() {
   const supabase = createAdminClient();
 
