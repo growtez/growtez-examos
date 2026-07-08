@@ -12,7 +12,9 @@ import {
     Moon,
     Sun,
     LucideIcon,
-    Users
+    Users,
+    FileText,
+    CreditCard
 } from 'lucide-react';
 
 interface NavItem {
@@ -26,6 +28,8 @@ const navItems: NavItem[] = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/users', icon: Users, label: 'Users' },
     { path: '/schools', icon: School, label: 'Schools' },
+    { path: '/exams', icon: FileText, label: 'Exams' },
+    { path: '/subscriptions', icon: CreditCard, label: 'Subscriptions' },
 ];
 
 const ICON_BOX = 20;

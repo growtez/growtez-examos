@@ -46,6 +46,9 @@ export async function middleware(req: NextRequest) {
   // Refresh session
   const { data: { session } } = await supabase.auth.getSession();
 
+  // Extract role
+  const role = session?.user?.user_metadata?.role || (session?.user?.email === 'growtezexamos@gmail.com' ? 'super_admin' : 'student');
+
   // Bypass subdomain rewrite for internal Next.js assets, API routes, and static files
   if (
     url.pathname.startsWith('/_next') ||
@@ -63,8 +66,8 @@ export async function middleware(req: NextRequest) {
       return NextResponse.rewrite(new URL(`/login`, req.url), { headers: response.headers });
     }
 
-    // Protect super-admin routes
-    if (!session) {
+    // Protect super-admin routes (ensure user has super_admin role)
+    if (!session || role !== 'super_admin') {
       return NextResponse.redirect(new URL('/login', req.url));
     }
 
@@ -78,8 +81,8 @@ export async function middleware(req: NextRequest) {
       return NextResponse.rewrite(new URL(`/login`, req.url), { headers: response.headers });
     }
 
-    // Protect school-admin routes
-    if (!session) {
+    // Protect school-admin routes (ensure user has school_admin or teacher role)
+    if (!session || (role !== 'school_admin' && role !== 'teacher')) {
       return NextResponse.redirect(new URL('/login', req.url));
     }
 

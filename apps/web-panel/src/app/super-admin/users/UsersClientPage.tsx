@@ -97,9 +97,7 @@ export default function UsersClientPage({ users: initialUsers }: { users: any[] 
 
   return (
     <div className="space-y-3 w-full">
-      {/* Header text can be handled by layout, but if we need a title it would go here */}
-      <h1 className="text-xl font-bold text-text-main mb-4">Users Management</h1>
-
+     
       {/* List Control */}
       <div className="flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border">
         {/* Search Box */}
