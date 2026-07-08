@@ -1,8 +1,8 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import UsersClientPage from './UsersClientPage';
 
 export default async function UsersPage() {
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
   // Fetch from all four user tables
   const [

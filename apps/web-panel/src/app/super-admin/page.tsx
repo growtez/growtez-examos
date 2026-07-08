@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import Link from 'next/link';
 import { School, Users, FileText, Plus, List } from 'lucide-react';
 import { StatCard } from '@/components/ui/StatCard';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
 export default async function SuperAdminDashboard() {
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
   // Fetch stats concurrently
   const [
