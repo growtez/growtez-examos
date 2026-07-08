@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { Users, FileText, Settings } from 'lucide-react';
 
 export default async function SchoolDetailPage({ params }: { params: { id: string } }) {
@@ -32,22 +31,6 @@ export default async function SchoolDetailPage({ params }: { params: { id: strin
       
       {/* Header */}
       <div className="flex flex-col gap-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <nav className="flex items-center gap-2 text-[13px] text-text-muted font-medium">
-              <Link href="/super-admin" className="hover:text-accent-primary transition-colors">
-                Dashboard
-              </Link>
-              <span>/</span>
-              <Link href="/super-admin/schools" className="hover:text-accent-primary transition-colors">
-                Schools
-              </Link>
-              <span>/</span>
-              <span className="text-text-main font-semibold truncate max-w-[200px]">{school.name}</span>
-            </nav>
-          </div>
-        </div>
-
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-accent-primary/10 flex items-center justify-center border border-accent-primary/20 shrink-0 shadow-sm">
@@ -56,7 +39,7 @@ export default async function SchoolDetailPage({ params }: { params: { id: strin
                 </span>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-text-main">{school.name}</h2>
+              <h2 className="text-2xl font-bold text-text-main" data-page-title="school-name">{school.name}</h2>
               <p className="text-text-muted text-sm mt-1">{school.domain || 'No domain set'}</p>
             </div>
           </div>

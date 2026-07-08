@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Sidebar from '@/components/Sidebar';
@@ -18,6 +18,7 @@ export default function SuperAdminLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [currentSchoolName, setCurrentSchoolName] = useState<string | null>(null);
   
   // Drawer state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -34,13 +35,71 @@ export default function SuperAdminLayout({
     window.location.href = '/login';
   };
 
+  useLayoutEffect(() => {
+    if (!pathname?.startsWith('/schools/')) {
+      setCurrentSchoolName(null);
+      return;
+    }
+
+    const syncSchoolName = () => {
+      const heading = document.querySelector('[data-page-title="school-name"]');
+      const name = heading?.textContent?.trim();
+      setCurrentSchoolName(name || null);
+    };
+
+    syncSchoolName();
+
+    const observer = new MutationObserver(syncSchoolName);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => observer.disconnect();
+  }, [pathname]);
+
   const getPageTitle = () => {
     if (pathname === '/' || pathname === '/super-admin') return 'Dashboard';
-    if (pathname?.startsWith('/schools') || pathname?.startsWith('/super-admin/schools')) return 'Schools';
+    if (pathname?.startsWith('/schools')) return 'Schools';
+    if (pathname?.startsWith('/exams')) return 'Exams';
+    if (pathname === '/users') return 'Users';
     return 'Command Center';
   };
 
+  const getBreadcrumbs = () => {
+    const segments = pathname?.split('/').filter(Boolean) ?? [];
+    const crumbs = [];
+
+    if (segments[0] === 'super-admin' || segments[0] === '') {
+      crumbs.push({ label: 'Dashboard', href: '/' });
+    }
+
+    if (segments.includes('schools')) {
+      crumbs.push({ label: 'Schools', href: '/schools' });
+    }
+
+    if (segments.includes('users')) {
+      crumbs.push({ label: 'Users', href: '/users' });
+    }
+
+    if (segments.includes('exams')) {
+      crumbs.push({ label: 'Exams', href: '/exams' });
+    }
+
+    const lastSegment = segments[segments.length - 1];
+    const isSchoolDetail = segments[0] === 'schools' && segments.length > 1;
+
+    if (isSchoolDetail) {
+      crumbs.push({ label: currentSchoolName || '', href: null });
+    } else if (lastSegment && lastSegment !== 'super-admin' && !['schools', 'users', 'exams'].includes(lastSegment)) {
+      crumbs.push({ label: lastSegment, href: null });
+    }
+
+    return crumbs;
+  };
+
   const title = getPageTitle();
+  const breadcrumbs = getBreadcrumbs();
 
   return (
     <div className="min-h-screen bg-bg">
@@ -80,7 +139,28 @@ export default function SuperAdminLayout({
               </button>
 
               <div className="flex items-center">
-                <span className="text-[12px] md:text-[13px] font-medium text-text-main">{title}</span>
+                <div className="flex flex-col">
+                  <div className="text-[12px] md:text-[13px] font-medium text-text-main">
+                    {breadcrumbs.length > 0 ? (
+                      <nav className="flex items-center gap-1.5 text-[12px] md:text-[13px] text-text-muted">
+                        {breadcrumbs.map((crumb, index) => (
+                          <span key={crumb.label} className="flex items-center gap-1.5">
+                            {crumb.href ? (
+                              <Link href={crumb.href} className="hover:text-accent-primary transition-colors">
+                                {crumb.label}
+                              </Link>
+                            ) : (
+                              <span className="text-text-main font-semibold">{crumb.label}</span>
+                            )}
+                            {index < breadcrumbs.length - 1 && <span>/</span>}
+                          </span>
+                        ))}
+                      </nav>
+                    ) : (
+                      <span>{title}</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
