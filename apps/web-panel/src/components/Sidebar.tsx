@@ -11,7 +11,8 @@ import {
     ChevronLeft,
     Moon,
     Sun,
-    LucideIcon
+    LucideIcon,
+    Users
 } from 'lucide-react';
 
 interface NavItem {
@@ -23,6 +24,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/users', icon: Users, label: 'Users' },
     { path: '/schools', icon: School, label: 'Schools' },
 ];
 

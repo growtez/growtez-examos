@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Sidebar from '@/components/Sidebar';
-import { Menu, LogOut } from 'lucide-react';
+import { Menu, LogOut, Plus, School, UserPlus } from 'lucide-react';
 import Link from 'next/link';
+
+import QuickCreateDrawer from '@/components/QuickCreateDrawer';
 
 export default function SuperAdminLayout({
   children,
@@ -16,6 +18,15 @@ export default function SuperAdminLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  
+  // Drawer state
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [activeForm, setActiveForm] = useState<'school' | 'user'>('school');
+
+  const openDrawer = (formType: 'school' | 'user') => {
+    setActiveForm(formType);
+    setIsDrawerOpen(true);
+  };
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -33,6 +44,13 @@ export default function SuperAdminLayout({
 
   return (
     <div className="min-h-screen bg-bg">
+      <QuickCreateDrawer 
+        isOpen={isDrawerOpen} 
+        onClose={() => setIsDrawerOpen(false)} 
+        activeForm={activeForm} 
+        setActiveForm={setActiveForm} 
+      />
+
       {/* Mobile overlay */}
       {mobileSidebarOpen && (
         <div 
@@ -67,6 +85,32 @@ export default function SuperAdminLayout({
             </div>
 
             <div className="flex items-center gap-3 md:gap-6">
+              <div className="relative group">
+                <button 
+                  className="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 bg-accent-primary hover:bg-accent-secondary text-white rounded-lg shadow-[0_2px_6px_rgba(5,150,105,0.2)] hover:shadow-[0_4px_12px_rgba(5,150,105,0.4)] transition-all hover:-translate-y-0.5" 
+                  title="Quick Create"
+                  onClick={() => openDrawer('school')}
+                >
+                  <Plus size={18} />
+                </button>
+                <div className="absolute top-full right-0 pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 transition-all z-50">
+                  <div className="bg-surface border border-border rounded-xl shadow-md min-w-[180px] flex flex-col overflow-hidden">
+                    <button 
+                      onClick={() => openDrawer('school')} 
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-muted hover:text-accent-primary hover:bg-surface-hover hover:pl-5 transition-all text-left w-full cursor-pointer bg-transparent border-none"
+                    >
+                      <School size={16}/> Add School
+                    </button>
+                    <button 
+                      onClick={() => openDrawer('user')} 
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-muted hover:text-accent-primary hover:bg-surface-hover hover:pl-5 transition-all text-left w-full cursor-pointer bg-transparent border-none"
+                    >
+                      <UserPlus size={16}/> Add New User
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="relative group">
                 <button
                   id="header-admin-menu-trigger"

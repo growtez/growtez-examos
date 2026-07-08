@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
+type Step = 'login' | 'waiting_room' | 'exam' | 'submitted';
+
 interface LoginProps {
-  onLoginSuccess: (studentData: any, selectedExam: any, initialStep?: string) => void;
+  onLoginSuccess: (studentData: any, selectedExam: any, initialStep?: Step) => void;
   serverTimeOffset?: number;
 }
 

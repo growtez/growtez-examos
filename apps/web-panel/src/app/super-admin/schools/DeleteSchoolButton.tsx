@@ -24,7 +24,7 @@ export default function DeleteSchoolButton({ schoolId }: { schoolId: string }) {
     <button
       onClick={handleDelete}
       disabled={isDeleting}
-      className={`text-red-400 hover:text-red-300 text-sm font-medium transition-colors ml-4 ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
+      className={`text-[12px] font-semibold text-red-500 hover:text-red-600 transition-colors bg-transparent border-none cursor-pointer ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       {isDeleting ? 'Deleting...' : 'Delete'}
     </button>
