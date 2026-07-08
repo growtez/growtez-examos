@@ -14,27 +14,18 @@ export default async function SchoolDetailPage({ params }: { params: { id: strin
 
   if (!school) return notFound();
 
-  // Get counts
-  const { count: studentCount } = await supabase
-    .from('students')
-    .select('*', { count: 'exact', head: true })
-    .eq('school_id', school.id);
-
-  const { count: teacherCount } = await supabase
-    .from('teachers')
-    .select('*', { count: 'exact', head: true })
-    .eq('school_id', school.id);
-
-  const { count: examCount } = await supabase
-    .from('exams')
-    .select('*', { count: 'exact', head: true })
-    .eq('school_id', school.id);
-
-  const { data: schoolAdmin } = await supabase
-    .from('school_admins')
-    .select('*')
-    .eq('school_id', school.id)
-    .single();
+  // Get counts and relationships concurrently
+  const [
+    { count: studentCount },
+    { count: teacherCount },
+    { count: examCount },
+    { data: schoolAdmin }
+  ] = await Promise.all([
+    supabase.from('students').select('*', { count: 'exact', head: true }).eq('school_id', school.id),
+    supabase.from('teachers').select('*', { count: 'exact', head: true }).eq('school_id', school.id),
+    supabase.from('exams').select('*', { count: 'exact', head: true }).eq('school_id', school.id),
+    supabase.from('school_admins').select('*').eq('school_id', school.id).single()
+  ]);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
