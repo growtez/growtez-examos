@@ -126,7 +126,7 @@ export default function PlansDashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text-main">Licensing & Plans</h1>
-          <p className="text-sm text-text-muted">Manage global licensing plans and credit packages for schools.</p>
+          <p className="text-sm text-text-muted">Manage pricing and billing plans for schools.</p>
         </div>
         <button
           onClick={() => openCreatePlan()}
@@ -148,7 +148,6 @@ export default function PlansDashboard() {
                 <p className="text-[11px] text-text-muted">Pay per Exam</p>
               </div>
               <div className="flex flex-col items-end gap-1.5">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-primary/10 text-accent-primary border border-accent-primary/20">Credits</span>
                 {creditPlan && (
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border uppercase tracking-wider ${creditPlan.is_active ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-surface-hover text-text-muted border-border'}`}>
                     {creditPlan.is_active ? 'Active' : 'Inactive'}
@@ -162,8 +161,8 @@ export default function PlansDashboard() {
                 <span className="font-bold text-text-main text-sm">{creditPlan ? `₹${Number(creditPlan.price).toLocaleString('en-IN')}` : '₹300'}</span>
               </div>
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-text-muted">Credits</span>
-                <span className="font-semibold text-text-main">{creditPlan ? creditPlan.credits_awarded : '1'} / Student</span>
+                <span className="text-text-muted">Billing</span>
+                <span className="font-semibold text-text-main">Per Exam</span>
               </div>
             </div>
             <button
@@ -378,7 +377,7 @@ export default function PlansDashboard() {
               {/* Type Selector / Read Only */}
               {lockFields ? (
                 <div className="relative">
-                  <input type="text" readOnly value={planForm.plan_type === 'time_based' ? '🗓 Time Based' : '🪙 Credit Based'}
+                  <input type="text" readOnly value={planForm.plan_type === 'time_based' ? '🗓 Time Based' : '📝 Per Exam'}
                     className="w-full bg-surface/50 border border-border rounded-xl px-4 h-12 text-sm text-text-muted focus:outline-none cursor-default capitalize"
                   />
                   <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 pointer-events-none">Plan Type</label>
@@ -388,7 +387,7 @@ export default function PlansDashboard() {
                   {['time_based', 'credit_based'].map(t => (
                     <button key={t} type="button" onClick={() => setPlanForm({ ...planForm, plan_type: t })}
                       className={`py-2.5 rounded-xl text-[12px] font-bold border transition-all capitalize ${planForm.plan_type === t ? 'bg-accent-primary/10 text-accent-primary border-accent-primary/30' : 'bg-surface-hover border-border text-text-muted hover:border-accent-primary/20'}`}>
-                      {t === 'time_based' ? '🗓 Time Based' : '🪙 Credit Based'}
+                      {t === 'time_based' ? '🗓 Time Based' : '📝 Per Exam'}
                     </button>
                   ))}
                 </div>
@@ -417,6 +416,7 @@ export default function PlansDashboard() {
               )}
 
               {/* Credits Awarded (only for credit_based) */}
+              {/*
               {planForm.plan_type === 'credit_based' && (
                 <div className="relative">
                   <input type="number" placeholder="0" value={planForm.credits_awarded}
@@ -426,6 +426,7 @@ export default function PlansDashboard() {
                   <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 pointer-events-none">Credits Awarded</label>
                 </div>
               )}
+              */}
 
               {/* Price */}
               <div className="relative">

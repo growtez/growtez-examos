@@ -156,7 +156,7 @@ export default function SubscriptionsDashboard() {
             <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-border bg-surface-hover/50">
-                  {['School', 'Plan', 'Type', 'Status', 'Credits Balance', 'Period', 'Razorpay ID'].map(h => (
+                  {['School', 'Plan', 'Type', 'Status', 'Exams Balance', 'Period', 'Razorpay ID'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -169,7 +169,7 @@ export default function SubscriptionsDashboard() {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1 text-[11px] font-medium text-text-muted capitalize">
                         {sub.plans?.plan_type === 'time_based' ? <Calendar size={11} /> : <Coins size={11} />}
-                        {sub.plans?.plan_type?.replace('_', ' ') ?? '—'}
+                        {sub.plans?.plan_type === 'credit_based' ? 'Per Exam' : sub.plans?.plan_type?.replace('_', ' ') ?? '—'}
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
