@@ -223,7 +223,7 @@ export default function Sidebar({
                     <span
                         className={`text-lg ml-2 font-extrabold bg-gradient-to-br from-white to-sidebar-text-muted text-transparent bg-clip-text tracking-tight font-poppins leading-none overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out ${effectiveCollapsed ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100'}`}
                     >
-                        Pariksha
+                        ParikshaOS
                     </span>
                 </div>
                 {setCollapsed && (

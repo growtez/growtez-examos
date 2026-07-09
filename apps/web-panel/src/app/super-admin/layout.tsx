@@ -4,10 +4,11 @@ import { useLayoutEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Sidebar from '@/components/Sidebar';
-import { Menu, LogOut, Plus, School, UserPlus } from 'lucide-react';
+import { Menu, LogOut, Plus, School, UserPlus, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 import QuickCreateDrawer from '@/components/QuickCreateDrawer';
+import { DrawerContext, ExamPrefill } from './DrawerContext';
 
 export default function SuperAdminLayout({
   children,
@@ -22,10 +23,12 @@ export default function SuperAdminLayout({
   
   // Drawer state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [activeForm, setActiveForm] = useState<'school' | 'user'>('school');
+  const [activeForm, setActiveForm] = useState<'school' | 'user' | 'exam'>('school');
+  const [examPrefill, setExamPrefill] = useState<ExamPrefill | undefined>(undefined);
 
-  const openDrawer = (formType: 'school' | 'user') => {
+  const openDrawer = (formType: 'school' | 'user' | 'exam', prefill?: ExamPrefill) => {
     setActiveForm(formType);
+    if (formType === 'exam' && prefill) setExamPrefill(prefill);
     setIsDrawerOpen(true);
   };
 
@@ -102,12 +105,14 @@ export default function SuperAdminLayout({
   const breadcrumbs = getBreadcrumbs();
 
   return (
+    <DrawerContext.Provider value={{ openDrawer }}>
     <div className="min-h-screen bg-bg">
       <QuickCreateDrawer 
         isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)} 
+        onClose={() => { setIsDrawerOpen(false); setExamPrefill(undefined); }} 
         activeForm={activeForm} 
-        setActiveForm={setActiveForm} 
+        setActiveForm={setActiveForm}
+        examPrefill={examPrefill}
       />
 
       {/* Mobile overlay */}
@@ -187,6 +192,12 @@ export default function SuperAdminLayout({
                     >
                       <UserPlus size={16}/> Add New User
                     </button>
+                    <button 
+                      onClick={() => openDrawer('exam')} 
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-muted hover:text-accent-primary hover:bg-surface-hover hover:pl-5 transition-all text-left w-full cursor-pointer bg-transparent border-none"
+                    >
+                      <FileText size={16}/> Create Exam Template
+                    </button>
                   </div>
                 </div>
               </div>
@@ -229,5 +240,6 @@ export default function SuperAdminLayout({
         </main>
       </div>
     </div>
+    </DrawerContext.Provider>
   );
 }
