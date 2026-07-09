@@ -14,7 +14,8 @@ import {
     LucideIcon,
     Users,
     FileText,
-    CreditCard
+    CreditCard,
+    Tag
 } from 'lucide-react';
 
 interface NavItem {
@@ -29,6 +30,7 @@ const navItems: NavItem[] = [
     { path: '/users', icon: Users, label: 'Users' },
     { path: '/schools', icon: School, label: 'Schools' },
     { path: '/exams', icon: FileText, label: 'Exams' },
+    { path: '/plans', icon: Tag, label: 'Plans' },
     { path: '/subscriptions', icon: CreditCard, label: 'Subscriptions' },
 ];
 

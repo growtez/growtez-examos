@@ -66,6 +66,8 @@ export default function SuperAdminLayout({
     if (pathname?.startsWith('/schools')) return 'Schools';
     if (pathname?.startsWith('/exams')) return 'Exams';
     if (pathname === '/users') return 'Users';
+    if (pathname?.startsWith('/plans')) return 'Plans';
+    if (pathname?.startsWith('/subscriptions')) return 'Subscriptions';
     return 'Command Center';
   };
 
@@ -89,12 +91,20 @@ export default function SuperAdminLayout({
       crumbs.push({ label: 'Exams', href: '/exams' });
     }
 
+    if (segments.includes('plans')) {
+      crumbs.push({ label: 'Plans', href: '/plans' });
+    }
+
+    if (segments.includes('subscriptions')) {
+      crumbs.push({ label: 'Subscriptions', href: '/subscriptions' });
+    }
+
     const lastSegment = segments[segments.length - 1];
     const isSchoolDetail = segments[0] === 'schools' && segments.length > 1;
 
     if (isSchoolDetail) {
       crumbs.push({ label: currentSchoolName || '', href: null });
-    } else if (lastSegment && lastSegment !== 'super-admin' && !['schools', 'users', 'exams'].includes(lastSegment)) {
+    } else if (lastSegment && lastSegment !== 'super-admin' && !['schools', 'users', 'exams', 'plans', 'subscriptions'].includes(lastSegment)) {
       crumbs.push({ label: lastSegment, href: null });
     }
 
