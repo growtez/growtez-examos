@@ -93,6 +93,7 @@ export async function POST(req: Request) {
     // 3. Assign to exam
     const { error: assignError } = await adminSupabase.from('exam_students').insert({
       exam_id: exam_id,
+
       student_id: studentId,
       status: 'assigned'
     });

@@ -582,3 +582,4 @@ DROP POLICY IF EXISTS "School admins view their payment history" ON public.payme
 CREATE POLICY "School admins view their payment history" ON public.payment_history FOR SELECT USING (
     school_id = public.get_current_user_school_id() AND EXISTS (SELECT 1 FROM public.school_admins WHERE id = auth.uid())
 );
+
