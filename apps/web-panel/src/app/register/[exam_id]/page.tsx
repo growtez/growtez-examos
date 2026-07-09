@@ -45,9 +45,9 @@ function RegistrationForm({ params, exam, school, onSuccess }: { params: { exam_
           full_name: name,
           roll_number: rollNumber,
           date_of_birth: dob,
-          course: courseParam,
-          batch: batchParam,
-          session: sessionParam,
+          course: courseParam || 'General',
+          batch: batchParam || 'Main',
+          session: sessionParam || '2026-27',
           exam_id: params.exam_id,
         }),
       });
@@ -83,10 +83,28 @@ function RegistrationForm({ params, exam, school, onSuccess }: { params: { exam_
         )}
         
         {(courseParam || batchParam || sessionParam) && (
-          <div className="bg-[#f5f9f9] border border-[#b2d8d8] p-4 rounded-xl flex flex-wrap gap-2 justify-center">
-            {courseParam && <span className="px-3 py-1 bg-white text-[#008080] text-xs font-bold rounded-full border border-[#e0f2f2] shadow-sm uppercase tracking-wider">{courseParam}</span>}
-            {batchParam && <span className="px-3 py-1 bg-white text-[#008080] text-xs font-bold rounded-full border border-[#e0f2f2] shadow-sm uppercase tracking-wider">{batchParam}</span>}
-            {sessionParam && <span className="px-3 py-1 bg-white text-[#008080] text-xs font-bold rounded-full border border-[#e0f2f2] shadow-sm uppercase tracking-wider">{sessionParam}</span>}
+          <div className="bg-[#f5f9f9] border border-[#b2d8d8] p-4 rounded-xl mb-6">
+            <p className="text-[#1a2e2e] text-xs font-bold uppercase tracking-wider text-center mb-3">Registration Details</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {courseParam && (
+                <div className="bg-white border border-[#e0f2f2] rounded-lg p-2.5 text-center shadow-sm">
+                  <p className="text-[#8aacac] text-[10px] font-bold uppercase tracking-wider mb-0.5">Course</p>
+                  <p className="text-[#008080] text-sm font-black">{courseParam}</p>
+                </div>
+              )}
+              {batchParam && (
+                <div className="bg-white border border-[#e0f2f2] rounded-lg p-2.5 text-center shadow-sm">
+                  <p className="text-[#8aacac] text-[10px] font-bold uppercase tracking-wider mb-0.5">Batch</p>
+                  <p className="text-[#008080] text-sm font-black">{batchParam}</p>
+                </div>
+              )}
+              {sessionParam && (
+                <div className="bg-white border border-[#e0f2f2] rounded-lg p-2.5 text-center shadow-sm">
+                  <p className="text-[#8aacac] text-[10px] font-bold uppercase tracking-wider mb-0.5">Session</p>
+                  <p className="text-[#008080] text-sm font-black">{sessionParam}</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -198,7 +216,7 @@ export default function StudentExamRegistration({ params }: { params: { exam_id:
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-[#1a2e2e] tracking-tight uppercase mb-2">Examos</h1>
+          <h1 className="text-3xl font-black text-[#1a2e2e] tracking-tight uppercase mb-2">Parikshaos</h1>
           <p className="text-[#008080] font-bold text-sm tracking-widest uppercase">Student Portal</p>
         </div>
 
@@ -219,7 +237,14 @@ export default function StudentExamRegistration({ params }: { params: { exam_id:
                 </div>
                 <h3 className="text-xl font-bold text-[#1a2e2e] mb-2 uppercase">Registration Successful!</h3>
                 <p className="text-[#555555] text-sm mb-6">
-                  You are now registered for <strong>{exam.title}</strong>. You can take the exam using the Examos Desktop App.
+                  You are now registered for <strong>{exam.title}</strong>.{' '}
+                  {exam.status === 'published' && exam.start_time ? (
+                    <span>
+                      The exam starts on <strong>{new Date(exam.start_time).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong> at <strong>{new Date(exam.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong>.
+                    </span>
+                  ) : (
+                    <span>You will be notified when the exam starts.</span>
+                  )}
                 </p>
                 <div className="bg-[#f5f9f9] border border-[#b2d8d8] p-4 text-left">
                   <p className="text-[#1a2e2e] text-xs font-bold mb-3 uppercase tracking-wider text-center">Your Login Credentials</p>
@@ -250,9 +275,9 @@ export default function StudentExamRegistration({ params }: { params: { exam_id:
         </div>
         
         {/* Footer */}
-        <p className="text-center text-[#8aacac] text-xs font-medium">
-          Powered by Examos OS
-        </p>
+        <div className="mt-8 text-center text-[#8ab8b8] text-xs font-bold uppercase tracking-wider">
+          Powered by Parikshaos
+        </div>
       </div>
     </div>
   );
