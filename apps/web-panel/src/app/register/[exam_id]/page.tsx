@@ -9,7 +9,7 @@ function RegistrationForm({ params, exam, school, onSuccess }: { params: { exam_
   const searchParams = useSearchParams();
   const pParam = searchParams.get('p');
   
-  let courseParam, batchParam, sessionParam;
+  let courseParam: string | undefined, batchParam: string | undefined, sessionParam: string | undefined;
   if (pParam) {
     try {
       const decoded = JSON.parse(atob(pParam));
