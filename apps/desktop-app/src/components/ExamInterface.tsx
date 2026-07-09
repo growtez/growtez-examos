@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import Calculator from './Calculator';
 
 interface ExamInterfaceProps {
   studentProfile: any;
@@ -14,6 +15,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, { answer: string | null; marked: boolean; visited: boolean }>>({});
+  const [showCalculator, setShowCalculator] = useState(false);
   
   // Calculate time remaining based on server time and exam end_time
   const getInitialTimeLeft = () => {
@@ -431,10 +433,10 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
               </div>
               <div className="flex flex-col text-right">
                 <div className="text-[#1D2939] text-xs font-medium"><span className="text-[#667085]">Candidate Name :</span> <span className="text-[#1D2939] font-bold">[{studentProfile.full_name}]</span></div>
-                <div className="text-[#1D2939] text-xs font-medium mt-0.5"><span className="text-[#667085]">Subject Name :</span> <span className="text-[#1D2939] font-bold">[{exam.title}]</span></div>
-                <div className="text-[#1D2939] text-xs font-medium mt-1 flex items-center justify-end gap-1.5">
+                <div className="text-[#1D2939] text-xs font-medium mt-0.5"><span className="text-[#667085]">Candidate Roll No. :</span> <span className="text-[#1D2939] font-bold">[{studentProfile.roll_number || 'N/A'}]</span></div>
+                <div className="text-[#1D2939] text-xs font-medium mt-1 flex items-center justify-end gap-2">
                   <span className="text-[#667085]">Remaining Time :</span>
-                  <span className={`px-2.5 py-0.5 font-bold text-xs text-white rounded-md ${getTimerClass()}`}>{formatTime(timeLeft)}</span>
+                  <span className={`px-3 py-1 font-bold text-xl text-white rounded-lg leading-none ${getTimerClass()}`}>{formatTime(timeLeft)}</span>
                 </div>
               </div>
               <button
@@ -455,7 +457,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
             <div className="flex items-center gap-3">
               <span className="text-xs text-[#667085] font-semibold">Remaining Time:</span>
-              <span className={`px-2.5 py-0.5 font-bold text-xs text-white rounded-md ${getTimerClass()}`}>{formatTime(timeLeft)}</span>
+              <span className={`px-3 py-1 font-bold text-base text-white rounded-lg leading-none ${getTimerClass()}`}>{formatTime(timeLeft)}</span>
               <button
                 onClick={() => setHeaderOpen(true)}
                 className="text-[#667085] hover:text-[#008080] hover:bg-gray-100 p-1.5 rounded-lg transition-colors"
@@ -494,22 +496,17 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           </div>
         </div>
 
-        <div className="flex items-center gap-8">
-          <div className="flex flex-col items-center">
-            <span className="text-[9px] text-white/80 uppercase tracking-wider font-semibold leading-tight mb-1">DOWNLOAD PAPER IN:</span>
-            <button className="bg-white/10 hover:bg-white/20 text-white text-xs px-4 py-1.5 rounded-lg flex items-center gap-1.5 border border-white/20 transition-all font-bold">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              DOWNLOAD
-            </button>
-          </div>
-          <div className="flex flex-col items-start gap-1">
-            <span className="text-[9px] text-white/80 uppercase tracking-wider font-semibold leading-none">Paper Language:</span>
-            <select className="text-[#1D2939] bg-white border border-[#E4E7EC] px-3 py-1 rounded-lg text-xs font-semibold w-32 outline-none transition-all focus:border-[#008080] focus:ring-1 focus:ring-[#008080]">
-              <option>English</option>
-              <option>Hindi</option>
-            </select>
-          </div>
-        </div>
+        {/* Calculator Trigger Button */}
+        <button
+          onClick={() => setShowCalculator(prev => !prev)}
+          className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-[#004d4d] hover:bg-[#003333] active:bg-[#002222] text-white transition-all text-xs font-bold shadow-sm"
+          title="Toggle Calculator"
+        >
+          <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          CALCULATOR
+        </button>
       </div>
 
       {/* Main Content Area */}
@@ -790,6 +787,11 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
             </div>
           </div>
         </div>
+      )}
+
+      {/* Floating Calculator */}
+      {showCalculator && (
+        <Calculator onClose={() => setShowCalculator(false)} />
       )}
     </div>
   );
