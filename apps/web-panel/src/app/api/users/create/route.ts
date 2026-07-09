@@ -5,10 +5,14 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, password, full_name, role, school_id, roll_number, date_of_birth } = body;
+    const { email, password, full_name, role, school_id, roll_number, date_of_birth, course, batch, session, department } = body;
 
     if (!email || !password || !full_name || !role) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if (role === 'teacher' && !department) {
+      return NextResponse.json({ error: 'Department is required for teachers' }, { status: 400 });
     }
 
     // 1. Initialize admin client to create user securely and bypass email confirmation
@@ -33,6 +37,10 @@ export async function POST(req: Request) {
         school_id: school_id || null,
         roll_number: roll_number || null,
         date_of_birth: date_of_birth || null,
+        course: course || 'General',
+        batch: batch || 'Main',
+        session: session || '2024-25',
+        department: department || null,
       }
     });
 
