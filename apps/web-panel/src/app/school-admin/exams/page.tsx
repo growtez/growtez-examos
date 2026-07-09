@@ -15,34 +15,37 @@ export default function ExamsListPage() {
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchExams = async () => {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (!user) return;
+    let schoolId = null;
+    const role = user.user_metadata?.role;
+    if (role === 'school_admin') {
+      const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
+      schoolId = profile?.school_id;
+    } else {
+      const { data: profile } = await supabase.from('teachers').select('school_id').eq('id', user.id).single();
+      schoolId = profile?.school_id;
+    }
+    if (!schoolId) return;
+
+    const { data } = await supabase
+      .from('exams')
+      .select('*, exam_students(count)')
+      .eq('school_id', schoolId)
+      .eq('is_trashed', false)
+      .order('created_at', { ascending: false });
+
+    setExams(data || []);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchExams = async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) return;
-      let schoolId = null;
-      const role = user.user_metadata?.role;
-      if (role === 'school_admin') {
-        const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
-        schoolId = profile?.school_id;
-      } else {
-        const { data: profile } = await supabase.from('teachers').select('school_id').eq('id', user.id).single();
-        schoolId = profile?.school_id;
-      }
-      if (!schoolId) return;
-
-      const { data } = await supabase
-        .from('exams')
-        .select('*, exam_students(count)')
-        .eq('school_id', schoolId)
-        .eq('is_trashed', false)
-        .order('created_at', { ascending: false });
-
-      setExams(data || []);
-      setLoading(false);
-    };
     fetchExams();
+    window.addEventListener('refresh-tables', fetchExams);
+    return () => window.removeEventListener('refresh-tables', fetchExams);
   }, []);
 
   return (

@@ -20,6 +20,10 @@ export default function DeleteSchoolButton({ schoolId }: { schoolId: string }) {
       alert(`Failed to delete school: ${result.error}`);
       setIsDeleting(false);
     } else {
+      router.refresh();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refresh-tables'));
+      }
       router.push('/schools');
     }
   };

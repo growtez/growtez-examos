@@ -21,6 +21,8 @@ export default function SchoolsListPage() {
 
     useEffect(() => {
         fetchSchools();
+        window.addEventListener('refresh-tables', fetchSchools);
+        return () => window.removeEventListener('refresh-tables', fetchSchools);
     }, []);
 
     const fetchSchools = async () => {

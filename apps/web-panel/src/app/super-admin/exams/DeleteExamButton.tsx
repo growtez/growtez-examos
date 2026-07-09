@@ -21,6 +21,10 @@ export default function DeleteExamButton({ examId }: { examId: string }) {
       alert(`Failed to delete exam: ${result.error}`);
       setIsDeleting(false);
     } else {
+      router.refresh();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refresh-tables'));
+      }
       router.push('/exams');
     }
   };

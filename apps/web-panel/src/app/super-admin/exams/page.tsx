@@ -26,21 +26,23 @@ export default function ExamsDashboard() {
   const [perPage, setPerPage] = useState(8);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  useEffect(() => {
-    const fetchExams = async () => {
-      const supabase = createClient();
-      
-      const { data } = await supabase
-        .from('exams')
-        .select('*, schools(name), exam_students(count)')
-        .eq('is_trashed', false)
-        .order('created_at', { ascending: false });
-
-      setExams(data || []);
-      setLoading(false);
-    };
+  const fetchExams = async () => {
+    const supabase = createClient();
     
+    const { data } = await supabase
+      .from('exams')
+      .select('*, schools(name), exam_students(count)')
+      .eq('is_trashed', false)
+      .order('created_at', { ascending: false });
+
+    setExams(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
     fetchExams();
+    window.addEventListener('refresh-tables', fetchExams);
+    return () => window.removeEventListener('refresh-tables', fetchExams);
   }, []);
 
   const filteredExams = exams
@@ -369,37 +371,47 @@ export default function ExamsDashboard() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[900px]">
+            <table className="w-full text-left border-collapse whitespace-nowrap min-w-[900px]">
               <thead>
-                <tr className="bg-surface-hover border-b border-border text-text-muted font-bold tracking-wider uppercase text-[11px] cursor-pointer">
-                  <th className="text-left px-6 py-4 hover:text-text-main transition-colors" onClick={() => toggleSort('title')}>
-                    <div className="flex items-center gap-2">Title {getSortIcon('title')}</div>
+                <tr className="border-b border-border">
+                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[30%]" onClick={() => toggleSort('title')}>
+                    <div className="flex items-center gap-2">
+                      Title {getSortIcon('title')}
+                    </div>
                   </th>
-                  <th className="text-left px-6 py-4">School</th>
-                  <th className="text-left px-6 py-4">Duration</th>
-                  <th className="text-left px-6 py-4">Students</th>
-                  <th className="text-left px-6 py-4">Status</th>
-                  <th className="text-left px-6 py-4 hover:text-text-main transition-colors" onClick={() => toggleSort('newest')}>
-                    <div className="flex items-center gap-2">Created {getSortIcon('newest')}</div>
+                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[20%]">School</th>
+                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">Duration</th>
+                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%]">Students</th>
+                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">Status</th>
+                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[10%]" onClick={() => toggleSort('newest')}>
+                    <div className="flex items-center gap-2">
+                      Created {getSortIcon('newest')}
+                    </div>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody>
                 {pagedExams.map((exam) => (
-                  <tr key={exam.id} onClick={() => router.push(`/exams/${exam.id}`)} className="hover:bg-surface-hover/50 transition-colors cursor-pointer group">
-                    <td className="px-6 py-4">
-                      <span className="text-text-main font-semibold block group-hover:text-accent-primary transition-colors">{exam.title}</span>
-                      {exam.description && <span className="text-text-muted text-xs truncate max-w-[200px] block">{exam.description}</span>}
+                  <tr 
+                    key={exam.id} 
+                    onClick={() => router.push(`/exams/${exam.id}`)} 
+                    className="group even:bg-bg hover:bg-surface-hover border-b border-border/40 last:border-b-0 transition-colors cursor-pointer"
+                  >
+                    <td className="py-2.5 px-4 align-middle">
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-semibold text-text-main text-[13px] truncate group-hover:text-accent-primary transition-colors max-w-[250px]" title={exam.title}>{exam.title}</span>
+                        {exam.description && <span className="text-[11px] text-text-muted truncate max-w-[250px]" title={exam.description}>{exam.description}</span>}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-text-muted font-medium">{exam.schools?.name || 'Unknown School'}</td>
-                    <td className="px-6 py-4 text-text-muted">{exam.duration_minutes} min</td>
-                    <td className="px-6 py-4 text-text-muted">{exam.exam_students?.[0]?.count || 0}</td>
-                    <td className="px-6 py-4">
+                    <td className="py-2.5 px-4 align-middle text-[13px] text-text-muted font-medium">{exam.schools?.name || 'Unknown School'}</td>
+                    <td className="py-2.5 px-4 align-middle text-[13px] text-text-muted">{exam.duration_minutes} min</td>
+                    <td className="py-2.5 px-4 align-middle text-[13px] text-text-muted">{exam.exam_students?.[0]?.count || 0}</td>
+                    <td className="py-2.5 px-4 align-middle">
                       <span className={`inline-flex px-2 py-1 text-[10px] font-bold uppercase rounded-lg border ${statusColors[exam.status] || statusColors.draft}`}>
                         {exam.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-text-muted whitespace-nowrap">
+                    <td className="py-2.5 px-4 align-middle text-[13px] text-text-muted whitespace-nowrap">
                       {new Date(exam.created_at).toLocaleDateString()}
                     </td>
                   </tr>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useLayoutEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Sidebar from '@/components/Sidebar';
 import { Menu, LogOut, Plus, School, UserPlus, FileText } from 'lucide-react';
@@ -17,6 +17,7 @@ export default function SuperAdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -124,6 +125,12 @@ export default function SuperAdminLayout({
         activeForm={activeForm} 
         setActiveForm={setActiveForm}
         examPrefill={examPrefill}
+        onRefresh={() => {
+          router.refresh();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('refresh-tables'));
+          }
+        }}
       />
 
       {/* Mobile overlay */}

@@ -28,6 +28,8 @@ export default function SubscriptionsDashboard() {
 
   useEffect(() => {
     fetchSubscriptions();
+    window.addEventListener('refresh-tables', fetchSubscriptions);
+    return () => window.removeEventListener('refresh-tables', fetchSubscriptions);
   }, []);
 
   const fetchSubscriptions = async () => {

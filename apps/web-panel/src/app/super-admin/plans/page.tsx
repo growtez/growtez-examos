@@ -140,11 +140,11 @@ export default function PlansDashboard() {
         <div className="p-8 text-center text-text-muted text-sm bg-surface border border-border rounded-2xl shadow-sm">Loading plans…</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Credit Pack */}
+          {/* Fixed Payment */}
           <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h3 className="text-base font-extrabold text-text-main tracking-tight">Credit Pack</h3>
+                <h3 className="text-base font-extrabold text-text-main tracking-tight">Fixed Payment</h3>
                 <p className="text-[11px] text-text-muted">Pay per Exam</p>
               </div>
               <div className="flex flex-col items-end gap-1.5">
@@ -159,7 +159,7 @@ export default function PlansDashboard() {
             <div className="space-y-1 mb-4">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-text-muted">Price</span>
-                <span className="font-bold text-text-main text-sm">{creditPlan ? `₹${Number(creditPlan.price).toLocaleString('en-IN')}` : 'Not Set'}</span>
+                <span className="font-bold text-text-main text-sm">{creditPlan ? `₹${Number(creditPlan.price).toLocaleString('en-IN')}` : '₹300'}</span>
               </div>
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-text-muted">Credits</span>
@@ -167,7 +167,7 @@ export default function PlansDashboard() {
               </div>
             </div>
             <button
-              onClick={() => creditPlan ? openEditPlan(creditPlan) : openCreatePlan({ name: 'Pay per Exam', plan_type: 'credit_based', credits_awarded: '1' })}
+              onClick={() => creditPlan ? openEditPlan(creditPlan) : openCreatePlan({ name: 'Fixed Payment', plan_type: 'credit_based', price: '300', credits_awarded: '1' })}
               className={`mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl text-[12px] font-bold transition-all border cursor-pointer ${
                 creditPlan 
                   ? 'bg-surface-hover text-text-main border-border hover:border-accent-primary/30 hover:text-accent-primary' 
@@ -179,6 +179,7 @@ export default function PlansDashboard() {
           </div>
 
           {/* Monthly */}
+          {/*
           <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col">
             <div className="flex items-start justify-between mb-3">
               <div>
@@ -215,8 +216,10 @@ export default function PlansDashboard() {
               <Edit2 size={13} /> {monthlyPlan ? 'Edit Plan' : 'Setup Plan'}
             </button>
           </div>
+          */}
 
           {/* Quarterly */}
+          {/*
           <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col">
             <div className="flex items-start justify-between mb-3">
               <div>
@@ -253,8 +256,10 @@ export default function PlansDashboard() {
               <Edit2 size={13} /> {quarterlyPlan ? 'Edit Plan' : 'Setup Plan'}
             </button>
           </div>
+          */}
 
           {/* Yearly */}
+          {/*
           <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col">
             <div className="flex items-start justify-between mb-3">
               <div>
@@ -291,10 +296,12 @@ export default function PlansDashboard() {
               <Edit2 size={13} /> {yearlyPlan ? 'Edit Plan' : 'Setup Plan'}
             </button>
           </div>
+          */}
         </div>
       )}
 
       {/* ── Additional Custom Plans ───────────────────── */}
+      {/*
       {!loading && otherPlans.length > 0 && (
         <div className="space-y-3 pt-4">
           <div className="flex items-center gap-2">
@@ -343,6 +350,7 @@ export default function PlansDashboard() {
           </div>
         </div>
       )}
+      */}
 
       {/* ── Plan Modal ────────────────────────────────── */}
       {showPlanModal && (
