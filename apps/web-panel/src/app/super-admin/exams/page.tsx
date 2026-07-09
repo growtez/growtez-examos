@@ -112,14 +112,13 @@ export default function ExamsDashboard() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* NEET */}
-          <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-t-2xl" />
-            <div className="flex items-start justify-between mb-3 mt-1">
+          <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col">
+            <div className="flex items-start justify-between mb-3">
               <div>
                 <h3 className="text-base font-extrabold text-text-main tracking-tight">NEET</h3>
                 <p className="text-[11px] text-text-muted">Medical Entrance</p>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">720 Marks</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-primary/10 text-accent-primary border border-accent-primary/20">720 Marks</span>
             </div>
             <div className="space-y-1 mb-4">
               <div className="flex items-center justify-between text-[11px]">
@@ -147,21 +146,20 @@ export default function ExamsDashboard() {
                   { name: 'Biology', questionCount: 90 },
                 ],
               })}
-              className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
+              className="mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
             >
               <Plus size={13} /> Use Template
             </button>
           </div>
 
           {/* JEE Main */}
-          <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-blue-400/30 transition-all group overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-t-2xl" />
-            <div className="flex items-start justify-between mb-3 mt-1">
+          <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-blue-400/30 transition-all group overflow-hidden flex flex-col">
+            <div className="flex items-start justify-between mb-3">
               <div>
                 <h3 className="text-base font-extrabold text-text-main tracking-tight">JEE Main</h3>
                 <p className="text-[11px] text-text-muted">Engineering Entrance</p>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20">300 Marks</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-primary/10 text-accent-primary border border-accent-primary/20">300 Marks</span>
             </div>
             <div className="space-y-1 mb-4">
               <div className="flex items-center justify-between text-[11px]">
@@ -189,21 +187,20 @@ export default function ExamsDashboard() {
                   { name: 'Mathematics', questionCount: 30 },
                 ],
               })}
-              className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-blue-500/10 text-blue-600 text-[12px] font-bold hover:bg-blue-500 hover:text-white transition-all border border-blue-500/20 cursor-pointer"
+              className="mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
             >
               <Plus size={13} /> Use Template
             </button>
           </div>
 
           {/* JEE Advanced */}
-          <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-violet-400/30 transition-all group overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-400 to-purple-600 rounded-t-2xl" />
-            <div className="flex items-start justify-between mb-3 mt-1">
+          <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-violet-400/30 transition-all group overflow-hidden flex flex-col">
+            <div className="flex items-start justify-between mb-3">
               <div>
                 <h3 className="text-base font-extrabold text-text-main tracking-tight">JEE Advanced</h3>
                 <p className="text-[11px] text-text-muted">IIT Entrance</p>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-600 border border-violet-500/20">360 Marks</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-primary/10 text-accent-primary border border-accent-primary/20">360 Marks</span>
             </div>
             <div className="space-y-1 mb-4">
               <div className="flex items-center justify-between text-[11px]">
@@ -231,7 +228,7 @@ export default function ExamsDashboard() {
                   { name: 'Mathematics', questionCount: 54 },
                 ],
               })}
-              className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-violet-500/10 text-violet-600 text-[12px] font-bold hover:bg-violet-500 hover:text-white transition-all border border-violet-500/20 cursor-pointer"
+              className="mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
             >
               <Plus size={13} /> Use Template
             </button>
@@ -240,7 +237,7 @@ export default function ExamsDashboard() {
           {/* Custom */}
           <div className="relative bg-surface border border-dashed border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/40 transition-all group overflow-hidden flex flex-col justify-between">
             <div className="text-center py-2">
-              <div className="w-10 h-10 rounded-xl bg-accent-primary/10 text-accent-primary flex items-center justify-center mx-auto mb-3">
+              <div className="w-10 h-10 rounded-xl bg-accent-primary/10 text-accent-primary flex items-center justify-center mx-auto">
                 <FileText size={20} />
               </div>
               <h3 className="text-sm font-bold text-text-main">Custom Template</h3>
