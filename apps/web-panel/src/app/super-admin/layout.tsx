@@ -9,6 +9,7 @@ import Link from 'next/link';
 
 import QuickCreateDrawer from '@/components/QuickCreateDrawer';
 import { DrawerContext, ExamPrefill } from './DrawerContext';
+import { HeaderStats } from '@/components/super-admin/HeaderStats';
 
 export default function SuperAdminLayout({
   children,
@@ -177,6 +178,10 @@ export default function SuperAdminLayout({
                   </div>
                 </div>
               </div>
+            </div>
+
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
+              <HeaderStats />
             </div>
 
             <div className="flex items-center gap-3 md:gap-6">

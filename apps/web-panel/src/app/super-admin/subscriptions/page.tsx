@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
   CreditCard, Search, X, ChevronLeft, ChevronRight,
@@ -17,6 +18,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function SubscriptionsDashboard() {
+  const router = useRouter();
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -149,7 +151,7 @@ export default function SubscriptionsDashboard() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-border bg-surface-hover/50">
                   {['School', 'Plan', 'Type', 'Status', 'Credits Balance', 'Period', 'Razorpay ID'].map(h => (
@@ -159,8 +161,8 @@ export default function SubscriptionsDashboard() {
               </thead>
               <tbody className="divide-y divide-border">
                 {pagedSubs.map(sub => (
-                  <tr key={sub.id} className="hover:bg-surface-hover/40 transition-colors">
-                    <td className="px-4 py-3 text-sm font-semibold text-text-main whitespace-nowrap">{sub.schools?.name ?? '—'}</td>
+                  <tr key={sub.id} onClick={() => sub.school_id && router.push(`/schools/${sub.school_id}`)} className="hover:bg-surface-hover/40 transition-colors cursor-pointer group">
+                    <td className="px-4 py-3 text-sm font-semibold text-text-main whitespace-nowrap group-hover:text-accent-primary transition-colors">{sub.schools?.name ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-text-main whitespace-nowrap">{sub.plans?.name ?? '—'}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1 text-[11px] font-medium text-text-muted capitalize">

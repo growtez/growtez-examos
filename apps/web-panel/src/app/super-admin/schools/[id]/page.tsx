@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import { Users, FileText, Settings } from 'lucide-react';
+import DeleteSchoolButton from '../DeleteSchoolButton';
 
 export default async function SchoolDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -43,14 +44,19 @@ export default async function SchoolDetailPage({ params }: { params: { id: strin
               <p className="text-text-muted text-sm mt-1">{school.domain || 'No domain set'}</p>
             </div>
           </div>
-          <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold tracking-wide uppercase ${
-            school.is_active !== false
-              ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-              : 'bg-red-500/10 text-red-500 border border-red-500/20'
-          }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${school.is_active !== false ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-            {school.is_active !== false ? 'Active' : 'Inactive'}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold tracking-wide uppercase ${
+              school.is_active !== false
+                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                : 'bg-red-500/10 text-red-500 border border-red-500/20'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${school.is_active !== false ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+              {school.is_active !== false ? 'Active' : 'Inactive'}
+            </span>
+            <div className="bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-xl border border-red-500/20 transition-colors">
+              <DeleteSchoolButton schoolId={school.id} />
+            </div>
+          </div>
         </div>
       </div>
 

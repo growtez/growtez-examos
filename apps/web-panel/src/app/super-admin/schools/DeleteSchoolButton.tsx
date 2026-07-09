@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { deleteSchool } from '@/app/actions/school';
 
 export default function DeleteSchoolButton({ schoolId }: { schoolId: string }) {
+  const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -17,6 +19,8 @@ export default function DeleteSchoolButton({ schoolId }: { schoolId: string }) {
     if (!result.success) {
       alert(`Failed to delete school: ${result.error}`);
       setIsDeleting(false);
+    } else {
+      router.push('/schools');
     }
   };
 

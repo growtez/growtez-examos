@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { FileText, Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
@@ -14,6 +15,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function ExamsDashboard() {
+  const router = useRouter();
   const { openDrawer } = useDrawer();
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +109,7 @@ export default function ExamsDashboard() {
       {/* Global Template Presets */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Global Exam Templates</span>
+          <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Exam Templates</span>
           <div className="flex-1 h-px bg-border" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -367,7 +369,7 @@ export default function ExamsDashboard() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[900px]">
               <thead>
                 <tr className="bg-surface-hover border-b border-border text-text-muted font-bold tracking-wider uppercase text-[11px] cursor-pointer">
                   <th className="text-left px-6 py-4 hover:text-text-main transition-colors" onClick={() => toggleSort('title')}>
@@ -380,14 +382,13 @@ export default function ExamsDashboard() {
                   <th className="text-left px-6 py-4 hover:text-text-main transition-colors" onClick={() => toggleSort('newest')}>
                     <div className="flex items-center gap-2">Created {getSortIcon('newest')}</div>
                   </th>
-                  <th className="text-right px-6 py-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {pagedExams.map((exam) => (
-                  <tr key={exam.id} className="hover:bg-surface-hover/50 transition-colors">
+                  <tr key={exam.id} onClick={() => router.push(`/exams/${exam.id}`)} className="hover:bg-surface-hover/50 transition-colors cursor-pointer group">
                     <td className="px-6 py-4">
-                      <span className="text-text-main font-semibold block">{exam.title}</span>
+                      <span className="text-text-main font-semibold block group-hover:text-accent-primary transition-colors">{exam.title}</span>
                       {exam.description && <span className="text-text-muted text-xs truncate max-w-[200px] block">{exam.description}</span>}
                     </td>
                     <td className="px-6 py-4 text-text-muted font-medium">{exam.schools?.name || 'Unknown School'}</td>
@@ -400,11 +401,6 @@ export default function ExamsDashboard() {
                     </td>
                     <td className="px-6 py-4 text-text-muted whitespace-nowrap">
                       {new Date(exam.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <Link href={`/exams/${exam.id}`} className="text-accent-primary hover:text-accent-primary/80 font-bold text-xs uppercase tracking-wider transition-colors">
-                        Manage
-                      </Link>
                     </td>
                   </tr>
                 ))}
