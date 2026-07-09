@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { full_name, roll_number, date_of_birth, exam_id } = body;
+    const { full_name, roll_number, date_of_birth, exam_id, course = 'General', batch = 'Main', session = '2024-25' } = body;
 
     if (!full_name || !roll_number || !date_of_birth || !exam_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -25,7 +25,11 @@ export async function POST(req: Request) {
     }
 
     const school_id = exam.school_id;
-    const email = `${roll_number.trim()}@${school_id}.student.examos.local`;
+    // Construct email using the new fields to ensure uniqueness for duplicate roll numbers
+    const cleanCourse = course.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const cleanBatch = batch.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const cleanSession = session.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    const email = `${roll_number.trim()}-${cleanCourse}-${cleanBatch}-${cleanSession}@${school_id}.student.examos.local`;
     
     // Format password as DDMMYYYY
     const parts = date_of_birth.split('-');
@@ -42,43 +46,64 @@ export async function POST(req: Request) {
       auth: { persistSession: false, autoRefreshToken: false }
     });
 
-    // 1. Create auth user
-    const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        full_name,
-        role: 'student',
-        school_id,
-        roll_number,
-        date_of_birth,
+    // 1. Check if student already exists in this school with the same details
+    const { data: existingStudent } = await adminSupabase
+      .from('students')
+      .select('id')
+      .eq('school_id', school_id)
+      .eq('roll_number', roll_number)
+      .eq('course', course)
+      .eq('batch', batch)
+      .eq('session', session)
+      .single();
+
+    let studentId = existingStudent?.id;
+
+    if (!studentId) {
+      // 2. Create auth user if they don't exist
+      const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name,
+          role: 'student',
+          school_id,
+          roll_number,
+          date_of_birth,
+          course,
+          batch,
+          session
+        }
+      });
+
+      if (authError) {
+        return NextResponse.json({ error: authError.message }, { status: 400 });
       }
-    });
 
-    if (authError) {
-      return NextResponse.json({ error: authError.message }, { status: 400 });
+      if (!authData.user) {
+        return NextResponse.json({ error: 'Failed to create auth user' }, { status: 400 });
+      }
+
+      studentId = authData.user.id;
+      // Give the trigger a moment to create the student profile
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
-
-    if (!authData.user) {
-      return NextResponse.json({ error: 'Failed to create auth user' }, { status: 400 });
-    }
-
-    // 2. Give the trigger a moment to create the student profile
-    await new Promise(resolve => setTimeout(resolve, 500));
 
     // 3. Assign to exam
-    const { error: assignError } = await adminSupabase.rpc('assign_students', {
-      p_exam_id: exam_id,
-      p_student_ids: [authData.user.id]
+    const { error: assignError } = await adminSupabase.from('exam_students').insert({
+      exam_id: exam_id,
+      student_id: studentId,
+      status: 'assigned'
     });
 
-    if (assignError) {
+    // If error is 23505 (unique constraint violation), it means they are already assigned, which is fine.
+    if (assignError && assignError.code !== '23505') {
       console.error('Assign error:', assignError);
-      // We don't fail the whole request since the user was created, but log it
+      // We don't fail the whole request since the user was processed, but log it
     }
 
-    return NextResponse.json({ success: true, user: authData.user });
+    return NextResponse.json({ success: true, user: { id: studentId } });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }

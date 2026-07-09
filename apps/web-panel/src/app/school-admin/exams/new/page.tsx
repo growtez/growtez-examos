@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLeft, Plus } from 'lucide-react';
 
 export default function NewExamPage() {
   const router = useRouter();
@@ -17,10 +18,10 @@ export default function NewExamPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(180);
-  const [mcqCorrect, setMcqCorrect] = useState(4);
-  const [mcqWrong, setMcqWrong] = useState(-1);
-  const [natCorrect, setNatCorrect] = useState(4);
-  const [natWrong, setNatWrong] = useState(0);
+  const [mcqCorrect, setMcqCorrect] = useState<number | string>(4);
+  const [mcqWrong, setMcqWrong] = useState<number | string>(-1);
+  const [natCorrect, setNatCorrect] = useState<number | string>(4);
+  const [natWrong, setNatWrong] = useState<number | string>(0);
 
   // Step 2: Subjects
   const [subjects, setSubjects] = useState<Array<{
@@ -38,7 +39,7 @@ export default function NewExamPage() {
       if (!profile?.school_id) return;
       setSchoolId(profile.school_id);
 
-      const { data } = await supabase.from('teachers').select('*').eq('school_id', profile.school_id);
+      const { data } = await supabase.from('teachers').select('*').eq('school_id', profile.school_id).order('department', { ascending: true }).order('full_name', { ascending: true });
       setTeachers(data || []);
     };
     init();
@@ -88,7 +89,12 @@ export default function NewExamPage() {
         description: description || null,
         duration_minutes: durationMinutes,
         status: 'draft',
-        marking_scheme: { mcq_correct: mcqCorrect, mcq_wrong: mcqWrong, nat_correct: natCorrect, nat_wrong: natWrong },
+        marking_scheme: { 
+          mcq_correct: parseFloat(String(mcqCorrect)) || 0, 
+          mcq_wrong: parseFloat(String(mcqWrong)) || 0, 
+          nat_correct: parseFloat(String(natCorrect)) || 0, 
+          nat_wrong: parseFloat(String(natWrong)) || 0 
+        },
         created_by: user?.id,
       }).select().single();
 
@@ -124,116 +130,126 @@ export default function NewExamPage() {
   };
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500 mx-auto">
       <div className="mb-8">
-        <Link href="/exams" className="inline-flex items-center gap-1 text-gray-500 hover:text-gray-900 text-sm transition-colors mb-4">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
-          Back to Exams
-        </Link>
-        <h2 className="text-2xl font-bold text-gray-900">Create New Exam</h2>
-        <p className="text-gray-500 mt-1">Configure exam details, subjects, and assign teachers</p>
+        <h2 className="text-2xl font-bold text-[#1a2e2e]">Create New Exam</h2>
+        <p className="text-[#555555] mt-1 text-sm font-medium">Configure exam details, subjects, and assign teachers</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Exam Details */}
-        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Exam Details</h3>
+        <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-[#1a2e2e] mb-4">Exam Details</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Title *</label>
+              <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Title *</label>
               <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium"
                 placeholder="JEE Main Mock Test 1" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+              <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Description</label>
               <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all resize-none"
+                className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all resize-none text-sm font-medium"
                 placeholder="Full length mock test covering all topics..." />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Duration (minutes) *</label>
+              <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Duration (minutes) *</label>
               <input type="number" value={durationMinutes} onChange={(e) => setDurationMinutes(parseInt(e.target.value))} min={1} required
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+                className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium" />
             </div>
           </div>
         </div>
 
         {/* Marking Scheme */}
-        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Marking Scheme</h3>
+        <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-[#1a2e2e] mb-4">Marking Scheme</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">MCQ Correct</label>
-              <input type="number" value={mcqCorrect} onChange={(e) => setMcqCorrect(parseInt(e.target.value))}
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+              <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">MCQ Correct</label>
+              <input type="number" step="any" value={mcqCorrect} onChange={(e) => setMcqCorrect(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">MCQ Wrong</label>
-              <input type="number" value={mcqWrong} onChange={(e) => setMcqWrong(parseInt(e.target.value))}
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+              <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">MCQ Wrong (Negative)</label>
+              <input type="number" step="any" value={mcqWrong} onChange={(e) => setMcqWrong(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">NAT Correct</label>
-              <input type="number" value={natCorrect} onChange={(e) => setNatCorrect(parseInt(e.target.value))}
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+              <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">NAT Correct</label>
+              <input type="number" step="any" value={natCorrect} onChange={(e) => setNatCorrect(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">NAT Wrong</label>
-              <input type="number" value={natWrong} onChange={(e) => setNatWrong(parseInt(e.target.value))}
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all" />
+              <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">NAT Wrong (Negative)</label>
+              <input type="number" step="any" value={natWrong} onChange={(e) => setNatWrong(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium" />
             </div>
           </div>
         </div>
 
         {/* Subjects */}
-        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Subjects & Teachers</h3>
+        <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-[#1a2e2e]">Subjects & Teachers</h3>
             <button type="button" onClick={addSubject}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg text-sm font-medium hover:bg-indigo-500/20 transition-colors">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#b2d8d8] text-[#008080] rounded-lg text-sm font-semibold hover:bg-[#e0f2f2] transition-colors shadow-sm">
+              <Plus size={16} />
               Add Subject
             </button>
           </div>
 
           <div className="space-y-6">
             {subjects.map((subject, index) => (
-              <div key={index} className="bg-slate-800/50 border border-gray-300 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-gray-700">Subject {index + 1}</span>
+              <div key={index} className="bg-white border border-[#e0f2f2] rounded-xl p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm font-bold text-[#1a2e2e]">Subject {index + 1}</span>
                   {subjects.length > 1 && (
-                    <button type="button" onClick={() => removeSubject(index)} className="text-red-400 hover:text-red-300 text-sm">Remove</button>
+                    <button type="button" onClick={() => removeSubject(index)} className="text-red-500 hover:text-red-600 text-sm font-semibold">Remove</button>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Subject Name</label>
+                    <label className="block text-xs font-semibold text-[#555555] mb-1.5">Subject Name</label>
                     <input type="text" value={subject.name} onChange={(e) => updateSubject(index, 'name', e.target.value)} required
-                      className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm"
+                      className="w-full px-4 py-2.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium"
                       placeholder="e.g. Physics" />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">No. of Questions</label>
+                    <label className="block text-xs font-semibold text-[#555555] mb-1.5">No. of Questions</label>
                     <input type="number" value={subject.questionCount} onChange={(e) => updateSubject(index, 'questionCount', parseInt(e.target.value))} min={1}
-                      className="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm" />
+                      className="w-full px-4 py-2.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-2">Assign Teachers</label>
+                  <label className="block text-xs font-semibold text-[#555555] mb-2">Assign Teachers</label>
                   {teachers.length === 0 ? (
-                    <p className="text-gray-400 text-xs">No teachers added yet. <Link href="/teachers" className="text-indigo-400 hover:underline">Add teachers first</Link>.</p>
+                    <p className="text-[#8ab8b8] text-xs font-medium">No teachers added yet. <Link href="/teachers" className="text-[#008080] hover:underline">Add teachers first</Link>.</p>
                   ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {teachers.map((t) => (
-                        <button key={t.id} type="button" onClick={() => toggleTeacher(index, t.id)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                            subject.teacherIds.includes(t.id)
-                              ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-400'
-                              : 'bg-white border-gray-300 text-gray-500 hover:border-gray-400'
-                          }`}>
-                          {t.full_name}
-                        </button>
+                    <div className="space-y-4">
+                      {Object.entries(
+                        teachers.reduce((acc, t) => {
+                          const dep = t.department || 'No Department';
+                          if (!acc[dep]) acc[dep] = [];
+                          acc[dep].push(t);
+                          return acc;
+                        }, {} as Record<string, any[]>)
+                      ).map(([dep, depTeachers]: [string, any]) => (
+                        <div key={dep} className="mb-2">
+                          <p className="text-[10px] font-bold text-[#8ab8b8] uppercase tracking-wider mb-1.5">{dep}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {depTeachers.map((t: any) => (
+                              <button key={t.id} type="button" onClick={() => toggleTeacher(index, t.id)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                                  subject.teacherIds.includes(t.id)
+                                    ? 'bg-[#008080]/10 border-[#008080]/30 text-[#008080]'
+                                    : 'bg-[#f5f9f9] border-[#e0f2f2] text-[#8ab8b8] hover:border-[#b2d8d8] hover:text-[#555555]'
+                                }`}>
+                                {t.full_name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -243,14 +259,14 @@ export default function NewExamPage() {
           </div>
         </div>
 
-        {error && <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm">{error}</div>}
+        {error && <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600 text-sm font-medium">{error}</div>}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 pt-4">
           <button type="submit" disabled={loading}
-            className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-gray-900 font-medium rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-500/25">
+            className="px-8 py-3.5 bg-[#008080] text-white font-semibold rounded-xl hover:bg-[#006666] transition-all disabled:opacity-50 shadow-lg shadow-[#008080]/20 text-sm">
             {loading ? 'Creating...' : 'Create Exam'}
           </button>
-          <Link href="/exams" className="px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors">
+          <Link href="/exams" className="px-8 py-3.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] transition-colors text-sm">
             Cancel
           </Link>
         </div>

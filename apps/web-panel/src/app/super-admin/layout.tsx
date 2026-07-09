@@ -1,31 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-
+import Sidebar from '@/components/Sidebar';
+import { Menu, LogOut, Plus, School, UserPlus, FileText } from 'lucide-react';
 import Link from 'next/link';
 
-const navItems = [
-  {
-    label: 'Dashboard',
-    href: '/',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Schools',
-    href: '/schools',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
-      </svg>
-    ),
-  },
-];
+import QuickCreateDrawer from '@/components/QuickCreateDrawer';
+import { DrawerContext, ExamPrefill } from './DrawerContext';
 
 export default function SuperAdminLayout({
   children,
@@ -33,7 +16,21 @@ export default function SuperAdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [currentSchoolName, setCurrentSchoolName] = useState<string | null>(null);
+  
+  // Drawer state
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [activeForm, setActiveForm] = useState<'school' | 'user' | 'exam'>('school');
+  const [examPrefill, setExamPrefill] = useState<ExamPrefill | undefined>(undefined);
+
+  const openDrawer = (formType: 'school' | 'user' | 'exam', prefill?: ExamPrefill) => {
+    setActiveForm(formType);
+    if (formType === 'exam' && prefill) setExamPrefill(prefill);
+    setIsDrawerOpen(true);
+  };
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -41,88 +38,218 @@ export default function SuperAdminLayout({
     window.location.href = '/login';
   };
 
-  const isActive = (href: string) => {
-    if (href === '/') return pathname === '/' || pathname === '/super-admin';
-    return pathname?.startsWith(href);
+  useLayoutEffect(() => {
+    if (!pathname?.startsWith('/schools/')) {
+      setCurrentSchoolName(null);
+      return;
+    }
+
+    const syncSchoolName = () => {
+      const heading = document.querySelector('[data-page-title="school-name"]');
+      const name = heading?.textContent?.trim();
+      setCurrentSchoolName(name || null);
+    };
+
+    syncSchoolName();
+
+    const observer = new MutationObserver(syncSchoolName);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => observer.disconnect();
+  }, [pathname]);
+
+  const getPageTitle = () => {
+    if (pathname === '/' || pathname === '/super-admin') return 'Dashboard';
+    if (pathname?.startsWith('/schools')) return 'Schools';
+    if (pathname?.startsWith('/exams')) return 'Exams';
+    if (pathname === '/users') return 'Users';
+    if (pathname?.startsWith('/plans')) return 'Plans';
+    if (pathname?.startsWith('/subscriptions')) return 'Subscriptions';
+    return 'Command Center';
   };
 
+  const getBreadcrumbs = () => {
+    const segments = pathname?.split('/').filter(Boolean) ?? [];
+    const crumbs = [];
+
+    if (segments[0] === 'super-admin' || segments[0] === '') {
+      crumbs.push({ label: 'Dashboard', href: '/' });
+    }
+
+    if (segments.includes('schools')) {
+      crumbs.push({ label: 'Schools', href: '/schools' });
+    }
+
+    if (segments.includes('users')) {
+      crumbs.push({ label: 'Users', href: '/users' });
+    }
+
+    if (segments.includes('exams')) {
+      crumbs.push({ label: 'Exams', href: '/exams' });
+    }
+
+    if (segments.includes('plans')) {
+      crumbs.push({ label: 'Plans', href: '/plans' });
+    }
+
+    if (segments.includes('subscriptions')) {
+      crumbs.push({ label: 'Subscriptions', href: '/subscriptions' });
+    }
+
+    const lastSegment = segments[segments.length - 1];
+    const isSchoolDetail = segments[0] === 'schools' && segments.length > 1;
+
+    if (isSchoolDetail) {
+      crumbs.push({ label: currentSchoolName || '', href: null });
+    } else if (lastSegment && lastSegment !== 'super-admin' && !['schools', 'users', 'exams', 'plans', 'subscriptions'].includes(lastSegment)) {
+      crumbs.push({ label: lastSegment, href: null });
+    }
+
+    return crumbs;
+  };
+
+  const title = getPageTitle();
+  const breadcrumbs = getBreadcrumbs();
+
   return (
-    <div className="flex min-h-screen bg-[#f5f9f9]">
-      {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-[#1a2e2e] border-r border-[#243f3f] transition-all duration-300 flex flex-col`}>
-        {/* Logo */}
-        <div className="h-16 flex items-center px-4 border-b border-[#243f3f]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#008080] flex items-center justify-center flex-shrink-0">
-              <img src="/logo.png" alt="ParikshaOS Logo" className="w-7 h-7 object-contain" />
-            </div>
-            {sidebarOpen && (
-              <div>
-                <h1 className="text-white font-bold text-sm leading-tight">ParikshaOS</h1>
-                <p className="text-[#4da6a6] text-xs">Exam Admin</p>
-              </div>
-            )}
-          </div>
-        </div>
+    <DrawerContext.Provider value={{ openDrawer }}>
+    <div className="min-h-screen bg-bg">
+      <QuickCreateDrawer 
+        isOpen={isDrawerOpen} 
+        onClose={() => { setIsDrawerOpen(false); setExamPrefill(undefined); }} 
+        activeForm={activeForm} 
+        setActiveForm={setActiveForm}
+        examPrefill={examPrefill}
+      />
 
-        {/* Nav Items */}
-        <nav className="flex-1 px-2 py-4 space-y-0.5">
-          {navItems.map((item) => {
-            const activeClass = "bg-[#008080] text-white border-l-4 border-[#00c8c8] pl-3";
-            const inactiveClass = "text-[#8ab8b8] hover:bg-[#243f3f] hover:text-white border-l-4 border-transparent pl-3";
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-2 py-2.5 text-sm font-medium transition-all ${
-                  isActive(item.href) ? activeClass : inactiveClass
-                }`}
+      {/* Mobile overlay */}
+      {mobileSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
+          onClick={() => setMobileSidebarOpen(false)} 
+        />
+      )}
+
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        setCollapsed={setSidebarCollapsed}
+        mobileOpen={mobileSidebarOpen}
+        setMobileOpen={setMobileSidebarOpen}
+      />
+
+      <div className={`flex flex-col min-h-screen transition-[margin] duration-300 ml-0 ${sidebarCollapsed ? 'md:ml-[52px]' : 'md:ml-[180px]'}`}>
+        <header className="sticky top-0 z-30 h-14 md:h-14 flex items-center border-b border-border bg-surface/80 backdrop-blur-md">
+          <div className="w-full max-w-[1400px] mx-auto px-4 md:px-8 flex justify-between items-center">
+            <div className="flex items-center gap-3 md:gap-4">
+              {/* Mobile hamburger */}
+              <button 
+                className="md:hidden p-2 rounded-lg bg-surface-hover text-text-muted hover:text-text-main hover:bg-border transition-colors" 
+                onClick={() => setMobileSidebarOpen(true)} 
+                title="Open menu"
               >
-                {item.icon}
-                {sidebarOpen && item.label}
-              </Link>
-            );
-          })}
-        </nav>
+                <Menu size={20} />
+              </button>
 
-        {/* Logout */}
-        <div className="px-2 py-4 border-t border-[#243f3f]">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-2 py-2.5 text-sm font-medium text-[#8ab8b8] hover:text-[#ff6b6b] hover:bg-[#3f1a1a] transition-all w-full border-l-4 border-transparent pl-3"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-            </svg>
-            {sidebarOpen && 'Sign out'}
-          </button>
-        </div>
-      </aside>
+              <div className="flex items-center">
+                <div className="flex flex-col">
+                  <div className="text-[12px] md:text-[13px] font-medium text-text-main">
+                    {breadcrumbs.length > 0 ? (
+                      <nav className="flex items-center gap-1.5 text-[12px] md:text-[13px] text-text-muted">
+                        {breadcrumbs.map((crumb, index) => (
+                          <span key={crumb.label} className="flex items-center gap-1.5">
+                            {crumb.href ? (
+                              <Link href={crumb.href} className="hover:text-accent-primary transition-colors">
+                                {crumb.label}
+                              </Link>
+                            ) : (
+                              <span className="text-text-main font-semibold">{crumb.label}</span>
+                            )}
+                            {index < breadcrumbs.length - 1 && <span>/</span>}
+                          </span>
+                        ))}
+                      </nav>
+                    ) : (
+                      <span>{title}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="h-16 bg-white border-b-2 border-[#008080] flex items-center justify-between px-6 shadow-sm">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-[#555555] hover:text-[#008080] transition-colors p-1"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#008080] flex items-center justify-center">
-              <span className="text-white text-xs font-bold">SA</span>
+            <div className="flex items-center gap-3 md:gap-6">
+              <div className="relative group">
+                <button 
+                  className="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 bg-accent-primary hover:bg-accent-secondary text-white rounded-lg shadow-[0_2px_6px_rgba(5,150,105,0.2)] hover:shadow-[0_4px_12px_rgba(5,150,105,0.4)] transition-all hover:-translate-y-0.5" 
+                  title="Quick Create"
+                  onClick={() => openDrawer('school')}
+                >
+                  <Plus size={18} />
+                </button>
+                <div className="absolute top-full right-0 pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 transition-all z-50">
+                  <div className="bg-surface border border-border rounded-xl shadow-md min-w-[180px] flex flex-col overflow-hidden">
+                    <button 
+                      onClick={() => openDrawer('school')} 
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-muted hover:text-accent-primary hover:bg-surface-hover hover:pl-5 transition-all text-left w-full cursor-pointer bg-transparent border-none"
+                    >
+                      <School size={16}/> Add School
+                    </button>
+                    <button 
+                      onClick={() => openDrawer('user')} 
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-muted hover:text-accent-primary hover:bg-surface-hover hover:pl-5 transition-all text-left w-full cursor-pointer bg-transparent border-none"
+                    >
+                      <UserPlus size={16}/> Add New User
+                    </button>
+                    <button 
+                      onClick={() => openDrawer('exam')} 
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-muted hover:text-accent-primary hover:bg-surface-hover hover:pl-5 transition-all text-left w-full cursor-pointer bg-transparent border-none"
+                    >
+                      <FileText size={16}/> Create Exam Template
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative group">
+                <button
+                  id="header-admin-menu-trigger"
+                  className="w-9 h-9 rounded-lg bg-accent-primary/15 text-accent-primary flex items-center justify-center font-bold text-sm border border-accent-primary/15 hover:bg-accent-primary/20 transition-colors"
+                  onClick={() => setShowProfileMenu(prev => !prev)}
+                  title="Admin menu"
+                >
+                  SA
+                </button>
+                <div className="absolute top-full right-0 pt-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 transition-all z-50">
+                  <div id="header-admin-menu" className="w-48 rounded-xl border border-border bg-surface shadow-xl p-3">
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[12px] text-text-main font-semibold truncate block w-full">Super Admin</span>
+                    </div>
+                    <button
+                      className="mt-3 flex items-center gap-2 px-2.5 py-2 w-full bg-transparent border-none rounded-lg text-text-muted text-sm font-medium transition-colors hover:bg-red-500/10 hover:text-red-400 cursor-pointer"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        handleLogout();
+                      }}
+                    >
+                      <LogOut size={16} />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 p-6 overflow-auto">
-          {children}
+        <main className="flex-1 animate-fade-in relative z-10">
+          <div className="w-full max-w-[1400px] mx-auto px-4 md:px-6 pt-3 pb-6">
+            {children}
+          </div>
         </main>
       </div>
     </div>
+    </DrawerContext.Provider>
   );
 }

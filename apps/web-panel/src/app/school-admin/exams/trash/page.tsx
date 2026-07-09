@@ -3,10 +3,19 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
+import { ArrowLeft, Trash, AlertCircle } from 'lucide-react';
 
 export default function TrashExamsPage() {
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Confirm',
+    confirmColor: 'bg-red-500 hover:bg-red-600 shadow-red-500/20',
+    onConfirm: () => {}
+  });
 
   const fetchExams = async () => {
     setLoading(true);
@@ -51,38 +60,44 @@ export default function TrashExamsPage() {
   };
 
   const handlePermanentDelete = async (id: string) => {
-    if (!confirm('Are you ABSOLUTELY sure you want to permanently delete this exam? This will erase all questions and student results tied to it!')) return;
-    
-    const supabase = createClient();
-    const { error } = await supabase.from('exams').delete().eq('id', id);
-    if (!error) {
-      fetchExams();
-    } else {
-      alert('Failed to delete exam.');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Permanently',
+      message: 'Are you ABSOLUTELY sure you want to permanently delete this exam? This will erase all questions and student results tied to it!',
+      confirmText: 'Delete Permanently',
+      confirmColor: 'bg-red-500 hover:bg-red-600 shadow-red-500/20',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        const supabase = createClient();
+        const { error } = await supabase.from('exams').delete().eq('id', id);
+        if (!error) {
+          fetchExams();
+        } else {
+          alert('Failed to delete exam.');
+        }
+      }
+    });
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Trash</h2>
-          <p className="text-gray-500 mt-1">Manage deleted examinations</p>
+          <h2 className="text-2xl font-bold text-[#1a2e2e]">Trash</h2>
+          <p className="text-[#555555] mt-1 text-sm font-medium">Manage deleted examinations</p>
         </div>
         <Link href="/exams"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors text-sm">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm">
+          <ArrowLeft size={18} />
           Back to Exams
         </Link>
       </div>
 
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-[#e0f2f2] rounded-2xl overflow-hidden shadow-sm">
         {loading ? (
           <table className="w-full animate-pulse">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-100/50">
+              <tr className="bg-[#f5f9f9]">
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
@@ -91,52 +106,55 @@ export default function TrashExamsPage() {
             </thead>
             <tbody>
               {[...Array(3)].map((_, i) => (
-                <tr key={i} className="border-b border-gray-200">
+                <tr key={i} className="border-b border-[#e0f2f2]">
                   <td className="px-6 py-4">
-                    <div className="h-4 bg-gray-200 rounded w-48 mb-1.5"></div>
-                    <div className="h-3 bg-gray-100 rounded w-64"></div>
+                    <div className="h-4 bg-[#f5f9f9] rounded w-48 mb-1.5"></div>
+                    <div className="h-3 bg-[#f5f9f9] rounded w-64"></div>
                   </td>
-                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-16"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-32 ml-auto"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-16"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-24"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-32 ml-auto"></div></td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : exams.length === 0 ? (
-          <div className="p-12 text-center">
-            <h3 className="text-gray-900 font-semibold text-lg">Trash is empty</h3>
-            <p className="text-gray-500 mt-1">No deleted exams found</p>
+          <div className="p-16 flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-red-400 mb-4">
+              <Trash size={32} />
+            </div>
+            <h3 className="text-[#1a2e2e] font-bold text-lg">Trash is empty</h3>
+            <p className="text-[#555555] mt-1 text-sm font-medium">No deleted exams found</p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200 bg-gray-100/50">
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Title</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Duration</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Created On</th>
-                <th className="text-right px-6 py-4 text-sm font-medium text-gray-500">Actions</th>
+              <tr className="bg-[#f5f9f9] border-b border-[#e0f2f2]">
+                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Title</th>
+                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Duration</th>
+                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Created On</th>
+                <th className="text-right px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
               {exams.map((exam) => (
-                <tr key={exam.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                <tr key={exam.id} className="border-b border-[#e0f2f2] hover:bg-[#f5f9f9]/50 transition-colors">
                   <td className="px-6 py-4">
-                    <span className="text-gray-900 font-medium">{exam.title}</span>
-                    {exam.description && <p className="text-gray-400 text-xs mt-0.5">{exam.description}</p>}
+                    <span className="text-[#1a2e2e] font-semibold">{exam.title}</span>
+                    {exam.description && <p className="text-[#8ab8b8] text-xs mt-1">{exam.description}</p>}
                   </td>
-                  <td className="px-6 py-4 text-gray-500 text-sm">{exam.duration_minutes} min</td>
-                  <td className="px-6 py-4 text-gray-500 text-sm">{new Date(exam.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-[#555555] text-sm font-medium">{exam.duration_minutes} min</td>
+                  <td className="px-6 py-4 text-[#555555] text-sm">{new Date(exam.created_at).toLocaleDateString()}</td>
                   <td className="px-6 py-4 text-right flex items-center justify-end gap-4">
                     <button 
                       onClick={() => handleRestore(exam.id)}
-                      className="text-emerald-600 hover:text-emerald-700 text-sm font-medium transition-colors"
+                      className="text-[#008080] hover:text-[#006666] text-sm font-semibold transition-colors"
                     >
                       Restore
                     </button>
                     <button 
                       onClick={() => handlePermanentDelete(exam.id)}
-                      className="text-red-600 hover:text-red-700 text-sm font-medium transition-colors"
+                      className="text-red-500 hover:text-red-600 text-sm font-semibold transition-colors"
                     >
                       Delete Permanently
                     </button>
@@ -147,6 +165,35 @@ export default function TrashExamsPage() {
           </table>
         )}
       </div>
+
+      {/* Confirmation Dialog */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={24} className="text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-[#1a2e2e] mb-2">{confirmDialog.title}</h3>
+              <p className="text-[#555555] text-sm font-medium mb-6">{confirmDialog.message}</p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                  className="flex-1 py-3 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmDialog.onConfirm}
+                  className={`flex-1 py-3 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm ${confirmDialog.confirmColor}`}
+                >
+                  {confirmDialog.confirmText}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
