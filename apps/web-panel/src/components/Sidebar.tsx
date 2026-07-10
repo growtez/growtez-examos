@@ -18,14 +18,14 @@ import {
     Tag
 } from 'lucide-react';
 
-interface NavItem {
+export interface NavItem {
     path?: string;
     icon: LucideIcon;
     label: string;
     subItems?: { path: string; label: string }[];
 }
 
-const navItems: NavItem[] = [
+export const defaultNavItems: NavItem[] = [
     { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/users', icon: Users, label: 'Users' },
     { path: '/schools', icon: School, label: 'Schools' },
@@ -130,12 +130,14 @@ export default function Sidebar({
     collapsed, 
     setCollapsed, 
     mobileOpen = false, 
-    setMobileOpen 
+    setMobileOpen,
+    items
 }: { 
     collapsed: boolean, 
     setCollapsed?: (val: boolean) => void,
     mobileOpen?: boolean,
-    setMobileOpen?: (val: boolean) => void
+    setMobileOpen?: (val: boolean) => void,
+    items?: NavItem[]
 }) {
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [tooltip, setTooltip] = useState<{label: string, top: number} | null>(null);
@@ -240,7 +242,7 @@ export default function Sidebar({
             </div>
 
             <nav className="flex-1 overflow-y-auto px-1.5 mt-3">
-                {navItems.map((item, idx) => (
+                {(items || defaultNavItems).map((item, idx) => (
                     <NavItemComponent 
                         key={idx} 
                         item={item} 

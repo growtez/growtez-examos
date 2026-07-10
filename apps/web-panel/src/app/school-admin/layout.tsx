@@ -45,6 +45,18 @@ export default function SchoolAdminLayout({
   const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [role, setRole] = useState<string>('school_admin');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setRole(user.user_metadata?.role || 'school_admin');
+      }
+    };
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -87,7 +99,12 @@ export default function SchoolAdminLayout({
         </div>
 
         <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto">
-          {navItems.map((item) => {
+          {navItems.filter(item => {
+            if (role === 'teacher') {
+              return ['Dashboard', 'Exams', 'Results'].includes(item.label);
+            }
+            return true;
+          }).map((item) => {
             const activeClass = "bg-[#008080]/15 text-white rounded-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]";
             const inactiveClass = "text-[#8ab8b8] hover:bg-[#243f3f]/50 hover:text-white rounded-xl transparent";
             return (
@@ -132,7 +149,7 @@ export default function SchoolAdminLayout({
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                 className="w-9 h-9 bg-gradient-to-br from-[#008080] to-[#005555] rounded-full flex items-center justify-center cursor-pointer shadow-sm hover:shadow-md transition-shadow"
               >
-                <span className="text-white text-sm font-bold">SA</span>
+                <User className="text-white w-5 h-5" />
               </div>
               
               {profileDropdownOpen && (

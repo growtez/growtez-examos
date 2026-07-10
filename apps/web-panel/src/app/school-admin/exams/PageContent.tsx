@@ -18,16 +18,23 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [role, setRole] = useState<string>('school_admin');
 
   const fetchExams = async () => {
     const supabase = createClient();
     let schoolId: string | undefined = schoolIdProp;
+    let currentRole = 'school_admin';
+    let userId = '';
+
     if (!schoolId) {
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user) return;
-      const role = user.user_metadata?.role;
-      if (role === 'school_admin') {
+      userId = user.id;
+      currentRole = user.user_metadata?.role || 'school_admin';
+      setRole(currentRole);
+      
+      if (currentRole === 'school_admin') {
         const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
         schoolId = profile?.school_id;
       } else {
@@ -37,12 +44,34 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
     }
     if (!schoolId) return;
 
-    const { data } = await supabase
+    let examQuery = supabase
       .from('exams')
       .select('*, exam_students(count)')
       .eq('school_id', schoolId)
       .eq('is_trashed', false)
       .order('created_at', { ascending: false });
+
+    if (currentRole === 'teacher' && userId) {
+      const { data: assignedSubjects } = await supabase.from('exam_subject_teachers').select('exam_subject_id').eq('teacher_id', userId);
+      const examSubjectIds = assignedSubjects?.map(s => s.exam_subject_id) || [];
+      if (examSubjectIds.length > 0) {
+        const { data: subjects } = await supabase.from('exam_subjects').select('exam_id').in('id', examSubjectIds);
+        const uniqueExamIds = [...new Set(subjects?.map(s => s.exam_id) || [])];
+        if (uniqueExamIds.length > 0) {
+          examQuery = examQuery.in('id', uniqueExamIds);
+        } else {
+          setExams([]);
+          setLoading(false);
+          return;
+        }
+      } else {
+        setExams([]);
+        setLoading(false);
+        return;
+      }
+    }
+
+    const { data } = await examQuery;
 
     setExams(data || []);
     setLoading(false);
@@ -69,16 +98,20 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="px-4 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all w-64 shadow-sm"
           />
-          <Link href="/exams/trash"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm">
-            <Trash2 size={18} />
-            Trash
-          </Link>
-          <Link href="/exams/new"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#008080] text-white text-sm font-semibold rounded-xl hover:bg-[#006666] hover:shadow-lg hover:shadow-[#008080]/30 transition-all active:scale-95">
-            <Plus size={18} />
-            Create Exam
-          </Link>
+          {role !== 'teacher' && (
+            <>
+              <Link href="/exams/trash"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm">
+                <Trash2 size={18} />
+                Trash
+              </Link>
+              <Link href="/exams/new"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#008080] text-white text-sm font-semibold rounded-xl hover:bg-[#006666] hover:shadow-lg hover:shadow-[#008080]/30 transition-all active:scale-95">
+                <Plus size={18} />
+                Create Exam
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
