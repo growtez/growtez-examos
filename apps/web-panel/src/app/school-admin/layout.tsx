@@ -1,47 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 import Link from 'next/link';
+import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle } from 'lucide-react';
 
 const navItems = [
   {
     label: 'Dashboard',
     href: '/',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-      </svg>
-    ),
+    icon: <LayoutDashboard className="w-5 h-5" />,
   },
   {
     label: 'Exams',
     href: '/exams',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-      </svg>
-    ),
+    icon: <FileText className="w-5 h-5" />,
   },
   {
     label: 'Teachers',
     href: '/teachers',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
-      </svg>
-    ),
+    icon: <Users className="w-5 h-5" />,
+  },
+  {
+    label: 'Students',
+    href: '/students',
+    icon: <GraduationCap className="w-5 h-5" />,
   },
   {
     label: 'Results',
     href: '/results',
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-      </svg>
-    ),
+    icon: <FileText className="w-5 h-5" />,
   },
 ];
 
@@ -52,6 +42,25 @@ export default function SchoolAdminLayout({
 }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [schoolName, setSchoolName] = useState('School Panel');
+  const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
+
+  useEffect(() => {
+    async function fetchSchoolName() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data: admin } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
+      if (admin?.school_id) {
+        const { data: school } = await supabase.from('schools').select('name').eq('id', admin.school_id).single();
+        if (school?.name) {
+          setSchoolName(school.name);
+        }
+      }
+    }
+    fetchSchoolName();
+  }, []);
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -65,68 +74,68 @@ export default function SchoolAdminLayout({
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f5f9f9]">
+    <div className="flex h-[100dvh] overflow-hidden bg-[#f5f9f9]">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-[#1a2e2e] border-r border-[#243f3f] transition-all duration-300 flex flex-col`}>
-        <div className="h-16 flex items-center px-4 border-b border-[#243f3f]">
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-[#1a2e2e] border-r border-[#243f3f] transition-all duration-300 flex flex-col overflow-hidden`}>
+        <div className="h-16 flex items-center px-4 border-b border-[#243f3f] flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#008080] flex items-center justify-center flex-shrink-0">
-              <img src="/logo.png" alt="ParikshaOS Logo" className="w-7 h-7 object-contain" />
+            <div className="w-9 h-9 bg-white flex items-center justify-center flex-shrink-0 rounded-lg shadow-sm">
+              <img src="/logo.png" alt="Growtez Logo" className="w-7 h-7 object-contain" />
             </div>
             {sidebarOpen && (
-              <div>
-                <h1 className="text-white font-bold text-sm leading-tight">School Panel</h1>
-                <p className="text-[#4da6a6] text-xs">ParikshaOS</p>
+              <div className="overflow-hidden">
+                <h1 className="text-white font-bold text-sm leading-tight truncate" title={schoolName}>{schoolName}</h1>
+                <p className="text-[#4da6a6] text-xs">by Growtez</p>
               </div>
             )}
           </div>
         </div>
 
-        <nav className="flex-1 px-2 py-4 space-y-0.5">
+        <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto">
           {navItems.map((item) => {
-            const activeClass = "bg-[#008080] text-white border-l-4 border-[#00c8c8] pl-3";
-            const inactiveClass = "text-[#8ab8b8] hover:bg-[#243f3f] hover:text-white border-l-4 border-transparent pl-3";
+            const activeClass = "bg-[#008080]/15 text-white rounded-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]";
+            const inactiveClass = "text-[#8ab8b8] hover:bg-[#243f3f]/50 hover:text-white rounded-xl transparent";
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-2 py-2.5 text-sm font-medium transition-all ${
+                className={`flex items-center gap-3 px-3 py-3 text-sm font-medium transition-all duration-200 group ${
                   isActive(item.href) ? activeClass : inactiveClass
                 }`}
               >
-                {item.icon}
+                <div className={`transition-transform duration-200 ${isActive(item.href) ? 'text-[#00c8c8]' : 'text-[#8ab8b8] group-hover:text-white group-hover:scale-110'}`}>
+                  {item.icon}
+                </div>
                 {sidebarOpen && item.label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="px-2 py-4 border-t border-[#243f3f]">
+        <div className="px-3 py-4 border-t border-[#243f3f]">
           <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-2 py-2.5 text-sm font-medium text-[#8ab8b8] hover:text-[#ff6b6b] hover:bg-[#3f1a1a] transition-all w-full border-l-4 border-transparent pl-3"
+            onClick={() => setShowSignoutConfirm(true)}
+            className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-[#8ab8b8] hover:text-[#ff6b6b] hover:bg-[#ff6b6b]/10 rounded-xl transition-all duration-200 w-full group"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-            </svg>
+            <LogOut className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
             {sidebarOpen && 'Sign out'}
           </button>
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col">
-        <header className="h-16 bg-white border-b-2 border-[#008080] flex items-center justify-between px-6 shadow-sm">
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-[#e0f2f2] flex items-center justify-between px-6 shadow-sm sticky top-0 z-30">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-[#555555] hover:text-[#008080] transition-colors p-1"
+            className="text-[#8ab8b8] hover:text-[#008080] hover:bg-[#e0f2f2] rounded-lg p-2 transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
+            <Menu className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#008080] flex items-center justify-center">
-              <span className="text-white text-xs font-bold">S</span>
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <div className="w-9 h-9 bg-gradient-to-br from-[#008080] to-[#005555] rounded-full flex items-center justify-center cursor-pointer shadow-sm hover:shadow-md transition-shadow">
+                <span className="text-white text-sm font-bold">SA</span>
+              </div>
             </div>
           </div>
         </header>
@@ -135,6 +144,35 @@ export default function SchoolAdminLayout({
           {children}
         </main>
       </div>
+
+      {/* Sign Out Confirmation Modal */}
+      {showSignoutConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={24} className="text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-[#1a2e2e] mb-2">Sign Out</h3>
+              <p className="text-[#555555] text-sm font-medium mb-6">Are you sure you want to sign out of your account?</p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowSignoutConfirm(false)}
+                  className="flex-1 py-3 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleLogout}
+                  className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm shadow-red-500/20"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,11 @@
 -- 1. Create Tables (Final State with all columns from alterations)
 -- ============================================================
 
+-- Ensure new columns are added if tables already exist
+ALTER TABLE IF EXISTS public.teachers ADD COLUMN IF NOT EXISTS department TEXT;
+ALTER TABLE IF EXISTS public.questions ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE IF EXISTS public.questions ALTER COLUMN question_text DROP NOT NULL;
+
 CREATE TABLE IF NOT EXISTS public.schools (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
@@ -38,6 +43,7 @@ CREATE TABLE IF NOT EXISTS public.teachers (
     school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE NOT NULL,
     full_name TEXT NOT NULL,
     email TEXT,
+    department TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -104,7 +110,8 @@ CREATE TABLE IF NOT EXISTS public.questions (
     exam_id UUID REFERENCES public.exams(id) ON DELETE CASCADE NOT NULL,
     school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE NOT NULL,
     exam_subject_id UUID REFERENCES public.exam_subjects(id) ON DELETE CASCADE,
-    question_text TEXT NOT NULL,
+    question_text TEXT,
+    image_url TEXT,
     question_type TEXT DEFAULT 'mcq' CHECK (question_type IN ('mcq', 'nat')),
     options JSONB,
     correct_option TEXT NOT NULL,
@@ -344,6 +351,7 @@ DECLARE
   v_course TEXT;
   v_batch TEXT;
   v_session TEXT;
+  v_department TEXT;
 BEGIN
   -- Get metadata values
   v_role := COALESCE(new.raw_user_meta_data->>'role', 'student');
@@ -352,6 +360,7 @@ BEGIN
   v_course := COALESCE(new.raw_user_meta_data->>'course', 'General');
   v_batch := COALESCE(new.raw_user_meta_data->>'batch', 'Main');
   v_session := COALESCE(new.raw_user_meta_data->>'session', '2026-27');
+  v_department := new.raw_user_meta_data->>'department';
   
   IF new.raw_user_meta_data->>'date_of_birth' IS NOT NULL THEN
     v_date_of_birth := (new.raw_user_meta_data->>'date_of_birth')::DATE;
@@ -378,8 +387,8 @@ BEGIN
     INSERT INTO public.school_admins (id, school_id, full_name, email)
     VALUES (new.id, v_school_id, v_full_name, new.email);
   ELSIF v_role = 'teacher' THEN
-    INSERT INTO public.teachers (id, school_id, full_name, email)
-    VALUES (new.id, v_school_id, v_full_name, new.email);
+    INSERT INTO public.teachers (id, school_id, full_name, email, department)
+    VALUES (new.id, v_school_id, v_full_name, new.email, v_department);
   ELSE -- student
     INSERT INTO public.students (id, school_id, full_name, email, roll_number, date_of_birth, course, batch, session)
     VALUES (new.id, v_school_id, v_full_name, new.email, v_roll_number, v_date_of_birth, v_course, v_batch, v_session);
