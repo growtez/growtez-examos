@@ -95,7 +95,7 @@ export default function SchoolsListPage() {
     const handleExport = () => {
         const csvContent = "data:text/csv;charset=utf-8," 
             + "Name,License Key,Contact Email,Contact Phone,Credits,Domain,Max Students,Created At\n"
-            + filteredSchools.map(r => `${r.name},${r.license_key || ''},${r.contact_email || ''},${r.contact_phone || ''},${r.exam_credits_balance ?? 0},${r.domain || ''},${r.max_students ?? 500},${new Date(r.created_at).toLocaleDateString()}`).join("\n");
+            + filteredSchools.map(r => `${r.name},${r.contact_email || ''},${r.contact_phone || ''},${r.domain || ''},${new Date(r.created_at).toLocaleDateString()}`).join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -218,19 +218,16 @@ export default function SchoolsListPage() {
                                     School Name {getSortIcon('name')}
                                 </div>
                             </th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">License Key</th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[20%]">Contact</th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%]">Credits</th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">Domain</th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%]">Students</th>
+                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[30%]">Contact</th>
+                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[30%]">Domain</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <TableRowsSkeleton rows={perPage} columns={6} />
+                            <TableRowsSkeleton rows={perPage} columns={3} />
                         ) : pagedSchools.length === 0 ? (
                             <tr>
-                                <td colSpan={6} className="text-center py-10 text-text-muted text-[13px]">
+                                <td colSpan={3} className="text-center py-10 text-text-muted text-[13px]">
                                     No schools found matching your criteria.
                                 </td>
                             </tr>
@@ -251,16 +248,10 @@ export default function SchoolsListPage() {
                                             </div>
                                         </td>
                                         <td className="py-2.5 px-4 align-middle">
-                                            <span className="text-[12px] text-text-main font-mono bg-surface-hover px-2 py-1 rounded border border-border/50">{sch.license_key || '—'}</span>
-                                        </td>
-                                        <td className="py-2.5 px-4 align-middle">
                                             <div className="flex flex-col gap-0.5">
                                                 <span className="text-[12px] text-text-main truncate max-w-[150px]" title={sch.contact_email}>{sch.contact_email || '—'}</span>
                                                 <span className="text-[11px] text-text-muted">{sch.contact_phone || '—'}</span>
                                             </div>
-                                        </td>
-                                        <td className="py-2.5 px-4 align-middle">
-                                            <span className="font-semibold text-[13px] text-text-main">{sch.exam_credits_balance ?? 0}</span>
                                         </td>
                                         <td className="py-2.5 px-4 align-middle">
                                             <div className="flex items-center gap-2 text-[12px] text-text-main">
@@ -268,17 +259,11 @@ export default function SchoolsListPage() {
                                                 <span className="max-w-[120px] inline-block truncate" title={sch.domain || '—'}>{sch.domain || '—'}</span>
                                             </div>
                                         </td>
-                                        <td className="py-2.5 px-4 align-middle">
-                                            <div className="flex items-center gap-2 text-[12px] text-text-main">
-                                                <Hash size={12} className="text-blue-500 shrink-0" />
-                                                <span>{sch.max_students ?? 500}</span>
-                                            </div>
-                                        </td>
                                     </tr>
                                 ))}
                                 {perPage - pagedSchools.length > 0 && Array.from({ length: perPage - pagedSchools.length }).map((_, idx) => (
                                     <tr key={`empty-${idx}`} className="border-b border-border/40 last:border-b-0 opacity-0 pointer-events-none">
-                                        <td colSpan={6} className="py-2.5 px-4 align-middle">
+                                        <td colSpan={3} className="py-2.5 px-4 align-middle">
                                             <div className="h-8"></div>
                                         </td>
                                     </tr>
@@ -322,15 +307,9 @@ export default function SchoolsListPage() {
                                         </div>
                                         <span className="font-semibold text-text-main text-[13px] group-hover:text-accent-primary transition-colors truncate" title={sch.name}>{sch.name}</span>
                                     </div>
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                        <span className="font-semibold text-[13px] text-text-main bg-surface-hover px-2 py-0.5 rounded border border-border/50">{sch.exam_credits_balance ?? 0} Credits</span>
-                                    </div>
                                 </div>
                                 
                                 <div className="flex flex-col gap-1.5 pl-11">
-                                    <div className="flex items-center gap-2 text-[12px] text-text-main">
-                                        <span className="font-mono bg-surface-hover px-1.5 py-0.5 rounded border border-border/50 text-[11px]">{sch.license_key || 'No License'}</span>
-                                    </div>
                                     <div className="flex items-center gap-2 text-[12px] text-text-main">
                                         <span className="truncate">{sch.contact_email || '—'}</span>
                                         {sch.contact_phone && <span className="text-text-muted">• {sch.contact_phone}</span>}
@@ -343,8 +322,7 @@ export default function SchoolsListPage() {
                                     )}
 
                                     <div className="flex items-center justify-between text-[11px] text-text-muted mt-1 pt-1.5 border-t border-border/20">
-                                        <span>Max Students: <span className="font-semibold text-text-main">{sch.max_students ?? 500}</span></span>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 w-full justify-end">
                                             <Link href={`/schools/${sch.id}`} prefetch={true} className="font-bold text-accent-primary">View</Link>
                                         </div>
                                     </div>

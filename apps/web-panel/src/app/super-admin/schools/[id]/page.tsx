@@ -108,10 +108,7 @@ export default async function SchoolDetailPage({ params }: { params: { id: strin
                         <p className="text-[12px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Contact Phone</p>
                         <p className="text-[14px] font-medium text-text-main">{school.contact_phone || '—'}</p>
                     </div>
-                    <div>
-                        <p className="text-[12px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Max Students</p>
-                        <p className="text-[14px] font-medium text-text-main">{school.max_students ?? 500}</p>
-                    </div>
+
                     <div>
                         <p className="text-[12px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">Registered On</p>
                         <p className="text-[14px] font-medium text-text-main">{new Date(school.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>

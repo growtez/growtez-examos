@@ -69,7 +69,6 @@ export function OnboardingWizard({ className, resumeSchoolId }: { className?: st
           ...prev,
           schoolName: school.name || '',
           domain: school.domain || '',
-          maxStudents: school.max_students ?? 500,
           contactEmail: school.contact_email || '',
           contactPhone: school.contact_phone || '',
           adminName: admin ? admin.full_name || '' : '',
@@ -94,7 +93,6 @@ export function OnboardingWizard({ className, resumeSchoolId }: { className?: st
   const [formData, setFormData] = useState({
     schoolName: '',
     domain: '',
-    maxStudents: 500,
     contactEmail: '',
     contactPhone: '',
     
@@ -153,10 +151,9 @@ export function OnboardingWizard({ className, resumeSchoolId }: { className?: st
               .insert({
                 name: formData.schoolName,
                 domain: formData.domain || null,
-                max_students: formData.maxStudents,
                 contact_email: formData.contactEmail,
                 contact_phone: formData.contactPhone,
-                exam_credits_balance: 100, // Default exam credits balance
+
                 is_active: true
               })
               .select()
@@ -170,7 +167,6 @@ export function OnboardingWizard({ className, resumeSchoolId }: { className?: st
               .update({
                 name: formData.schoolName,
                 domain: formData.domain || null,
-                max_students: formData.maxStudents,
                 contact_email: formData.contactEmail,
                 contact_phone: formData.contactPhone,
               })
@@ -325,26 +321,15 @@ export function OnboardingWizard({ className, resumeSchoolId }: { className?: st
                 <label className="absolute -top-2 left-3 bg-surface px-1 text-[10px] font-semibold text-text-muted">School Name *</label>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="relative">
-                  <input 
-                    type="number" 
-                    value={formData.maxStudents}
-                    onChange={e => updateForm('maxStudents', parseInt(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-border bg-surface focus:outline-none focus:ring-1 focus:ring-accent-primary text-sm"
-                  />
-                  <label className="absolute -top-2 left-3 bg-surface px-1 text-[10px] font-semibold text-text-muted">Approx Students</label>
-                </div>
-                <div className="relative">
-                  <input 
-                    type="tel" 
-                    value={formData.contactPhone}
-                    onChange={e => updateForm('contactPhone', e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    className="w-full px-3 py-2 rounded-xl border border-border bg-surface focus:outline-none focus:ring-1 focus:ring-accent-primary text-sm"
-                    placeholder="9876543210"
-                  />
-                  <label className="absolute -top-2 left-3 bg-surface px-1 text-[10px] font-semibold text-text-muted">Contact Phone *</label>
-                </div>
+              <div className="relative">
+                <input 
+                  type="tel" 
+                  value={formData.contactPhone}
+                  onChange={e => updateForm('contactPhone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  className="w-full px-3 py-2 rounded-xl border border-border bg-surface focus:outline-none focus:ring-1 focus:ring-accent-primary text-sm"
+                  placeholder="9876543210"
+                />
+                <label className="absolute -top-2 left-3 bg-surface px-1 text-[10px] font-semibold text-text-muted">Contact Phone *</label>
               </div>
 
               <div className="relative">
