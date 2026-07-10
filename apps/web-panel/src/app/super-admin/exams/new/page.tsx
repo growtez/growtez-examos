@@ -112,6 +112,7 @@ export default function NewGlobalExamTemplatePage() {
       // Placeholder for actual creation logic
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
+      router.refresh();
       router.push(`/exams`);
     } catch (err: any) {
       setError(err.message);

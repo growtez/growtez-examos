@@ -1,7 +1,7 @@
 'use client';
 
 import { useLayoutEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Sidebar from '@/components/Sidebar';
 import { Menu, LogOut, Plus, School, UserPlus, FileText } from 'lucide-react';
@@ -9,6 +9,7 @@ import Link from 'next/link';
 
 import QuickCreateDrawer from '@/components/QuickCreateDrawer';
 import { DrawerContext, ExamPrefill } from './DrawerContext';
+import { HeaderStats } from '@/components/super-admin/HeaderStats';
 
 export default function SuperAdminLayout({
   children,
@@ -16,6 +17,7 @@ export default function SuperAdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -123,6 +125,12 @@ export default function SuperAdminLayout({
         activeForm={activeForm} 
         setActiveForm={setActiveForm}
         examPrefill={examPrefill}
+        onRefresh={() => {
+          router.refresh();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('refresh-tables'));
+          }
+        }}
       />
 
       {/* Mobile overlay */}
@@ -177,6 +185,10 @@ export default function SuperAdminLayout({
                   </div>
                 </div>
               </div>
+            </div>
+
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
+              <HeaderStats />
             </div>
 
             <div className="flex items-center gap-3 md:gap-6">

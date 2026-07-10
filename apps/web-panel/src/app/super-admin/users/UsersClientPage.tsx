@@ -199,7 +199,8 @@ export default function UsersClientPage({ users: initialUsers }: { users: any[] 
       {/* Users Table */}
       <div className="w-full bg-surface rounded-xl shadow-sm border border-border overflow-hidden">
         {/* Desktop View Table */}
-        <table className="hidden md:table w-full text-left border-collapse whitespace-nowrap table-fixed">
+        <div className="hidden md:block w-full overflow-x-auto">
+          <table className="w-full text-left border-collapse whitespace-nowrap min-w-[900px]">
           <thead>
             <tr className="border-b border-border">
               <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[30%]" onClick={() => toggleSort('name')}>
@@ -233,7 +234,8 @@ export default function UsersClientPage({ users: initialUsers }: { users: any[] 
                 {pagedUsers.map((user) => (
                   <tr
                     key={user.id}
-                    className="group even:bg-bg hover:bg-surface-hover border-b border-border/40 last:border-b-0 transition-colors"
+                    onClick={() => user.school_id && router.push(`/schools/${user.school_id}`)}
+                    className={`group even:bg-bg hover:bg-surface-hover border-b border-border/40 last:border-b-0 transition-colors ${user.school_id ? 'cursor-pointer' : ''}`}
                   >
                     <td className="py-2.5 px-4 align-middle">
                       <div className="flex items-center gap-3">
@@ -286,6 +288,7 @@ export default function UsersClientPage({ users: initialUsers }: { users: any[] 
             )}
           </tbody>
         </table>
+        </div>
 
         {/* Mobile View Cards */}
         <div className="block md:hidden divide-y divide-border/40">

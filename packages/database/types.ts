@@ -4,9 +4,9 @@ export interface School {
   id: string;
   name: string;
   domain: string | null;
-  license_key: string | null;
+
   is_active: boolean;
-  max_students: number;
+
   contact_email: string | null;
   contact_phone: string | null;
   created_at: string;
