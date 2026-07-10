@@ -3,6 +3,62 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
+function CustomCombobox({ value, onChange, options, placeholder, className }: { value: string, onChange: (v: string) => void, options: string[], placeholder: string, className: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [filteredOptions, setFilteredOptions] = useState(options);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    setFilteredOptions(options.filter(o => o.toLowerCase().includes(value.toLowerCase())));
+  }, [value, options]);
+
+  return (
+    <div className="relative w-full" ref={wrapperRef}>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+        placeholder={placeholder}
+        className={className}
+        required
+      />
+      <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-[#8ab8b8]">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+      </div>
+      {isOpen && filteredOptions.length > 0 && (
+        <ul className="absolute z-10 w-full bg-white border border-[#e0f2f2] mt-1 rounded-xl shadow-xl shadow-[#008080]/10 max-h-40 overflow-auto">
+          {filteredOptions.map((opt) => (
+            <li
+              key={opt}
+              className="px-4 py-2.5 hover:bg-[#f5f9f9] cursor-pointer text-sm font-medium text-[#1a2e2e] transition-colors"
+              onClick={() => {
+                onChange(opt);
+                setIsOpen(false);
+              }}
+            >
+              {opt}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,9 +84,9 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
   const [name, setName] = useState('');
   const [rollNumber, setRollNumber] = useState('');
   const [dob, setDob] = useState('');
-  const [course, setCourse] = useState('General');
-  const [batch, setBatch] = useState('Main');
-  const [sessionVal, setSessionVal] = useState(defaultSession);
+  const [course, setCourse] = useState('');
+  const [batch, setBatch] = useState('');
+  const [sessionVal, setSessionVal] = useState('');
   
   // Edit & Delete
   const [editStudentId, setEditStudentId] = useState<string | null>(null);
@@ -100,7 +156,7 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
 
       setShowModal(false);
       setName(''); setRollNumber(''); setDob('');
-      setCourse('General'); setBatch('Main'); setSessionVal(defaultSession);
+      setCourse(''); setBatch(''); setSessionVal('');
       fetchStudents();
     } catch (err: any) {
       setError(err.message);
@@ -129,7 +185,7 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
 
       setEditStudentId(null);
       setName(''); setRollNumber(''); setDob('');
-      setCourse('General'); setBatch('Main'); setSessionVal(defaultSession);
+      setCourse(''); setBatch(''); setSessionVal('');
       fetchStudents();
     } catch (err: any) {
       setError(err.message);
@@ -253,7 +309,7 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
           <button onClick={() => {
             setEditStudentId(null);
             setName(''); setRollNumber(''); setDob('');
-            setCourse('General'); setBatch('Main'); setSessionVal(defaultSession);
+            setCourse(''); setBatch(''); setSessionVal('');
             setShowModal(true);
           }}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#008080] text-white font-bold hover:bg-[#006666] transition-all border-b-2 border-[#004d4d] text-sm uppercase tracking-wider">
@@ -360,9 +416,9 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
                       setName(s.full_name || '');
                       setRollNumber(s.roll_number || '');
                       setDob(s.date_of_birth || '');
-                      setCourse(s.course || 'General');
-                      setBatch(s.batch || 'Main');
-                      setSessionVal(s.session || defaultSession);
+                      setCourse(s.course || '');
+                      setBatch(s.batch || '');
+                      setSessionVal(s.session || '');
                       setEditStudentId(s.id);
                       setShowModal(true);
                     }} className="text-[#008080] hover:text-[#005555] text-xs font-bold px-2 py-1 rounded hover:bg-[#e0f2f2] transition-colors">Edit</button>
@@ -399,23 +455,37 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
                 <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} required
                   className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm" />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Course</label>
-                <input type="text" value={course} onChange={(e) => setCourse(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm"
-                  placeholder="e.g. JEE" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Batch</label>
-                <input type="text" value={batch} onChange={(e) => setBatch(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm"
-                  placeholder="e.g. Main" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Session</label>
-                <input type="text" value={sessionVal} onChange={(e) => setSessionVal(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm"
-                  placeholder="e.g. 2024-25" />
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Course</label>
+                  <CustomCombobox 
+                    value={course} 
+                    onChange={setCourse} 
+                    options={uniqueCourses as string[]} 
+                    placeholder="e.g. JEE"
+                    className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm" 
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Batch</label>
+                  <CustomCombobox 
+                    value={batch} 
+                    onChange={setBatch} 
+                    options={uniqueBatches as string[]} 
+                    placeholder="e.g. Main"
+                    className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm" 
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Session</label>
+                  <CustomCombobox 
+                    value={sessionVal} 
+                    onChange={setSessionVal} 
+                    options={uniqueSessions as string[]} 
+                    placeholder="e.g. 2024-25"
+                    className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm" 
+                  />
+                </div>
               </div>
               <p className="text-[#8aacac] text-xs">Password will be DOB in DDMMYYYY format</p>
               {error && <div className="border border-red-400 bg-red-50 p-3 text-red-600 text-sm">⚠ {error}</div>}

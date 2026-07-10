@@ -61,14 +61,28 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
       if (!rollNumber.trim()) throw new Error('Please enter your roll number');
       if (!dob) throw new Error('Please select your date of birth');
 
-      const email = `${rollNumber.trim()}@${selectedSchoolId}.student.examos.local`;
+      let email = `${rollNumber.trim()}@${selectedSchoolId}.student.examos.local`;
       const password = formatDobPassword(dob);
 
-      // Sign in
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      // Attempt 1: Sign in with legacy email format
+      let { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
+      // Attempt 2: If failed due to invalid credentials, try new unique email format (Roll + DOB)
+      if (authError && authError.message.toLowerCase().includes('invalid login credentials')) {
+        const formattedDobForEmail = dob.replace(/-/g, '');
+        email = `${rollNumber.trim()}_${formattedDobForEmail}@${selectedSchoolId}.student.examos.local`;
+        
+        const retryAuth = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        authData = retryAuth.data;
+        authError = retryAuth.error;
+      }
 
       if (authError) throw authError;
 

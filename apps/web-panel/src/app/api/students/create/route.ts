@@ -25,11 +25,9 @@ export async function POST(req: Request) {
     }
 
     const school_id = exam.school_id;
-    // Construct email using the new fields to ensure uniqueness for duplicate roll numbers
-    const cleanCourse = course.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-    const cleanBatch = batch.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-    const cleanSession = session.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-    const email = `${roll_number.trim()}-${cleanCourse}-${cleanBatch}-${cleanSession}@${school_id}.student.examos.local`;
+    // Construct email using DOB to ensure uniqueness for duplicate roll numbers across batches
+    const dobStr = date_of_birth.replace(/-/g, '');
+    const email = `${roll_number.trim()}_${dobStr}@${school_id}.student.examos.local`;
     
     // Format password as DDMMYYYY
     const parts = date_of_birth.split('-');
