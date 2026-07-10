@@ -232,7 +232,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       html += `</div>`;
       
       const html2pdf = (await import('html2pdf.js')).default;
-      const opt = {
+      const opt: any = {
         margin: 10,
         filename: `${exam.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_question_paper.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
