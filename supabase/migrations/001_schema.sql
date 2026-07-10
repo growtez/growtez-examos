@@ -15,9 +15,9 @@ CREATE TABLE IF NOT EXISTS public.schools (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     domain TEXT UNIQUE,
-    license_key TEXT UNIQUE,
+
     is_active BOOLEAN DEFAULT true,
-    max_students INTEGER DEFAULT 500,
+
     contact_email TEXT,
     contact_phone TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -495,16 +495,16 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 1. Add Exam Credits to the existing Schools table
 ALTER TABLE public.schools 
-ADD COLUMN IF NOT EXISTS exam_credits_balance INTEGER DEFAULT 0;
+
 
 -- 2. Create the Plans Table
 CREATE TABLE IF NOT EXISTS public.plans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL, -- e.g., 'Monthly Pro', 'Quarterly Starter', '10 Exam Pack'
-    plan_type TEXT NOT NULL CHECK (plan_type IN ('time_based', 'credit_based')),
+    plan_type TEXT NOT NULL CHECK (plan_type IN ('time_based', 'exam_based')),
     billing_cycle TEXT CHECK (billing_cycle IN ('monthly', 'quarterly', 'yearly', 'none')), 
     price NUMERIC(10, 2) NOT NULL,
-    credits_awarded INTEGER DEFAULT 0, -- Used only if plan_type is 'credit_based'
+    credits_awarded INTEGER DEFAULT 0, -- Used only if plan_type is 'exam_based'
     razorpay_plan_id TEXT, -- Nullable (Credit packs use Payment Links, Subscriptions use Plan IDs)
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -582,4 +582,3 @@ DROP POLICY IF EXISTS "School admins view their payment history" ON public.payme
 CREATE POLICY "School admins view their payment history" ON public.payment_history FOR SELECT USING (
     school_id = public.get_current_user_school_id() AND EXISTS (SELECT 1 FROM public.school_admins WHERE id = auth.uid())
 );
-

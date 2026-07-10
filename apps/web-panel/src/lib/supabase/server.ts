@@ -28,6 +28,9 @@ export function createClient() {
           }
         },
       },
+      global: {
+        fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }),
+      }
     }
   );
 }

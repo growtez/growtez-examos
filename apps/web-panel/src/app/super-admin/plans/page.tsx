@@ -77,9 +77,9 @@ export default function PlansDashboard() {
     const payload: any = {
       name: planForm.name.trim(),
       plan_type: planForm.plan_type,
-      billing_cycle: planForm.plan_type === 'credit_based' ? 'none' : planForm.billing_cycle,
+      billing_cycle: planForm.plan_type === 'exam_based' ? 'none' : planForm.billing_cycle,
       price: parseFloat(planForm.price) || 0,
-      credits_awarded: planForm.plan_type === 'credit_based' ? parseInt(planForm.credits_awarded) || 0 : 0,
+      credits_awarded: planForm.plan_type === 'exam_based' ? parseInt(planForm.credits_awarded) || 0 : 0,
       razorpay_plan_id: planForm.plan_type === 'time_based' ? (planForm.razorpay_plan_id.trim() || null) : null,
       is_active: planForm.is_active,
     };
@@ -108,13 +108,13 @@ export default function PlansDashboard() {
     fetchPlans();
   };
 
-  const creditPlan = plans.find(p => p.plan_type === 'credit_based');
+  const creditPlan = plans.find(p => p.plan_type === 'exam_based');
   const monthlyPlan = plans.find(p => p.plan_type === 'time_based' && p.billing_cycle === 'monthly');
   const quarterlyPlan = plans.find(p => p.plan_type === 'time_based' && p.billing_cycle === 'quarterly');
   const yearlyPlan = plans.find(p => p.plan_type === 'time_based' && p.billing_cycle === 'yearly');
 
   const otherPlans = plans.filter(p => {
-    if (p.plan_type === 'credit_based' && p.id === creditPlan?.id) return false;
+    if (p.plan_type === 'exam_based' && p.id === creditPlan?.id) return false;
     if (p.plan_type === 'time_based' && p.billing_cycle === 'monthly' && p.id === monthlyPlan?.id) return false;
     if (p.plan_type === 'time_based' && p.billing_cycle === 'quarterly' && p.id === quarterlyPlan?.id) return false;
     if (p.plan_type === 'time_based' && p.billing_cycle === 'yearly' && p.id === yearlyPlan?.id) return false;
@@ -126,7 +126,7 @@ export default function PlansDashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text-main">Licensing & Plans</h1>
-          <p className="text-sm text-text-muted">Manage global licensing plans and credit packages for schools.</p>
+          <p className="text-sm text-text-muted">Manage pricing and billing plans for schools.</p>
         </div>
         <button
           onClick={() => openCreatePlan()}
@@ -140,15 +140,14 @@ export default function PlansDashboard() {
         <div className="p-8 text-center text-text-muted text-sm bg-surface border border-border rounded-2xl shadow-sm">Loading plans…</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Credit Pack */}
+          {/* Fixed Payment */}
           <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h3 className="text-base font-extrabold text-text-main tracking-tight">Credit Pack</h3>
+                <h3 className="text-base font-extrabold text-text-main tracking-tight">Fixed Payment</h3>
                 <p className="text-[11px] text-text-muted">Pay per Exam</p>
               </div>
               <div className="flex flex-col items-end gap-1.5">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-primary/10 text-accent-primary border border-accent-primary/20">Credits</span>
                 {creditPlan && (
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border uppercase tracking-wider ${creditPlan.is_active ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-surface-hover text-text-muted border-border'}`}>
                     {creditPlan.is_active ? 'Active' : 'Inactive'}
@@ -159,15 +158,15 @@ export default function PlansDashboard() {
             <div className="space-y-1 mb-4">
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-text-muted">Price</span>
-                <span className="font-bold text-text-main text-sm">{creditPlan ? `₹${Number(creditPlan.price).toLocaleString('en-IN')}` : 'Not Set'}</span>
+                <span className="font-bold text-text-main text-sm">{creditPlan ? `₹${Number(creditPlan.price).toLocaleString('en-IN')}` : '₹300'}</span>
               </div>
               <div className="flex items-center justify-between text-[11px]">
-                <span className="text-text-muted">Credits</span>
-                <span className="font-semibold text-text-main">{creditPlan ? creditPlan.credits_awarded : '1'} / Student</span>
+                <span className="text-text-muted">Billing</span>
+                <span className="font-semibold text-text-main">Per Exam</span>
               </div>
             </div>
             <button
-              onClick={() => creditPlan ? openEditPlan(creditPlan) : openCreatePlan({ name: 'Pay per Exam', plan_type: 'credit_based', credits_awarded: '1' })}
+              onClick={() => creditPlan ? openEditPlan(creditPlan) : openCreatePlan({ name: 'Fixed Payment', plan_type: 'exam_based', price: '300', credits_awarded: '1' })}
               className={`mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl text-[12px] font-bold transition-all border cursor-pointer ${
                 creditPlan 
                   ? 'bg-surface-hover text-text-main border-border hover:border-accent-primary/30 hover:text-accent-primary' 
@@ -179,6 +178,7 @@ export default function PlansDashboard() {
           </div>
 
           {/* Monthly */}
+          {/*
           <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col">
             <div className="flex items-start justify-between mb-3">
               <div>
@@ -215,8 +215,10 @@ export default function PlansDashboard() {
               <Edit2 size={13} /> {monthlyPlan ? 'Edit Plan' : 'Setup Plan'}
             </button>
           </div>
+          */}
 
           {/* Quarterly */}
+          {/*
           <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col">
             <div className="flex items-start justify-between mb-3">
               <div>
@@ -253,8 +255,10 @@ export default function PlansDashboard() {
               <Edit2 size={13} /> {quarterlyPlan ? 'Edit Plan' : 'Setup Plan'}
             </button>
           </div>
+          */}
 
           {/* Yearly */}
+          {/*
           <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col">
             <div className="flex items-start justify-between mb-3">
               <div>
@@ -291,10 +295,12 @@ export default function PlansDashboard() {
               <Edit2 size={13} /> {yearlyPlan ? 'Edit Plan' : 'Setup Plan'}
             </button>
           </div>
+          */}
         </div>
       )}
 
       {/* ── Additional Custom Plans ───────────────────── */}
+      {/*
       {!loading && otherPlans.length > 0 && (
         <div className="space-y-3 pt-4">
           <div className="flex items-center gap-2">
@@ -303,7 +309,7 @@ export default function PlansDashboard() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {otherPlans.map(plan => {
-              const isCredit = plan.plan_type === 'credit_based';
+              const isCredit = plan.plan_type === 'exam_based';
               return (
                 <div key={plan.id} className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all flex flex-col group mt-3">
                   <span className={`absolute -top-2.5 right-3 text-[9px] font-bold px-1.5 py-0.5 rounded-full border uppercase tracking-wider bg-surface ${plan.is_active ? 'text-green-500 border-green-500' : 'text-text-muted border-border'}`}>
@@ -343,6 +349,7 @@ export default function PlansDashboard() {
           </div>
         </div>
       )}
+      */}
 
       {/* ── Plan Modal ────────────────────────────────── */}
       {showPlanModal && (
@@ -370,17 +377,17 @@ export default function PlansDashboard() {
               {/* Type Selector / Read Only */}
               {lockFields ? (
                 <div className="relative">
-                  <input type="text" readOnly value={planForm.plan_type === 'time_based' ? '🗓 Time Based' : '🪙 Credit Based'}
+                  <input type="text" readOnly value={planForm.plan_type === 'time_based' ? '🗓 Time Based' : '📝 Per Exam'}
                     className="w-full bg-surface/50 border border-border rounded-xl px-4 h-12 text-sm text-text-muted focus:outline-none cursor-default capitalize"
                   />
                   <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 pointer-events-none">Plan Type</label>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  {['time_based', 'credit_based'].map(t => (
+                  {['time_based', 'exam_based'].map(t => (
                     <button key={t} type="button" onClick={() => setPlanForm({ ...planForm, plan_type: t })}
                       className={`py-2.5 rounded-xl text-[12px] font-bold border transition-all capitalize ${planForm.plan_type === t ? 'bg-accent-primary/10 text-accent-primary border-accent-primary/30' : 'bg-surface-hover border-border text-text-muted hover:border-accent-primary/20'}`}>
-                      {t === 'time_based' ? '🗓 Time Based' : '🪙 Credit Based'}
+                      {t === 'time_based' ? '🗓 Time Based' : '📝 Per Exam'}
                     </button>
                   ))}
                 </div>
@@ -408,8 +415,9 @@ export default function PlansDashboard() {
                 )
               )}
 
-              {/* Credits Awarded (only for credit_based) */}
-              {planForm.plan_type === 'credit_based' && (
+              {/* Credits Awarded (only for exam_based) */}
+              {/*
+              {planForm.plan_type === 'exam_based' && (
                 <div className="relative">
                   <input type="number" placeholder="0" value={planForm.credits_awarded}
                     onChange={e => setPlanForm({ ...planForm, credits_awarded: e.target.value })}
@@ -418,6 +426,7 @@ export default function PlansDashboard() {
                   <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 pointer-events-none">Credits Awarded</label>
                 </div>
               )}
+              */}
 
               {/* Price */}
               <div className="relative">

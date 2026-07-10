@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
   CreditCard, Search, X, ChevronLeft, ChevronRight,
@@ -17,6 +18,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function SubscriptionsDashboard() {
+  const router = useRouter();
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,6 +28,8 @@ export default function SubscriptionsDashboard() {
 
   useEffect(() => {
     fetchSubscriptions();
+    window.addEventListener('refresh-tables', fetchSubscriptions);
+    return () => window.removeEventListener('refresh-tables', fetchSubscriptions);
   }, []);
 
   const fetchSubscriptions = async () => {
@@ -33,7 +37,7 @@ export default function SubscriptionsDashboard() {
     const supabase = createClient();
     const { data } = await supabase
       .from('subscriptions')
-      .select('*, schools(name, exam_credits_balance), plans(name, plan_type, price, billing_cycle)')
+      .select('*, schools(name), plans(name, plan_type, price, billing_cycle)')
       .order('created_at', { ascending: false });
     setSubscriptions(data || []);
     setLoading(false);
@@ -47,9 +51,8 @@ export default function SubscriptionsDashboard() {
       s.status,
       s.current_period_start ? new Date(s.current_period_start).toLocaleDateString() : '-',
       s.current_period_end ? new Date(s.current_period_end).toLocaleDateString() : '-',
-      s.schools?.exam_credits_balance ?? '-',
     ]);
-    const header = ['School', 'Plan', 'Type', 'Status', 'Period Start', 'Period End', 'Credits Balance'];
+    const header = ['School', 'Plan', 'Type', 'Status', 'Period Start', 'Period End'];
     const csv = [header, ...rows].map(r => r.join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
@@ -149,23 +152,23 @@ export default function SubscriptionsDashboard() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[900px]">
               <thead>
                 <tr className="border-b border-border bg-surface-hover/50">
-                  {['School', 'Plan', 'Type', 'Status', 'Credits Balance', 'Period', 'Razorpay ID'].map(h => (
+                  {['School', 'Plan', 'Type', 'Status', 'Period', 'Razorpay ID'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-text-muted uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {pagedSubs.map(sub => (
-                  <tr key={sub.id} className="hover:bg-surface-hover/40 transition-colors">
-                    <td className="px-4 py-3 text-sm font-semibold text-text-main whitespace-nowrap">{sub.schools?.name ?? '—'}</td>
+                  <tr key={sub.id} onClick={() => sub.school_id && router.push(`/schools/${sub.school_id}`)} className="hover:bg-surface-hover/40 transition-colors cursor-pointer group">
+                    <td className="px-4 py-3 text-sm font-semibold text-text-main whitespace-nowrap group-hover:text-accent-primary transition-colors">{sub.schools?.name ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-text-main whitespace-nowrap">{sub.plans?.name ?? '—'}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1 text-[11px] font-medium text-text-muted capitalize">
                         {sub.plans?.plan_type === 'time_based' ? <Calendar size={11} /> : <Coins size={11} />}
-                        {sub.plans?.plan_type?.replace('_', ' ') ?? '—'}
+                        {sub.plans?.plan_type === 'exam_based' ? 'Per Exam' : sub.plans?.plan_type?.replace('_', ' ') ?? '—'}
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -173,11 +176,7 @@ export default function SubscriptionsDashboard() {
                         {sub.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 text-sm font-semibold text-accent-primary">
-                        <Zap size={13} />{sub.schools?.exam_credits_balance ?? 0}
-                      </span>
-                    </td>
+
                     <td className="px-4 py-3 text-[12px] text-text-muted whitespace-nowrap">
                       {sub.current_period_start
                         ? `${new Date(sub.current_period_start).toLocaleDateString()} → ${sub.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : '∞'}`

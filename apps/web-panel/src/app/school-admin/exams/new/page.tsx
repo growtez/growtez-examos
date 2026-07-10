@@ -121,6 +121,7 @@ export default function NewExamPage() {
         }
       }
 
+      router.refresh();
       router.push(`/exams/${exam.id}`);
     } catch (err: any) {
       setError(err.message);

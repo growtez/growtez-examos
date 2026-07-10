@@ -28,7 +28,6 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
     domain: '', 
     contact_email: '', 
     contact_phone: '', 
-    max_students: 500,
     admin_name: '',
     admin_email: '',
     admin_password: 'Password@123' 
@@ -169,7 +168,6 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
         .insert({
           name: schoolFormData.name.trim(),
           domain: schoolFormData.domain.trim() || null,
-          max_students: schoolFormData.max_students,
           contact_email: schoolFormData.contact_email.trim() || null,
           contact_phone: schoolFormData.contact_phone.trim() || null,
           is_active: true,
@@ -195,7 +193,8 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
 
         const result = await res.json();
         if (!res.ok) {
-          throw new Error('School created, but admin failed: ' + (result.error || 'Unknown error'));
+          await supabase.from('schools').delete().eq('id', school.id);
+          throw new Error(result.error || 'Unknown error. School creation was aborted.');
         }
       }
 
@@ -205,7 +204,6 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
         domain: '', 
         contact_email: '', 
         contact_phone: '', 
-        max_students: 500,
         admin_name: '',
         admin_email: '',
         admin_password: 'Password@123' 

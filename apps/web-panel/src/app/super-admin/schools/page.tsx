@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client';
 import { Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, ChevronLeft, ChevronRight, School as SchoolIcon, Globe, Plus, Hash } from 'lucide-react';
 import { TableRowsSkeleton } from '@/components/ui/Skeleton';
 import Link from 'next/link';
-import DeleteSchoolButton from './DeleteSchoolButton';
 
 export default function SchoolsListPage() {
     const router = useRouter();
@@ -22,6 +21,8 @@ export default function SchoolsListPage() {
 
     useEffect(() => {
         fetchSchools();
+        window.addEventListener('refresh-tables', fetchSchools);
+        return () => window.removeEventListener('refresh-tables', fetchSchools);
     }, []);
 
     const fetchSchools = async () => {
@@ -93,8 +94,8 @@ export default function SchoolsListPage() {
 
     const handleExport = () => {
         const csvContent = "data:text/csv;charset=utf-8," 
-            + "Name,Domain,Status,Max Students,Created At\n"
-            + filteredSchools.map(r => `${r.name},${r.domain || ''},${r.is_active !== false ? 'Active' : 'Inactive'},${r.max_students ?? 500},${new Date(r.created_at).toLocaleDateString()}`).join("\n");
+            + "Name,License Key,Contact Email,Contact Phone,Credits,Domain,Max Students,Created At\n"
+            + filteredSchools.map(r => `${r.name},${r.contact_email || ''},${r.contact_phone || ''},${r.domain || ''},${new Date(r.created_at).toLocaleDateString()}`).join("\n");
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -208,30 +209,25 @@ export default function SchoolsListPage() {
             {/* Schools List Container */}
             <div className="w-full bg-surface rounded-xl shadow-sm border border-border overflow-hidden">
                 {/* Desktop View Table */}
-                <table className="hidden md:table w-full text-left border-collapse whitespace-nowrap table-fixed">
+                <div className="hidden md:block w-full overflow-x-auto">
+                    <table className="w-full text-left border-collapse whitespace-nowrap min-w-[950px]">
                     <thead>
                         <tr className="border-b border-border">
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[30%]" onClick={() => toggleSort('name')}>
+                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[25%]" onClick={() => toggleSort('name')}>
                                 <div className="flex items-center gap-2">
                                     School Name {getSortIcon('name')}
                                 </div>
                             </th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[15%]" onClick={() => toggleSort('status')}>
-                                <div className="flex items-center gap-2 whitespace-nowrap">
-                                    Status {getSortIcon('status')}
-                                </div>
-                            </th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[25%]">Domain</th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">Max Students</th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-right w-[15%]">Actions</th>
+                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[30%]">Contact</th>
+                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[30%]">Domain</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <TableRowsSkeleton rows={perPage} columns={5} />
-                        ) : filteredSchools.length === 0 ? (
+                            <TableRowsSkeleton rows={perPage} columns={3} />
+                        ) : pagedSchools.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="text-center py-10 text-text-muted text-[13px]">
+                                <td colSpan={3} className="text-center py-10 text-text-muted text-[13px]">
                                     No schools found matching your criteria.
                                 </td>
                             </tr>
@@ -252,35 +248,22 @@ export default function SchoolsListPage() {
                                             </div>
                                         </td>
                                         <td className="py-2.5 px-4 align-middle">
-                                            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded bg-surface-hover border border-border/40 ${sch.is_active !== false ? 'text-green-500' : 'text-red-500'}`}>
-                                                {sch.is_active !== false ? 'ACTIVE' : 'INACTIVE'}
-                                            </span>
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-[12px] text-text-main truncate max-w-[150px]" title={sch.contact_email}>{sch.contact_email || '—'}</span>
+                                                <span className="text-[11px] text-text-muted">{sch.contact_phone || '—'}</span>
+                                            </div>
                                         </td>
                                         <td className="py-2.5 px-4 align-middle">
                                             <div className="flex items-center gap-2 text-[12px] text-text-main">
                                                 <Globe size={12} className="text-blue-500 shrink-0" />
-                                                <span className="max-w-[200px] inline-block truncate" title={sch.domain || '—'}>{sch.domain || '—'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-2.5 px-4 align-middle">
-                                            <div className="flex items-center gap-2 text-[12px] text-text-main">
-                                                <Hash size={12} className="text-blue-500 shrink-0" />
-                                                <span>{sch.max_students ?? 500}</span>
-                                            </div>
-                                        </td>
-                                        <td className="py-2.5 px-4 align-middle text-right">
-                                            <div 
-                                                className="flex items-center justify-end gap-3"
-                                                onClick={(e) => e.stopPropagation()}
-                                            >
-                                                <DeleteSchoolButton schoolId={sch.id} />
+                                                <span className="max-w-[120px] inline-block truncate" title={sch.domain || '—'}>{sch.domain || '—'}</span>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
                                 {perPage - pagedSchools.length > 0 && Array.from({ length: perPage - pagedSchools.length }).map((_, idx) => (
                                     <tr key={`empty-${idx}`} className="border-b border-border/40 last:border-b-0 opacity-0 pointer-events-none">
-                                        <td colSpan={5} className="py-2.5 px-4 align-middle">
+                                        <td colSpan={3} className="py-2.5 px-4 align-middle">
                                             <div className="h-8"></div>
                                         </td>
                                     </tr>
@@ -288,7 +271,8 @@ export default function SchoolsListPage() {
                             </>
                         )}
                     </tbody>
-                </table>
+                    </table>
+                </div>
 
                 {/* Mobile Card View */}
                 <div className="block md:hidden divide-y divide-border/40">
@@ -323,14 +307,13 @@ export default function SchoolsListPage() {
                                         </div>
                                         <span className="font-semibold text-text-main text-[13px] group-hover:text-accent-primary transition-colors truncate" title={sch.name}>{sch.name}</span>
                                     </div>
-                                    <div className="flex items-center gap-1.5 shrink-0">
-                                        <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded bg-surface-hover border border-border/40 ${sch.is_active !== false ? 'text-green-500' : 'text-red-500'}`}>
-                                            {sch.is_active !== false ? 'ACTIVE' : 'INACTIVE'}
-                                        </span>
-                                    </div>
                                 </div>
                                 
                                 <div className="flex flex-col gap-1.5 pl-11">
+                                    <div className="flex items-center gap-2 text-[12px] text-text-main">
+                                        <span className="truncate">{sch.contact_email || '—'}</span>
+                                        {sch.contact_phone && <span className="text-text-muted">• {sch.contact_phone}</span>}
+                                    </div>
                                     {sch.domain && (
                                         <div className="flex items-center gap-2 text-[12px] text-text-main">
                                             <Globe size={12} className="text-blue-500 shrink-0" />
@@ -339,10 +322,8 @@ export default function SchoolsListPage() {
                                     )}
 
                                     <div className="flex items-center justify-between text-[11px] text-text-muted mt-1 pt-1.5 border-t border-border/20">
-                                        <span>Max Students: <span className="font-semibold text-text-main">{sch.max_students ?? 500}</span></span>
-                                        <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-3 w-full justify-end">
                                             <Link href={`/schools/${sch.id}`} prefetch={true} className="font-bold text-accent-primary">View</Link>
-                                            <DeleteSchoolButton schoolId={sch.id} />
                                         </div>
                                     </div>
                                 </div>

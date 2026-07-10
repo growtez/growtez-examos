@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { deleteExam } from '@/app/actions/exam';
 
 export default function DeleteExamButton({ examId }: { examId: string }) {
+  const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async (e: React.MouseEvent) => {
@@ -18,6 +20,12 @@ export default function DeleteExamButton({ examId }: { examId: string }) {
     if (!result.success) {
       alert(`Failed to delete exam: ${result.error}`);
       setIsDeleting(false);
+    } else {
+      router.refresh();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refresh-tables'));
+      }
+      router.push('/exams');
     }
   };
 
