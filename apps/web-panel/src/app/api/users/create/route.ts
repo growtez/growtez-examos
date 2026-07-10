@@ -5,7 +5,8 @@ import { NextResponse } from 'next/server';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, password, full_name, role, school_id, roll_number, date_of_birth, course, batch, session, department } = body;
+    let { email } = body;
+    const { password, full_name, role, school_id, roll_number, date_of_birth, course, batch, session, department } = body;
 
     if (!email || !password || !full_name || !role) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -26,6 +27,28 @@ export async function POST(req: Request) {
     const adminSupabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false, autoRefreshToken: false }
     });
+
+    // Check for duplicate student before attempting to create the user
+    if (role === 'student' && school_id && roll_number) {
+      const { data: existingStudent } = await adminSupabase
+        .from('students')
+        .select('id')
+        .eq('school_id', school_id)
+        .eq('roll_number', roll_number)
+        .eq('course', course || 'General')
+        .eq('batch', batch || 'Main')
+        .eq('session', session || '2024-25')
+        .single();
+        
+      if (existingStudent) {
+        return NextResponse.json({ error: 'already registerd with the rollno check the rollno or contacct with admin' }, { status: 400 });
+      }
+      // Override email for students to ensure uniqueness even if roll numbers duplicate across batches
+      if (date_of_birth) {
+        const dobStr = date_of_birth.replace(/-/g, '');
+        email = `${roll_number}_${dobStr}@${school_id}.student.examos.local`;
+      }
+    }
 
     const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
       email,

@@ -90,9 +90,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [newName, setNewName] = useState('');
   const [newRoll, setNewRoll] = useState('');
   const [newDob, setNewDob] = useState('');
-  const [newCourse, setNewCourse] = useState('General');
-  const [newBatch, setNewBatch] = useState('Main');
-  const [newSession, setNewSession] = useState('2024-25');
+  const [newCourse, setNewCourse] = useState('');
+  const [newBatch, setNewBatch] = useState('');
+  const [newSession, setNewSession] = useState('');
   const [linkCourse, setLinkCourse] = useState('');
   const [linkBatch, setLinkBatch] = useState('');
   const [linkSession, setLinkSession] = useState('');
@@ -364,7 +364,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       if (!res.ok) throw new Error(data.error || 'Failed to add student');
       setAddSuccess(`Student "${newName}" added successfully!`);
       setNewName(''); setNewRoll(''); setNewDob('');
-      setNewCourse('General'); setNewBatch('Main'); setNewSession('2024-25');
+      setNewCourse(''); setNewBatch(''); setNewSession('');
       fetchExamData();
     } catch (err: any) {
       setAddError(err.message);
@@ -391,7 +391,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(',').map(c => c.trim());
         if (cols.length < 3) continue;
-        const [studentName, studentRoll, studentDob, csvCourse = 'General', csvBatch = 'Main', csvSession = '2024-25'] = cols;
+        const [studentName, studentRoll, studentDob, csvCourse = '', csvBatch = '', csvSession = ''] = cols;
         // Parse DD/MM/YYYY or YYYY-MM-DD
         let formattedDob = studentDob;
         if (studentDob.includes('/')) {
@@ -551,6 +551,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   
   const uniqueCourses = Array.from(new Set(schoolStudents.map(s => s.course).filter(Boolean)));
   const uniqueBatches = Array.from(new Set(schoolStudents.map(s => s.batch).filter(Boolean)));
+  const uniqueSessions = Array.from(new Set(schoolStudents.map(s => s.session).filter(Boolean)));
 
   const filteredStudents = availableStudents.filter(s => {
     const matchesSearch = s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -919,7 +920,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     
                     <div className="bg-[#f5f9f9] border border-[#e0f2f2] p-4 rounded-xl mb-5 space-y-3">
                       <p className="text-xs font-bold text-[#008080] uppercase tracking-wider mb-2">Optional: Pre-fill Student Details</p>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-3 gap-3">
                         <div>
                           <label className="block text-[10px] font-bold text-[#555555] uppercase tracking-wider mb-1">Course</label>
                           <CustomCombobox 
@@ -940,11 +941,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             className="w-full px-3 py-2 bg-white border border-[#b2d8d8] rounded-lg text-[#1a2e2e] text-xs focus:outline-none focus:border-[#008080]" 
                           />
                         </div>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-[#555555] uppercase tracking-wider mb-1">Session</label>
-                        <input type="text" value={linkSession} onChange={e => setLinkSession(e.target.value)} placeholder="e.g. 2024-25"
-                          className="w-full px-3 py-2 bg-white border border-[#b2d8d8] rounded-lg text-[#1a2e2e] text-xs focus:outline-none focus:border-[#008080]" />
+                        <div>
+                          <label className="block text-[10px] font-bold text-[#555555] uppercase tracking-wider mb-1">Session</label>
+                          <CustomCombobox 
+                            value={linkSession} 
+                            onChange={setLinkSession} 
+                            options={uniqueSessions as string[]} 
+                            placeholder="e.g. 2024-25"
+                            className="w-full px-3 py-2 bg-white border border-[#b2d8d8] rounded-lg text-[#1a2e2e] text-xs focus:outline-none focus:border-[#008080]" 
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -1118,7 +1124,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     <input type="date" value={newDob} onChange={e => setNewDob(e.target.value)} required
                       className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all" />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-[#555555] mb-1.5">Course</label>
                       <CustomCombobox 
@@ -1139,11 +1145,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all" 
                       />
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#555555] mb-1.5">Session</label>
-                    <input type="text" value={newSession} onChange={e => setNewSession(e.target.value)} required placeholder="2024-25"
-                      className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all" />
+                    <div>
+                      <label className="block text-xs font-semibold text-[#555555] mb-1.5">Session</label>
+                      <CustomCombobox 
+                        value={newSession} 
+                        onChange={setNewSession} 
+                        options={uniqueSessions as string[]} 
+                        placeholder="e.g. 2024-25"
+                        className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all" 
+                      />
+                    </div>
                   </div>
                   <div className="flex gap-3 pt-4">
                     <button type="submit" disabled={addingStudent}

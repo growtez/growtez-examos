@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 import Link from 'next/link';
-import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen } from 'lucide-react';
 
 const navItems = [
   {
@@ -42,24 +42,18 @@ export default function SchoolAdminLayout({
 }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [schoolName, setSchoolName] = useState('School Panel');
   const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    async function fetchSchoolName() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      
-      const { data: admin } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
-      if (admin?.school_id) {
-        const { data: school } = await supabase.from('schools').select('name').eq('id', admin.school_id).single();
-        if (school?.name) {
-          setSchoolName(school.name);
-        }
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
       }
     }
-    fetchSchoolName();
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleLogout = async () => {
@@ -84,8 +78,9 @@ export default function SchoolAdminLayout({
             </div>
             {sidebarOpen && (
               <div className="overflow-hidden">
-                <h1 className="text-white font-bold text-sm leading-tight truncate" title={schoolName}>{schoolName}</h1>
-                <p className="text-[#4da6a6] text-xs">by Growtez</p>
+                <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-white to-[#4da6a6] font-extrabold text-lg tracking-wide leading-tight truncate drop-shadow-sm" title="ParikshaOS">
+                  ParikshaOS
+                </h1>
               </div>
             )}
           </div>
@@ -132,10 +127,32 @@ export default function SchoolAdminLayout({
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-4">
-            <div className="relative group">
-              <div className="w-9 h-9 bg-gradient-to-br from-[#008080] to-[#005555] rounded-full flex items-center justify-center cursor-pointer shadow-sm hover:shadow-md transition-shadow">
+            <div className="relative" ref={dropdownRef}>
+              <div 
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="w-9 h-9 bg-gradient-to-br from-[#008080] to-[#005555] rounded-full flex items-center justify-center cursor-pointer shadow-sm hover:shadow-md transition-shadow"
+              >
                 <span className="text-white text-sm font-bold">SA</span>
               </div>
+              
+              {profileDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-[#e0f2f2] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="py-2">
+                    <Link href="/profile" onClick={() => setProfileDropdownOpen(false)} className="flex items-center px-4 py-2.5 text-sm font-medium text-[#555555] hover:bg-[#f5f9f9] hover:text-[#008080] transition-colors">
+                      <User className="w-4 h-4 mr-3 text-[#8ab8b8]" />
+                      Profile & Subscriptions
+                    </Link>
+                    <Link href="/instructions" onClick={() => setProfileDropdownOpen(false)} className="flex items-center px-4 py-2.5 text-sm font-medium text-[#555555] hover:bg-[#f5f9f9] hover:text-[#008080] transition-colors">
+                      <BookOpen className="w-4 h-4 mr-3 text-[#8ab8b8]" />
+                      Exam Instructions
+                    </Link>
+                    <Link href="/feedback" onClick={() => setProfileDropdownOpen(false)} className="flex items-center px-4 py-2.5 text-sm font-medium text-[#555555] hover:bg-[#f5f9f9] hover:text-[#008080] transition-colors">
+                      <MessageSquare className="w-4 h-4 mr-3 text-[#8ab8b8]" />
+                      Feedback
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
