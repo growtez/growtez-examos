@@ -8,7 +8,6 @@ const __dirname = path.dirname(__filename);
 const nextConfig = {
     experimental: {
         optimizePackageImports: ['lucide-react'],
-        outputFileTracingRoot: path.join(__dirname, '../../'),
     }
 };
 
