@@ -98,13 +98,14 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, onGoBac
 
       {/* Main Content */}
       <main 
-        className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center"
+        className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col animate-in fade-in duration-300"
         style={{
           scrollbarWidth: 'thin',
           scrollbarColor: '#008080 rgba(0, 0, 0, 0.05)'
         }}
       >
-        <div className="w-full max-w-2xl bg-white border border-[#E4E7EC] rounded-xl shadow-xl overflow-hidden">
+        <div className="shrink-0 h-[2vh] md:h-[4vh] min-h-[10px]"></div>
+        <div className="w-full max-w-2xl mx-auto bg-white border border-[#E4E7EC] rounded-xl shadow-xl overflow-hidden shrink-0 mb-6">
           {/* Card Title Bar */}
           <div className="bg-[#008080] py-4 px-6 text-center">
             <span className="text-white font-extrabold text-sm uppercase tracking-widest">WAITING ROOM</span>
@@ -169,6 +170,7 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, onGoBac
                 <h3 className="text-sm font-extrabold text-[#1D2939] uppercase tracking-wider">Important Instructions</h3>
               </div>
               <ul className="space-y-3">
+                {/* General Instructions */}
                 <li className="flex gap-3 text-sm text-[#667085] font-medium">
                   <span className="text-[#008080] font-bold mt-0.5">▸</span>
                   Do not refresh the page or close the application once the exam has started.
@@ -185,6 +187,14 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, onGoBac
                   <span className="text-[#008080] font-bold mt-0.5">▸</span>
                   Once the exam end time is reached, it will be automatically submitted regardless of your progress.
                 </li>
+
+                {/* Custom Exam-Specific Instructions */}
+                {exam?.exam_instructions && exam.exam_instructions.map((inst: string, idx: number) => (
+                  <li key={idx} className="flex gap-3 text-sm text-[#667085] font-medium">
+                    <span className="text-[#008080] font-bold mt-0.5">▸</span>
+                    {inst}
+                  </li>
+                ))}
               </ul>
             </div>
 
@@ -196,6 +206,7 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, onGoBac
 
           </div>
         </div>
+        <div className="shrink-0 h-[2vh] md:h-[4vh] min-h-[10px]"></div>
       </main>
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import Calculator from './Calculator';
+import Numpad from './Numpad';
 
 interface ExamInterfaceProps {
   studentProfile: any;
@@ -210,7 +211,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
   const handleSaveAndNext = () => {
     if (!currentQuestion) return;
-    setAnswers(prev => ({ ...prev, [currentQuestion.id]: { ...prev[currentQuestion.id], visited: true } }));
+    setAnswers(prev => ({ ...prev, [currentQuestion.id]: { ...prev[currentQuestion.id], marked: false, visited: true } }));
     moveToNext();
   };
 
@@ -456,8 +457,8 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-xs text-[#667085] font-semibold">Remaining Time:</span>
-              <span className={`px-3 py-1 font-bold text-base text-white rounded-lg leading-none ${getTimerClass()}`}>{formatTime(timeLeft)}</span>
+              <span className="text-sm text-[#667085] font-semibold">Remaining Time:</span>
+              <span className={`px-4 py-1.5 font-bold text-xl text-white rounded-lg leading-none ${getTimerClass()}`}>{formatTime(timeLeft)}</span>
               <button
                 onClick={() => setHeaderOpen(true)}
                 className="text-[#667085] hover:text-[#008080] hover:bg-gray-100 p-1.5 rounded-lg transition-colors"
@@ -543,7 +544,18 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                 </div>
 
                 <div className="text-[16px] text-[#1D2939] leading-relaxed max-w-4xl font-sans">
-                  <p className="mb-6 whitespace-pre-wrap font-medium">{currentQuestion.question_text}</p>
+                  {currentQuestion.question_text && (
+                    <p className="mb-4 whitespace-pre-wrap font-medium">{currentQuestion.question_text}</p>
+                  )}
+                  {currentQuestion.image_url && (
+                    <div className="mb-6">
+                      <img
+                        src={currentQuestion.image_url}
+                        alt="Question"
+                        className="max-w-full max-h-80 object-contain rounded-lg border border-[#E4E7EC] shadow-sm"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {currentQuestion.question_type === 'mcq' && currentQuestion.options ? (
@@ -553,7 +565,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                       return (
                         <label
                           key={opt}
-                          className={`flex items-center gap-4 px-4 py-3.5 rounded-lg border cursor-pointer transition-all ${
+                          className={`flex items-start gap-4 px-4 py-3.5 rounded-lg border cursor-pointer transition-all ${
                             selected
                               ? 'bg-[#008080]/5 border-[#008080] text-[#008080] font-semibold shadow-sm'
                               : 'bg-white border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939]'
@@ -564,11 +576,20 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                             name={`q_${currentQuestion.id}`}
                             checked={selected}
                             onChange={() => handleSelectOption(currentQuestion.id, opt)}
-                            className="w-4 h-4 text-[#008080] border-[#E4E7EC] focus:ring-[#008080] cursor-pointer"
+                            className="w-4 h-4 text-[#008080] border-[#E4E7EC] focus:ring-[#008080] cursor-pointer mt-1"
                           />
-                          <span className="flex items-center gap-3 font-sans text-[14px]">
-                            <span className="font-bold">({opt})</span>
-                            <span>{currentQuestion.options[opt]}</span>
+                          <span className="flex items-start gap-3 font-sans text-[14px] w-full">
+                            <span className="font-bold mt-0.5">({opt})</span>
+                            <span className="flex flex-col gap-2">
+                              {currentQuestion.options[opt] && <span>{currentQuestion.options[opt]}</span>}
+                              {currentQuestion.options[`${opt}_image`] && (
+                                <img
+                                  src={currentQuestion.options[`${opt}_image`]}
+                                  alt={`Option ${opt}`}
+                                  className="max-w-[200px] max-h-[200px] object-contain rounded-lg border border-[#E4E7EC]"
+                                />
+                              )}
+                            </span>
                           </span>
                         </label>
                       );
@@ -584,6 +605,10 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                       className="border border-[#E4E7EC] rounded-lg px-4 py-2.5 w-full focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] font-mono text-sm bg-white text-[#1D2939] shadow-sm transition-all"
                       placeholder="Type your response here..."
                     />
+                    <Numpad
+                      value={answers[currentQuestion.id]?.answer || ''}
+                      onChange={(val) => handleNatChange(currentQuestion.id, val)}
+                    />
                   </div>
                 )}
               </div>
@@ -593,36 +618,36 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           </div>
 
           {/* Action Buttons Footer */}
-          <div className="border-t border-[#E4E7EC] p-3 bg-white">
-            <div className="flex items-center gap-2">
+          <div className="border-t border-[#E4E7EC] p-4 bg-white">
+            <div className="flex items-center gap-3">
               <button
                 onClick={handleSaveAndNext}
-                className="bg-[#008080] hover:bg-[#006666] text-white px-5 py-1.5 rounded-lg font-bold text-xs transition-colors uppercase shadow-sm"
+                className="bg-[#008080] hover:bg-[#006666] text-white px-6 py-2.5 rounded-lg font-bold text-sm transition-colors uppercase shadow-sm"
               >
                 SAVE &amp; NEXT
               </button>
               <button
                 onClick={handleSaveAndMarkForReview}
-                className="bg-[#7A5AF8] hover:bg-[#6939F6] text-white px-5 py-1.5 rounded-lg font-bold text-xs transition-colors uppercase shadow-sm"
+                className="bg-[#7A5AF8] hover:bg-[#6939F6] text-white px-6 py-2.5 rounded-lg font-bold text-sm transition-colors uppercase shadow-sm"
               >
                 SAVE &amp; MARK FOR REVIEW
               </button>
               <button
                 onClick={handleClearResponse}
-                className="bg-white hover:bg-[#F9FAFB] text-[#667085] px-5 py-1.5 font-bold text-xs border border-[#E4E7EC] rounded-lg transition-colors uppercase shadow-sm"
+                className="bg-white hover:bg-[#F9FAFB] text-[#667085] px-6 py-2.5 font-bold text-sm border border-[#E4E7EC] rounded-lg transition-colors uppercase shadow-sm"
               >
                 CLEAR RESPONSE
               </button>
               <button
                 onClick={handleMarkForReviewAndNext}
-                className="bg-[#7A5AF8]/10 hover:bg-[#7A5AF8]/20 text-[#7A5AF8] px-5 py-1.5 font-bold text-xs border border-[#7A5AF8]/20 rounded-lg transition-colors uppercase"
+                className="bg-[#7A5AF8]/10 hover:bg-[#7A5AF8]/20 text-[#7A5AF8] px-6 py-2.5 font-bold text-sm border border-[#7A5AF8]/20 rounded-lg transition-colors uppercase"
               >
                 MARK FOR REVIEW &amp; NEXT
               </button>
               
               <button
                 onClick={() => setShowSubmitModal(true)}
-                className="bg-[#008080] hover:bg-[#006666] text-white px-6 py-1.5 rounded-lg font-bold text-sm shadow-sm transition-all uppercase ml-auto"
+                className="bg-[#008080] hover:bg-[#006666] text-white px-8 py-2.5 rounded-lg font-bold text-base shadow-sm transition-all uppercase ml-auto"
               >
                 SUBMIT
               </button>

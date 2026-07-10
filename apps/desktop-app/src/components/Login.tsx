@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 type Step = 'login' | 'waiting_room' | 'exam' | 'submitted';
@@ -18,6 +18,56 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
   const [assignedExams, setAssignedExams] = useState<any[]>([]);
   const [selectedExamId, setSelectedExamId] = useState('');
   const [error, setError] = useState('');
+
+  // States and refs for searchable dropdown
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Compute filtered list of schools based on search term
+  const filteredSchools = schools.filter((school) =>
+    school.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Handle click outside and Escape key to close the dropdown and revert search term
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        const currentSchool = schools.find((s) => s.id === selectedSchoolId);
+        if (currentSchool) {
+          setSearchTerm(currentSchool.name);
+        }
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        const currentSchool = schools.find((s) => s.id === selectedSchoolId);
+        if (currentSchool) {
+          setSearchTerm(currentSchool.name);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedSchoolId, schools]);
+
+  // Synchronize searchTerm when selectedSchoolId or schools list changes
+  useEffect(() => {
+    const currentSchool = schools.find((s) => s.id === selectedSchoolId);
+    if (currentSchool) {
+      setSearchTerm(currentSchool.name);
+    } else {
+      setSearchTerm('');
+    }
+  }, [selectedSchoolId, schools]);
 
   // Fetch active schools on mount
   useEffect(() => {
@@ -85,6 +135,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
       }
 
       if (authError) throw authError;
+      if (!authData || !authData.user) throw new Error('Authentication failed: user not found');
 
       // Fetch student profile details
       const { data: profile, error: profileError } = await supabase
@@ -209,17 +260,74 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
               <form onSubmit={handleStudentAuth} className="space-y-5">
                 <div>
                   <label className="block text-xs font-bold text-[#667085] mb-2 uppercase tracking-wider">Select School / Center</label>
-                  <select
-                    value={selectedSchoolId}
-                    onChange={(e) => setSelectedSchoolId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-lg text-[#1D2939] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
-                  >
-                    {schools.map((school) => (
-                      <option key={school.id} value={school.id}>
-                        {school.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative" ref={dropdownRef}>
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setIsOpen(true);
+                      }}
+                      onFocus={(e) => {
+                        e.target.select();
+                        setIsOpen(true);
+                      }}
+                      onClick={() => setIsOpen(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Tab') {
+                          setIsOpen(false);
+                          const currentSchool = schools.find((s) => s.id === selectedSchoolId);
+                          if (currentSchool) {
+                            setSearchTerm(currentSchool.name);
+                          }
+                        } else if (e.key === 'Enter') {
+                          if (isOpen) {
+                            if (filteredSchools.length > 0) {
+                              e.preventDefault();
+                              setSelectedSchoolId(filteredSchools[0].id);
+                              setSearchTerm(filteredSchools[0].name);
+                              setIsOpen(false);
+                            }
+                          }
+                        }
+                      }}
+                      placeholder="Search school / center..."
+                      className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-lg text-[#1D2939] placeholder-[#98A2B3] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm pr-10"
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="h-5 w-5 text-[#667085]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+
+                    {isOpen && (
+                      <div className="absolute z-50 mt-1 w-full bg-white border border-[#E4E7EC] rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {filteredSchools.length > 0 ? (
+                          filteredSchools.map((school) => (
+                            <div
+                              key={school.id}
+                              onClick={() => {
+                                setSelectedSchoolId(school.id);
+                                setSearchTerm(school.name);
+                                setIsOpen(false);
+                              }}
+                              className={`px-4 py-2.5 text-sm cursor-pointer transition-colors ${
+                                school.id === selectedSchoolId
+                                  ? 'bg-[#008080]/10 text-[#008080] font-semibold'
+                                  : 'text-[#1D2939] hover:bg-[#F9FAFB]'
+                              }`}
+                            >
+                              {school.name}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-sm text-[#667085] text-center italic">
+                            No schools found
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
