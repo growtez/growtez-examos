@@ -108,6 +108,45 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   
   const [teachers, setTeachers] = useState<any[]>([]);
   const [showAddSubjectModal, setShowAddSubjectModal] = useState(false);
+
+  // Instructions Editing State & Helpers
+  const [instructionsList, setInstructionsList] = useState<string[]>([]);
+  const [editInstructionsMode, setEditInstructionsMode] = useState(false);
+
+  useEffect(() => {
+    if (exam) {
+      setInstructionsList(exam.exam_instructions || []);
+    }
+  }, [exam]);
+
+  const handleSaveInstructions = async () => {
+    const filtered = instructionsList.filter(inst => inst.trim() !== '');
+    const { error } = await supabase
+      .from('exams')
+      .update({ exam_instructions: filtered })
+      .eq('id', params.id);
+
+    if (error) {
+      alert('Failed to save instructions: ' + error.message);
+    } else {
+      setExam({ ...exam, exam_instructions: filtered });
+      setEditInstructionsMode(false);
+    }
+  };
+
+  const addInstructionItem = () => {
+    setInstructionsList([...instructionsList, '']);
+  };
+
+  const removeInstructionItem = (index: number) => {
+    setInstructionsList(instructionsList.filter((_, i) => i !== index));
+  };
+
+  const updateInstructionItem = (index: number, value: string) => {
+    const updated = [...instructionsList];
+    updated[index] = value;
+    setInstructionsList(updated);
+  };
   const [newSubject, setNewSubject] = useState({ name: '', questionCount: 10, teacherIds: [] as string[] });
 
   const [confirmDialog, setConfirmDialog] = useState({
@@ -722,6 +761,96 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             );
           })}
         </div>
+      </div>
+
+      {/* Exam Instructions */}
+      <div className="bg-white border border-[#e0f2f2] rounded-2xl p-6 mb-6 shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-bold text-[#1a2e2e]">Exam Instructions</h3>
+          {!isExamOver && exam?.status === 'draft' && (
+            editInstructionsMode ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveInstructions}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#008080] text-white rounded-lg text-xs font-bold hover:bg-[#006666] transition-colors shadow-sm"
+                >
+                  <Check size={14} />
+                  Save Instructions
+                </button>
+                <button
+                  onClick={() => {
+                    setInstructionsList(exam.exam_instructions || []);
+                    setEditInstructionsMode(false);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#e0f2f2] text-[#555555] rounded-lg text-xs font-bold hover:bg-[#f5f9f9] transition-colors shadow-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setInstructionsList(exam.exam_instructions && exam.exam_instructions.length > 0 ? exam.exam_instructions : ['']);
+                  setEditInstructionsMode(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#b2d8d8] text-[#008080] rounded-lg text-sm font-semibold hover:bg-[#e0f2f2] transition-colors shadow-sm"
+              >
+                <Edit2 size={14} />
+                Edit Instructions
+              </button>
+            )
+          )}
+        </div>
+
+        {editInstructionsMode ? (
+          <div className="space-y-4">
+            <div className="space-y-3">
+              {instructionsList.map((inst, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <span className="text-[#8ab8b8] font-bold text-sm w-6 text-right">{index + 1}.</span>
+                  <input
+                    type="text"
+                    value={inst}
+                    onChange={(e) => updateInstructionItem(index, e.target.value)}
+                    placeholder="e.g. Do not close or minimize the browser window during the exam."
+                    className="flex-1 px-4 py-2.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium"
+                  />
+                  {instructionsList.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeInstructionItem(index)}
+                      className="text-red-500 hover:text-red-600 text-xs font-semibold px-2 py-1.5"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addInstructionItem}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#b2d8d8] text-[#008080] rounded-lg text-xs font-bold hover:bg-[#e0f2f2] transition-colors shadow-sm"
+            >
+              <Plus size={14} />
+              Add Bullet
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {exam?.exam_instructions && exam.exam_instructions.length > 0 ? (
+              <ol className="list-decimal pl-5 space-y-2">
+                {exam.exam_instructions.map((inst: string, index: number) => (
+                  <li key={index} className="text-[#555555] text-sm font-medium leading-relaxed">
+                    {inst}
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="text-[#8ab8b8] text-sm italic font-medium">No custom instructions configured for this exam yet. It will use the general school instructions.</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Assigned Students */}

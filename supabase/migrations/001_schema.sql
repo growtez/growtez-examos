@@ -150,6 +150,9 @@ CREATE TABLE IF NOT EXISTS public.results (
 ALTER TABLE public.exam_students DROP CONSTRAINT IF EXISTS exam_students_student_id_fkey;
 ALTER TABLE public.exams DROP CONSTRAINT IF EXISTS exams_created_by_fkey;
 
+-- Add exam_instructions JSONB column to public.exams
+ALTER TABLE public.exams ADD COLUMN IF NOT EXISTS exam_instructions JSONB DEFAULT '[]'::jsonb;
+
 -- ============================================================
 -- 2. Helper Functions for RLS
 -- ============================================================
