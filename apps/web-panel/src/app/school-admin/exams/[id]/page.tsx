@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { ArrowLeft, BookOpen, Clock, Copy, Globe, Link2, MoreVertical, Plus, Settings2, Trash2, Users, AlertCircle, Copy as CopyIcon, Play, Edit2, Check } from 'lucide-react';
+import { ArrowLeft, BookOpen, Clock, Copy, Globe, Link2, MoreVertical, Plus, Settings2, Trash2, Users, AlertCircle, Copy as CopyIcon, Play, Edit2, Check, Download } from 'lucide-react';
 
 function CustomCombobox({ value, onChange, options, placeholder, className }: { value: string, onChange: (v: string) => void, options: string[], placeholder: string, className: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -77,6 +77,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [assignedStudents, setAssignedStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
+  const [role, setRole] = useState<string>('school_admin');
+  const [userId, setUserId] = useState<string>('');
   const [editDurationMode, setEditDurationMode] = useState(false);
   const [inlineEditDuration, setInlineEditDuration] = useState(180);
   const [editSubjectId, setEditSubjectId] = useState<string | null>(null);
@@ -158,6 +160,94 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     onConfirm: () => {}
   });
 
+  const [generatingPDF, setGeneratingPDF] = useState(false);
+
+  const downloadQuestionPaper = async () => {
+    try {
+      setGeneratingPDF(true);
+      
+      // Fetch all questions for all subjects
+      const { data: questionsData, error } = await supabase
+        .from('questions')
+        .select('*, exam_subjects(subject_name)')
+        .in('exam_subject_id', subjects.map(s => s.id))
+        .order('exam_subject_id')
+        .order('created_at');
+        
+      if (error) throw error;
+      
+      // Render HTML string
+      let html = `
+        <div style="font-family: Arial, sans-serif; padding: 40px; color: #1a2e2e;">
+          <h1 style="text-align: center; color: #008080; margin-bottom: 5px;">${exam.title}</h1>
+          <h3 style="text-align: center; color: #555555; margin-top: 0; margin-bottom: 30px;">Question Paper</h3>
+      `;
+      
+      let currentSubject = '';
+      let qIndex = 1;
+      
+      (questionsData || []).forEach((q: any) => {
+        if (q.exam_subjects?.subject_name !== currentSubject) {
+          currentSubject = q.exam_subjects?.subject_name;
+          html += `<h2 style="color: #008080; border-bottom: 2px solid #e0f2f2; padding-bottom: 8px; margin-top: 30px;">${currentSubject}</h2>`;
+          qIndex = 1; // Reset question number per subject
+        }
+        
+        html += `
+          <div style="margin-bottom: 25px; page-break-inside: avoid;">
+            <div style="font-weight: bold; margin-bottom: 10px; font-size: 16px;">Q${qIndex}. ${q.question_text || 'Image Question'}</div>
+        `;
+        
+        if (q.image_url) {
+          html += `<img src="${q.image_url}" style="max-width: 400px; max-height: 300px; display: block; margin-bottom: 15px; border-radius: 8px; border: 1px solid #e0f2f2;" />`;
+        }
+        
+        html += `<div style="padding-left: 15px; display: flex; flex-direction: column; gap: 8px;">`;
+        
+        if (q.question_type === 'nat') {
+          html += `
+            <div style="padding: 12px 15px; border-radius: 8px; border: 2px solid #22c55e; background-color: #f0fdf4; font-size: 14px;">
+              <strong>Numerical Answer:</strong> ${q.correct_option}
+              <span style="color: #22c55e; font-weight: bold; float: right; font-size: 13px;">✓ Correct Answer</span>
+            </div>
+          `;
+        } else if (q.options && typeof q.options === 'object') {
+          for (const [key, val] of Object.entries(q.options)) {
+            const isCorrect = String(q.correct_option).trim().toLowerCase() === String(key).trim().toLowerCase();
+            let borderStyle = isCorrect ? '2px solid #22c55e' : '1px solid #e0f2f2';
+            let bgStyle = isCorrect ? '#f0fdf4' : 'transparent';
+            
+            html += `
+              <div style="padding: 12px 15px; border-radius: 8px; border: ${borderStyle}; background-color: ${bgStyle}; font-size: 14px;">
+                <strong>${key})</strong> ${val}
+                ${isCorrect ? '<span style="color: #22c55e; font-weight: bold; float: right; font-size: 13px;">✓ Correct Option</span>' : ''}
+              </div>
+            `;
+          }
+        }
+        html += `</div></div>`;
+        qIndex++;
+      });
+      
+      html += `</div>`;
+      
+      const html2pdf = (await import('html2pdf.js')).default;
+      const opt = {
+        margin: 10,
+        filename: `${exam.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_question_paper.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      await html2pdf().set(opt).from(html).save();
+    } catch (err: any) {
+      alert('Failed to generate question paper: ' + err.message);
+    } finally {
+      setGeneratingPDF(false);
+    }
+  };
+
   // Helper to format ISO string for datetime-local input
   const formatForInput = (isoString: string) => {
     if (!isoString) return '';
@@ -171,6 +261,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   }, []);
 
   const fetchExamData = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (user) {
+      setUserId(user.id);
+      setRole(user.user_metadata?.role || 'school_admin');
+    }
+
     // Fetch exam
     const { data: examData } = await supabase.from('exams').select('*').eq('id', params.id).single();
     setExam(examData);
@@ -617,30 +714,44 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             {exam.description && <p className="text-[#555555] mt-1 text-sm font-medium">{exam.description}</p>}
           </div>
           <div className="flex items-center gap-3">
-            {!isExamOver && exam?.status !== 'draft' && (
+            {isExamOver && (
               <button 
-                onClick={handleUnpublish}
-                disabled={publishing}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-[#1a2e2e] hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-all shadow-sm disabled:opacity-50"
+                onClick={downloadQuestionPaper}
+                disabled={generatingPDF}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#008080] to-[#005555] border border-[#004d4d] rounded-xl text-sm font-semibold text-white hover:from-[#006666] hover:to-[#004d4d] transition-all shadow-md hover:shadow-lg disabled:opacity-50 whitespace-nowrap"
               >
-                <Settings2 size={16} />
-                Unpublish
+                <Download size={16} />
+                {generatingPDF ? 'Generating PDF...' : 'Download Paper'}
               </button>
             )}
-            <button 
-              onClick={handleDuplicate}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-[#1a2e2e] hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm"
-            >
-              <Copy size={16} />
-              Duplicate
-            </button>
-            <button 
-              onClick={handleTrash}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-red-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-all shadow-sm"
-            >
-              <Trash2 size={16} />
-              Trash
-            </button>
+            {role !== 'teacher' && (
+              <>
+                {!isExamOver && exam?.status !== 'draft' && (
+                  <button 
+                    onClick={handleUnpublish}
+                    disabled={publishing}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-[#1a2e2e] hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-all shadow-sm disabled:opacity-50"
+                  >
+                    <Settings2 size={16} />
+                    Unpublish
+                  </button>
+                )}
+                <button 
+                  onClick={handleDuplicate}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-[#1a2e2e] hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm"
+                >
+                  <Copy size={16} />
+                  Duplicate
+                </button>
+                <button 
+                  onClick={handleTrash}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-red-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-all shadow-sm"
+                >
+                  <Trash2 size={16} />
+                  Trash
+                </button>
+              </>
+            )}
             <span className={`inline-flex px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${statusColors[displayStatus] || statusColors.draft}`}>
               {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
             </span>
@@ -657,7 +768,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           <div className="flex-1">
             <p className="text-[#555555] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
               Duration
-              {!isExamOver && exam?.status === 'draft' && !editDurationMode && (
+              {!isExamOver && exam?.status === 'draft' && !editDurationMode && role !== 'teacher' && (
                 <button onClick={() => { setInlineEditDuration(exam.duration_minutes || 180); setEditDurationMode(true); }} className="text-[#8ab8b8] hover:text-[#008080] transition-colors p-0.5 rounded hover:bg-[#e0f2f2]">
                   <Edit2 size={12} />
                 </button>
@@ -697,7 +808,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       <div className="bg-white border border-[#e0f2f2] rounded-2xl p-6 mb-6 shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-bold text-[#1a2e2e]">Subjects</h3>
-          {!isExamOver && exam?.status === 'draft' && (
+          {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
             <button 
               onClick={() => setShowAddSubjectModal(true)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#b2d8d8] text-[#008080] rounded-lg text-sm font-semibold hover:bg-[#e0f2f2] transition-colors shadow-sm"
@@ -712,8 +823,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             const added = questionCounts[s.id] || 0;
             const needed = s.question_count;
             const complete = added >= needed;
+            const isAssignedTeacher = role !== 'teacher' || (role === 'teacher' && s.exam_subject_teachers?.some((est: any) => est.teacher_id === userId));
             return (
-              <Link key={s.id} href={`/exams/${params.id}/questions?subject=${s.id}`} className="flex flex-col sm:flex-row sm:items-center justify-between bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl p-4 gap-4 hover:bg-[#e0f2f2]/50 transition-colors group cursor-pointer">
+              <Link key={s.id} href={`/exams/${params.id}/questions?subject=${s.id}`} className={`flex flex-col sm:flex-row sm:items-center justify-between bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl p-4 gap-4 transition-colors ${isAssignedTeacher ? 'hover:bg-[#e0f2f2]/50 group cursor-pointer' : 'opacity-75 pointer-events-none'}`}>
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="text-[#1a2e2e] font-bold">{s.subject_name}</span>
@@ -721,7 +833,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                         {added}/{needed} questions
                       </span>
-                      {!isExamOver && exam?.status === 'draft' && editSubjectId !== s.id && (
+                      {!isExamOver && exam?.status === 'draft' && editSubjectId !== s.id && role !== 'teacher' && (
                         <button onClick={(e) => { e.preventDefault(); setInlineEditSubjectCount(needed); setEditSubjectId(s.id); }} className="text-[#8ab8b8] hover:text-[#008080] transition-colors p-1 rounded-md hover:bg-[#e0f2f2]">
                           <Edit2 size={14} />
                         </button>
@@ -743,14 +855,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 mt-4 sm:mt-0">
-                  <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#b2d8d8] text-[#008080] text-sm font-semibold rounded-xl group-hover:bg-[#e0f2f2] transition-colors shadow-sm whitespace-nowrap">
-                    <Plus size={16} />
-                    Manage Questions
-                  </span>
-                  {!isExamOver && exam?.status === 'draft' && (
+                  {isAssignedTeacher && (
+                    <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#b2d8d8] text-[#008080] text-sm font-semibold rounded-xl group-hover:bg-[#e0f2f2] transition-colors shadow-sm whitespace-nowrap">
+                      <Plus size={16} />
+                      Manage Questions
+                    </span>
+                  )}
+                  {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
                     <button 
                       onClick={(e) => handleDeleteSubject(e, s.id, s.subject_name)} 
-                      className="text-red-400 hover:text-red-600 transition-colors p-2 border border-transparent hover:border-red-200 rounded-xl hover:bg-red-50 bg-white shadow-sm"
+                      className="text-red-400 hover:text-red-600 transition-colors p-2 border border-transparent hover:border-red-200 rounded-xl hover:bg-red-50 bg-white shadow-sm pointer-events-auto"
                       title="Delete Subject"
                     >
                       <Trash2 size={18} />
@@ -861,7 +975,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             <p className="text-[#555555] text-sm font-medium mt-1">Students are specific to this exam</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {!isExamOver && (
+            {!isExamOver && role !== 'teacher' && (
               <>
                 <button onClick={() => { setShowAddStudentModal(true); setAddMode('link'); setAddError(''); setAddSuccess(''); }}
                   className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#008080] text-white text-sm font-semibold rounded-xl hover:bg-[#006666] hover:shadow-lg hover:shadow-[#008080]/30 transition-all active:scale-95">
@@ -934,7 +1048,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           View Result
                         </Link>
                       )}
-                      {!isExamOver && (as.status === 'in_progress' || as.status === 'submitted') && (
+                      {!isExamOver && (as.status === 'in_progress' || as.status === 'submitted') && role !== 'teacher' && (
                         <button
                           onClick={() => {
                             setConfirmDialog({
@@ -956,7 +1070,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           Reset
                         </button>
                       )}
-                      {!isExamOver && as.status === 'assigned' && (
+                      {!isExamOver && as.status === 'assigned' && role !== 'teacher' && (
                         <button
                           onClick={() => handleRemoveStudent(as.id, as.student_id)}
                           className="text-red-500 hover:text-red-600 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
@@ -975,7 +1089,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Publish Button */}
-      {exam.status === 'draft' && (
+      {exam.status === 'draft' && role !== 'teacher' && (
         <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-6 shadow-sm">
           <h3 className="text-lg font-bold text-[#1a2e2e] mb-2">Publish Exam</h3>
           <p className="text-[#555555] text-sm font-medium mb-6">
