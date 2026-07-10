@@ -56,7 +56,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
       const examSubjectIds = assignedSubjects?.map(s => s.exam_subject_id) || [];
       if (examSubjectIds.length > 0) {
         const { data: subjects } = await supabase.from('exam_subjects').select('exam_id').in('id', examSubjectIds);
-        const uniqueExamIds = [...new Set(subjects?.map(s => s.exam_id) || [])];
+        const uniqueExamIds = Array.from(new Set(subjects?.map(s => s.exam_id) || []));
         if (uniqueExamIds.length > 0) {
           examQuery = examQuery.in('id', uniqueExamIds);
         } else {
