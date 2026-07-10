@@ -23,6 +23,23 @@ export default function NewExamPage() {
   const [natCorrect, setNatCorrect] = useState<number | string>(4);
   const [natWrong, setNatWrong] = useState<number | string>(0);
 
+  // Instructions State
+  const [instructions, setInstructions] = useState<string[]>(['']);
+
+  const addInstruction = () => {
+    setInstructions([...instructions, '']);
+  };
+
+  const removeInstruction = (index: number) => {
+    setInstructions(instructions.filter((_, i) => i !== index));
+  };
+
+  const updateInstruction = (index: number, value: string) => {
+    const updated = [...instructions];
+    updated[index] = value;
+    setInstructions(updated);
+  };
+
   // Step 2: Subjects
   const [subjects, setSubjects] = useState<Array<{
     name: string;
@@ -96,6 +113,7 @@ export default function NewExamPage() {
           nat_wrong: parseFloat(String(natWrong)) || 0 
         },
         created_by: user?.id,
+        exam_instructions: instructions.filter(inst => inst.trim() !== ''),
       }).select().single();
 
       if (examError) throw examError;
@@ -186,6 +204,35 @@ export default function NewExamPage() {
               <input type="number" step="any" value={natWrong} onChange={(e) => setNatWrong(e.target.value)}
                 className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium" />
             </div>
+          </div>
+        </div>
+
+        {/* Exam Instructions */}
+        <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-[#1a2e2e]">Exam Instructions</h3>
+            <button type="button" onClick={addInstruction}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#b2d8d8] text-[#008080] rounded-lg text-sm font-semibold hover:bg-[#e0f2f2] transition-colors shadow-sm">
+              <Plus size={16} />
+              Add Bullet
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {instructions.map((inst, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <span className="text-[#8ab8b8] font-bold text-sm w-6 text-right">{index + 1}.</span>
+                <input type="text" value={inst} onChange={(e) => updateInstruction(index, e.target.value)}
+                  placeholder="e.g. Do not close or minimize the browser window during the exam."
+                  className="flex-1 px-4 py-2.5 bg-white border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium" />
+                {instructions.length > 1 && (
+                  <button type="button" onClick={() => removeInstruction(index)}
+                    className="text-red-500 hover:text-red-600 text-xs font-semibold px-2 py-1.5">
+                    Remove
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         </div>
 
