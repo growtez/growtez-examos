@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 import Link from 'next/link';
-import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const navItems = [
   {
@@ -46,6 +46,7 @@ export default function SchoolAdminLayout({
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [role, setRole] = useState<string>('school_admin');
+  const [schoolName, setSchoolName] = useState<string>('');
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -53,6 +54,12 @@ export default function SchoolAdminLayout({
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setRole(user.user_metadata?.role || 'school_admin');
+        const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single();
+        const schoolId = profile?.school_id || user.user_metadata?.school_id || user.user_metadata?.schoolId;
+        if (schoolId) {
+          const { data: school } = await supabase.from('schools').select('name').eq('id', schoolId).single();
+          if (school) setSchoolName(school.name);
+        }
       }
     };
     fetchUser();
@@ -88,7 +95,15 @@ export default function SchoolAdminLayout({
       />
 
       {/* Sidebar */}
-      <aside className={`fixed md:relative z-50 h-[100dvh] bg-[#1a2e2e] border-r border-[#243f3f] transition-all duration-300 flex flex-col overflow-hidden ${sidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full md:translate-x-0 md:w-16'}`}>
+      <aside className={`fixed md:relative z-50 h-[100dvh] bg-[#1a2e2e] border-r border-[#243f3f] transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full md:translate-x-0 md:w-16'}`}>
+        
+        {/* Desktop Toggle Button */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="hidden md:flex absolute -right-3 top-5 w-6 h-6 bg-[#243f3f] rounded-full items-center justify-center text-[#8ab8b8] hover:text-white hover:bg-[#325252] transition-colors border border-[#1a2e2e] z-50 shadow-sm cursor-pointer"
+        >
+          {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+        </button>
         <div className="h-16 flex items-center px-4 border-b border-[#243f3f] flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-white flex items-center justify-center flex-shrink-0 rounded-lg shadow-sm">
@@ -148,13 +163,19 @@ export default function SchoolAdminLayout({
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-[#e0f2f2] flex items-center justify-between px-6 shadow-sm sticky top-0 z-30">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-[#8ab8b8] hover:text-[#008080] hover:bg-[#e0f2f2] rounded-lg p-2 transition-colors"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="text-[#8ab8b8] hover:text-[#008080] hover:bg-[#e0f2f2] rounded-lg p-2 transition-colors md:hidden"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            {schoolName && (
+              <h2 className="text-base font-bold text-text-main hidden sm:block truncate max-w-[200px] md:max-w-xs">{schoolName}</h2>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-4 ml-auto">
             <div className="relative" ref={dropdownRef}>
               <div 
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}

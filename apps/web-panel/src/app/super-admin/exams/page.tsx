@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { FileText, Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useDrawer } from '../DrawerContext';
 
@@ -18,6 +19,7 @@ export default function ExamsDashboard() {
   const router = useRouter();
   const { openDrawer } = useDrawer();
   const [exams, setExams] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -26,24 +28,116 @@ export default function ExamsDashboard() {
   const [perPage, setPerPage] = useState(8);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+  // Template Modal State
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateForm, setTemplateForm] = useState<{
+    title: string;
+    description: string;
+    durationMinutes: number | '';
+    mcqCorrect: number | '';
+    mcqWrong: number | '';
+    natCorrect: number | '';
+    natWrong: number | '';
+  }>({
+    title: '', description: '', durationMinutes: '',
+    mcqCorrect: '', mcqWrong: '', natCorrect: '', natWrong: ''
+  });
+  const [templateSubjects, setTemplateSubjects] = useState<Array<{ name: string; questionCount: number | '' }>>([{ name: '', questionCount: '' }]);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateError, setTemplateError] = useState('');
+  const [mounted, setMounted] = useState(false);
+
   const fetchExams = async () => {
     const supabase = createClient();
     
-    const { data } = await supabase
-      .from('exams')
-      .select('*, schools(name), exam_students(count)')
-      .eq('is_trashed', false)
-      .order('created_at', { ascending: false });
+    const [{ data: examsData }, { data: templatesData }] = await Promise.all([
+      supabase
+        .from('exams')
+        .select('*, schools(name), exam_students(count)')
+        .eq('is_trashed', false)
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('exam_templates')
+        .select('*, exam_template_subjects(*)')
+        .order('created_at', { ascending: false })
+    ]);
 
-    setExams(data || []);
+    setExams(examsData || []);
+    setTemplates(templatesData || []);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchExams();
     window.addEventListener('refresh-tables', fetchExams);
+    setMounted(true);
     return () => window.removeEventListener('refresh-tables', fetchExams);
   }, []);
+
+  const openCreateTemplate = () => {
+    setTemplateForm({
+      title: '', description: '', durationMinutes: '',
+      mcqCorrect: '', mcqWrong: '', natCorrect: '', natWrong: ''
+    });
+    setTemplateSubjects([{ name: '', questionCount: '' }]);
+    setTemplateError('');
+    setShowTemplateModal(true);
+  };
+
+  const addTemplateSubject = () => setTemplateSubjects(s => [...s, { name: '', questionCount: '' }]);
+  const removeTemplateSubject = (i: number) => setTemplateSubjects(s => s.filter((_, idx) => idx !== i));
+  const updateTemplateSubject = (i: number, field: string, value: any) => {
+    setTemplateSubjects(s => { const u = [...s]; (u[i] as any)[field] = value; return u; });
+  };
+
+  const handleSaveTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setTemplateError('');
+    setSavingTemplate(true);
+
+    const supabase = createClient();
+
+    try {
+      if (!templateForm.title.trim()) throw new Error('Template title is required');
+      if (!templateForm.durationMinutes) throw new Error('Duration is required');
+
+      const { data: template, error: templateError } = await supabase
+        .from('exam_templates')
+        .insert({
+          title: templateForm.title.trim(),
+          description: templateForm.description.trim() || null,
+          duration_minutes: templateForm.durationMinutes,
+          marking_scheme: {
+            mcq_correct: templateForm.mcqCorrect || 0,
+            mcq_wrong: templateForm.mcqWrong || 0,
+            nat_correct: templateForm.natCorrect || 0,
+            nat_wrong: templateForm.natWrong || 0,
+          },
+        })
+        .select()
+        .single();
+
+      if (templateError) throw templateError;
+
+      // Create template subjects
+      const validSubjects = templateSubjects.filter(s => s.name.trim());
+      for (let i = 0; i < validSubjects.length; i++) {
+        await supabase.from('exam_template_subjects').insert({
+          template_id: template.id,
+          subject_name: validSubjects[i].name.trim(),
+          question_count: validSubjects[i].questionCount || 0,
+          sort_order: i,
+        });
+      }
+
+      fetchExams();
+      setShowTemplateModal(false);
+    } catch (err: any) {
+      setTemplateError(err.message || 'Failed to create template');
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
 
   const filteredExams = exams
     .filter(exam => {
@@ -115,144 +209,70 @@ export default function ExamsDashboard() {
           <div className="flex-1 h-px bg-border" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* NEET */}
-          <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="text-base font-extrabold text-text-main tracking-tight">NEET</h3>
-                <p className="text-[11px] text-text-muted">Medical Entrance</p>
+          {templates.map(template => (
+            <div key={template.id} className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h3 className="text-base font-extrabold text-text-main tracking-tight">{template.title}</h3>
+                  <p className="text-[11px] text-text-muted">{template.description || 'Custom Template'}</p>
+                </div>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-primary/10 text-accent-primary border border-accent-primary/20">720 Marks</span>
+              <div className="space-y-1 mb-4">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-text-muted">Duration</span>
+                  <span className="font-semibold text-text-main">{template.duration_minutes} min</span>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-text-muted">Subjects</span>
+                  <span className="font-semibold text-text-main">
+                    {template.exam_template_subjects?.map((s: any) => s.subject_name).join(' · ') || 'None'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-text-muted">Marking</span>
+                  <span className="font-semibold text-text-main">
+                    +{template.marking_scheme?.mcq_correct || 0} / {template.marking_scheme?.mcq_wrong || 0}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => openDrawer('exam', {
+                  title: template.title,
+                  description: template.description,
+                  durationMinutes: template.duration_minutes,
+                  mcqCorrect: template.marking_scheme?.mcq_correct,
+                  mcqWrong: template.marking_scheme?.mcq_wrong,
+                  natCorrect: template.marking_scheme?.nat_correct,
+                  natWrong: template.marking_scheme?.nat_wrong,
+                  subjects: template.exam_template_subjects?.map((s: any) => ({
+                    name: s.subject_name,
+                    questionCount: s.question_count
+                  }))
+                })}
+                className="mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
+              >
+                <Plus size={13} /> Use Template
+              </button>
             </div>
-            <div className="space-y-1 mb-4">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-text-muted">Duration</span>
-                <span className="font-semibold text-text-main">200 min</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-text-muted">Subjects</span>
-                <span className="font-semibold text-text-main">Physics · Chemistry · Biology</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-text-muted">Marking</span>
-                <span className="font-semibold text-text-main">+4 / −1</span>
-              </div>
-            </div>
-            <button
-              onClick={() => openDrawer('exam', {
-                title: 'NEET Mock Test',
-                description: 'National Eligibility cum Entrance Test for medical admissions.',
-                durationMinutes: 200,
-                mcqCorrect: 4, mcqWrong: -1, natCorrect: 4, natWrong: 0,
-                subjects: [
-                  { name: 'Physics', questionCount: 45 },
-                  { name: 'Chemistry', questionCount: 45 },
-                  { name: 'Biology', questionCount: 90 },
-                ],
-              })}
-              className="mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
-            >
-              <Plus size={13} /> Use Template
-            </button>
-          </div>
+          ))}
 
-          {/* JEE Main */}
-          <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-blue-400/30 transition-all group overflow-hidden flex flex-col">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="text-base font-extrabold text-text-main tracking-tight">JEE Main</h3>
-                <p className="text-[11px] text-text-muted">Engineering Entrance</p>
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-primary/10 text-accent-primary border border-accent-primary/20">300 Marks</span>
-            </div>
-            <div className="space-y-1 mb-4">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-text-muted">Duration</span>
-                <span className="font-semibold text-text-main">180 min</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-text-muted">Subjects</span>
-                <span className="font-semibold text-text-main">Physics · Chemistry · Math</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-text-muted">Marking</span>
-                <span className="font-semibold text-text-main">+4 / −1</span>
-              </div>
-            </div>
-            <button
-              onClick={() => openDrawer('exam', {
-                title: 'JEE Main Mock Test',
-                description: 'Joint Entrance Examination Main for engineering admissions.',
-                durationMinutes: 180,
-                mcqCorrect: 4, mcqWrong: -1, natCorrect: 4, natWrong: 0,
-                subjects: [
-                  { name: 'Physics', questionCount: 30 },
-                  { name: 'Chemistry', questionCount: 30 },
-                  { name: 'Mathematics', questionCount: 30 },
-                ],
-              })}
-              className="mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
-            >
-              <Plus size={13} /> Use Template
-            </button>
-          </div>
-
-          {/* JEE Advanced */}
-          <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-violet-400/30 transition-all group overflow-hidden flex flex-col">
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="text-base font-extrabold text-text-main tracking-tight">JEE Advanced</h3>
-                <p className="text-[11px] text-text-muted">IIT Entrance</p>
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent-primary/10 text-accent-primary border border-accent-primary/20">360 Marks</span>
-            </div>
-            <div className="space-y-1 mb-4">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-text-muted">Duration</span>
-                <span className="font-semibold text-text-main">180 min</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-text-muted">Subjects</span>
-                <span className="font-semibold text-text-main">Physics · Chemistry · Math</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-text-muted">Marking</span>
-                <span className="font-semibold text-text-main">+3 / −1</span>
-              </div>
-            </div>
-            <button
-              onClick={() => openDrawer('exam', {
-                title: 'JEE Advanced Mock Test',
-                description: 'Joint Entrance Examination Advanced for IIT admissions.',
-                durationMinutes: 180,
-                mcqCorrect: 3, mcqWrong: -1, natCorrect: 3, natWrong: 0,
-                subjects: [
-                  { name: 'Physics', questionCount: 54 },
-                  { name: 'Chemistry', questionCount: 54 },
-                  { name: 'Mathematics', questionCount: 54 },
-                ],
-              })}
-              className="mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
-            >
-              <Plus size={13} /> Use Template
-            </button>
-          </div>
-
-          {/* Custom */}
+          {/* Custom Setup */}
           <div className="relative bg-surface border border-dashed border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/40 transition-all group overflow-hidden flex flex-col justify-between">
-            <div className="text-center py-2">
-              <div className="w-10 h-10 rounded-xl bg-accent-primary/10 text-accent-primary flex items-center justify-center mx-auto">
-                <FileText size={20} />
-              </div>
-              <h3 className="text-sm font-bold text-text-main">Custom Template</h3>
-              <p className="text-[11px] text-text-muted mt-1">Build your own exam structure from scratch</p>
+            
+            <div className="flex flex-col gap-2 mt-4">
+              <button
+                onClick={() => openCreateTemplate()}
+                className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
+              >
+                <Plus size={13} /> Create Template
+              </button>
+              <button
+                onClick={() => openDrawer('exam', {})}
+                className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-surface-hover text-text-main text-[12px] font-bold hover:bg-border transition-all border border-border cursor-pointer"
+              >
+                <Plus size={13} /> Create Exam
+              </button>
             </div>
-            <button
-              onClick={() => openDrawer('exam', {})}
-              className="flex items-center justify-center gap-1.5 w-full py-2 mt-4 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
-            >
-              <Plus size={13} /> Create Custom
-            </button>
           </div>
         </div>
       </div>
@@ -421,6 +441,103 @@ export default function ExamsDashboard() {
           </div>
         )}
       </div>
+
+      {/* ── Template Drawer ────────────────────────────────── */}
+      {showTemplateModal && mounted && createPortal(
+        <div className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-sm" onClick={() => setShowTemplateModal(false)}>
+          <div className="bg-bg border-l border-border h-[100dvh] w-full max-w-md p-6 space-y-4 flex flex-col justify-start animate-in slide-in-from-right duration-250" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-2 border-b border-border/50">
+              <h2 className="text-lg font-bold text-text-main">Create Exam Template</h2>
+              <button onClick={() => setShowTemplateModal(false)} className="text-text-muted hover:text-text-main transition-colors bg-transparent border-none cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+
+            {templateError && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm">{templateError}</div>}
+
+            <div className="flex-1 overflow-y-auto space-y-4 pt-3 pb-24 pr-1">
+              <div className="relative">
+                <input type="text" placeholder="JEE Main Mock Test" value={templateForm.title}
+                  onChange={e => setTemplateForm({ ...templateForm, title: e.target.value })}
+                  className="peer w-full bg-surface-hover border border-slate-300 dark:border-zinc-700 rounded-xl px-4 h-12 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all placeholder:text-transparent"
+                />
+                <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:bg-transparent peer-placeholder-shown:font-normal peer-focus:-top-2.5 peer-focus:text-[10px] peer-focus:bg-bg peer-focus:font-bold peer-focus:text-accent-primary pointer-events-none transition-all duration-200">Template Title *</label>
+              </div>
+
+              <div className="relative">
+                <textarea placeholder="Short description of the template" value={templateForm.description}
+                  onChange={e => setTemplateForm({ ...templateForm, description: e.target.value })}
+                  rows={3}
+                  className="peer w-full bg-surface-hover border border-slate-300 dark:border-zinc-700 rounded-xl p-4 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all placeholder:text-transparent resize-none"
+                />
+                <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:bg-transparent peer-placeholder-shown:font-normal peer-focus:-top-2.5 peer-focus:text-[10px] peer-focus:bg-bg peer-focus:font-bold peer-focus:text-accent-primary pointer-events-none transition-all duration-200">Description</label>
+              </div>
+
+              <div className="relative">
+                <input type="number" placeholder="180" value={templateForm.durationMinutes}
+                  onChange={e => setTemplateForm({ ...templateForm, durationMinutes: e.target.value === '' ? '' : parseInt(e.target.value) || '' })}
+                  className="peer w-full bg-surface-hover border border-slate-300 dark:border-zinc-700 rounded-xl px-4 h-12 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all placeholder:text-transparent"
+                />
+                <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:bg-transparent peer-placeholder-shown:font-normal peer-focus:-top-2.5 peer-focus:text-[10px] peer-focus:bg-bg peer-focus:font-bold peer-focus:text-accent-primary pointer-events-none transition-all duration-200">Duration (minutes) *</label>
+              </div>
+
+              <h4 className="text-sm font-semibold text-text-main mt-4 border-b border-border/50 pb-1">Default Marking Scheme</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="relative">
+                  <input type="number" step="any" value={templateForm.mcqCorrect} onChange={(e) => setTemplateForm({ ...templateForm, mcqCorrect: e.target.value === '' ? '' : Number(e.target.value) })} className="peer w-full bg-surface-hover border border-border rounded-xl px-4 h-10 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all placeholder:text-transparent" placeholder="4" />
+                  <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 pointer-events-none peer-focus:text-accent-primary">MCQ Correct (+)</label>
+                </div>
+                <div className="relative">
+                  <input type="number" step="any" value={templateForm.mcqWrong} onChange={(e) => setTemplateForm({ ...templateForm, mcqWrong: e.target.value === '' ? '' : Number(e.target.value) })} className="peer w-full bg-surface-hover border border-border rounded-xl px-4 h-10 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all placeholder:text-transparent" placeholder="-1" />
+                  <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 pointer-events-none peer-focus:text-accent-primary">MCQ Wrong (-)</label>
+                </div>
+                <div className="relative">
+                  <input type="number" step="any" value={templateForm.natCorrect} onChange={(e) => setTemplateForm({ ...templateForm, natCorrect: e.target.value === '' ? '' : Number(e.target.value) })} className="peer w-full bg-surface-hover border border-border rounded-xl px-4 h-10 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all placeholder:text-transparent" placeholder="4" />
+                  <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 pointer-events-none peer-focus:text-accent-primary">NAT Correct (+)</label>
+                </div>
+                <div className="relative">
+                  <input type="number" step="any" value={templateForm.natWrong} onChange={(e) => setTemplateForm({ ...templateForm, natWrong: e.target.value === '' ? '' : Number(e.target.value) })} className="peer w-full bg-surface-hover border border-border rounded-xl px-4 h-10 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all placeholder:text-transparent" placeholder="0" />
+                  <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 pointer-events-none peer-focus:text-accent-primary">NAT Wrong (-)</label>
+                </div>
+              </div>
+
+              <h4 className="text-sm font-semibold text-text-main mt-4 border-b border-border/50 pb-1">Subjects (Optional)</h4>
+              <div className="space-y-3">
+                {templateSubjects.map((subject, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input type="text" placeholder="Physics" value={subject.name} onChange={(e) => updateTemplateSubject(index, 'name', e.target.value)} className="peer w-full bg-surface-hover border border-border rounded-xl px-3 h-10 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all placeholder:text-transparent" />
+                      <label className="absolute -top-2.5 left-2 px-1 bg-bg text-[9px] font-bold text-text-muted uppercase tracking-wider z-10 peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-[11px] peer-placeholder-shown:bg-transparent peer-placeholder-shown:font-normal peer-focus:-top-2.5 peer-focus:text-[9px] peer-focus:bg-bg peer-focus:font-bold peer-focus:text-accent-primary pointer-events-none transition-all duration-200">Subject Name</label>
+                    </div>
+                    <div className="relative w-24">
+                      <input type="number" placeholder="45" value={subject.questionCount} onChange={(e) => updateTemplateSubject(index, 'questionCount', e.target.value === '' ? '' : Number(e.target.value))} className="peer w-full bg-surface-hover border border-border rounded-xl px-3 h-10 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all placeholder:text-transparent" />
+                      <label className="absolute -top-2.5 left-2 px-1 bg-bg text-[9px] font-bold text-text-muted uppercase tracking-wider z-10 peer-placeholder-shown:top-2.5 peer-placeholder-shown:text-[11px] peer-placeholder-shown:bg-transparent peer-placeholder-shown:font-normal peer-focus:-top-2.5 peer-focus:text-[9px] peer-focus:bg-bg peer-focus:font-bold peer-focus:text-accent-primary pointer-events-none transition-all duration-200">Questions</label>
+                    </div>
+                    {templateSubjects.length > 1 && (
+                      <button type="button" onClick={() => removeTemplateSubject(index)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors bg-transparent border-none cursor-pointer">
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button type="button" onClick={addTemplateSubject} className="text-[12px] font-bold text-accent-primary hover:text-accent-secondary flex items-center gap-1 transition-colors bg-transparent border-none cursor-pointer">
+                  <Plus size={14} /> Add Subject
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border/50">
+              <button
+                onClick={handleSaveTemplate}
+                disabled={savingTemplate}
+                className="w-full h-12 bg-accent-primary text-white rounded-xl font-bold hover:bg-accent-secondary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {savingTemplate ? 'Saving...' : 'Save Template'}
+              </button>
+            </div>
+          </div>
+        </div>
+      , document.body)}
     </div>
   );
 }

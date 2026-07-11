@@ -16,6 +16,7 @@ const statusColors: Record<string, string> = {
 export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   const router = useRouter();
   const [exams, setExams] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [role, setRole] = useState<string>('school_admin');
@@ -73,7 +74,13 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
 
     const { data } = await examQuery;
 
+    const { data: templatesData } = await supabase
+      .from('exam_templates')
+      .select('*, exam_template_subjects(*)')
+      .order('created_at', { ascending: false });
+
     setExams(data || []);
+    setTemplates(templatesData || []);
     setLoading(false);
   };
 
@@ -114,6 +121,52 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
           )}
         </div>
       </div>
+
+      {/* Global Template Presets */}
+      {role !== 'teacher' && templates.length > 0 && (
+        <div className="mb-8 mt-2">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[11px] font-bold text-[#555555] uppercase tracking-wider">Exam Templates</span>
+            <div className="flex-1 h-px bg-[#e0f2f2]" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {templates.map(template => (
+              <div key={template.id} className="relative bg-white border border-[#e0f2f2] rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-[#008080]/30 transition-all group overflow-hidden flex flex-col">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="text-base font-extrabold text-[#1a2e2e] tracking-tight">{template.title}</h3>
+                    <p className="text-[11px] text-[#555555]">{template.description || 'Custom Template'}</p>
+                  </div>
+                </div>
+                <div className="space-y-1 mb-4">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-[#555555]">Duration</span>
+                    <span className="font-semibold text-[#1a2e2e]">{template.duration_minutes} min</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-[#555555]">Subjects</span>
+                    <span className="font-semibold text-[#1a2e2e]">
+                      {template.exam_template_subjects?.map((s: any) => s.subject_name).join(' · ') || 'None'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-[#555555]">Marking</span>
+                    <span className="font-semibold text-[#1a2e2e]">
+                      +{template.marking_scheme?.mcq_correct || 0} / {template.marking_scheme?.mcq_wrong || 0}
+                    </span>
+                  </div>
+                </div>
+                <Link
+                  href={`/exams/new?templateId=${template.id}`}
+                  className="mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-[#008080]/10 text-[#008080] text-[12px] font-bold hover:bg-[#008080] hover:text-white transition-all border border-[#008080]/20 cursor-pointer"
+                >
+                  <Plus size={13} /> Use Template
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white border border-[#e0f2f2] rounded-2xl overflow-hidden shadow-sm">
         {loading ? (

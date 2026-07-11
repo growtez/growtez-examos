@@ -58,6 +58,38 @@ export default function NewExamPage() {
 
       const { data } = await supabase.from('teachers').select('*').eq('school_id', profile.school_id).order('department', { ascending: true }).order('full_name', { ascending: true });
       setTeachers(data || []);
+
+      // Check for templateId in URL
+      const searchParams = new URLSearchParams(window.location.search);
+      const templateId = searchParams.get('templateId');
+      if (templateId) {
+        const { data: template } = await supabase
+          .from('exam_templates')
+          .select('*, exam_template_subjects(*)')
+          .eq('id', templateId)
+          .single();
+
+        if (template) {
+          setTitle(template.title || '');
+          setDescription(template.description || '');
+          setDurationMinutes(template.duration_minutes || 180);
+          if (template.marking_scheme) {
+            setMcqCorrect(template.marking_scheme.mcq_correct ?? 4);
+            setMcqWrong(template.marking_scheme.mcq_wrong ?? -1);
+            setNatCorrect(template.marking_scheme.nat_correct ?? 4);
+            setNatWrong(template.marking_scheme.nat_wrong ?? 0);
+          }
+          if (template.exam_template_subjects && template.exam_template_subjects.length > 0) {
+            // Sort by sort_order
+            const sortedSubjects = [...template.exam_template_subjects].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+            setSubjects(sortedSubjects.map(s => ({
+              name: s.subject_name,
+              questionCount: s.question_count,
+              teacherIds: []
+            })));
+          }
+        }
+      }
     };
     init();
   }, []);
