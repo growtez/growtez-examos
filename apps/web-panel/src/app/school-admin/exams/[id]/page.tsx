@@ -78,6 +78,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [assignedStudents, setAssignedStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
+  const [savingExam, setSavingExam] = useState(false);
+  
+  // Exam Form States
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState(180);
+  const [mcqCorrect, setMcqCorrect] = useState<number | string>(4);
+  const [mcqWrong, setMcqWrong] = useState<number | string>(-1);
+  const [natCorrect, setNatCorrect] = useState<number | string>(4);
+  const [natWrong, setNatWrong] = useState<number | string>(0);
   const [role, setRole] = useState<string>('school_admin');
   const [userId, setUserId] = useState<string>('');
   const [editDurationMode, setEditDurationMode] = useState(false);
@@ -122,18 +132,31 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     }
   }, [exam]);
 
-  const handleSaveInstructions = async () => {
-    const filtered = instructionsList.filter(inst => inst.trim() !== '');
-    const { error } = await supabase
-      .from('exams')
-      .update({ exam_instructions: filtered })
-      .eq('id', params.id);
-
-    if (error) {
-      alert('Failed to save instructions: ' + error.message);
-    } else {
-      setExam({ ...exam, exam_instructions: filtered });
-      setEditInstructionsMode(false);
+  const handleSaveExamDetails = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setSavingExam(true);
+    try {
+      const filteredInstructions = instructionsList.filter(inst => inst.trim() !== '');
+      const { error } = await supabase.from('exams').update({
+        title,
+        description,
+        duration_minutes: durationMinutes,
+        marking_scheme: { 
+          mcq_correct: parseFloat(String(mcqCorrect)) || 0, 
+          mcq_wrong: parseFloat(String(mcqWrong)) || 0, 
+          nat_correct: parseFloat(String(natCorrect)) || 0, 
+          nat_wrong: parseFloat(String(natWrong)) || 0 
+        },
+        exam_instructions: filteredInstructions,
+      }).eq('id', params.id);
+      
+      if (error) throw error;
+      setExam({ ...exam, title, description, duration_minutes: durationMinutes, exam_instructions: filteredInstructions });
+      alert('Exam details saved successfully!');
+    } catch (err: any) {
+      alert('Failed to save details: ' + err.message);
+    } finally {
+      setSavingExam(false);
     }
   };
 
@@ -276,6 +299,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     
     if (examData.start_time) setStartTime(formatForInput(examData.start_time));
     if (examData.end_time) setEndTime(formatForInput(examData.end_time));
+    
+    setTitle(examData.title || '');
+    setDescription(examData.description || '');
+    setDurationMinutes(examData.duration_minutes || 180);
+    if (examData.marking_scheme) {
+      setMcqCorrect(examData.marking_scheme.mcq_correct ?? 4);
+      setMcqWrong(examData.marking_scheme.mcq_wrong ?? -1);
+      setNatCorrect(examData.marking_scheme.nat_correct ?? 4);
+      setNatWrong(examData.marking_scheme.nat_wrong ?? 0);
+    }
 
     // Fetch subjects with teachers
     const { data: subjectsData } = await supabase
@@ -755,22 +788,46 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const displayStatus = isExamOver ? 'completed' : exam?.status || 'draft';
 
   return (
-    <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500 mx-auto">
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
+    <div className="max-w-[1400px] animate-in fade-in slide-in-from-bottom-4 duration-500 mx-auto px-4 lg:px-8">
+      
+      {/* Title & Actions */}
+      <div className="mb-6 flex flex-col xl:flex-row xl:justify-between xl:items-start gap-4">
+        <div className="flex-1 w-full xl:w-auto pr-0 xl:pr-8">
+          <div className="flex flex-wrap items-center gap-3 mb-2">
             <h2 className="text-2xl font-bold text-[#1a2e2e]">{exam.title}</h2>
-            {exam.description && <p className="text-[#555555] mt-1 text-sm font-medium">{exam.description}</p>}
+            <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusColors[displayStatus] || statusColors.draft}`}>
+              {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
+            </span>
           </div>
-          <div className="flex items-center gap-3">
+            {/* Full-width Readiness Summary */}
+            <div className="w-full mt-6 mb-2 pr-4 lg:pr-8">
+              <div className="flex justify-between items-end mb-2">
+                <div>
+                  <h3 className="text-sm font-bold text-[#1a2e2e]">Exam Readiness</h3>
+                  <p className="text-[#555555] text-xs font-medium mt-0.5">Questions Added</p>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-lg font-bold ${allQuestionsReady ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    {totalQuestionsAdded} <span className="text-[#8ab8b8] text-sm">/ {totalQuestionsNeeded}</span>
+                  </span>
+                </div>
+              </div>
+              <div className="w-full bg-[#e0f2f2] rounded-full h-2.5">
+                <div className={`h-2.5 rounded-full transition-all duration-500 ${allQuestionsReady ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${Math.min(100, totalQuestionsNeeded > 0 ? (totalQuestionsAdded / totalQuestionsNeeded) * 100 : 0)}%` }}></div>
+              </div>
+            </div>
+        </div>
+        
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2 xl:shrink-0 mt-2 xl:mt-0">
             {isExamOver && (
               <button 
                 onClick={downloadQuestionPaper}
                 disabled={generatingPDF}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#008080] to-[#005555] border border-[#004d4d] rounded-xl text-sm font-semibold text-white hover:from-[#006666] hover:to-[#004d4d] transition-all shadow-md hover:shadow-lg disabled:opacity-50 whitespace-nowrap"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-[#008080] to-[#005555] border border-[#004d4d] rounded-lg text-xs font-semibold text-white hover:from-[#006666] hover:to-[#004d4d] transition-all shadow-sm hover:shadow-md disabled:opacity-50"
               >
-                <Download size={16} />
-                {generatingPDF ? 'Generating PDF...' : 'Download Paper'}
+                <Download size={14} />
+                {generatingPDF ? 'Generating...' : 'Download Paper'}
               </button>
             )}
             {role !== 'teacher' && (
@@ -779,123 +836,80 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   <button 
                     onClick={handleUnpublish}
                     disabled={publishing}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-[#1a2e2e] hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-all shadow-sm disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#e0f2f2] rounded-lg text-xs font-semibold text-[#1a2e2e] hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-all shadow-sm disabled:opacity-50"
                   >
-                    <Settings2 size={16} />
+                    <Settings2 size={14} />
                     Unpublish
                   </button>
                 )}
                 <button 
                   onClick={handleDuplicate}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-[#1a2e2e] hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#e0f2f2] rounded-lg text-xs font-semibold text-[#1a2e2e] hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm"
                 >
-                  <Copy size={16} />
+                  <Copy size={14} />
                   Duplicate
                 </button>
                 <button 
                   onClick={handleTrash}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-red-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-all shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#e0f2f2] rounded-lg text-xs font-semibold text-red-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-all shadow-sm"
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={14} />
                   Trash
                 </button>
               </>
             )}
-            <span className={`inline-flex px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${statusColors[displayStatus] || statusColors.draft}`}>
-              {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
-            </span>
-          </div>
         </div>
       </div>
 
-      {/* Exam Info */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-[#008080]/10 rounded-xl flex items-center justify-center text-[#008080]">
-            <Clock size={24} />
-          </div>
-          <div className="flex-1">
-            <p className="text-[#555555] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-              Duration
-              {!isExamOver && exam?.status === 'draft' && !editDurationMode && role !== 'teacher' && (
-                <button onClick={() => { setInlineEditDuration(exam.duration_minutes || 180); setEditDurationMode(true); }} className="text-[#8ab8b8] hover:text-[#008080] transition-colors p-0.5 rounded hover:bg-[#e0f2f2]">
-                  <Edit2 size={12} />
-                </button>
-              )}
-            </p>
-            {editDurationMode ? (
-              <div className="flex items-center gap-2 mt-1">
-                <input type="number" value={inlineEditDuration} onChange={(e) => setInlineEditDuration(Math.max(0, parseInt(e.target.value) || 0))} className="w-20 px-2 py-1 text-sm border border-[#008080] rounded outline-none font-bold text-[#1a2e2e]" min="0" />
-                <button onClick={handleSaveDuration} className="text-white bg-[#008080] hover:bg-[#006666] p-1 rounded transition-colors"><Check size={14}/></button>
-              </div>
-            ) : (
-              <p className="text-xl font-bold text-[#1a2e2e] mt-0.5">{exam?.duration_minutes || 0} min</p>
-            )}
-          </div>
-        </div>
-        <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
-            <BookOpen size={24} />
-          </div>
-          <div>
-            <p className="text-[#555555] text-xs font-bold uppercase tracking-wider">Questions</p>
-            <p className="text-xl font-bold text-[#1a2e2e] mt-0.5">{totalQuestionsAdded} / {totalQuestionsNeeded}</p>
-          </div>
-        </div>
-        <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500">
-            <Users size={24} />
-          </div>
-          <div>
-            <p className="text-[#555555] text-xs font-bold uppercase tracking-wider">Students Assigned</p>
-            <p className="text-xl font-bold text-[#1a2e2e] mt-0.5">{assignedStudents.length}</p>
-          </div>
-        </div>
-      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8 mb-10">
+        
+        {/* Left Column (Main Content) */}
+        <div className="xl:col-span-2 space-y-6">
+          
 
       {/* Subjects */}
       <div className="bg-white border border-[#e0f2f2] rounded-2xl p-6 mb-6 shadow-sm">
-        <div className="flex justify-between items-center mb-4">
+        <div className="mb-4 border-b border-[#f0f7f7] pb-1.5">
           <h3 className="text-lg font-bold text-[#1a2e2e]">Subjects</h3>
-          {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
-            <button 
-              onClick={() => setShowAddSubjectModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#b2d8d8] text-[#008080] rounded-lg text-sm font-semibold hover:bg-[#e0f2f2] transition-colors shadow-sm"
-            >
-              <Plus size={16} />
-              Add Subject
-            </button>
-          )}
         </div>
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {subjects.map((s) => {
             const added = questionCounts[s.id] || 0;
             const needed = s.question_count;
             const complete = added >= needed;
             const isAssignedTeacher = role !== 'teacher' || (role === 'teacher' && s.exam_subject_teachers?.some((est: any) => est.teacher_id === userId));
             return (
-              <Link key={s.id} href={`/exams/${params.id}/questions?subject=${s.id}`} className={`flex flex-col sm:flex-row sm:items-center justify-between bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl p-4 gap-4 transition-colors ${isAssignedTeacher ? 'hover:bg-[#e0f2f2]/50 group cursor-pointer' : 'opacity-75 pointer-events-none'}`}>
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-3">
+              <Link key={s.id} href={`/exams/${params.id}/questions?subject=${s.id}`} className={`flex flex-col justify-between bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl p-4 gap-4 transition-colors ${isAssignedTeacher ? 'hover:bg-[#e0f2f2]/50 group cursor-pointer' : 'opacity-75 pointer-events-none'}`}>
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                     <span className="text-[#1a2e2e] font-bold">{s.subject_name}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                        {added}/{needed} questions
-                      </span>
-                      {!isExamOver && exam?.status === 'draft' && editSubjectId !== s.id && role !== 'teacher' && (
-                        <button onClick={(e) => { e.preventDefault(); setInlineEditSubjectCount(needed); setEditSubjectId(s.id); }} className="text-[#8ab8b8] hover:text-[#008080] transition-colors p-1 rounded-md hover:bg-[#e0f2f2]">
-                          <Edit2 size={14} />
-                        </button>
-                      )}
-                      {editSubjectId === s.id && (
-                        <div className="flex items-center gap-1" onClick={e => e.preventDefault()}>
-                          <input type="number" value={inlineEditSubjectCount} onChange={(e) => setInlineEditSubjectCount(Math.max(0, parseInt(e.target.value) || 0))} className="w-16 px-2 py-1 text-xs border border-[#008080] rounded outline-none font-bold text-[#1a2e2e]" min="0" />
-                          <button onClick={() => handleSaveSubjectCount(s.id)} className="text-white bg-[#008080] hover:bg-[#006666] p-1 rounded transition-colors"><Check size={14}/></button>
-                        </div>
-                      )}
-                    </div>
+                    {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
+                      <button 
+                        onClick={(e) => handleDeleteSubject(e, s.id, s.subject_name)} 
+                        className="text-red-400 hover:text-red-600 transition-colors p-1.5 border border-transparent hover:border-red-200 rounded-lg hover:bg-red-50 bg-white shadow-sm pointer-events-auto"
+                        title="Delete Subject"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {added}/{needed} questions
+                    </span>
+                    {!isExamOver && exam?.status === 'draft' && editSubjectId !== s.id && role !== 'teacher' && (
+                      <button onClick={(e) => { e.preventDefault(); setInlineEditSubjectCount(needed); setEditSubjectId(s.id); }} className="text-[#8ab8b8] hover:text-[#008080] transition-colors p-1 rounded-md hover:bg-[#e0f2f2] pointer-events-auto">
+                        <Edit2 size={14} />
+                      </button>
+                    )}
+                    {editSubjectId === s.id && (
+                      <div className="flex items-center gap-1 pointer-events-auto" onClick={e => e.preventDefault()}>
+                        <input type="number" value={inlineEditSubjectCount} onChange={(e) => setInlineEditSubjectCount(Math.max(0, parseInt(e.target.value) || 0))} className="w-16 px-2 py-1 text-xs border border-[#008080] rounded outline-none font-bold text-[#1a2e2e]" min="0" />
+                        <button onClick={() => handleSaveSubjectCount(s.id)} className="text-white bg-[#008080] hover:bg-[#006666] p-1 rounded transition-colors"><Check size={14}/></button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
                     {s.exam_subject_teachers?.map((est: any) => (
                       <span key={est.id} className="text-[10px] font-bold uppercase tracking-wider text-[#008080] bg-white border border-[#b2d8d8] px-2 py-0.5 rounded-md">
                         {est.teachers?.full_name || 'Unknown'}
@@ -903,120 +917,33 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     ))}
                   </div>
                 </div>
-                <div className="flex items-center gap-3 mt-4 sm:mt-0">
+                <div className="flex items-center mt-2">
                   {isAssignedTeacher && (
-                    <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#b2d8d8] text-[#008080] text-sm font-semibold rounded-xl group-hover:bg-[#e0f2f2] transition-colors shadow-sm whitespace-nowrap">
-                      <Plus size={16} />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#b2d8d8] text-[#008080] text-[11px] font-bold rounded-lg group-hover:bg-[#e0f2f2] transition-colors shadow-sm whitespace-nowrap w-full justify-center">
+                      <Plus size={14} />
                       Manage Questions
                     </span>
-                  )}
-                  {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
-                    <button 
-                      onClick={(e) => handleDeleteSubject(e, s.id, s.subject_name)} 
-                      className="text-red-400 hover:text-red-600 transition-colors p-2 border border-transparent hover:border-red-200 rounded-xl hover:bg-red-50 bg-white shadow-sm pointer-events-auto"
-                      title="Delete Subject"
-                    >
-                      <Trash2 size={18} />
-                    </button>
                   )}
                 </div>
               </Link>
             );
           })}
-        </div>
-      </div>
-
-      {/* Exam Instructions */}
-      <div className="bg-white border border-[#e0f2f2] rounded-2xl p-6 mb-6 shadow-sm">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-[#1a2e2e]">Exam Instructions</h3>
-          {!isExamOver && exam?.status === 'draft' && (
-            editInstructionsMode ? (
-              <div className="flex gap-2">
-                <button
-                  onClick={handleSaveInstructions}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#008080] text-white rounded-lg text-xs font-bold hover:bg-[#006666] transition-colors shadow-sm"
-                >
-                  <Check size={14} />
-                  Save Instructions
-                </button>
-                <button
-                  onClick={() => {
-                    setInstructionsList(exam.exam_instructions || []);
-                    setEditInstructionsMode(false);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#e0f2f2] text-[#555555] rounded-lg text-xs font-bold hover:bg-[#f5f9f9] transition-colors shadow-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => {
-                  setInstructionsList(exam.exam_instructions && exam.exam_instructions.length > 0 ? exam.exam_instructions : ['']);
-                  setEditInstructionsMode(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#b2d8d8] text-[#008080] rounded-lg text-sm font-semibold hover:bg-[#e0f2f2] transition-colors shadow-sm"
-              >
-                <Edit2 size={14} />
-                Edit Instructions
-              </button>
-            )
+          
+          {/* Add Subject Card */}
+          {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
+            <button 
+              type="button" 
+              onClick={() => setShowAddSubjectModal(true)}
+              className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#b2d8d8] rounded-xl p-6 text-[#008080] hover:bg-[#f0f7f7] hover:border-[#008080] transition-colors min-h-[140px] h-full"
+            >
+              <Plus size={24} />
+              <span className="text-sm font-bold">Add Subject</span>
+            </button>
           )}
         </div>
-
-        {editInstructionsMode ? (
-          <div className="space-y-4">
-            <div className="space-y-3">
-              {instructionsList.map((inst, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <span className="text-[#8ab8b8] font-bold text-sm w-6 text-right">{index + 1}.</span>
-                  <input
-                    type="text"
-                    value={inst}
-                    onChange={(e) => updateInstructionItem(index, e.target.value)}
-                    placeholder="e.g. Do not close or minimize the browser window during the exam."
-                    className="flex-1 px-4 py-2.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium"
-                  />
-                  {instructionsList.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeInstructionItem(index)}
-                      className="text-red-500 hover:text-red-600 text-xs font-semibold px-2 py-1.5"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={addInstructionItem}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#b2d8d8] text-[#008080] rounded-lg text-xs font-bold hover:bg-[#e0f2f2] transition-colors shadow-sm"
-            >
-              <Plus size={14} />
-              Add Bullet
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {exam?.exam_instructions && exam.exam_instructions.length > 0 ? (
-              <ol className="list-decimal pl-5 space-y-2">
-                {exam.exam_instructions.map((inst: string, index: number) => (
-                  <li key={index} className="text-[#555555] text-sm font-medium leading-relaxed">
-                    {inst}
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="text-[#8ab8b8] text-sm italic font-medium">No custom instructions configured for this exam yet. It will use the general school instructions.</p>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Assigned Students */}
+{/* Assigned Students */}
       <div className="bg-white border border-[#e0f2f2] rounded-2xl p-6 mb-6 shadow-sm">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
@@ -1160,7 +1087,130 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      {/* Publish Button */}
+      
+
+      {/* Editable Exam Details Form */}
+      {role !== 'teacher' && !isExamOver && exam?.status === 'draft' ? (
+        <form onSubmit={handleSaveExamDetails} className="space-y-4 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Exam Details */}
+            <div className="bg-white border border-[#e0f2f2] rounded-xl p-3.5 sm:p-4 shadow-sm order-1 h-full">
+                <h3 className="text-sm font-bold text-[#1a2e2e] mb-3 border-b border-[#f0f7f7] pb-1.5">Exam Details</h3>
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#555555] mb-1">Title *</label>
+                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required
+                      className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#555555] mb-1">Description</label>
+                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
+                      className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all resize-none text-xs font-medium" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#555555] mb-1">Duration (minutes) *</label>
+                    <input type="number" value={durationMinutes} onChange={(e) => setDurationMinutes(parseInt(e.target.value) || 0)} min={1} required
+                      className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                  </div>
+                </div>
+            </div>
+
+            {/* Marking Scheme */}
+            <div className="bg-white border border-[#e0f2f2] rounded-xl p-3.5 sm:p-4 shadow-sm order-2 h-full">
+                <h3 className="text-sm font-bold text-[#1a2e2e] mb-3 border-b border-[#f0f7f7] pb-1.5">Marking Scheme</h3>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#555555] mb-1">MCQ Correct</label>
+                    <input type="number" step="any" value={mcqCorrect} onChange={(e) => setMcqCorrect(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#555555] mb-1">MCQ Wrong (-)</label>
+                    <input type="number" step="any" value={mcqWrong} onChange={(e) => setMcqWrong(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#555555] mb-1">NAT Correct</label>
+                    <input type="number" step="any" value={natCorrect} onChange={(e) => setNatCorrect(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#555555] mb-1">NAT Wrong (-)</label>
+                    <input type="number" step="any" value={natWrong} onChange={(e) => setNatWrong(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                  </div>
+                </div>
+            </div>
+
+            {/* Exam Instructions */}
+            <div className="bg-white border border-[#e0f2f2] rounded-xl p-3.5 sm:p-4 shadow-sm order-3 lg:col-span-2">
+                <div className="flex items-center justify-between mb-3 border-b border-[#f0f7f7] pb-1.5">
+                  <h3 className="text-sm font-bold text-[#1a2e2e]">Exam Instructions</h3>
+                  <button type="button" onClick={addInstructionItem}
+                    className="inline-flex items-center gap-1 text-[#008080] text-[11px] font-bold hover:underline">
+                    <Plus size={12} /> Add
+                  </button>
+                </div>
+                <div className="space-y-1.5">
+                  {instructionsList.map((inst, index) => (
+                    <div key={index} className="flex items-center gap-2 w-full">
+                      <span className="text-[#8ab8b8] font-bold text-[11px] w-4 text-right flex-shrink-0">{index + 1}.</span>
+                      <input type="text" value={inst} onChange={(e) => updateInstructionItem(index, e.target.value)}
+                        placeholder="e.g. Do not close browser..."
+                        className="flex-1 min-w-0 px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                      {instructionsList.length > 1 && (
+                        <button type="button" onClick={() => removeInstructionItem(index)}
+                          className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors flex-shrink-0">
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end pt-2">
+            <button type="submit" disabled={savingExam}
+              className="px-6 py-2.5 bg-[#008080] text-white font-bold rounded-lg hover:bg-[#006666] transition-all disabled:opacity-50 shadow-md shadow-[#008080]/20 text-xs">
+              {savingExam ? 'Saving...' : 'Save Details'}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-5 flex items-center gap-4">
+            <div className="w-12 h-12 bg-[#008080]/10 rounded-xl flex items-center justify-center text-[#008080]">
+              <Clock size={24} />
+            </div>
+            <div className="flex-1">
+              <p className="text-[#555555] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                Duration
+              </p>
+              <p className="text-xl font-bold text-[#1a2e2e] mt-0.5">{exam?.duration_minutes || 0} min</p>
+            </div>
+          </div>
+          <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-5 flex items-center gap-4">
+            <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
+              <BookOpen size={24} />
+            </div>
+            <div>
+              <p className="text-[#555555] text-xs font-bold uppercase tracking-wider">Questions</p>
+              <p className="text-xl font-bold text-[#1a2e2e] mt-0.5">{totalQuestionsAdded} / {totalQuestionsNeeded}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+        </div>
+
+        {/* Right Column (Sidebar) */}
+        <div className="xl:col-span-1">
+          <div className="sticky top-6 flex flex-col gap-5">
+
+
+            {/* Publish Button */}
       {exam.status === 'draft' && role !== 'teacher' && (
         <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-6 shadow-sm">
           <h3 className="text-lg font-bold text-[#1a2e2e] mb-2">Publish Exam</h3>
@@ -1206,6 +1256,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
       )}
+
+      
+
+          </div>
+        </div>
+      </div>
 
       {/* Add Student Modal */}
       {showAddStudentModal && (

@@ -52,6 +52,33 @@ export default function SchoolAdminLayout({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [role, setRole] = useState<string>('school_admin');
   const [schoolName, setSchoolName] = useState<string>('');
+  const [breadcrumbNames, setBreadcrumbNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchBreadcrumbName = async () => {
+      const segments = pathname?.split('/').filter(Boolean) || [];
+      const lastSegment = segments[segments.length - 1];
+      
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lastSegment);
+      
+      if (isUUID && !breadcrumbNames[lastSegment]) {
+         const type = segments[segments.length - 2];
+         const supabase = createClient();
+         
+         if (type === 'exams') {
+            const { data } = await supabase.from('exams').select('title').eq('id', lastSegment).single();
+            if (data?.title) setBreadcrumbNames(prev => ({...prev, [lastSegment]: data.title}));
+         } else if (type === 'teachers') {
+            const { data } = await supabase.from('teachers').select('full_name').eq('id', lastSegment).single();
+            if (data?.full_name) setBreadcrumbNames(prev => ({...prev, [lastSegment]: data.full_name}));
+         } else if (type === 'students') {
+            const { data } = await supabase.from('students').select('full_name').eq('id', lastSegment).single();
+            if (data?.full_name) setBreadcrumbNames(prev => ({...prev, [lastSegment]: data.full_name}));
+         }
+      }
+    };
+    fetchBreadcrumbName();
+  }, [pathname]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -125,7 +152,7 @@ export default function SchoolAdminLayout({
       if (lastSegment === 'new') {
          crumbs.push({ label: 'New', href: null });
       } else {
-         crumbs.push({ label: lastSegment, href: null });
+         crumbs.push({ label: breadcrumbNames[lastSegment] || lastSegment, href: null });
       }
     }
 
