@@ -40,3 +40,5 @@ yarn-error.log*
 
 # Vercel
 .vercel
+packpackage-lock.json
+apps/web-panel/package-lock.json
