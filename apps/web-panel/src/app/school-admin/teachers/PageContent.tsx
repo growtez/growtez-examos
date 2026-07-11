@@ -145,7 +145,7 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[#1a2e2e]">Teachers</h2>
           <p className="text-[#555555] mt-1 text-sm font-medium">Manage your school&apos;s teaching staff</p>

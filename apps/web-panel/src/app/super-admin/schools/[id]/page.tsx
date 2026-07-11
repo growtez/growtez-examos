@@ -22,7 +22,7 @@ export default async function SchoolDetailPage({ params }: { params: { id: strin
     .single();
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-4">
       
       {/* Header */}
       <div className="flex flex-col gap-4 mb-2">

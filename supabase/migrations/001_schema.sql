@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS public.exams (
     marking_scheme JSONB DEFAULT '{"mcq_correct": 4, "mcq_wrong": -1, "nat_correct": 4, "nat_wrong": 0}'::jsonb,
     total_marks INTEGER,
     created_by UUID, -- Foreign key dropped as per requirement (Snippet 3)
+    is_paid BOOLEAN DEFAULT false,
     is_trashed BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -531,9 +532,10 @@ CREATE TABLE IF NOT EXISTS public.payment_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE NOT NULL,
     plan_id UUID REFERENCES public.plans(id) ON DELETE SET NULL,
+    exam_id UUID REFERENCES public.exams(id) ON DELETE SET NULL,
     razorpay_payment_id TEXT UNIQUE NOT NULL,
     amount_paid NUMERIC(10, 2) NOT NULL,
-    payment_type TEXT CHECK (payment_type IN ('subscription_charge', 'credit_purchase')),
+    payment_type TEXT CHECK (payment_type IN ('subscription_charge', 'credit_purchase', 'exam_fee')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

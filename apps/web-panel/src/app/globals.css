@@ -58,6 +58,12 @@
     --color-glass-border: rgba(38, 38, 38, 0.8);
   }
 
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+
   body {
     @apply min-h-screen bg-bg text-text-main overflow-x-hidden antialiased;
     font-family: 'Poppins', system-ui, -apple-system, sans-serif;
