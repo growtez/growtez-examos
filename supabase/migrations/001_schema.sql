@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS public.schools (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     domain TEXT UNIQUE,
+    logo_url TEXT,
 
     is_active BOOLEAN DEFAULT true,
 
@@ -147,6 +148,26 @@ CREATE TABLE IF NOT EXISTS public.results (
     UNIQUE(exam_id, student_id)
 );
 
+CREATE TABLE IF NOT EXISTS public.system_notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    image_url TEXT,
+    target_school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE,
+    created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.feedback (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE NOT NULL,
+    submitted_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    type TEXT NOT NULL CHECK (type IN ('bug', 'feature_request', 'other')),
+    message TEXT NOT NULL,
+    status TEXT DEFAULT 'unread' CHECK (status IN ('unread', 'reviewed', 'resolved')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Ensure specific foreign keys are dropped if they existed previously
 ALTER TABLE public.exam_students DROP CONSTRAINT IF EXISTS exam_students_student_id_fkey;
 ALTER TABLE public.exams DROP CONSTRAINT IF EXISTS exams_created_by_fkey;
@@ -226,6 +247,8 @@ ALTER TABLE public.results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exam_subjects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exam_subject_teachers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exam_students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.system_notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 
 
 -- ============================================================
@@ -241,6 +264,12 @@ CREATE POLICY "Users can view their own school" ON public.schools FOR SELECT USI
 
 DROP POLICY IF EXISTS "Allow public select on schools" ON public.schools;
 CREATE POLICY "Allow public select on schools" ON public.schools FOR SELECT USING (is_active = true);
+
+DROP POLICY IF EXISTS "School admins can update their own school" ON public.schools;
+CREATE POLICY "School admins can update their own school" ON public.schools FOR UPDATE USING (
+  id = public.get_current_user_school_id() AND 
+  EXISTS (SELECT 1 FROM public.school_admins WHERE id = auth.uid())
+);
 
 -- Policies for super_admins
 DROP POLICY IF EXISTS "Super admins can manage super_admins" ON public.super_admins;
@@ -338,6 +367,29 @@ CREATE POLICY "Students can view their own exam assignments" ON public.exam_stud
 
 DROP POLICY IF EXISTS "Students can update their own exam status" ON public.exam_students;
 CREATE POLICY "Students can update their own exam status" ON public.exam_students FOR UPDATE USING (student_id = auth.uid());
+
+-- Policies for System Notifications
+DROP POLICY IF EXISTS "Super admins manage system notifications" ON public.system_notifications;
+CREATE POLICY "Super admins manage system notifications" ON public.system_notifications FOR ALL USING (public.is_super_admin());
+
+DROP POLICY IF EXISTS "Users can view relevant system notifications" ON public.system_notifications;
+CREATE POLICY "Users can view relevant system notifications" ON public.system_notifications FOR SELECT USING (
+    target_school_id IS NULL OR target_school_id = public.get_current_user_school_id()
+);
+
+-- Policies for Feedback
+DROP POLICY IF EXISTS "Super admins manage all feedback" ON public.feedback;
+CREATE POLICY "Super admins manage all feedback" ON public.feedback FOR ALL USING (public.is_super_admin());
+
+DROP POLICY IF EXISTS "School admins can submit feedback" ON public.feedback;
+CREATE POLICY "School admins can submit feedback" ON public.feedback FOR INSERT WITH CHECK (
+    school_id = public.get_current_user_school_id() AND EXISTS (SELECT 1 FROM public.school_admins WHERE id = auth.uid())
+);
+
+DROP POLICY IF EXISTS "School admins can view their school feedback" ON public.feedback;
+CREATE POLICY "School admins can view their school feedback" ON public.feedback FOR SELECT USING (
+    school_id = public.get_current_user_school_id() AND EXISTS (SELECT 1 FROM public.school_admins WHERE id = auth.uid())
+);
 
 
 -- ============================================================

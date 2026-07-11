@@ -33,14 +33,15 @@ function CustomCombobox({ value, onChange, options, placeholder, className }: { 
         }}
         onFocus={() => setIsOpen(true)}
         placeholder={placeholder}
-        className={className}
+        className={`${className} text-ellipsis overflow-hidden whitespace-nowrap`}
+        style={{ paddingRight: '1.75rem' }}
         required
       />
-      <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-[#8ab8b8]">
+      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-[#8ab8b8] bg-transparent">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
       </div>
       {isOpen && filteredOptions.length > 0 && (
-        <ul className="absolute z-10 w-full bg-white border border-[#e0f2f2] mt-1 rounded-xl shadow-xl shadow-[#008080]/10 max-h-40 overflow-auto">
+        <ul className="absolute z-10 w-full bg-white border border-[#e0f2f2] mt-1 rounded-xl shadow-xl shadow-[#008080]/10 max-h-[130px] overflow-y-auto custom-scrollbar">
           {filteredOptions.map((opt) => (
             <li
               key={opt}
@@ -69,6 +70,7 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
   const [searchQuery, setSearchQuery] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
   const [batchFilter, setBatchFilter] = useState('');
+  const [sessionFilter, setSessionFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
@@ -291,19 +293,20 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
                           s.roll_number?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCourse = courseFilter ? s.course === courseFilter : true;
     const matchesBatch = batchFilter ? s.batch === batchFilter : true;
-    return matchesSearch && matchesCourse && matchesBatch;
+    const matchesSession = sessionFilter ? s.session === sessionFilter : true;
+    return matchesSearch && matchesCourse && matchesBatch && matchesSession;
   });
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <div className="border-l-4 border-[#008080] pl-4">
-          <h2 className="text-2xl font-extrabold text-[#1a2e2e] uppercase tracking-wide">Students</h2>
-          <p className="text-[#555555] mt-1 text-sm">Manage your school&apos;s students</p>
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-[#1a2e2e]">Students</h2>
+          <p className="text-[#555555] mt-1 text-sm font-medium">Manage your school&apos;s students</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button onClick={() => setShowImportModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] font-bold hover:border-[#008080] hover:text-[#008080] transition-colors text-sm uppercase">
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm">
             Import CSV
           </button>
           <button onClick={() => {
@@ -312,47 +315,57 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
             setCourse(''); setBatch(''); setSessionVal('');
             setShowModal(true);
           }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#008080] text-white font-bold hover:bg-[#006666] transition-all border-b-2 border-[#004d4d] text-sm uppercase tracking-wider">
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#008080] text-white text-sm font-semibold rounded-xl hover:bg-[#006666] hover:shadow-lg hover:shadow-[#008080]/30 transition-all active:scale-95">
             Add Student
           </button>
         </div>
       </div>
 
       {success && (
-        <div className="bg-[#e0f2f2] border border-[#b2d8d8] p-4 text-[#008080] text-sm font-bold mb-6 uppercase">{success}</div>
+        <div className="bg-emerald-50 border border-emerald-200 p-4 text-emerald-600 rounded-xl text-sm font-medium mb-6 flex items-center gap-2">{success}</div>
       )}
 
-      <div className="bg-white border-2 border-[#b2d8d8] p-4 mb-6 flex flex-col md:flex-row gap-4 items-center">
+      <div className="mb-6 flex flex-col md:flex-row gap-3 items-center">
         <input 
           type="text" 
           placeholder="Search by name or roll no..." 
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 px-4 py-2 bg-[#f5f9f9] border border-[#e0f2f2] text-[#1a2e2e] focus:outline-none focus:border-[#008080] text-sm font-bold w-full"
+          className="flex-1 px-4 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all w-full shadow-sm"
         />
-        <select 
-          value={courseFilter} 
-          onChange={(e) => setCourseFilter(e.target.value)}
-          className="px-4 py-2 bg-[#f5f9f9] border border-[#e0f2f2] text-[#1a2e2e] focus:outline-none focus:border-[#008080] text-sm font-bold w-full md:w-auto uppercase"
-        >
-          <option value="">All Courses</option>
-          {uniqueCourses.map((c: any) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select 
-          value={batchFilter} 
-          onChange={(e) => setBatchFilter(e.target.value)}
-          className="px-4 py-2 bg-[#f5f9f9] border border-[#e0f2f2] text-[#1a2e2e] focus:outline-none focus:border-[#008080] text-sm font-bold w-full md:w-auto uppercase"
-        >
-          <option value="">All Batches</option>
-          {uniqueBatches.map((b: any) => <option key={b} value={b}>{b}</option>)}
-        </select>
+        <div className="flex gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 custom-scrollbar">
+          <select 
+            value={courseFilter} 
+            onChange={(e) => setCourseFilter(e.target.value)}
+            className="px-4 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all shadow-sm cursor-pointer hover:bg-[#f5f9f9]"
+          >
+            <option value="">All Courses</option>
+            {uniqueCourses.map((c: any) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select 
+            value={batchFilter} 
+            onChange={(e) => setBatchFilter(e.target.value)}
+            className="px-4 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all shadow-sm cursor-pointer hover:bg-[#f5f9f9]"
+          >
+            <option value="">All Batches</option>
+            {uniqueBatches.map((b: any) => <option key={b} value={b}>{b}</option>)}
+          </select>
+          <select 
+            value={sessionFilter} 
+            onChange={(e) => setSessionFilter(e.target.value)}
+            className="px-4 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all shadow-sm cursor-pointer hover:bg-[#f5f9f9]"
+          >
+            <option value="">All Sessions</option>
+            {uniqueSessions.map((s: any) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
       </div>
 
-      <div className="bg-white border-2 border-[#b2d8d8] overflow-hidden">
+      <div className="bg-white border border-[#e0f2f2] rounded-2xl overflow-hidden shadow-sm">
         {loading ? (
           <table className="w-full animate-pulse">
             <thead>
-              <tr className="bg-[#008080]/10">
+              <tr className="bg-[#f5f9f9]">
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
@@ -364,20 +377,23 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
             <tbody>
               {[...Array(5)].map((_, i) => (
                 <tr key={i} className="border-b border-[#e0f2f2]">
-                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-32"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-24"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-24"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-24"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-32"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                  <td className="px-6 py-5"><div className="h-4 bg-[#f5f9f9] rounded w-32"></div></td>
+                  <td className="px-6 py-5"><div className="h-4 bg-[#f5f9f9] rounded w-48"></div></td>
+                  <td className="px-6 py-5"><div className="h-4 bg-[#f5f9f9] rounded w-24"></div></td>
+                  <td className="px-6 py-5"><div className="h-4 bg-[#f5f9f9] rounded w-24"></div></td>
+                  <td className="px-6 py-5"><div className="h-4 bg-[#f5f9f9] rounded w-32"></div></td>
+                  <td className="px-6 py-5"><div className="h-4 bg-[#f5f9f9] rounded w-24"></div></td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : students.length === 0 ? (
-          <div className="p-12 text-center">
-            <h3 className="text-[#1a2e2e] font-bold text-lg uppercase">No students yet</h3>
-            <p className="text-[#555555] mt-1 text-sm">Add students individually or import via CSV</p>
+          <div className="p-16 flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 rounded-2xl bg-[#008080]/10 flex items-center justify-center text-[#008080] mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            </div>
+            <h3 className="text-[#1a2e2e] font-bold text-lg">No students yet</h3>
+            <p className="text-[#555555] mt-1 text-sm font-medium">Add students individually or import via CSV</p>
           </div>
         ) : (
           <div className="overflow-x-auto w-full">
@@ -422,8 +438,8 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
                       setSessionVal(s.session || '');
                       setEditStudentId(s.id);
                       setShowModal(true);
-                    }} className="text-[#008080] hover:text-[#005555] text-xs font-bold px-2 py-1 rounded hover:bg-[#e0f2f2] transition-colors">Edit</button>
-                    <button onClick={() => setDeleteStudentId(s.id)} className="text-red-500 hover:text-red-700 text-xs font-bold px-2 py-1 rounded hover:bg-red-50 transition-colors">Delete</button>
+                    }} className="text-[#008080] hover:text-[#006666] text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-[#e0f2f2] transition-colors">Edit</button>
+                    <button onClick={() => setDeleteStudentId(s.id)} className="text-red-500 hover:text-red-600 text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -434,88 +450,93 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => { setShowModal(false); setEditStudentId(null); }}>
-          <div className="bg-white border-2 border-[#008080] shadow-[4px_4px_0px_#004d4d] p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-[#008080] -mx-6 -mt-6 mb-5 px-6 py-3">
-              <h3 className="text-sm font-extrabold text-white uppercase tracking-widest">{editStudentId ? 'Edit Student' : 'Add Student'}</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setShowModal(false); setEditStudentId(null); }}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-[#008080] px-6 py-4 flex items-center justify-between">
+              <span className="text-white font-bold">{editStudentId ? 'Edit Student' : 'Add Student'}</span>
+              <button onClick={() => { setShowModal(false); setEditStudentId(null); }} className="text-white/70 hover:text-white transition-colors">✕</button>
             </div>
+            <div className="p-6">
             <form onSubmit={editStudentId ? handleEditStudent : handleAddStudent} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Full Name</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm"
-                  placeholder="Aarav Patel" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Roll Number</label>
-                <input type="text" value={rollNumber} onChange={(e) => setRollNumber(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm"
-                  placeholder="2024001" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Date of Birth</label>
-                <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm" />
-              </div>
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="flex-1">
-                  <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Course</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-[#555555] mb-1.5">Full Name</label>
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
+                    className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all"
+                    placeholder="Aarav Patel" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#555555] mb-1.5">Roll Number</label>
+                  <input type="text" value={rollNumber} onChange={(e) => setRollNumber(e.target.value)} required
+                    className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all"
+                    placeholder="2024001" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#555555] mb-1.5">Date of Birth</label>
+                  <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} required
+                    className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#555555] mb-1.5">Course</label>
                   <CustomCombobox 
                     value={course} 
                     onChange={setCourse} 
                     options={uniqueCourses as string[]} 
                     placeholder="e.g. JEE"
-                    className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm" 
+                    className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all" 
                   />
                 </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Batch</label>
+                <div>
+                  <label className="block text-xs font-semibold text-[#555555] mb-1.5">Batch</label>
                   <CustomCombobox 
                     value={batch} 
                     onChange={setBatch} 
                     options={uniqueBatches as string[]} 
                     placeholder="e.g. Main"
-                    className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm" 
+                    className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all" 
                   />
                 </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Session</label>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-[#555555] mb-1.5">Session</label>
                   <CustomCombobox 
                     value={sessionVal} 
                     onChange={setSessionVal} 
                     options={uniqueSessions as string[]} 
                     placeholder="e.g. 2024-25"
-                    className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:bg-white transition-all text-sm" 
+                    className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all" 
                   />
                 </div>
               </div>
               <p className="text-[#8aacac] text-xs">Password will be DOB in DDMMYYYY format</p>
               {error && <div className="border border-red-400 bg-red-50 p-3 text-red-600 text-sm">⚠ {error}</div>}
               <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={formLoading}
-                  className="flex-1 py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold disabled:opacity-50 border-b-2 border-[#004d4d] uppercase tracking-wider text-sm">
-                  {formLoading ? (editStudentId ? 'Saving...' : 'Adding...') : (editStudentId ? 'Save Changes' : 'Add Student')}
-                </button>
                 <button type="button" onClick={() => { setShowModal(false); setEditStudentId(null); }}
-                  className="px-4 py-3 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] font-bold hover:border-[#008080] transition-colors uppercase text-sm">
+                  className="px-6 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors">
                   Cancel
+                </button>
+                <button type="submit" disabled={formLoading}
+                  className="flex-1 py-2.5 bg-[#008080] hover:bg-[#006666] text-white font-bold rounded-xl shadow-lg shadow-[#008080]/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed text-sm">
+                  {formLoading ? (editStudentId ? 'Saving...' : 'Adding...') : (editStudentId ? 'Save Changes' : 'Add Student')}
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Import CSV Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowImportModal(false)}>
-          <div className="bg-white border-2 border-[#008080] shadow-[4px_4px_0px_#004d4d] p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-[#008080] -mx-6 -mt-6 mb-5 px-6 py-3">
-              <h3 className="text-sm font-extrabold text-white uppercase tracking-widest">Import Students via CSV</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowImportModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-[#008080] px-6 py-4 flex items-center justify-between">
+              <span className="text-white font-bold">Import Students via CSV</span>
+              <button onClick={() => setShowImportModal(false)} className="text-white/70 hover:text-white transition-colors">✕</button>
             </div>
-            <div className="bg-[#f5f9f9] border border-[#b2d8d8] p-4 mb-4">
-              <p className="text-[#1a2e2e] text-sm font-bold mb-2 uppercase tracking-wide">CSV Format:</p>
-              <code className="text-xs text-[#008080] bg-white px-3 py-2 block border border-[#b2d8d8] font-mono">
+            <div className="p-6">
+            <div className="bg-[#f5f9f9] border border-[#e0f2f2] p-4 rounded-xl mb-4">
+              <p className="text-[#1a2e2e] text-sm font-bold mb-2">CSV Format:</p>
+              <code className="text-xs text-[#008080] bg-white px-3 py-2 block border border-[#e0f2f2] rounded font-mono overflow-auto">
                 name, roll_number, dob<br />
                 Aarav Patel, 2024001, 15/06/2005<br />
                 Priya Singh, 2024002, 22/03/2005
@@ -523,41 +544,45 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
             </div>
             <form onSubmit={handleCsvImport} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#1a2e2e] mb-1.5 uppercase tracking-wider">Select CSV File</label>
+                <label className="block text-xs font-semibold text-[#555555] mb-1.5">Select CSV File</label>
                 <input type="file" ref={fileInputRef} accept=".csv,.txt" required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#b2d8d8] text-[#1a2e2e] file:mr-4 file:py-1 file:px-3 file:border-0 file:bg-[#008080] file:text-white file:text-sm file:font-bold file:uppercase" />
+                  className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] file:mr-4 file:py-1.5 file:px-3 file:border-0 file:rounded-md file:bg-[#008080] file:text-white file:text-sm file:font-semibold focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm" />
               </div>
-              {error && <div className="border border-red-400 bg-red-50 p-3 text-red-600 text-sm">⚠ {error}</div>}
+              {error && <div className="border border-red-400 bg-red-50 p-3 rounded-xl text-red-600 text-sm flex items-center gap-2">⚠ {error}</div>}
               <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={formLoading}
-                  className="flex-1 py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold disabled:opacity-50 border-b-2 border-[#004d4d] uppercase tracking-wider text-sm">
-                  {formLoading ? 'Importing...' : 'Import'}
-                </button>
                 <button type="button" onClick={() => setShowImportModal(false)}
-                  className="px-4 py-3 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] font-bold hover:border-[#008080] transition-colors uppercase text-sm">
+                  className="px-6 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors">
                   Cancel
+                </button>
+                <button type="submit" disabled={formLoading}
+                  className="flex-1 py-2.5 bg-[#008080] hover:bg-[#006666] text-white font-bold rounded-xl shadow-lg shadow-[#008080]/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed text-sm">
+                  {formLoading ? 'Importing...' : 'Import'}
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Delete Confirmation Modal */}
       {deleteStudentId && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setDeleteStudentId(null)}>
-          <div className="bg-white border-2 border-red-500 shadow-[4px_4px_0px_#ef4444] p-6 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDeleteStudentId(null)}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="text-center mb-6">
-              <h3 className="text-lg font-extrabold text-[#1a2e2e] uppercase tracking-widest mb-2">Delete Student?</h3>
+              <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </div>
+              <h3 className="text-lg font-bold text-[#1a2e2e] mb-2">Delete Student?</h3>
               <p className="text-sm text-[#555555]">This action cannot be undone. Are you sure you want to delete this student?</p>
             </div>
             <div className="flex gap-3">
               <button onClick={() => setDeleteStudentId(null)}
-                className="flex-1 px-4 py-3 bg-white border-2 border-[#b2d8d8] text-[#1a2e2e] font-bold hover:border-[#008080] transition-colors uppercase text-sm">
+                className="flex-1 px-4 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] transition-colors text-sm">
                 Cancel
               </button>
               <button onClick={handleDeleteStudent}
-                className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-bold border-b-2 border-red-700 uppercase tracking-wider text-sm">
+                className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-500/20 transition-all text-sm">
                 Delete
               </button>
             </div>
