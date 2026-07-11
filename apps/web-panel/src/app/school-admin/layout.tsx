@@ -92,8 +92,17 @@ export default function SchoolAdminLayout({
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setRole(user.user_metadata?.role || 'school_admin');
-        const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single();
-        const schoolId = profile?.school_id || user.user_metadata?.school_id || user.user_metadata?.schoolId;
+        let schoolId = user.user_metadata?.school_id || user.user_metadata?.schoolId;
+        if (!schoolId) {
+          const userRole = user.user_metadata?.role || 'school_admin';
+          if (userRole === 'teacher') {
+            const { data: teacherProfile } = await supabase.from('teachers').select('school_id').eq('id', user.id).single();
+            schoolId = teacherProfile?.school_id;
+          } else {
+            const { data: adminProfile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
+            schoolId = adminProfile?.school_id;
+          }
+        }
         if (schoolId) {
           const { data: school } = await supabase.from('schools').select('name').eq('id', schoolId).single();
           if (school) setSchoolName(school.name);

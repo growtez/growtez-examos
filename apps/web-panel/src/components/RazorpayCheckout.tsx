@@ -39,7 +39,7 @@ export const openRazorpayCheckout = async (params: RazorpayCheckoutParams) => {
     const orderResponse = await fetch('/api/razorpay/order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, planId, schoolId, planName }),
+      body: JSON.stringify({ amount, planId, examId, schoolId, planName }),
     });
 
     const orderData = await orderResponse.json();
