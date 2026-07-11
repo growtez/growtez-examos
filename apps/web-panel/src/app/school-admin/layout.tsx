@@ -54,6 +54,12 @@ export default function SchoolAdminLayout({
   const [schoolName, setSchoolName] = useState<string>('');
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  }, []);
+
+  useEffect(() => {
     const fetchUser = async () => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
