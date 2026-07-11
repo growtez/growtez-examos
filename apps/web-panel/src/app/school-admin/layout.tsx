@@ -35,7 +35,7 @@ const navItems = [
   },
   {
     label: 'Billing & Credits',
-    href: '/school-admin/billing',
+    href: '/billing',
     icon: <LayoutDashboard className="w-5 h-5" />,
   },
 ];
