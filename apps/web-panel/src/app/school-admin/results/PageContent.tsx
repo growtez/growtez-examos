@@ -394,7 +394,7 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
             No students found matching "{searchQuery}"
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto w-full">
             <table className="w-full whitespace-nowrap min-w-[800px]">
               <thead>
                 <tr className="bg-[#f5f9f9] border-b border-[#e0f2f2]">

@@ -297,7 +297,7 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
         className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-[1000] transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} 
         onClick={onClose} 
       />
-      <div className={`fixed top-0 right-0 h-screen w-full max-w-[450px] bg-bg z-[1001] transition-transform duration-500 shadow-2xl flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className={`fixed top-0 right-0 h-[100dvh] w-full max-w-[450px] bg-bg z-[1001] transition-transform duration-500 shadow-2xl flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-4 border-b border-border flex justify-between items-center bg-surface">
           <div className="flex items-center gap-3">
             {activeForm === 'user' && <UserPlus size={20} className="text-accent-primary" />}
@@ -336,7 +336,7 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
             </button>
           </div>
 
-          <form onSubmit={handleFormSubmit} className="flex-1 flex flex-col gap-5">
+          <form onSubmit={handleFormSubmit} className="flex-1 flex flex-col gap-5 pb-24">
             {activeForm === 'user' && (
               <>
                 <div className="relative">
