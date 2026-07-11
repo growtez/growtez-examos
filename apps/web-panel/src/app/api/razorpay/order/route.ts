@@ -9,9 +9,9 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
     );
 
-    const { amount, planId, schoolId, planName } = await req.json();
+    const { amount, planId, examId, schoolId, planName } = await req.json();
 
-    if (!amount || !planId || !schoolId) {
+    if (!amount || !schoolId || (!planId && !examId)) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
@@ -34,9 +34,10 @@ export async function POST(req: Request) {
       notes: {
         website: 'parikshaos',
         school_id: schoolId,
-        plan_id: planId,
-        plan_name: planName,
-        type: 'credit_purchase'
+        plan_id: planId || '',
+        exam_id: examId || '',
+        plan_name: planName || '',
+        type: examId ? 'exam_fee' : 'credit_purchase'
       },
     };
 

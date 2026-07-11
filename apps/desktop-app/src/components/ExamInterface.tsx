@@ -243,6 +243,24 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
     }
   };
 
+  const handleBack = () => {
+    if (!currentQuestion) return;
+    if (currentQuestionIndex > 0) {
+      const prevQ = currentQuestions[currentQuestionIndex - 1];
+      setAnswers(prev => ({ ...prev, [prevQ.id]: { ...prev[prevQ.id], visited: true } }));
+      setCurrentQuestionIndex(prev => prev - 1);
+    } else if (currentSubjectIndex > 0) {
+      const prevSubIdx = currentSubjectIndex - 1;
+      const prevSubQs = questions.filter(q => q.exam_subject_id === subjects[prevSubIdx].id);
+      if (prevSubQs.length > 0) {
+        const lastQ = prevSubQs[prevSubQs.length - 1];
+        setAnswers(prev => ({ ...prev, [lastQ.id]: { ...prev[lastQ.id], visited: true } }));
+      }
+      setCurrentSubjectIndex(prevSubIdx);
+      setCurrentQuestionIndex(prevSubQs.length - 1);
+    }
+  };
+
   const handleClearResponse = () => {
     if (!currentQuestion) return;
     setAnswers(prev => ({ ...prev, [currentQuestion.id]: { ...prev[currentQuestion.id], answer: null, marked: false } }));
@@ -429,7 +447,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
             </div>
 
             <div className="flex items-center gap-4 text-sm">
-              <div className="w-14 h-14 border border-[#E4E7EC] bg-[#F9FAFB] flex items-center justify-center rounded-lg shadow-sm">
+              <div className="w-14 h-14 border border-[#E4E7EC] bg-[#F9FAFB] flex items-center justify-center rounded-none shadow-sm">
                 <svg className="w-10 h-10 text-[#667085]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
               </div>
               <div className="flex flex-col text-right">
@@ -437,12 +455,12 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                 <div className="text-[#1D2939] text-xs font-medium mt-0.5"><span className="text-[#667085]">Candidate Roll No. :</span> <span className="text-[#1D2939] font-bold">[{studentProfile.roll_number || 'N/A'}]</span></div>
                 <div className="text-[#1D2939] text-xs font-medium mt-1 flex items-center justify-end gap-2">
                   <span className="text-[#667085]">Remaining Time :</span>
-                  <span className={`px-3 py-1 font-bold text-xl text-white rounded-lg leading-none ${getTimerClass()}`}>{formatTime(timeLeft)}</span>
+                  <span className={`px-3 py-1 font-bold text-xl text-white rounded-none leading-none ${getTimerClass()}`}>{formatTime(timeLeft)}</span>
                 </div>
               </div>
               <button
                 onClick={() => setHeaderOpen(false)}
-                className="text-[#667085] hover:text-[#008080] hover:bg-gray-100 p-1.5 rounded-lg transition-colors ml-1"
+                className="text-[#667085] hover:text-[#008080] hover:bg-gray-100 p-1.5 rounded-none transition-colors ml-1"
                 title="Collapse Header"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>
@@ -458,10 +476,10 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
             <div className="flex items-center gap-3">
               <span className="text-sm text-[#667085] font-semibold">Remaining Time:</span>
-              <span className={`px-4 py-1.5 font-bold text-xl text-white rounded-lg leading-none ${getTimerClass()}`}>{formatTime(timeLeft)}</span>
+              <span className={`px-4 py-1.5 font-bold text-xl text-white rounded-none leading-none ${getTimerClass()}`}>{formatTime(timeLeft)}</span>
               <button
                 onClick={() => setHeaderOpen(true)}
-                className="text-[#667085] hover:text-[#008080] hover:bg-gray-100 p-1.5 rounded-lg transition-colors"
+                className="text-[#667085] hover:text-[#008080] hover:bg-gray-100 p-1.5 rounded-none transition-colors"
                 title="Expand Header"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
@@ -487,7 +505,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
               <button
                 key={sub.id}
                 onClick={() => { setCurrentSubjectIndex(idx); setCurrentQuestionIndex(0); }}
-                className={`px-4 py-1.5 rounded-lg transition-all text-s font-bold ${
+                className={`px-4 py-3 rounded-none transition-all text-s font-bold ${
                   currentSubjectIndex === idx ? 'bg-[#004d4d] text-white shadow-sm' : 'text-white hover:bg-[#006666]'
                 }`}
               >
@@ -500,13 +518,13 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         {/* Calculator Trigger Button */}
         <button
           onClick={() => setShowCalculator(prev => !prev)}
-          className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-[#004d4d] hover:bg-[#003333] active:bg-[#002222] text-white transition-all text-xs font-bold shadow-sm"
+          className="flex items-center justify-center gap-2 px-4 py-2 rounded-none bg-[#195e5e] hover:bg-[#003333] active:bg-[#002222] text-white transition-all text-s font-bold shadow-sm"
           title="Toggle Calculator"
         >
           <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
-          CALCULATOR
+          Calculator
         </button>
       </div>
 
@@ -518,32 +536,14 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
           <div className="flex-1 overflow-y-auto p-8">
             {currentQuestion ? (
-              <div>
+              <div className="font-serif" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
                 <div className="flex items-center justify-between border-b border-[#E4E7EC] pb-3 mb-6">
                   <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                        disabled={currentQuestionIndex === 0}
-                        className="p-1 text-[#667085] hover:text-[#008080] hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent rounded-lg transition-colors"
-                        title="Previous Question"
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-                      </button>
-                    <h2 className="text-lg font-bold text-[#1D2939]">Question {currentQuestion.question_number ?? (currentQuestionIndex + 1)}</h2>
-                    <div className="flex items-center gap-0.5">
-                      <button
-                        onClick={() => setCurrentQuestionIndex(prev => Math.min(currentQuestions.length - 1, prev + 1))}
-                        disabled={currentQuestionIndex === currentQuestions.length - 1}
-                        className="p-1 text-[#667085] hover:text-[#008080] hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent rounded-lg transition-colors"
-                        title="Next Question"
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                      </button>
-                    </div>
+                    <h2 className="text-lg font-bold text-[#1D2939]">Question {currentQuestion.question_number ?? (currentQuestionIndex + 1)}:</h2>
                   </div>
                 </div>
 
-                <div className="text-[16px] text-[#1D2939] leading-relaxed max-w-4xl font-sans">
+                <div className="text-[16px] text-[#1D2939] leading-relaxed max-w-4xl font-serif">
                   {currentQuestion.question_text && (
                     <p className="mb-4 whitespace-pre-wrap font-medium">{currentQuestion.question_text}</p>
                   )}
@@ -552,7 +552,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                       <img
                         src={currentQuestion.image_url}
                         alt="Question"
-                        className="max-w-full max-h-80 object-contain rounded-lg border border-[#E4E7EC] shadow-sm"
+                        className="max-w-full max-h-80 object-contain rounded-none border border-[#E4E7EC] shadow-sm"
                       />
                     </div>
                   )}
@@ -565,7 +565,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                       return (
                         <label
                           key={opt}
-                          className={`flex items-start gap-4 px-4 py-3.5 rounded-lg border cursor-pointer transition-all ${
+                          className={`flex items-start gap-4 px-4 py-3.5 rounded-none border cursor-pointer transition-all ${
                             selected
                               ? 'bg-[#008080]/5 border-[#008080] text-[#008080] font-semibold shadow-sm'
                               : 'bg-white border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939]'
@@ -578,7 +578,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                             onChange={() => handleSelectOption(currentQuestion.id, opt)}
                             className="w-4 h-4 text-[#008080] border-[#E4E7EC] focus:ring-[#008080] cursor-pointer mt-1"
                           />
-                          <span className="flex items-start gap-3 font-sans text-[14px] w-full">
+                          <span className="flex items-start gap-3 font-serif text-[14px] w-full">
                             <span className="font-bold mt-0.5">({opt})</span>
                             <span className="flex flex-col gap-2">
                               {currentQuestion.options[opt] && <span>{currentQuestion.options[opt]}</span>}
@@ -586,7 +586,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                                 <img
                                   src={currentQuestion.options[`${opt}_image`]}
                                   alt={`Option ${opt}`}
-                                  className="max-w-[200px] max-h-[200px] object-contain rounded-lg border border-[#E4E7EC]"
+                                  className="max-w-[200px] max-h-[200px] object-contain rounded-none border border-[#E4E7EC]"
                                 />
                               )}
                             </span>
@@ -596,13 +596,13 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                     })}
                   </div>
                 ) : (
-                  <div className="mt-8 max-w-sm">
+                  <div className="mt-8 max-w-sm font-sans">
                     <label className="block text-xs font-bold text-[#667085] uppercase tracking-wider mb-2">Numeric Answer:</label>
                     <input
                       type="text"
                       value={answers[currentQuestion.id]?.answer || ''}
                       onChange={(e) => handleNatChange(currentQuestion.id, e.target.value)}
-                      className="border border-[#E4E7EC] rounded-lg px-4 py-2.5 w-full focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] font-mono text-sm bg-white text-[#1D2939] shadow-sm transition-all"
+                      className="border border-[#E4E7EC] rounded-none px-4 py-2.5 w-full focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] font-mono text-sm bg-white text-[#1D2939] shadow-sm transition-all"
                       placeholder="Type your response here..."
                     />
                     <Numpad
@@ -618,40 +618,60 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           </div>
 
           {/* Action Buttons Footer */}
-          <div className="border-t border-[#E4E7EC] p-4 bg-white">
-            <div className="flex items-center gap-3">
+          <div className="border-t border-[#E4E7EC] p-3 bg-white">
+            <div className="flex items-center gap-1.5">
               <button
                 onClick={handleSaveAndNext}
-                className="bg-[#008080] hover:bg-[#006666] text-white px-6 py-2.5 rounded-lg font-bold text-sm transition-colors uppercase shadow-sm"
+                className="bg-[#008080] hover:bg-[#006666] text-white px-5 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
               >
                 SAVE &amp; NEXT
               </button>
               <button
                 onClick={handleSaveAndMarkForReview}
-                className="bg-[#7A5AF8] hover:bg-[#6939F6] text-white px-6 py-2.5 rounded-lg font-bold text-sm transition-colors uppercase shadow-sm"
+                className="bg-[#4A4A4A] hover:bg-[#3A3A3A] text-white px-5 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
               >
                 SAVE &amp; MARK FOR REVIEW
               </button>
               <button
                 onClick={handleClearResponse}
-                className="bg-white hover:bg-[#F9FAFB] text-[#667085] px-6 py-2.5 font-bold text-sm border border-[#E4E7EC] rounded-lg transition-colors uppercase shadow-sm"
+                className="bg-[#F0F0F0] hover:bg-[#F9FAFB] text-[#667085] px-5 py-1.5 font-bold text-sm border border-[#E4E7EC] rounded-none transition-colors uppercase shadow-sm"
               >
                 CLEAR RESPONSE
               </button>
               <button
                 onClick={handleMarkForReviewAndNext}
-                className="bg-[#7A5AF8]/10 hover:bg-[#7A5AF8]/20 text-[#7A5AF8] px-6 py-2.5 font-bold text-sm border border-[#7A5AF8]/20 rounded-lg transition-colors uppercase"
+                className="bg-[#004D4D] hover:bg-[#003333] text-white px-5 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
               >
                 MARK FOR REVIEW &amp; NEXT
               </button>
-              
+            </div>
+          </div>
+
+          {/* Navigation and Submission Footer Section */}
+          <div className="border-t border-[#E4E7EC] p-4 bg-[#EAF2F2] flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => setShowSubmitModal(true)}
-                className="bg-[#008080] hover:bg-[#006666] text-white px-8 py-2.5 rounded-lg font-bold text-base shadow-sm transition-all uppercase ml-auto"
+                onClick={handleBack}
+                disabled={currentQuestionIndex === 0 && currentSubjectIndex === 0}
+                className="bg-white hover:bg-[#F9FAFB] text-[#667085] px-6 py-2 font-bold text-xs border border-[#D0D5DD] rounded-none transition-colors uppercase disabled:opacity-50 disabled:hover:bg-white"
               >
-                SUBMIT
+                &lt;&lt; BACK
+              </button>
+              <button
+                onClick={moveToNext}
+                disabled={currentQuestionIndex === currentQuestions.length - 1 && currentSubjectIndex === subjects.length - 1}
+                className="bg-white hover:bg-[#F9FAFB] text-[#667085] px-6 py-2 font-bold text-xs border border-[#D0D5DD] rounded-none transition-colors uppercase disabled:opacity-50 disabled:hover:bg-white"
+              >
+                NEXT &gt;&gt;
               </button>
             </div>
+            
+            <button
+              onClick={() => setShowSubmitModal(true)}
+              className="bg-[#008080] hover:bg-[#006666] text-white px-8 py-2.5 rounded-none font-bold text-sm shadow-sm transition-all uppercase"
+            >
+              SUBMIT
+            </button>
           </div>
         </div>
 
@@ -662,32 +682,32 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
             <div className="p-4 bg-[#F9FAFB] border-b border-[#E4E7EC]">
               <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-[11px] font-semibold text-[#1D2939]">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-8 h-7 bg-[#E4E7EC] text-[#667085] border border-[#D0D5DD] flex items-center justify-center rounded-md font-bold shadow-sm">
+                  <div className="w-8 h-7 bg-[#E4E7EC] text-[#667085] border border-[#D0D5DD] flex items-center justify-center rounded-none font-bold shadow-sm">
                     {summary.not_visited}
                   </div>
                   <span className="text-[#667085]">Not Visited</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-8 h-7 bg-[#F04438] text-white flex items-center justify-center rounded-md font-bold shadow-sm">
+                  <div className="w-8 h-7 bg-[#F04438] text-white flex items-center justify-center rounded-none font-bold shadow-sm">
                     {summary.not_answered}
                   </div>
                   <span className="text-[#667085]">Not Answered</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-8 h-7 bg-[#12B76A] text-white flex items-center justify-center rounded-md font-bold shadow-sm">
+                  <div className="w-8 h-7 bg-[#008080] text-white flex items-center justify-center rounded-none font-bold shadow-sm">
                     {summary.answered}
                   </div>
                   <span className="text-[#667085]">Answered</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-8 h-7 bg-[#7A5AF8] text-white flex items-center justify-center rounded-md font-bold shadow-sm">
+                  <div className="w-8 h-7 bg-[#004D4D] text-white flex items-center justify-center rounded-none font-bold shadow-sm">
                     {summary.review}
                   </div>
                   <span className="text-[#667085]">Marked for Review</span>
                 </div>
                 <div className="flex items-start gap-1.5 col-span-2 mt-1">
-                  <div className="w-8 h-7 bg-[#7A5AF8] text-white flex items-center justify-center rounded-md font-bold shadow-sm relative shrink-0">
-                    <div className="absolute bottom-0.5 right-0.5 w-2 h-2 bg-[#12B76A] rounded-full border border-white"></div>
+                  <div className="w-8 h-7 bg-[#4A4A4A] text-white flex items-center justify-center rounded-none font-bold shadow-sm relative shrink-0">
+                    <div className="absolute bottom-0.5 right-0.5 w-2 h-2 bg-[#008080] rounded-none border border-white"></div>
                     {summary.answered_review}
                   </div>
                   <span className="leading-tight text-[#667085] mt-0.5">Answered &amp; Marked for Review</span>
@@ -716,11 +736,11 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                   let hasDot = false;
 
                   if (status === 'answered') {
-                    btnClass = "bg-[#12B76A] text-white border border-[#10a35e]";
+                    btnClass = "bg-[#008080] text-white border border-[#006666]";
                   } else if (status === 'review') {
-                    btnClass = "bg-[#7A5AF8] text-white border border-[#6939F6]";
+                    btnClass = "bg-[#004D4D] text-white border border-[#3A3A3A]";
                   } else if (status === 'answered_review') {
-                    btnClass = "bg-[#7A5AF8] text-white border border-[#6939F6]";
+                    btnClass = "bg-[#4A4A4A] text-white border border-[#3A3A3A]";
                     hasDot = true;
                   } else if (status === 'not_answered') {
                     btnClass = "bg-[#F04438] text-white border border-[#d9382e]";
@@ -732,13 +752,13 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                     <button
                       key={q.id}
                       onClick={() => handlePaletteClick(idx)}
-                      className={`w-[45px] h-[35px] flex items-center justify-center font-bold text-sm shadow-sm relative transition-all rounded-md hover:scale-105 ${btnClass} ${
+                      className={`w-[45px] h-[35px] flex items-center justify-center font-bold text-sm shadow-sm relative transition-all rounded-none hover:scale-105 ${btnClass} ${
                         active ? 'ring-2 ring-[#008080] ring-offset-1 scale-105 z-10' : ''
                       }`}
                     >
                       {String(idx + 1).padStart(2, '0')}
                       {hasDot && (
-                        <span className="absolute bottom-0.5 right-0.5 w-2 h-2 bg-[#12B76A] rounded-full border border-white"></span>
+                        <span className="absolute bottom-0.5 right-0.5 w-2 h-2 bg-[#008080] rounded-none border border-white"></span>
                       )}
                     </button>
                   );
@@ -749,7 +769,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="bg-[#008080] text-white w-5 h-10 flex items-center justify-center absolute right-full top-1/2 -translate-y-1/2 rounded-l-lg hover:bg-[#006666] transition-colors z-10 shadow-md border-y border-l border-[#006666]"
+            className="bg-[#008080] text-white w-5 h-10 flex items-center justify-center absolute right-full top-1/2 -translate-y-1/2 rounded-none hover:bg-[#006666] transition-colors z-10 shadow-md border-y border-l border-[#006666]"
           >
             <svg
               className="w-3.5 h-3.5 transition-transform duration-300"
@@ -768,19 +788,19 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       {/* Auto-submit overlay */}
       {submitting && timeLeft <= 0 && (
         <div className="fixed inset-0 bg-[#1D2939]/80 backdrop-blur-sm flex items-center justify-center z-[100] transition-opacity">
-          <div className="bg-white rounded-xl border border-[#E4E7EC] shadow-xl p-8 w-full max-w-sm mx-4 text-center overflow-hidden">
+          <div className="bg-white rounded-none border border-[#E4E7EC] shadow-xl p-8 w-full max-w-sm mx-4 text-center overflow-hidden">
             <div className="bg-[#F04438] -mx-8 -mt-8 mb-6 px-8 py-4">
               <span className="text-white font-extrabold text-sm uppercase tracking-widest">Time Up!</span>
             </div>
-            <div className="w-14 h-14 bg-red-50 border border-[#F04438]/20 flex items-center justify-center mx-auto mb-4 rounded-full">
+            <div className="w-14 h-14 bg-red-50 border border-[#F04438]/20 flex items-center justify-center mx-auto mb-4 rounded-none">
               <svg className="w-8 h-8 text-[#F04438]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <h3 className="text-lg font-bold text-[#1D2939] uppercase tracking-wide mb-2">Auto Submitting...</h3>
             <p className="text-[#667085] text-sm">Your exam time has expired. Your answers are being submitted automatically.</p>
-            <div className="mt-6 h-1.5 bg-[#E4E7EC] rounded-full overflow-hidden">
-              <div className="h-full bg-[#F04438] animate-pulse w-full rounded-full"></div>
+            <div className="mt-6 h-1.5 bg-[#E4E7EC] rounded-none overflow-hidden">
+              <div className="h-full bg-[#F04438] animate-pulse w-full rounded-none"></div>
             </div>
           </div>
         </div>
@@ -789,7 +809,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       {/* Submission Modal */}
       {showSubmitModal && (
         <div className="fixed inset-0 bg-[#1D2939]/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white border border-[#E4E7EC] rounded-xl p-8 w-full max-w-md mx-4 shadow-xl overflow-hidden">
+          <div className="bg-white border border-[#E4E7EC] rounded-none p-8 w-full max-w-md mx-4 shadow-xl overflow-hidden">
             <div className="bg-[#008080] -mx-8 -mt-8 mb-6 px-8 py-4">
               <h3 className="text-sm font-extrabold text-white uppercase tracking-widest">Confirm Submission</h3>
             </div>
@@ -798,14 +818,14 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
               <button
                 onClick={() => setShowSubmitModal(false)}
                 disabled={submitting}
-                className="px-5 py-2.5 bg-white hover:bg-[#F9FAFB] text-[#667085] font-bold text-xs border border-[#E4E7EC] rounded-lg transition-all uppercase shadow-sm"
+                className="px-5 py-2.5 bg-white hover:bg-[#F9FAFB] text-[#667085] font-bold text-xs border border-[#E4E7EC] rounded-none transition-all uppercase shadow-sm"
               >
                 CANCEL
               </button>
               <button
                 onClick={handleSubmitExam}
                 disabled={submitting}
-                className="px-5 py-2.5 bg-[#008080] hover:bg-[#006666] text-white font-bold text-xs rounded-lg transition-all uppercase shadow-sm"
+                className="px-5 py-2.5 bg-[#008080] hover:bg-[#006666] text-white font-bold text-xs rounded-none transition-all uppercase shadow-sm"
               >
                 {submitting ? 'SUBMITTING...' : 'YES, SUBMIT'}
               </button>

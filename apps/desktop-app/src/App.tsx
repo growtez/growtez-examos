@@ -78,13 +78,13 @@ function App() {
         scrollbarColor: '#008080 rgba(0, 0, 0, 0.05)'
       }}
     >
-      <div className="w-full max-w-md bg-white border border-[#E4E7EC] rounded-xl shadow-xl overflow-hidden text-center">
+      <div className="w-full max-w-md bg-white border border-[#E4E7EC] rounded-none shadow-xl overflow-hidden text-center">
         {/* Header bar */}
         <div className="bg-[#008080] py-4 px-6">
           <span className="text-white font-extrabold text-sm uppercase tracking-widest">Submission Complete</span>
         </div>
         <div className="p-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#12B76A]/10 border border-[#12B76A]/20 rounded-full text-[#12B76A] mb-4 shadow-sm">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#12B76A]/10 border border-[#12B76A]/20 rounded-none text-[#12B76A] mb-4 shadow-sm">
             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -95,7 +95,7 @@ function App() {
           </p>
           <button
             onClick={handleReset}
-            className="w-full py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold rounded-lg transition-colors text-sm uppercase tracking-wider shadow-sm"
+            className="w-full py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold rounded-none transition-colors text-sm uppercase tracking-wider shadow-sm"
           >
             Return to Login
           </button>
