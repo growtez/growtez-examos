@@ -188,7 +188,7 @@ export default function Calculator({ onClose }: CalculatorProps) {
         top: `${position.y}px`,
         zIndex: 9999,
       }}
-      className="w-72 bg-white rounded-xl shadow-2xl border border-[#008080]/30 select-none overflow-hidden"
+      className="w-72 bg-white rounded-none shadow-2xl border border-[#008080]/30 select-none overflow-hidden"
     >
       {/* Header */}
       <div className="calc-header bg-[#008080] text-white px-4 py-2.5 flex items-center justify-between cursor-move">
@@ -200,7 +200,7 @@ export default function Calculator({ onClose }: CalculatorProps) {
         </div>
         <button
           onClick={onClose}
-          className="text-white/80 hover:text-white hover:bg-[#006666] p-1 rounded-md transition-colors"
+          className="text-white/80 hover:text-white hover:bg-[#006666] p-1 rounded-none transition-colors"
           title="Close Calculator"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -208,7 +208,7 @@ export default function Calculator({ onClose }: CalculatorProps) {
           </svg>
         </button>
       </div>
-
+ 
       {/* Screen Display */}
       <div className="bg-[#F8F9FA] p-4 text-right border-b border-[#E4E7EC] font-mono">
         <div className="text-[11px] text-[#667085] h-4 mb-1 overflow-hidden truncate">
@@ -218,18 +218,18 @@ export default function Calculator({ onClose }: CalculatorProps) {
           {display}
         </div>
       </div>
-
+ 
       {/* Keypad */}
       <div className="p-3 bg-[#FCFCFD] grid grid-cols-4 gap-2">
         <button
           onClick={handleClear}
-          className="h-11 rounded-lg bg-[#F2F4F7] hover:bg-[#E4E7EC] text-[#344054] font-bold text-sm transition-colors shadow-sm"
+          className="h-11 rounded-none bg-[#F2F4F7] hover:bg-[#E4E7EC] text-[#344054] font-bold text-sm transition-colors shadow-sm"
         >
           C
         </button>
         <button
           onClick={handleBackspace}
-          className="h-11 rounded-lg bg-[#F2F4F7] hover:bg-[#E4E7EC] text-[#344054] font-bold text-sm transition-colors shadow-sm flex items-center justify-center"
+          className="h-11 rounded-none bg-[#F2F4F7] hover:bg-[#E4E7EC] text-[#344054] font-bold text-sm transition-colors shadow-sm flex items-center justify-center"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414-6.414A2 2 0 0010.828 5H19a2 2 0 012 2v10a2 2 0 01-2 2h-8.172a2 2 0 00-1.414-.586L3 12z" />
@@ -237,111 +237,111 @@ export default function Calculator({ onClose }: CalculatorProps) {
         </button>
         <button
           onClick={handleToggleSign}
-          className="h-11 rounded-lg bg-[#F2F4F7] hover:bg-[#E4E7EC] text-[#344054] font-bold text-base transition-colors shadow-sm"
+          className="h-11 rounded-none bg-[#F2F4F7] hover:bg-[#E4E7EC] text-[#344054] font-bold text-base transition-colors shadow-sm"
         >
           ±
         </button>
         <button
           onClick={() => handleOperator('/')}
-          className="h-11 rounded-lg bg-[#008080]/10 hover:bg-[#008080]/20 text-[#008080] font-bold text-base transition-colors shadow-sm"
+          className="h-11 rounded-none bg-[#008080]/10 hover:bg-[#008080]/20 text-[#008080] font-bold text-base transition-colors shadow-sm"
         >
           ÷
         </button>
-
+ 
         {/* 7 8 9 * */}
         <button
           onClick={() => handleDigit('7')}
-          className="h-11 rounded-lg bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
+          className="h-11 rounded-none bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
         >
           7
         </button>
         <button
           onClick={() => handleDigit('8')}
-          className="h-11 rounded-lg bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
+          className="h-11 rounded-none bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
         >
           8
         </button>
         <button
           onClick={() => handleDigit('9')}
-          className="h-11 rounded-lg bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
+          className="h-11 rounded-none bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
         >
           9
         </button>
         <button
           onClick={() => handleOperator('*')}
-          className="h-11 rounded-lg bg-[#008080]/10 hover:bg-[#008080]/20 text-[#008080] font-bold text-base transition-colors shadow-sm"
+          className="h-11 rounded-none bg-[#008080]/10 hover:bg-[#008080]/20 text-[#008080] font-bold text-base transition-colors shadow-sm"
         >
           ×
         </button>
-
+ 
         {/* 4 5 6 - */}
         <button
           onClick={() => handleDigit('4')}
-          className="h-11 rounded-lg bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
+          className="h-11 rounded-none bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
         >
           4
         </button>
         <button
           onClick={() => handleDigit('5')}
-          className="h-11 rounded-lg bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
+          className="h-11 rounded-none bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
         >
           5
         </button>
         <button
           onClick={() => handleDigit('6')}
-          className="h-11 rounded-lg bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
+          className="h-11 rounded-none bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
         >
           6
         </button>
         <button
           onClick={() => handleOperator('-')}
-          className="h-11 rounded-lg bg-[#008080]/10 hover:bg-[#008080]/20 text-[#008080] font-bold text-base transition-colors shadow-sm"
+          className="h-11 rounded-none bg-[#008080]/10 hover:bg-[#008080]/20 text-[#008080] font-bold text-base transition-colors shadow-sm"
         >
           -
         </button>
-
+ 
         {/* 1 2 3 + */}
         <button
           onClick={() => handleDigit('1')}
-          className="h-11 rounded-lg bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
+          className="h-11 rounded-none bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
         >
           1
         </button>
         <button
           onClick={() => handleDigit('2')}
-          className="h-11 rounded-lg bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
+          className="h-11 rounded-none bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
         >
           2
         </button>
         <button
           onClick={() => handleDigit('3')}
-          className="h-11 rounded-lg bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
+          className="h-11 rounded-none bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
         >
           3
         </button>
         <button
           onClick={() => handleOperator('+')}
-          className="h-11 rounded-lg bg-[#008080]/10 hover:bg-[#008080]/20 text-[#008080] font-bold text-base transition-colors shadow-sm"
+          className="h-11 rounded-none bg-[#008080]/10 hover:bg-[#008080]/20 text-[#008080] font-bold text-base transition-colors shadow-sm"
         >
           +
         </button>
-
+ 
         {/* 0 . = (spans 2) */}
         <button
           onClick={() => handleDigit('0')}
-          className="h-11 rounded-lg bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
+          className="h-11 rounded-none bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-sm transition-colors shadow-sm"
         >
           0
         </button>
         <button
           onClick={handleDecimal}
-          className="h-11 rounded-lg bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-base transition-colors shadow-sm"
+          className="h-11 rounded-none bg-white border border-[#E4E7EC] hover:bg-[#F9FAFB] text-[#1D2939] font-semibold text-base transition-colors shadow-sm"
         >
           .
         </button>
         <button
           onClick={handleEvaluate}
-          className="h-11 col-span-2 rounded-lg bg-[#008080] hover:bg-[#006666] text-white font-bold text-sm transition-colors shadow-sm"
+          className="h-11 col-span-2 rounded-none bg-[#008080] hover:bg-[#006666] text-white font-bold text-sm transition-colors shadow-sm"
         >
           =
         </button>

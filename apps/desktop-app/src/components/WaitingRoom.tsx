@@ -84,7 +84,7 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, onGoBac
         </div>
         
         <div className="flex items-center gap-4 text-sm">
-          <div className="w-14 h-14 border border-[#E4E7EC] bg-[#F9FAFB] flex items-center justify-center rounded-lg shadow-sm">
+          <div className="w-14 h-14 border border-[#E4E7EC] bg-[#F9FAFB] flex items-center justify-center rounded-none shadow-sm">
             <svg className="w-10 h-10 text-[#667085]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
           </div>
           <div className="flex flex-col text-right">
@@ -105,7 +105,7 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, onGoBac
         }}
       >
         <div className="shrink-0 h-[2vh] md:h-[4vh] min-h-[10px]"></div>
-        <div className="w-full max-w-2xl mx-auto bg-white border border-[#E4E7EC] rounded-xl shadow-xl overflow-hidden shrink-0 mb-6">
+        <div className="w-full max-w-2xl mx-auto bg-white border border-[#E4E7EC] rounded-none shadow-xl overflow-hidden shrink-0 mb-6">
           {/* Card Title Bar */}
           <div className="bg-[#008080] py-4 px-6 text-center">
             <span className="text-white font-extrabold text-sm uppercase tracking-widest">WAITING ROOM</span>
@@ -118,7 +118,7 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, onGoBac
             </div>
 
             {/* Countdown Area */}
-            <div className="bg-[#F9FAFB] border border-[#E4E7EC] rounded-xl p-8 text-center mb-8 shadow-sm">
+            <div className="bg-[#F9FAFB] border border-[#E4E7EC] rounded-none p-8 text-center mb-8 shadow-sm">
               {isEnded ? (
                 <div>
                   <div className="text-[#F04438] text-lg font-extrabold mb-2 uppercase tracking-wide">⚠ This Examination Has Ended</div>
@@ -130,7 +130,7 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, onGoBac
                   <button
                     onClick={handleStartClick}
                     disabled={starting}
-                    className="px-8 py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold rounded-lg transition-all uppercase tracking-wider shadow-sm disabled:opacity-50"
+                    className="px-8 py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold rounded-none transition-all uppercase tracking-wider shadow-sm disabled:opacity-50"
                   >
                     {starting ? 'STARTING...' : 'START EXAM NOW'}
                   </button>
@@ -140,21 +140,21 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, onGoBac
                   <h3 className="text-[#667085] text-xs font-bold mb-5 uppercase tracking-widest">Starts In</h3>
                   <div className="flex justify-center gap-4">
                     <div className="flex flex-col items-center">
-                      <div className="w-16 h-16 bg-[#008080] flex items-center justify-center text-3xl font-extrabold text-white rounded-lg shadow-md hover:scale-105 transition-transform">
+                      <div className="w-16 h-16 bg-[#008080] flex items-center justify-center text-3xl font-extrabold text-white rounded-none shadow-md hover:scale-105 transition-transform">
                         {String(timeLeft?.hours || 0).padStart(2, '0')}
                       </div>
                       <span className="text-[10px] text-[#667085] mt-2 font-bold uppercase tracking-wider">HOURS</span>
                     </div>
                     <div className="text-3xl font-bold text-[#008080] self-start mt-3">:</div>
                     <div className="flex flex-col items-center">
-                      <div className="w-16 h-16 bg-[#008080] flex items-center justify-center text-3xl font-extrabold text-white rounded-lg shadow-md hover:scale-105 transition-transform">
+                      <div className="w-16 h-16 bg-[#008080] flex items-center justify-center text-3xl font-extrabold text-white rounded-none shadow-md hover:scale-105 transition-transform">
                         {String(timeLeft?.minutes || 0).padStart(2, '0')}
                       </div>
                       <span className="text-[10px] text-[#667085] mt-2 font-bold uppercase tracking-wider">MINS</span>
                     </div>
                     <div className="text-3xl font-bold text-[#008080] self-start mt-3">:</div>
                     <div className="flex flex-col items-center">
-                      <div className="w-16 h-16 bg-[#008080] flex items-center justify-center text-3xl font-extrabold text-white rounded-lg shadow-md hover:scale-105 transition-transform">
+                      <div className="w-16 h-16 bg-[#008080] flex items-center justify-center text-3xl font-extrabold text-white rounded-none shadow-md hover:scale-105 transition-transform">
                         {String(timeLeft?.seconds || 0).padStart(2, '0')}
                       </div>
                       <span className="text-[10px] text-[#667085] mt-2 font-bold uppercase tracking-wider">SECS</span>
