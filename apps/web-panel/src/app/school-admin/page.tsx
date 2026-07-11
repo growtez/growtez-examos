@@ -190,15 +190,16 @@ export default async function SchoolAdminDashboard() {
         })}
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#e0f2f2]">
-        <h3 className="text-sm sm:text-base font-bold text-[#1a2e2e] mb-3 flex items-center gap-2">
-          <svg className="w-4 h-4 text-[#008080]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          Quick Actions
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Quick Actions */}
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#e0f2f2] flex flex-col">
+          <h3 className="text-sm sm:text-base font-bold text-[#1a2e2e] mb-3 flex items-center gap-2">
+            <svg className="w-4 h-4 text-[#008080]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Quick Actions
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 flex-grow">
           <Link href="/exams/new" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer text-center">
             <Plus size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
             <span className="font-semibold text-xs text-[#1a2e2e]">Create Exam</span>
@@ -220,12 +221,10 @@ export default async function SchoolAdminDashboard() {
             <span className="font-semibold text-xs text-[#1a2e2e]">Manage Results</span>
           </Link>
         </div>
-      </div>
+        </div>
 
-      {/* Recent Items Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {/* Card 1: Recent Exams */}
-        <Card className="shadow-sm border-border flex flex-col w-full p-4 lg:col-span-2">
+        {/* Recent Exams */}
+        <Card className="shadow-sm border-border flex flex-col w-full p-4">
           <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/40 mb-3">
             <CardTitle className="text-sm font-bold flex items-center gap-2 text-[#1a2e2e]">
               <FileText size={16} className="text-[#008080]" />

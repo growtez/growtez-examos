@@ -219,12 +219,6 @@ export default function SchoolAdminLayout({
               <Menu className="w-5 h-5" />
             </button>
             <div className="flex items-center text-[12px] md:text-[13px] font-medium text-text-main overflow-hidden">
-              {schoolName && (
-                <span className="hidden sm:inline-flex items-center">
-                  <span className="text-[#555555] font-normal truncate max-w-[120px] md:max-w-[200px]" title={schoolName}>{schoolName}</span>
-                  <span className="text-[#b2d8d8] mx-2">/</span>
-                </span>
-              )}
               {breadcrumbs.map((crumb, index) => {
                 const isLast = index === breadcrumbs.length - 1;
                 return (
