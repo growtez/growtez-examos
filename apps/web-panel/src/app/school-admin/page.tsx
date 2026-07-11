@@ -212,10 +212,6 @@ export default async function SchoolAdminDashboard() {
             <Users2 size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
             <span className="font-semibold text-xs text-[#1a2e2e]">Manage Students</span>
           </Link>
-          <Link href="/students" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer text-center">
-            <Layers size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
-            <span className="font-semibold text-xs text-[#1a2e2e]">Manage Batches</span>
-          </Link>
           <Link href="/results" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer col-span-2 sm:col-span-1 text-center">
             <CheckCircle size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
             <span className="font-semibold text-xs text-[#1a2e2e]">Manage Results</span>

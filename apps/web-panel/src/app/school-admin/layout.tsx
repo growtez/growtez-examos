@@ -29,11 +29,6 @@ const navItems = [
     icon: <GraduationCap className="w-5 h-5" />,
   },
   {
-    label: 'Manage Batches',
-    href: '/students',
-    icon: <Layers className="w-5 h-5" />,
-  },
-  {
     label: 'Results',
     href: '/results',
     icon: <FileText className="w-5 h-5" />,
@@ -245,17 +240,17 @@ export default function SchoolAdminLayout({
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="flex items-center text-[12px] md:text-[13px] font-medium text-text-main overflow-hidden">
+            <div className="flex items-center text-sm md:text-base font-medium text-[#1a2e2e] overflow-hidden">
               {breadcrumbs.map((crumb, index) => {
                 const isLast = index === breadcrumbs.length - 1;
                 return (
                   <span key={index} className={`items-center ${isLast ? 'flex' : 'hidden md:inline-flex'}`}>
                     {crumb.href ? (
-                      <Link href={crumb.href} className="hover:text-[#008080] text-[#555555] transition-colors font-normal whitespace-nowrap">
+                      <Link href={crumb.href} className="hover:text-[#008080] text-[#555555] transition-colors font-semibold whitespace-nowrap">
                         {crumb.label}
                       </Link>
                     ) : (
-                      <span className="text-[#1a2e2e] font-bold whitespace-nowrap">{crumb.label}</span>
+                      <span className="text-[#008080] font-bold whitespace-nowrap">{crumb.label}</span>
                     )}
                     {index < breadcrumbs.length - 1 && <span className="text-[#b2d8d8] mx-2">/</span>}
                   </span>
@@ -266,7 +261,7 @@ export default function SchoolAdminLayout({
           
           <div className="flex items-center gap-4 ml-auto">
             {schoolName && (
-              <span className="text-sm font-medium text-[#555555] hidden sm:block truncate max-w-[200px]" title={schoolName}>
+              <span className="text-base font-bold text-[#1a2e2e] hidden sm:block truncate max-w-[50vw]" title={schoolName}>
                 {schoolName}
               </span>
             )}
@@ -283,11 +278,7 @@ export default function SchoolAdminLayout({
                   <div className="py-2">
                     <Link href="/profile" onClick={() => setProfileDropdownOpen(false)} className="flex items-center px-4 py-2.5 text-sm font-medium text-[#555555] hover:bg-[#f5f9f9] hover:text-[#008080] transition-colors">
                       <User className="w-4 h-4 mr-3 text-[#8ab8b8]" />
-                      Profile & Subscriptions
-                    </Link>
-                    <Link href="/instructions" onClick={() => setProfileDropdownOpen(false)} className="flex items-center px-4 py-2.5 text-sm font-medium text-[#555555] hover:bg-[#f5f9f9] hover:text-[#008080] transition-colors">
-                      <BookOpen className="w-4 h-4 mr-3 text-[#8ab8b8]" />
-                      Exam Instructions
+                      Profile & Notifications
                     </Link>
                     <Link href="/feedback" onClick={() => setProfileDropdownOpen(false)} className="flex items-center px-4 py-2.5 text-sm font-medium text-[#555555] hover:bg-[#f5f9f9] hover:text-[#008080] transition-colors">
                       <MessageSquare className="w-4 h-4 mr-3 text-[#8ab8b8]" />

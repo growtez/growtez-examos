@@ -27,7 +27,7 @@ export default function FeedbackPage() {
         setSchoolId(admin.school_id);
         
         // Fetch existing feedback
-        const { data: fbs } = await supabase.from('feedbacks')
+        const { data: fbs } = await supabase.from('feedback')
           .select('*')
           .eq('school_id', admin.school_id)
           .order('created_at', { ascending: false });
@@ -51,12 +51,12 @@ export default function FeedbackPage() {
     
     const newFeedback = {
       school_id: schoolId,
-      user_id: userId,
+      submitted_by: userId,
       message,
       type
     };
 
-    const { data, error } = await supabase.from('feedbacks').insert([newFeedback]).select().single();
+    const { data, error } = await supabase.from('feedback').insert([newFeedback]).select().single();
     
     setSubmitting(false);
     

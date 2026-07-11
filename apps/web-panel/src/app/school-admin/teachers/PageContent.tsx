@@ -144,20 +144,20 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
   ).filter(t => selectedDepartment === 'all' || t.department === selectedDepartment);
 
   return (
-    <div>
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[#1a2e2e]">Teachers</h2>
           <p className="text-[#555555] mt-1 text-sm font-medium">Manage your school&apos;s teaching staff</p>
         </div>
         <div className="flex gap-4 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
+          <div className="relative flex-1 w-full md:w-64 shrink-0">
             <input 
               type="text" 
               placeholder="Search teachers..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#e0f2f2] rounded-xl text-sm text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all shadow-sm"
             />
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8ab8b8]">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -248,8 +248,8 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
                       setEmail(t.email);
                       setDepartment(t.department || '');
                       setEditTeacherId(t.id);
-                    }} className="text-[#008080] hover:text-[#005555] text-xs font-bold px-2 py-1 rounded hover:bg-[#e0f2f2] transition-colors">Edit</button>
-                    <button onClick={() => setDeleteTeacherId(t.id)} className="text-red-500 hover:text-red-700 text-xs font-bold px-2 py-1 rounded hover:bg-red-50 transition-colors">Delete</button>
+                    }} className="text-[#008080] hover:text-[#006666] text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-[#e0f2f2] transition-colors">Edit</button>
+                    <button onClick={() => setDeleteTeacherId(t.id)} className="text-red-500 hover:text-red-600 text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -261,11 +261,11 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
 
       {/* Add Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-[#1a2e2e]/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-[#e0f2f2] bg-[#f5f9f9]">
-              <h3 className="text-xl font-bold text-[#1a2e2e]">Add Teacher</h3>
-              <p className="text-sm text-[#555555] mt-1">Add a new teacher to your school</p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-[#008080] px-6 py-4 flex items-center justify-between">
+              <span className="text-white font-bold">Add Teacher</span>
+              <button onClick={() => setShowModal(false)} className="text-white/70 hover:text-white transition-colors">✕</button>
             </div>
             <form onSubmit={handleAddTeacher} className="p-6 space-y-4">
               <div>
@@ -293,14 +293,14 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
                   placeholder="Min 6 characters" />
               </div>
               {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-medium">{error}</div>}
-              <div className="flex gap-3 pt-4">
-                <button type="submit" disabled={formLoading}
-                  className="flex-1 py-3 bg-[#008080] text-white font-semibold rounded-xl hover:bg-[#006666] transition-all disabled:opacity-50">
-                  {formLoading ? 'Adding...' : 'Add Teacher'}
-                </button>
+              <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)}
-                  className="px-6 py-3 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] transition-colors">
+                  className="px-6 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors">
                   Cancel
+                </button>
+                <button type="submit" disabled={formLoading}
+                  className="flex-1 py-2.5 bg-[#008080] text-white font-bold rounded-xl shadow-lg shadow-[#008080]/20 hover:bg-[#006666] transition-all disabled:opacity-70 text-sm">
+                  {formLoading ? 'Adding...' : 'Add Teacher'}
                 </button>
               </div>
             </form>
@@ -310,11 +310,11 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
 
       {/* Edit Modal */}
       {editTeacherId && (
-        <div className="fixed inset-0 bg-[#1a2e2e]/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={() => setEditTeacherId(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 border-b border-[#e0f2f2] bg-[#f5f9f9]">
-              <h3 className="text-xl font-bold text-[#1a2e2e]">Edit Teacher</h3>
-              <p className="text-sm text-[#555555] mt-1">Update teacher profile details</p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditTeacherId(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-[#008080] px-6 py-4 flex items-center justify-between">
+              <span className="text-white font-bold">Edit Teacher</span>
+              <button onClick={() => setEditTeacherId(null)} className="text-white/70 hover:text-white transition-colors">✕</button>
             </div>
             <form onSubmit={handleEditTeacher} className="p-6 space-y-4">
               <div>
@@ -334,14 +334,14 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
                   placeholder="e.g. Mathematics" />
               </div>
               {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-medium">{error}</div>}
-              <div className="flex gap-3 pt-4">
-                <button type="submit" disabled={formLoading}
-                  className="flex-1 py-3 bg-[#008080] text-white font-semibold rounded-xl hover:bg-[#006666] transition-all disabled:opacity-50">
-                  {formLoading ? 'Saving...' : 'Save Changes'}
-                </button>
+              <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setEditTeacherId(null)}
-                  className="px-6 py-3 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] transition-colors">
+                  className="px-6 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors">
                   Cancel
+                </button>
+                <button type="submit" disabled={formLoading}
+                  className="flex-1 py-2.5 bg-[#008080] text-white font-bold rounded-xl shadow-lg shadow-[#008080]/20 hover:bg-[#006666] transition-all disabled:opacity-70 text-sm">
+                  {formLoading ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -352,17 +352,23 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
       {/* Delete Confirmation Modal */}
       {deleteTeacherId && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDeleteTeacherId(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </div>
-              <h3 className="text-xl font-bold text-[#1a2e2e] mb-2">Delete Teacher</h3>
-              <p className="text-[#555555] text-sm">Are you sure you want to permanently delete this teacher from the database? This action cannot be undone.</p>
+              <h3 className="text-lg font-bold text-[#1a2e2e] mb-2">Delete Teacher?</h3>
+              <p className="text-sm text-[#555555]">This action cannot be undone. Are you sure you want to delete this teacher?</p>
             </div>
-            <div className="bg-[#f5f9f9] px-6 py-4 flex gap-3">
-              <button onClick={() => setDeleteTeacherId(null)} className="flex-1 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-bold rounded-xl hover:bg-[#e0f2f2] transition-colors text-sm">Cancel</button>
-              <button onClick={handleDeleteTeacher} className="flex-1 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors text-sm shadow-sm">Delete</button>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteTeacherId(null)}
+                className="flex-1 px-4 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] transition-colors text-sm">
+                Cancel
+              </button>
+              <button onClick={handleDeleteTeacher}
+                className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-lg shadow-red-500/20 transition-all text-sm">
+                Delete
+              </button>
             </div>
           </div>
         </div>

@@ -165,24 +165,24 @@ export default function SuperAdminLayout({
 
               <div className="flex items-center">
                 <div className="flex flex-col">
-                  <div className="text-[12px] md:text-[13px] font-medium text-text-main">
+                  <div className="text-sm md:text-base font-medium text-text-main">
                     {breadcrumbs.length > 0 ? (
-                      <nav className="flex items-center gap-1.5 text-[12px] md:text-[13px] text-text-muted">
+                      <nav className="flex items-center gap-1.5 text-sm md:text-base text-text-muted">
                         {breadcrumbs.map((crumb, index) => (
                           <span key={crumb.label} className="flex items-center gap-1.5">
                             {crumb.href ? (
-                              <Link href={crumb.href} className="hover:text-accent-primary transition-colors">
+                              <Link href={crumb.href} className="hover:text-accent-primary transition-colors font-semibold">
                                 {crumb.label}
                               </Link>
                             ) : (
-                              <span className="text-text-main font-semibold">{crumb.label}</span>
+                              <span className="text-accent-primary font-bold">{crumb.label}</span>
                             )}
                             {index < breadcrumbs.length - 1 && <span>/</span>}
                           </span>
                         ))}
                       </nav>
                     ) : (
-                      <span>{title}</span>
+                      <span className="font-bold text-accent-primary">{title}</span>
                     )}
                   </div>
                 </div>
