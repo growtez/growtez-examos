@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import {
   Plus, X, Edit2, Trash2, Calendar, Coins, Zap
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 export default function PlansDashboard() {
   const [plans, setPlans] = useState<any[]>([]);
@@ -26,8 +27,11 @@ export default function PlansDashboard() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
     fetchPlans();
+    setMounted(true);
   }, []);
 
   const fetchPlans = async () => {
@@ -41,15 +45,29 @@ export default function PlansDashboard() {
   const openCreatePlan = (prefill?: any) => {
     setEditingPlan(null);
     setLockFields(!!prefill);
-    setPlanForm({ 
-      name: prefill?.name || '', 
-      plan_type: prefill?.plan_type || 'time_based', 
-      billing_cycle: prefill?.billing_cycle || 'monthly', 
-      price: prefill?.price || '', 
-      credits_awarded: prefill?.credits_awarded || '', 
-      razorpay_plan_id: '', 
-      is_active: true 
-    });
+    
+    // Only reset if prefill is provided or if form is empty
+    if (prefill) {
+      setPlanForm({ 
+        name: prefill.name || '', 
+        plan_type: prefill.plan_type || 'time_based',
+        billing_cycle: prefill.billing_cycle || 'monthly',
+        price: prefill.price || '',
+        credits_awarded: prefill.credits_awarded || '',
+        razorpay_plan_id: prefill.razorpay_plan_id || '',
+        is_active: prefill.is_active !== false,
+      });
+    } else if (!planForm.name && !planForm.price && !planForm.razorpay_plan_id) {
+      setPlanForm({
+        name: '',
+        plan_type: 'time_based',
+        billing_cycle: 'monthly',
+        price: '',
+        credits_awarded: '',
+        razorpay_plan_id: '',
+        is_active: true,
+      });
+    }
     setError('');
     setShowPlanModal(true);
   };
@@ -93,6 +111,16 @@ export default function PlansDashboard() {
         if (e) throw e;
       }
       setShowPlanModal(false);
+      // Reset form on success
+      setPlanForm({
+        name: '',
+        plan_type: 'time_based',
+        billing_cycle: 'monthly',
+        price: '',
+        credits_awarded: '',
+        razorpay_plan_id: '',
+        is_active: true,
+      });
       fetchPlans();
     } catch (e: any) {
       setError(e.message);
@@ -122,26 +150,13 @@ export default function PlansDashboard() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-text-main">Licensing & Plans</h1>
-          <p className="text-sm text-text-muted">Manage pricing and billing plans for schools.</p>
-        </div>
-        <button
-          onClick={() => openCreatePlan()}
-          className="flex items-center gap-2 px-4 py-2 bg-accent-primary text-white rounded-xl text-sm font-semibold hover:bg-accent-primary/95 transition-colors shrink-0 self-start md:self-auto"
-        >
-          <Plus size={16} /> Add Plan
-        </button>
-      </div>
-    
+    <div className="space-y-4">
       {loading ? (
         <div className="p-8 text-center text-text-muted text-sm bg-surface border border-border rounded-2xl shadow-sm">Loading plans…</div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Fixed Payment */}
-          <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col">
+          <div className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col min-h-[160px]">
             <div className="flex items-start justify-between mb-3">
               <div>
                 <h3 className="text-base font-extrabold text-text-main tracking-tight">Fixed Payment</h3>
@@ -176,6 +191,17 @@ export default function PlansDashboard() {
               <Edit2 size={13} /> {creditPlan ? 'Edit Plan' : 'Setup Plan'}
             </button>
           </div>
+
+          {/* Add Plan Card */}
+          <button
+            onClick={() => openCreatePlan()}
+            className="flex flex-col items-center justify-center border-2 border-dashed border-border/80 hover:border-accent-primary bg-surface/50 hover:bg-surface-hover/30 rounded-2xl p-4 min-h-[160px] text-text-muted hover:text-accent-primary transition-all cursor-pointer group"
+          >
+            <div className="w-10 h-10 rounded-full bg-border/40 group-hover:bg-accent-primary/10 flex items-center justify-center mb-2 transition-all">
+              <Plus size={20} className="text-text-muted group-hover:text-accent-primary" />
+            </div>
+            <span className="text-xs font-bold uppercase tracking-wider">Add New Plan</span>
+          </button>
 
           {/* Monthly */}
           {/*
@@ -351,11 +377,11 @@ export default function PlansDashboard() {
       )}
       */}
 
-      {/* ── Plan Modal ────────────────────────────────── */}
-      {showPlanModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-bg border border-border rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
-            <div className="flex items-center justify-between">
+      {/* ── Plan Drawer ────────────────────────────────── */}
+      {showPlanModal && mounted && createPortal(
+        <div className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-sm" onClick={() => setShowPlanModal(false)}>
+          <div className="bg-bg border-l border-border h-full w-full max-w-md p-6 space-y-4 flex flex-col justify-start animate-in slide-in-from-right duration-250" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between pb-2 border-b border-border/50">
               <h2 className="text-lg font-bold text-text-main">{editingPlan ? 'Edit Plan' : 'Setup Plan'}</h2>
               <button onClick={() => setShowPlanModal(false)} className="text-text-muted hover:text-text-main transition-colors">
                 <X size={20} />
@@ -364,7 +390,7 @@ export default function PlansDashboard() {
 
             {error && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm">{error}</div>}
 
-            <div className="space-y-3">
+            <div className="flex-1 overflow-y-auto space-y-4 pt-3 pb-3 pr-1">
               {/* Name */}
               <div className="relative">
                 <input type="text" placeholder="Plan Name" value={planForm.name}
@@ -415,19 +441,6 @@ export default function PlansDashboard() {
                 )
               )}
 
-              {/* Credits Awarded (only for exam_based) */}
-              {/*
-              {planForm.plan_type === 'exam_based' && (
-                <div className="relative">
-                  <input type="number" placeholder="0" value={planForm.credits_awarded}
-                    onChange={e => setPlanForm({ ...planForm, credits_awarded: e.target.value })}
-                    className="peer w-full bg-surface-hover border border-slate-300 dark:border-zinc-700 rounded-xl px-4 h-12 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all placeholder:text-transparent"
-                  />
-                  <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 pointer-events-none">Credits Awarded</label>
-                </div>
-              )}
-              */}
-
               {/* Price */}
               <div className="relative">
                 <input type="number" placeholder="0.00" value={planForm.price}
@@ -458,7 +471,7 @@ export default function PlansDashboard() {
               </label>
             </div>
 
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-2 pt-4 border-t border-border">
               <button onClick={() => setShowPlanModal(false)}
                 className="flex-1 py-2.5 rounded-xl border border-border text-text-muted text-sm font-semibold hover:bg-surface-hover transition-colors">
                 Cancel
@@ -469,7 +482,8 @@ export default function PlansDashboard() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Sidebar from '@/components/Sidebar';
@@ -40,27 +40,29 @@ export default function SuperAdminLayout({
     window.location.href = '/login';
   };
 
-  useLayoutEffect(() => {
-    if (!pathname?.startsWith('/schools/')) {
+  useEffect(() => {
+    const segments = pathname?.split('/').filter(Boolean) ?? [];
+    const schoolsIndex = segments.indexOf('schools');
+    const schoolId = schoolsIndex !== -1 && schoolsIndex < segments.length - 1 ? segments[schoolsIndex + 1] : null;
+
+    if (!schoolId) {
       setCurrentSchoolName(null);
       return;
     }
 
-    const syncSchoolName = () => {
-      const heading = document.querySelector('[data-page-title="school-name"]');
-      const name = heading?.textContent?.trim();
-      setCurrentSchoolName(name || null);
+    const fetchSchoolName = async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('schools')
+        .select('name')
+        .eq('id', schoolId)
+        .single();
+      if (data?.name) {
+        setCurrentSchoolName(data.name);
+      }
     };
 
-    syncSchoolName();
-
-    const observer = new MutationObserver(syncSchoolName);
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-
-    return () => observer.disconnect();
+    fetchSchoolName();
   }, [pathname]);
 
   const getPageTitle = () => {
@@ -69,7 +71,7 @@ export default function SuperAdminLayout({
     if (pathname?.startsWith('/exams')) return 'Exams';
     if (pathname === '/users') return 'Users';
     if (pathname?.startsWith('/plans')) return 'Plans';
-    if (pathname?.startsWith('/subscriptions')) return 'Subscriptions';
+    if (pathname?.startsWith('/subscriptions')) return 'Transactions';
     return 'Command Center';
   };
 
@@ -98,11 +100,11 @@ export default function SuperAdminLayout({
     }
 
     if (segments.includes('subscriptions')) {
-      crumbs.push({ label: 'Subscriptions', href: '/subscriptions' });
+      crumbs.push({ label: 'Transactions', href: '/subscriptions' });
     }
 
     const lastSegment = segments[segments.length - 1];
-    const isSchoolDetail = segments[0] === 'schools' && segments.length > 1;
+    const isSchoolDetail = segments.includes('schools') && segments.indexOf('schools') < segments.length - 1;
 
     if (isSchoolDetail) {
       crumbs.push({ label: currentSchoolName || '', href: null });
@@ -187,9 +189,11 @@ export default function SuperAdminLayout({
               </div>
             </div>
 
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
-              <HeaderStats />
-            </div>
+            {(pathname === '/super-admin' || pathname === '/super-admin/') && (
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block">
+                <HeaderStats />
+              </div>
+            )}
 
             <div className="flex items-center gap-3 md:gap-6">
               <div className="relative group">

@@ -296,7 +296,7 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-4">
         <div className="border-l-4 border-[#008080] pl-4">
           <h2 className="text-2xl font-extrabold text-[#1a2e2e] uppercase tracking-wide">Students</h2>
           <p className="text-[#555555] mt-1 text-sm">Manage your school&apos;s students</p>

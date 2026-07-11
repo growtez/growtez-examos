@@ -60,20 +60,7 @@ export function SchoolAdminDashboardView({ schoolId }: { schoolId: string }) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-[#e0f2f2]">
-        <div className="flex gap-4 items-center">
-          <div className="w-12 h-12 rounded-xl bg-[#008080]/10 flex items-center justify-center text-[#008080]">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m3-4h1m-1 4h1m-5 8h8" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-[#1a2e2e]">Welcome, {schoolName}</h2>
-            <p className="text-[#555555] mt-1 text-sm font-medium">Manage exams, teachers, and students from your dashboard.</p>
-          </div>
-        </div>
-      </div>
+    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

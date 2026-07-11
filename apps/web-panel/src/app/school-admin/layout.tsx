@@ -32,12 +32,7 @@ const navItems = [
     label: 'Results',
     href: '/results',
     icon: <FileText className="w-5 h-5" />,
-  },
-  {
-    label: 'Billing & Credits',
-    href: '/billing',
-    icon: <LayoutDashboard className="w-5 h-5" />,
-  },
+  }
 ];
 
 export default function SchoolAdminLayout({

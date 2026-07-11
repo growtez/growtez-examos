@@ -31,7 +31,7 @@ export const defaultNavItems: NavItem[] = [
     { path: '/schools', icon: School, label: 'Schools' },
     { path: '/exams', icon: FileText, label: 'Exams' },
     { path: '/plans', icon: Tag, label: 'Plans' },
-    { path: '/subscriptions', icon: CreditCard, label: 'Subscriptions' },
+    { path: '/subscriptions', icon: CreditCard, label: 'Transactions' },
 ];
 
 const ICON_BOX = 20;

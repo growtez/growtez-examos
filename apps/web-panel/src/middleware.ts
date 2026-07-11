@@ -63,7 +63,7 @@ export async function middleware(req: NextRequest) {
   if (subdomain === 'admin') {
     // Login page is always accessible
     if (url.pathname === '/login' || url.pathname.startsWith('/api/auth')) {
-      return NextResponse.rewrite(new URL(`/login`, req.url), { headers: response.headers });
+      return NextResponse.rewrite(new URL(url.pathname === '/login' ? `/admin-login` : url.pathname, req.url), { headers: response.headers });
     }
 
     // Protect super-admin routes (ensure user has super_admin role)

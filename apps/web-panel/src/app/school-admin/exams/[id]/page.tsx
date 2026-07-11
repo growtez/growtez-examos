@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { ArrowLeft, BookOpen, Clock, Copy, Globe, Link2, MoreVertical, Plus, Settings2, Trash2, Users, AlertCircle, Copy as CopyIcon, Play, Edit2, Check, Download } from 'lucide-react';
+import { ArrowLeft, BookOpen, Clock, Copy, Globe, Link2, MoreVertical, Plus, Settings2, Trash2, Users, AlertCircle, Copy as CopyIcon, Play, Edit2, Check, Download, ShieldCheck, CreditCard } from 'lucide-react';
+import { openRazorpayCheckout } from '@/components/RazorpayCheckout';
 
 function CustomCombobox({ value, onChange, options, placeholder, className }: { value: string, onChange: (v: string) => void, options: string[], placeholder: string, className: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -349,15 +350,63 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
     setPublishing(true);
     
-    const updates = {
-      status: 'published',
-      start_time: new Date(startTime).toISOString(),
-      end_time: new Date(endTime).toISOString()
-    };
+    try {
+      if (!exam.is_paid) {
+        alert('You must pay the exam conduction fee before publishing this exam.');
+        setPublishing(false);
+        return;
+      }
+      
+      const updates = {
+        status: 'published',
+        start_time: new Date(startTime).toISOString(),
+        end_time: new Date(endTime).toISOString()
+      };
+      
+      await supabase.from('exams').update(updates).eq('id', params.id);
+      setExam({ ...exam, ...updates });
+    } catch (err) {
+      console.error(err);
+      alert('An unexpected error occurred while publishing.');
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!exam.school_id) return;
     
-    await supabase.from('exams').update(updates).eq('id', params.id);
-    setExam({ ...exam, ...updates });
-    setPublishing(false);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    openRazorpayCheckout({
+      amount: 300,
+      examId: exam.id,
+      planName: `Exam Publish Fee: ${exam.title}`,
+      schoolId: exam.school_id,
+      userEmail: user?.email,
+      onSuccess: () => {
+        alert('Payment successful! You can now publish the exam.');
+        fetchExamData();
+      },
+      onError: (err: any) => {
+        alert('Payment failed or cancelled: ' + (err.message || 'Unknown error'));
+      }
+    });
+  };
+
+  const handleTogglePaid = async () => {
+    try {
+      setPublishing(true);
+      const newStatus = !exam.is_paid;
+      const { error } = await supabase.from('exams').update({ is_paid: newStatus }).eq('id', exam.id);
+      if (error) throw error;
+      alert(`Exam payment status set to: ${newStatus ? 'Paid' : 'Unpaid'}`);
+      fetchExamData();
+    } catch (err: any) {
+      alert('Failed to update status: ' + err.message);
+    } finally {
+      setPublishing(false);
+    }
   };
 
   const formatDobPassword = (dateStr: string) => {
@@ -1088,6 +1137,29 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         )}
       </div>
 
+      {/* Super Admin Payment Override */}
+      {role === 'super_admin' && (
+        <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-6 shadow-sm mb-6 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-[#1a2e2e] mb-1">Super Admin Override</h3>
+            <p className="text-[#555555] text-sm font-medium">Toggle the payment status of this exam without processing a transaction.</p>
+          </div>
+          <button 
+            onClick={handleTogglePaid}
+            disabled={publishing}
+            className={`inline-flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-colors shadow-sm
+              ${exam.is_paid 
+                ? 'bg-amber-500/10 text-amber-600 border border-amber-500/30 hover:bg-amber-500/20' 
+                : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 hover:bg-emerald-500/20'}
+              ${publishing ? 'opacity-50 cursor-not-allowed' : ''}
+            `}
+          >
+            {publishing ? <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" /> : <ShieldCheck size={16} />}
+            {exam.is_paid ? 'Mark as Unpaid' : 'Mark as Paid'}
+          </button>
+        </div>
+      )}
+
       {/* Publish Button */}
       {exam.status === 'draft' && role !== 'teacher' && (
         <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-6 shadow-sm">
@@ -1111,11 +1183,27 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          <button onClick={handlePublish} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#008080] hover:bg-[#006666] text-white font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm">
-            <Play size={16} />
-            {publishing ? 'Publishing...' : 'Publish Exam'}
-          </button>
+          <div className="flex items-center gap-4">
+            {exam.is_paid ? (
+              <button onClick={handlePublish} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#008080] hover:bg-[#006666] text-white font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm">
+                <Play size={16} />
+                {publishing ? 'Publishing...' : 'Publish Exam'}
+              </button>
+            ) : (
+              <button onClick={handlePayment} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm">
+                <CreditCard size={16} />
+                Pay ₹300 to Publish
+              </button>
+            )}
+            
+            {!exam.is_paid && (
+              <span className="text-xs font-bold text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20">
+                Payment Required
+              </span>
+            )}
+          </div>
         </div>
       )}
 

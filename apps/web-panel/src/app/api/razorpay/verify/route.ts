@@ -2,19 +2,20 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 export async function POST(req: Request) {
   try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    );
+
     const body = await req.json();
     const { 
       razorpay_order_id, 
       razorpay_payment_id, 
       razorpay_signature, 
       schoolId, 
+      examId,
       planId, 
       amount 
     } = body;
@@ -37,9 +38,10 @@ export async function POST(req: Request) {
     const { error: insertError } = await supabase.from('payment_history').insert({
       school_id: schoolId,
       plan_id: planId || null,
+      exam_id: examId || null,
       razorpay_payment_id: razorpay_payment_id,
       amount_paid: amount,
-      payment_type: 'credit_purchase'
+      payment_type: examId ? 'exam_fee' : 'credit_purchase'
     });
 
     if (insertError) {
@@ -48,16 +50,16 @@ export async function POST(req: Request) {
         throw insertError;
       }
     } else {
-      // Get the plan to know how many credits to add
-      if (planId) {
+      // If paying for an exam
+      if (examId) {
+        await supabase.from('exams').update({ is_paid: true }).eq('id', examId);
+      }
+      // If buying credits (legacy support)
+      else if (planId) {
         const { data: planData } = await supabase.from('plans').select('credits_awarded').eq('id', planId).single();
-        
         if (planData && planData.credits_awarded) {
-          // Increment credits using RPC or update (since we don't have an increment RPC, we'll do read-modify-write for simplicity)
-          // Note: In a highly concurrent prod environment, an RPC to increment is better.
           const { data: schoolData } = await supabase.from('schools').select('exam_credits').eq('id', schoolId).single();
           const currentCredits = schoolData?.exam_credits || 0;
-          
           await supabase.from('schools').update({
             exam_credits: currentCredits + planData.credits_awarded
           }).eq('id', schoolId);

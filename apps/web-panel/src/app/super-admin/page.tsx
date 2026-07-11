@@ -14,8 +14,8 @@ export default async function SuperAdminDashboard({
 }) {
   const supabase = createAdminClient();
 
-  // Fetch recent schools, exams, and subscriptions concurrently
-  const [schoolsRes, examsRes, subsRes] = await Promise.all([
+  // Fetch recent schools, exams, and transactions concurrently
+  const [schoolsRes, examsRes, txsRes] = await Promise.all([
     supabase
       .from('schools')
       .select('id, name, domain, created_at')
@@ -27,15 +27,21 @@ export default async function SuperAdminDashboard({
       .order('created_at', { ascending: false })
       .limit(4),
     supabase
-      .from('subscriptions')
-      .select('id, status, created_at, schools(name), plans(name)')
+      .from('payment_history')
+      .select('id, amount_paid, payment_type, created_at, schools(name)')
       .order('created_at', { ascending: false })
       .limit(4)
   ]);
 
   const recentSchools = schoolsRes.data || [];
   const recentExams = examsRes.data || [];
-  const recentSubs = subsRes.data || [];
+  const recentTxs = txsRes.data || [];
+
+  const txTypeLabels: Record<string, string> = {
+    subscription_charge: 'Subscription',
+    credit_purchase: 'Credits',
+    exam_fee: 'Exam Conduction'
+  };
 
   return (
     <div className="space-y-6">
@@ -54,14 +60,14 @@ export default async function SuperAdminDashboard({
       </div>
       */}
 
-      {/* Row 2: Recent Schools, Recent Exams & Recent Subscriptions */}
+      {/* Row 2: Recent Schools, Recent Exams & Recent Transactions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         
         {/* Card 1: Recent Schools */}
         <Card className="shadow-sm border-border flex flex-col w-full min-h-[300px]">
           <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/40">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <School size={16} className="text-blue-500" />
+              <School size={16} className="text-accent-primary" />
               Recent Schools
             </CardTitle>
             <Link href="/schools" className="text-[11px] font-bold text-accent-primary flex items-center gap-0.5 hover:underline">
@@ -71,17 +77,17 @@ export default async function SuperAdminDashboard({
           <CardContent className="pt-3 flex-grow flex flex-col justify-start">
             <div className="divide-y divide-border/40 w-full">
               {recentSchools.length === 0 ? (
-                <p className="text-xs text-text-muted py-8 text-center">No schools created yet.</p>
+                <p className="text-xs text-text-muted py-8 text-center">No schools onboarded.</p>
               ) : (
                 recentSchools.map((school) => (
                   <Link 
                     key={school.id} 
                     href={`/schools/${school.id}`}
-                    className="flex items-center justify-between py-2.5 hover:bg-surface-hover/30 rounded px-1 transition-colors"
+                    className="flex items-center justify-between py-2.5 px-1 hover:bg-surface-hover/30 rounded"
                   >
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-text-main truncate">{school.name}</p>
-                      <p className="text-[10px] text-text-muted truncate">{school.domain || 'no domain'}</p>
+                      <p className="text-[10px] text-text-muted truncate">{school.domain || 'No domain set'}</p>
                     </div>
                     <span className="text-[9px] text-text-muted shrink-0 ml-2">
                       {new Date(school.created_at).toLocaleDateString()}
@@ -97,7 +103,7 @@ export default async function SuperAdminDashboard({
         <Card className="shadow-sm border-border flex flex-col w-full min-h-[300px]">
           <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/40">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <FileText size={16} className="text-purple-500" />
+              <FileText size={16} className="text-blue-500" />
               Recent Exams
             </CardTitle>
             <Link href="/exams" className="text-[11px] font-bold text-accent-primary flex items-center gap-0.5 hover:underline">
@@ -107,13 +113,13 @@ export default async function SuperAdminDashboard({
           <CardContent className="pt-3 flex-grow flex flex-col justify-start">
             <div className="divide-y divide-border/40 w-full">
               {recentExams.length === 0 ? (
-                <p className="text-xs text-text-muted py-8 text-center">No exams created yet.</p>
+                <p className="text-xs text-text-muted py-8 text-center">No exams scheduled.</p>
               ) : (
                 recentExams.map((exam: any) => (
                   <Link 
                     key={exam.id} 
-                    href={`/exams/${exam.id}`}
-                    className="flex items-center justify-between py-2.5 hover:bg-surface-hover/30 rounded px-1 transition-colors"
+                    href={`/exams`}
+                    className="flex items-center justify-between py-2.5 px-1 hover:bg-surface-hover/30 rounded"
                   >
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-text-main truncate">{exam.title}</p>
@@ -131,12 +137,12 @@ export default async function SuperAdminDashboard({
           </CardContent>
         </Card>
 
-        {/* Card 3: Recent Subscriptions */}
+        {/* Card 3: Recent Transactions */}
         <Card className="shadow-sm border-border flex flex-col w-full min-h-[300px]">
           <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/40">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
               <CreditCard size={16} className="text-emerald-500" />
-              Recent Subscriptions
+              Recent Transactions
             </CardTitle>
             <Link href="/subscriptions" className="text-[11px] font-bold text-accent-primary flex items-center gap-0.5 hover:underline">
               View all <ArrowRight size={12} />
@@ -144,22 +150,22 @@ export default async function SuperAdminDashboard({
           </CardHeader>
           <CardContent className="pt-3 flex-grow flex flex-col justify-start">
             <div className="divide-y divide-border/40 w-full">
-              {recentSubs.length === 0 ? (
-                <p className="text-xs text-text-muted py-8 text-center">No subscriptions active.</p>
+              {recentTxs.length === 0 ? (
+                <p className="text-xs text-text-muted py-8 text-center">No transactions recorded.</p>
               ) : (
-                recentSubs.map((sub: any) => (
+                recentTxs.map((tx: any) => (
                   <div 
-                    key={sub.id} 
+                    key={tx.id} 
                     className="flex items-center justify-between py-2.5 px-1 hover:bg-surface-hover/30 rounded"
                   >
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-text-main truncate">{sub.schools?.name || 'Unknown School'}</p>
+                      <p className="text-xs font-semibold text-text-main truncate">{tx.schools?.name || 'Unknown School'}</p>
                       <p className="text-[10px] text-text-muted truncate">
-                        {sub.plans?.name || 'Custom Plan'} • <span className={`capitalize font-medium ${sub.status === 'active' ? 'text-emerald-500' : 'text-amber-500'}`}>{sub.status}</span>
+                        ₹{tx.amount_paid} • <span className="font-semibold text-emerald-500">{txTypeLabels[tx.payment_type] || tx.payment_type}</span>
                       </p>
                     </div>
                     <span className="text-[9px] text-text-muted shrink-0 ml-2">
-                      {new Date(sub.created_at).toLocaleDateString()}
+                      {new Date(tx.created_at).toLocaleDateString()}
                     </span>
                   </div>
                 ))

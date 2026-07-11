@@ -14,9 +14,10 @@ export const loadRazorpayScript = () => {
 
 interface RazorpayCheckoutParams {
   amount: number; // in INR
-  planId: string;
-  planName: string;
   schoolId: string;
+  examId?: string;
+  planId?: string;
+  planName?: string;
   userEmail?: string;
   userContact?: string;
   onSuccess?: () => void;
@@ -24,7 +25,7 @@ interface RazorpayCheckoutParams {
 }
 
 export const openRazorpayCheckout = async (params: RazorpayCheckoutParams) => {
-  const { amount, planId, planName, schoolId, userEmail, userContact, onSuccess, onError } = params;
+  const { amount, examId, planId, planName, schoolId, userEmail, userContact, onSuccess, onError } = params;
 
   try {
     const res = await loadRazorpayScript();
@@ -76,6 +77,7 @@ export const openRazorpayCheckout = async (params: RazorpayCheckoutParams) => {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_signature: response.razorpay_signature,
               schoolId,
+              examId,
               planId,
               amount
             }),
