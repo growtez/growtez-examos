@@ -497,9 +497,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================================
 
 -- 1. Add Exam Credits to the existing Schools table
-ALTER TABLE public.schools 
-
-
+ALTER TABLE public.schools ADD COLUMN IF NOT EXISTS exam_credits INTEGER DEFAULT 0;
 -- 2. Create the Plans Table
 CREATE TABLE IF NOT EXISTS public.plans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

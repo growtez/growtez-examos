@@ -8,9 +8,18 @@ import { Sun, Moon } from 'lucide-react';
 function LoginContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  
+  // Form mode state
+  const [isRegistering, setIsRegistering] = useState(false);
+  
+  // Form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [schoolName, setSchoolName] = useState('');
+  const [fullName, setFullName] = useState('');
+  
   const [error, setError] = useState(searchParams.get('error') ?? '');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -74,59 +83,88 @@ function LoginContent() {
     if (msg.includes('password') && (msg.includes('short') || msg.includes('weak'))) {
       return 'Password must be at least 6 characters long.';
     }
-    if (msg.includes('signup') || msg.includes('sign up') || msg.includes('not allowed')) {
-      return 'Account creation is not allowed. Please contact your administrator.';
-    }
-    // fallback: return the original message but capitalise first letter
     return message.charAt(0).toUpperCase() + message.slice(1);
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     const supabase = createClient();
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    if (isRegistering) {
+      // REGISTRATION FLOW
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, schoolName, fullName })
+        });
+        
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to register account');
+        }
 
-    if (authError) {
-      const msg = encodeURIComponent(getFriendlyError(authError.message));
-      router.replace(`/login?error=${msg}`);
-      setLoading(false);
-      return;
-    }
+        // Successfully registered! Now sign them in.
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-    // Get user role to redirect
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      const msg = encodeURIComponent('Something went wrong fetching your account. Please try again.');
-      router.replace(`/login?error=${msg}`);
-      setLoading(false);
-      return;
-    }
-
-    const role = user.user_metadata?.role || (user.email === 'growtezexamos@gmail.com' ? 'super_admin' : 'student');
-
-    // Redirect based on role
-    if (role === 'super_admin') {
-      window.location.href = '/';
-    } else if (role === 'school_admin' || role === 'teacher') {
-      window.location.href = '/';
+        if (signInError) {
+          setSuccess('Account created! Please sign in with your new credentials.');
+          setIsRegistering(false);
+          setLoading(false);
+          return;
+        }
+        
+        window.location.href = '/';
+        return;
+      } catch (err: any) {
+        setError(getFriendlyError(err.message));
+        setLoading(false);
+        return;
+      }
     } else {
-      // Sign the user out first (they don't belong here), then show error
-      await supabase.auth.signOut();
-      const msg = encodeURIComponent('Access denied. Students must use the ParikshaOS desktop app to take exams.');
-      router.replace(`/login?error=${msg}`);
-      setLoading(false);
+      // LOGIN FLOW
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        setError(getFriendlyError(authError.message));
+        setLoading(false);
+        return;
+      }
+
+      // Get user role to redirect
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError('Something went wrong fetching your account. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      const role = user.user_metadata?.role || (user.email === 'growtezexamos@gmail.com' ? 'super_admin' : 'student');
+
+      // Redirect based on role
+      if (role === 'super_admin' || role === 'school_admin' || role === 'teacher') {
+        window.location.href = '/';
+      } else {
+        // Sign the user out first (they don't belong here), then show error
+        await supabase.auth.signOut();
+        setError('Access denied. Students must use the ParikshaOS desktop app to take exams.');
+        setLoading(false);
+      }
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-bg relative overflow-hidden py-12">
       {/* Background glowing accents */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent-primary-glow rounded-full blur-3xl -z-10" />
@@ -155,15 +193,54 @@ function LoginContent() {
           <p className="text-text-muted mt-2 text-sm font-medium">Secure Examination Management System</p>
         </div>
 
-        {/* Login Card */}
+        {/* Login/Register Card */}
         <div className="bg-surface/80 border border-border p-8 rounded-2xl shadow-xl backdrop-blur-md">
           {/* Card header */}
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-text-main uppercase tracking-wider">Administrator Sign In</h2>
-            <p className="text-text-muted text-xs mt-1">Provide your credentials to access the console</p>
+            <h2 className="text-xl font-bold text-text-main uppercase tracking-wider">
+              {isRegistering ? 'Create School Account' : 'Administrator Sign In'}
+            </h2>
+            <p className="text-text-muted text-xs mt-1">
+              {isRegistering 
+                ? 'Register your institute to start managing exams' 
+                : 'Provide your credentials to access the console'}
+            </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleAuth} className="space-y-5">
+            {isRegistering && (
+              <>
+                <div>
+                  <label htmlFor="schoolName" className="block text-[11px] font-bold text-text-muted mb-1.5 uppercase tracking-wider">
+                    Institute / School Name
+                  </label>
+                  <input
+                    id="schoolName"
+                    type="text"
+                    value={schoolName}
+                    onChange={(e) => setSchoolName(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-main placeholder-text-muted/40 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary-glow transition-all text-sm"
+                    placeholder="E.g. Pariksha Academy"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="fullName" className="block text-[11px] font-bold text-text-muted mb-1.5 uppercase tracking-wider">
+                    Admin Full Name
+                  </label>
+                  <input
+                    id="fullName"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                    className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-main placeholder-text-muted/40 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary-glow transition-all text-sm"
+                    placeholder="John Doe"
+                  />
+                </div>
+              </>
+            )}
+
             <div>
               <label htmlFor="email" className="block text-[11px] font-bold text-text-muted mb-1.5 uppercase tracking-wider">
                 Email Address
@@ -189,6 +266,7 @@ function LoginContent() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={6}
                 className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-main placeholder-text-muted/40 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary-glow transition-all text-sm"
                 placeholder="••••••••"
               />
@@ -197,6 +275,12 @@ function LoginContent() {
             {error && (
               <div className="border border-red-500/20 bg-red-500/10 p-3.5 rounded-xl text-red-500 text-xs font-semibold">
                 ⚠ {error}
+              </div>
+            )}
+            
+            {success && (
+              <div className="border border-green-500/20 bg-green-500/10 p-3.5 rounded-xl text-green-500 text-xs font-semibold">
+                ✓ {success}
               </div>
             )}
 
@@ -211,13 +295,28 @@ function LoginContent() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Signing in...
+                  {isRegistering ? 'Creating Account...' : 'Signing in...'}
                 </span>
               ) : (
-                'Sign In'
+                isRegistering ? 'Create Account' : 'Sign In'
               )}
             </button>
           </form>
+
+          {/* Toggle between login and register */}
+          <div className="mt-6 text-center border-t border-border pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegistering(!isRegistering);
+                setError('');
+                setSuccess('');
+              }}
+              className="text-xs text-text-muted hover:text-accent-primary transition-colors font-semibold tracking-wide uppercase"
+            >
+              {isRegistering ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
+            </button>
+          </div>
         </div>
 
         <p className="text-center text-text-muted/60 text-[10px] mt-8 uppercase tracking-widest">
