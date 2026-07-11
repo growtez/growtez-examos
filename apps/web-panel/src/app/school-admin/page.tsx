@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { Users, GraduationCap, FileText, CheckCircle, Plus, Users2 } from 'lucide-react';
+import { Users, GraduationCap, FileText, CheckCircle, Plus, Users2, Layers, ArrowRight } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 
 export default async function SchoolAdminDashboard() {
   const supabase = createClient();
@@ -33,6 +34,7 @@ export default async function SchoolAdminDashboard() {
   let teacherCount = 0;
   let examCount = 0;
   let activeExamCount = 0;
+  let recentExams: any[] = [];
 
   if (schoolId) {
     const [
@@ -40,13 +42,15 @@ export default async function SchoolAdminDashboard() {
       { count: sCount },
       { count: tCount },
       { count: eCount },
-      { count: aeCount }
+      { count: aeCount },
+      { data: rExams }
     ] = await Promise.all([
       supabase.from('schools').select('name').eq('id', schoolId).single(),
       supabase.from('students').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
       supabase.from('teachers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
       supabase.from('exams').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
-      supabase.from('exams').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).in('status', ['published', 'active'])
+      supabase.from('exams').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).in('status', ['published', 'active']),
+      supabase.from('exams').select('id, title, duration_minutes, created_at, status').eq('school_id', schoolId).order('created_at', { ascending: false }).limit(4)
     ]);
 
     schoolName = school?.name ?? schoolName;
@@ -54,6 +58,7 @@ export default async function SchoolAdminDashboard() {
     teacherCount = tCount ?? 0;
     examCount = eCount ?? 0;
     activeExamCount = aeCount ?? 0;
+    recentExams = rExams || [];
   }
 
   const stats = [
@@ -67,7 +72,7 @@ export default async function SchoolAdminDashboard() {
     const { data: assignedSubjects } = await supabase.from('exam_subject_teachers').select('exam_subject_id').eq('teacher_id', user?.id);
     const examSubjectIds = assignedSubjects?.map(s => s.exam_subject_id) || [];
     let teacherExamCount = 0;
-    let recentExams: any[] = [];
+    let recentExamsTeacher: any[] = [];
     
     if (examSubjectIds.length > 0) {
       const { data: subjects } = await supabase.from('exam_subjects').select('exam_id').in('id', examSubjectIds);
@@ -76,7 +81,7 @@ export default async function SchoolAdminDashboard() {
       
       if (uniqueExamIds.length > 0) {
         const { data: exams } = await supabase.from('exams').select('id, title, status, created_at').in('id', uniqueExamIds).order('created_at', { ascending: false }).limit(3);
-        recentExams = exams || [];
+        recentExamsTeacher = exams || [];
       }
     }
 
@@ -94,22 +99,22 @@ export default async function SchoolAdminDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
           {/* Summary Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-transparent bg-gradient-to-br from-[#008080] to-[#005555] p-8 shadow-xl text-white group">
+          <div className="relative overflow-hidden rounded-2xl border border-transparent bg-gradient-to-br from-[#008080] to-[#005555] p-6 shadow-xl text-white group">
             <div className="flex flex-col justify-between h-full relative z-10">
               <div>
-                <span className="text-sm font-semibold text-white/80 uppercase tracking-widest">Overview</span>
-                <h3 className="text-2xl font-bold mt-2">Your Workload</h3>
-                <p className="text-sm text-white/70 mt-2 font-medium">You have {teacherExamCount} exam{teacherExamCount !== 1 ? 's' : ''} assigned to you that require attention or question preparation.</p>
+                <span className="text-xs font-semibold text-white/80 uppercase tracking-widest">Overview</span>
+                <h3 className="text-xl font-bold mt-1">Your Workload</h3>
+                <p className="text-[13px] text-white/70 mt-1.5 font-medium leading-relaxed">You have {teacherExamCount} exam{teacherExamCount !== 1 ? 's' : ''} assigned to you that require attention or question preparation.</p>
               </div>
-              <div className="mt-8 flex items-center justify-between">
+              <div className="mt-6 flex items-center justify-between">
                 <div>
-                  <p className="text-5xl font-extrabold">{teacherExamCount}</p>
-                  <span className="text-xs font-bold text-white/80 uppercase tracking-widest mt-1 block">Assigned Exams</span>
+                  <p className="text-4xl font-extrabold">{teacherExamCount}</p>
+                  <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest mt-1 block">Assigned Exams</span>
                 </div>
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-white/20 backdrop-blur-md transition-transform group-hover:scale-110 shadow-lg">
-                  <FileText className="w-8 h-8 text-white" />
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/20 backdrop-blur-md transition-transform group-hover:scale-110 shadow-lg">
+                  <FileText className="w-7 h-7 text-white" />
                 </div>
               </div>
             </div>
@@ -119,16 +124,16 @@ export default async function SchoolAdminDashboard() {
           </div>
 
           {/* Recent Exams */}
-          <div className="bg-white rounded-2xl border border-[#e0f2f2] p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-[#1a2e2e] mb-4">Recent Exams</h3>
-            {recentExams.length > 0 ? (
-              <div className="space-y-4">
-                {recentExams.map((exam) => (
-                  <Link href={`/exams/${exam.id}`} key={exam.id} className="block p-4 rounded-xl border border-[#e0f2f2] hover:border-[#008080] hover:bg-[#f5f9f9] transition-all group">
+          <div className="bg-white rounded-2xl border border-[#e0f2f2] p-5 shadow-sm">
+            <h3 className="text-base font-bold text-[#1a2e2e] mb-3">Recent Exams</h3>
+            {recentExamsTeacher.length > 0 ? (
+              <div className="space-y-3">
+                {recentExamsTeacher.map((exam) => (
+                  <Link href={`/exams/${exam.id}`} key={exam.id} className="block p-3 rounded-xl border border-[#e0f2f2] hover:border-[#008080] hover:bg-[#f5f9f9] transition-all group">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="font-bold text-[#1a2e2e] group-hover:text-[#008080] transition-colors line-clamp-1">{exam.title}</h4>
-                        <p className="text-xs text-[#555555] font-medium mt-1">
+                        <h4 className="font-bold text-sm text-[#1a2e2e] group-hover:text-[#008080] transition-colors line-clamp-1">{exam.title}</h4>
+                        <p className="text-[11px] text-[#555555] font-medium mt-0.5">
                           Added {new Date(exam.created_at).toLocaleDateString()}
                         </p>
                       </div>
@@ -161,86 +166,103 @@ export default async function SchoolAdminDashboard() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-[#e0f2f2]">
-        <div className="flex gap-4 items-center">
-          <div className="w-12 h-12 rounded-xl bg-[#008080]/10 flex items-center justify-center text-[#008080]">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m3-4h1m-1 4h1m-5 8h8" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-[#1a2e2e]">Welcome, {schoolName}</h2>
-            <p className="text-[#555555] mt-1 text-sm font-medium">Manage exams, teachers, and students from your dashboard.</p>
-          </div>
-        </div>
-        <Link href="/exams/new" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#008080] text-white text-sm font-semibold rounded-xl hover:bg-[#006666] hover:shadow-lg hover:shadow-[#008080]/30 transition-all active:scale-95">
-          <Plus size={18} />
-          Create Exam
-        </Link>
-      </div>
+    <div className="max-w-6xl mx-auto space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="flex overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           const isDark = i === 3;
           return (
-            <div key={stat.label} className={`relative overflow-hidden rounded-2xl border ${stat.border} ${stat.bg} p-6 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300 group`}>
+            <div key={stat.label} className={`min-w-[220px] sm:min-w-0 snap-center relative overflow-hidden rounded-xl sm:rounded-2xl border ${stat.border} ${stat.bg} p-3 sm:p-4 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300 group`}>
               <div className="flex justify-between items-start relative z-10">
                 <div>
-                  <span className={`text-sm font-semibold ${isDark ? 'text-white/80' : 'text-[#555555]'}`}>{stat.label}</span>
-                  <p className={`text-3xl font-extrabold mt-2 ${stat.color}`}>{stat.value}</p>
+                  <span className={`text-[10px] sm:text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-white/80' : 'text-[#555555]'}`}>{stat.label}</span>
+                  <p className={`text-xl sm:text-2xl font-extrabold mt-0.5 sm:mt-1 ${stat.color}`}>{stat.value}</p>
                 </div>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.iconBg} transition-transform group-hover:scale-110 duration-300`}>
-                  <Icon className={`w-5 h-5 ${isDark ? 'text-white' : stat.color}`} />
+                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center ${stat.iconBg} transition-transform group-hover:scale-110 duration-300`}>
+                  <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-white' : stat.color}`} />
                 </div>
               </div>
-              <div className={`absolute -bottom-4 -right-4 w-24 h-24 rounded-full ${stat.iconBg} blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-300`} />
+              <div className={`absolute -bottom-4 -right-4 w-20 h-20 sm:w-24 sm:h-24 rounded-full ${stat.iconBg} blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-300`} />
             </div>
           );
         })}
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-[#e0f2f2]">
-        <h3 className="text-lg font-bold text-[#1a2e2e] mb-6 flex items-center gap-2">
-          <svg className="w-5 h-5 text-[#008080]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#e0f2f2]">
+        <h3 className="text-sm sm:text-base font-bold text-[#1a2e2e] mb-3 flex items-center gap-2">
+          <svg className="w-4 h-4 text-[#008080]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
           Quick Actions
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <Link href="/exams/new" className="flex items-center gap-4 p-4 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group">
-            <div className="w-10 h-10 rounded-full bg-[#008080]/10 flex items-center justify-center text-[#008080] group-hover:scale-110 transition-transform">
-              <Plus size={20} />
-            </div>
-            <div>
-              <div className="font-semibold text-[#1a2e2e]">Create Exam</div>
-              <div className="text-xs text-[#555555]">Draft a new assessment</div>
-            </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <Link href="/exams/new" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer text-center">
+            <Plus size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
+            <span className="font-semibold text-xs text-[#1a2e2e]">Create Exam</span>
           </Link>
-          <Link href="/teachers" className="flex items-center gap-4 p-4 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group">
-            <div className="w-10 h-10 rounded-full bg-[#008080]/10 flex items-center justify-center text-[#008080] group-hover:scale-110 transition-transform">
-              <Users size={20} />
-            </div>
-            <div>
-              <div className="font-semibold text-[#1a2e2e]">Manage Teachers</div>
-              <div className="text-xs text-[#555555]">View and add staff</div>
-            </div>
+          <Link href="/teachers" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer text-center">
+            <Users size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
+            <span className="font-semibold text-xs text-[#1a2e2e]">Manage Teachers</span>
           </Link>
-          <Link href="/students" className="flex items-center gap-4 p-4 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group">
-            <div className="w-10 h-10 rounded-full bg-[#008080]/10 flex items-center justify-center text-[#008080] group-hover:scale-110 transition-transform">
-              <Users2 size={20} />
-            </div>
-            <div>
-              <div className="font-semibold text-[#1a2e2e]">Manage Students</div>
-              <div className="text-xs text-[#555555]">View and enroll students</div>
-            </div>
+          <Link href="/students" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer text-center">
+            <Users2 size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
+            <span className="font-semibold text-xs text-[#1a2e2e]">Manage Students</span>
+          </Link>
+          <Link href="/students" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer text-center">
+            <Layers size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
+            <span className="font-semibold text-xs text-[#1a2e2e]">Manage Batches</span>
+          </Link>
+          <Link href="/results" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer col-span-2 sm:col-span-1 text-center">
+            <CheckCircle size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
+            <span className="font-semibold text-xs text-[#1a2e2e]">Manage Results</span>
           </Link>
         </div>
       </div>
+
+      {/* Recent Items Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {/* Card 1: Recent Exams */}
+        <Card className="shadow-sm border-border flex flex-col w-full p-4 lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/40 mb-3">
+            <CardTitle className="text-sm font-bold flex items-center gap-2 text-[#1a2e2e]">
+              <FileText size={16} className="text-[#008080]" />
+              Recent Exams
+            </CardTitle>
+            <Link href="/exams" className="text-[11px] font-bold text-[#008080] flex items-center gap-0.5 hover:underline">
+              View all <ArrowRight size={12} />
+            </Link>
+          </CardHeader>
+          <CardContent className="flex-grow flex flex-col justify-start">
+            <div className="divide-y divide-border/40 w-full">
+              {recentExams.length === 0 ? (
+                <p className="text-xs text-[#555555] py-6 text-center">No exams scheduled.</p>
+              ) : (
+                recentExams.map((exam) => (
+                  <Link 
+                    key={exam.id} 
+                    href={`/exams/${exam.id}`}
+                    className="flex items-center justify-between py-2 px-1 hover:bg-[#f5f9f9] rounded transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-[#1a2e2e] truncate">{exam.title}</p>
+                      <p className="text-[10px] text-[#555555] truncate">
+                        {exam.duration_minutes}m • <span className="capitalize">{exam.status}</span>
+                      </p>
+                    </div>
+                    <span className="text-[9px] text-[#555555] shrink-0 ml-2">
+                      {new Date(exam.created_at).toLocaleDateString()}
+                    </span>
+                  </Link>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
     </div>
   );
 }
-

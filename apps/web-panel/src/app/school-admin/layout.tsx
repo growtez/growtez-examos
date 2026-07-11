@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 import Link from 'next/link';
-import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight, Layers } from 'lucide-react';
 
 const navItems = [
   {
@@ -27,6 +27,11 @@ const navItems = [
     label: 'Students',
     href: '/students',
     icon: <GraduationCap className="w-5 h-5" />,
+  },
+  {
+    label: 'Manage Batches',
+    href: '/students',
+    icon: <Layers className="w-5 h-5" />,
   },
   {
     label: 'Results',
@@ -85,6 +90,43 @@ export default function SchoolAdminLayout({
     if (href === '/') return pathname === '/' || pathname === '/school-admin';
     return pathname?.startsWith(href);
   };
+
+  const getBreadcrumbs = () => {
+    const segments = pathname?.split('/').filter(Boolean) || [];
+    const crumbs = [];
+
+    // The root is always Dashboard
+    if (segments[0] === 'school-admin' || segments.length === 0 || (segments.length === 1 && segments[0] !== 'exams' && segments[0] !== 'teachers' && segments[0] !== 'students' && segments[0] !== 'results')) {
+      crumbs.push({ label: 'Dashboard', href: '/' });
+    } else {
+      crumbs.push({ label: 'Dashboard', href: '/' });
+    }
+
+    if (segments.includes('exams')) {
+      crumbs.push({ label: 'Exams', href: '/exams' });
+    } else if (segments.includes('teachers')) {
+      crumbs.push({ label: 'Teachers', href: '/teachers' });
+    } else if (segments.includes('students')) {
+      crumbs.push({ label: 'Students', href: '/students' });
+    } else if (segments.includes('results')) {
+      crumbs.push({ label: 'Results', href: '/results' });
+    }
+
+    const lastSegment = segments[segments.length - 1];
+    
+    // Add additional segments if it's a detail page
+    if (lastSegment && !['exams', 'teachers', 'students', 'results', 'school-admin'].includes(lastSegment)) {
+      if (lastSegment === 'new') {
+         crumbs.push({ label: 'New', href: null });
+      } else {
+         crumbs.push({ label: lastSegment, href: null });
+      }
+    }
+
+    return crumbs;
+  };
+
+  const breadcrumbs = getBreadcrumbs();
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-[#f5f9f9]">
@@ -170,12 +212,37 @@ export default function SchoolAdminLayout({
             >
               <Menu className="w-5 h-5" />
             </button>
-            {schoolName && (
-              <h2 className="text-base font-bold text-text-main hidden sm:block truncate max-w-[200px] md:max-w-xs">{schoolName}</h2>
-            )}
+            <div className="flex items-center text-[12px] md:text-[13px] font-medium text-text-main overflow-hidden">
+              {schoolName && (
+                <span className="hidden sm:inline-flex items-center">
+                  <span className="text-[#555555] font-normal truncate max-w-[120px] md:max-w-[200px]" title={schoolName}>{schoolName}</span>
+                  <span className="text-[#b2d8d8] mx-2">/</span>
+                </span>
+              )}
+              {breadcrumbs.map((crumb, index) => {
+                const isLast = index === breadcrumbs.length - 1;
+                return (
+                  <span key={index} className={`items-center ${isLast ? 'flex' : 'hidden md:inline-flex'}`}>
+                    {crumb.href ? (
+                      <Link href={crumb.href} className="hover:text-[#008080] text-[#555555] transition-colors font-normal whitespace-nowrap">
+                        {crumb.label}
+                      </Link>
+                    ) : (
+                      <span className="text-[#1a2e2e] font-bold whitespace-nowrap">{crumb.label}</span>
+                    )}
+                    {index < breadcrumbs.length - 1 && <span className="text-[#b2d8d8] mx-2">/</span>}
+                  </span>
+                );
+              })}
+            </div>
           </div>
           
           <div className="flex items-center gap-4 ml-auto">
+            {schoolName && (
+              <span className="text-sm font-medium text-[#555555] hidden sm:block truncate max-w-[200px]" title={schoolName}>
+                {schoolName}
+              </span>
+            )}
             <div className="relative" ref={dropdownRef}>
               <div 
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
