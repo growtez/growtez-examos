@@ -74,7 +74,7 @@ export default function Pricing() {
 
             <div className="mt-8">
               <a
-                href="https://school.parikshaos.com"
+                href="https://school.parikshaos.com/login"
                 className="block w-full text-center rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all duration-200"
               >
                 Get Started
@@ -130,7 +130,7 @@ export default function Pricing() {
 
             <div className="mt-8">
               <a
-                href="https://school.parikshaos.com"
+                href="https://school.parikshaos.com/login"
                 className="block w-full text-center rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 py-3 text-sm font-semibold text-white transition-all duration-200"
               >
                 Get Started
