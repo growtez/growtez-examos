@@ -163,22 +163,22 @@ export default function NewGlobalExamTemplatePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-text-muted mb-1.5 uppercase tracking-wider text-[11px]">MCQ Correct</label>
-              <input type="number" value={mcqCorrect} onChange={(e) => setMcqCorrect(parseInt(e.target.value))}
+              <input type="number" step="any" value={mcqCorrect} onChange={(e) => setMcqCorrect(parseFloat(e.target.value))}
                 className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-main focus:outline-none focus:ring-2 focus:ring-accent-primary/50 transition-all text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium text-text-muted mb-1.5 uppercase tracking-wider text-[11px]">MCQ Wrong</label>
-              <input type="number" value={mcqWrong} onChange={(e) => setMcqWrong(parseInt(e.target.value))}
+              <input type="number" step="any" value={mcqWrong} onChange={(e) => setMcqWrong(parseFloat(e.target.value))}
                 className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-main focus:outline-none focus:ring-2 focus:ring-accent-primary/50 transition-all text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium text-text-muted mb-1.5 uppercase tracking-wider text-[11px]">NAT Correct</label>
-              <input type="number" value={natCorrect} onChange={(e) => setNatCorrect(parseInt(e.target.value))}
+              <input type="number" step="any" value={natCorrect} onChange={(e) => setNatCorrect(parseFloat(e.target.value))}
                 className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-main focus:outline-none focus:ring-2 focus:ring-accent-primary/50 transition-all text-sm" />
             </div>
             <div>
               <label className="block text-sm font-medium text-text-muted mb-1.5 uppercase tracking-wider text-[11px]">NAT Wrong</label>
-              <input type="number" value={natWrong} onChange={(e) => setNatWrong(parseInt(e.target.value))}
+              <input type="number" step="any" value={natWrong} onChange={(e) => setNatWrong(parseFloat(e.target.value))}
                 className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-main focus:outline-none focus:ring-2 focus:ring-accent-primary/50 transition-all text-sm" />
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import { createContext, useContext } from 'react';
 
-export type DrawerForm = 'school' | 'user' | 'exam';
+export type DrawerForm = 'school' | 'user' | 'exam' | 'template';
 
 export interface ExamPrefill {
   title?: string;

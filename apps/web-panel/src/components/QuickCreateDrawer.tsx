@@ -8,8 +8,8 @@ import type { ExamPrefill } from '@/app/super-admin/DrawerContext';
 interface QuickCreateDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  activeForm: 'school' | 'user' | 'exam';
-  setActiveForm: (form: 'school' | 'user' | 'exam') => void;
+  activeForm: 'school' | 'user' | 'exam' | 'template';
+  setActiveForm: (form: 'school' | 'user' | 'exam' | 'template') => void;
   onRefresh?: () => void;
   examPrefill?: ExamPrefill;
 }
@@ -281,11 +281,70 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
     }
   };
 
+  const handleCreateTemplate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const supabase = createClient();
+
+    try {
+      const { data: template, error: templateError } = await supabase
+        .from('exam_templates')
+        .insert({
+          title: examFormData.title.trim(),
+          description: examFormData.description.trim() || null,
+          duration_minutes: examFormData.durationMinutes,
+          marking_scheme: {
+            mcq_correct: examFormData.mcqCorrect,
+            mcq_wrong: examFormData.mcqWrong,
+            nat_correct: examFormData.natCorrect,
+            nat_wrong: examFormData.natWrong,
+          },
+        })
+        .select()
+        .single();
+
+      if (templateError) throw templateError;
+
+      // Create template subjects
+      const validSubjects = examSubjects.filter(s => s.name.trim());
+      for (let i = 0; i < validSubjects.length; i++) {
+        await supabase.from('exam_template_subjects').insert({
+          template_id: template.id,
+          subject_name: validSubjects[i].name.trim(),
+          question_count: validSubjects[i].questionCount,
+          sort_order: i,
+        });
+      }
+
+      onRefresh && onRefresh();
+      setExamFormData({
+        title: '',
+        description: '',
+        durationMinutes: '',
+        schoolId: '',
+        mcqCorrect: '',
+        mcqWrong: '',
+        natCorrect: '',
+        natWrong: '',
+      });
+      setExamSubjects([{ name: '', questionCount: '' }]);
+      onClose();
+    } catch (err: any) {
+      setError('Failed to create template: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleFormSubmit = (e: React.FormEvent) => {
     if (activeForm === 'school') {
       handleCreateSchool(e);
     } else if (activeForm === 'user') {
       handleCreateUser(e);
+    } else if (activeForm === 'template') {
+      handleCreateTemplate(e);
     } else {
       handleCreateExam(e);
     }
@@ -303,10 +362,12 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
             {activeForm === 'user' && <UserPlus size={20} className="text-accent-primary" />}
             {activeForm === 'school' && <School size={20} className="text-accent-primary" />}
             {activeForm === 'exam' && <FileText size={20} className="text-accent-primary" />}
+            {activeForm === 'template' && <FileText size={20} className="text-accent-primary" />}
             <h3 className="text-lg font-semibold m-0 text-text-main">
               {activeForm === 'user' && 'Add New User'}
               {activeForm === 'school' && 'Onboard School'}
-              {activeForm === 'exam' && 'Create Exam Template'}
+              {activeForm === 'exam' && 'Create Exam'}
+              {activeForm === 'template' && 'Create Exam'}
             </h3>
           </div>
           <button className="w-8 h-8 rounded-full bg-surface-hover flex items-center justify-center text-text-muted transition-all hover:bg-border hover:text-text-main hover:rotate-90 border-none cursor-pointer" onClick={onClose}>
@@ -474,12 +535,12 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
               </>
             )}
 
-            {activeForm === 'exam' && (
+            {(activeForm === 'exam' || activeForm === 'template') && (
               <>
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="JEE Main Mock Test"
+                    placeholder={activeForm === 'template' ? "Template Title" : "JEE Main Mock Test"}
                     value={examFormData.title}
                     onChange={(e) => setExamFormData({ ...examFormData, title: e.target.value })}
                     required
@@ -508,20 +569,22 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
                   />
                   <label className="absolute left-3 px-1.5 transition-all duration-200 z-10 pointer-events-none -top-2.5 text-[10px] bg-bg font-bold uppercase tracking-wider text-text-muted peer-placeholder-shown:top-3.5 peer-placeholder-shown:text-sm peer-placeholder-shown:bg-transparent peer-placeholder-shown:font-normal peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:-top-2.5 peer-focus:text-[10px] peer-focus:bg-bg peer-focus:font-bold peer-focus:uppercase peer-focus:tracking-wider peer-focus:text-accent-primary">Duration (minutes) *</label>
                 </div>
-                <div className="relative">
-                  <select
-                    value={examFormData.schoolId}
-                    onChange={(e) => setExamFormData({ ...examFormData, schoolId: e.target.value })}
-                    required
-                    className="peer w-full bg-surface-hover border border-slate-300 dark:border-zinc-700 rounded-xl px-4 h-12 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all appearance-none"
-                  >
-                    <option value="">Select School</option>
-                    {schools.map(sch => (
-                      <option key={sch.id} value={sch.id}>{sch.name}</option>
-                    ))}
-                  </select>
-                  <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 transition-colors peer-focus:text-accent-primary pointer-events-none">School Assignment *</label>
-                </div>
+                {activeForm === 'exam' && (
+                  <div className="relative">
+                    <select
+                      value={examFormData.schoolId}
+                      onChange={(e) => setExamFormData({ ...examFormData, schoolId: e.target.value })}
+                      required
+                      className="peer w-full bg-surface-hover border border-slate-300 dark:border-zinc-700 rounded-xl px-4 h-12 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all appearance-none"
+                    >
+                      <option value="">Select School</option>
+                      {schools.map(sch => (
+                        <option key={sch.id} value={sch.id}>{sch.name}</option>
+                      ))}
+                    </select>
+                    <label className="absolute -top-2.5 left-3 px-1.5 bg-bg text-[10px] font-bold text-text-muted uppercase tracking-wider z-10 transition-colors peer-focus:text-accent-primary pointer-events-none">School Assignment *</label>
+                  </div>
+                )}
 
                 {/* Marking Scheme */}
                 <h4 className="text-sm font-semibold text-text-main mt-2 border-b border-slate-300 dark:border-zinc-700 pb-1">Default Marking Scheme</h4>
@@ -529,6 +592,7 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
                   <div className="relative">
                     <input
                       type="number"
+                      step="any"
                       value={examFormData.mcqCorrect}
                       onChange={(e) => setExamFormData({ ...examFormData, mcqCorrect: e.target.value === '' ? '' : Number(e.target.value) })}
                       className="peer w-full bg-surface-hover border border-slate-300 dark:border-zinc-700 rounded-xl px-4 h-11 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
@@ -538,6 +602,7 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
                   <div className="relative">
                     <input
                       type="number"
+                      step="any"
                       value={examFormData.mcqWrong}
                       onChange={(e) => setExamFormData({ ...examFormData, mcqWrong: e.target.value === '' ? '' : Number(e.target.value) })}
                       className="peer w-full bg-surface-hover border border-slate-300 dark:border-zinc-700 rounded-xl px-4 h-11 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
@@ -547,6 +612,7 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
                   <div className="relative">
                     <input
                       type="number"
+                      step="any"
                       value={examFormData.natCorrect}
                       onChange={(e) => setExamFormData({ ...examFormData, natCorrect: e.target.value === '' ? '' : Number(e.target.value) })}
                       className="peer w-full bg-surface-hover border border-slate-300 dark:border-zinc-700 rounded-xl px-4 h-11 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
@@ -556,6 +622,7 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
                   <div className="relative">
                     <input
                       type="number"
+                      step="any"
                       value={examFormData.natWrong}
                       onChange={(e) => setExamFormData({ ...examFormData, natWrong: e.target.value === '' ? '' : Number(e.target.value) })}
                       className="peer w-full bg-surface-hover border border-slate-300 dark:border-zinc-700 rounded-xl px-4 h-11 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all"
@@ -630,7 +697,7 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
                   {activeForm === 'exam' && <FileText size={18} />}
                   {activeForm === 'user' && 'Add User Account'}
                   {activeForm === 'school' && 'Onboard School'}
-                  {activeForm === 'exam' && 'Create Exam Template'}
+                  {activeForm === 'exam' && 'Create Exam'}
                 </>
               )}
             </button>

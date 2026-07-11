@@ -25,12 +25,12 @@ export default function SuperAdminLayout({
   
   // Drawer state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [activeForm, setActiveForm] = useState<'school' | 'user' | 'exam'>('school');
+  const [activeForm, setActiveForm] = useState<'school' | 'user' | 'exam' | 'template'>('school');
   const [examPrefill, setExamPrefill] = useState<ExamPrefill | undefined>(undefined);
 
-  const openDrawer = (formType: 'school' | 'user' | 'exam', prefill?: ExamPrefill) => {
+  const openDrawer = (formType: 'school' | 'user' | 'exam' | 'template', prefill?: ExamPrefill) => {
     setActiveForm(formType);
-    if (formType === 'exam' && prefill) setExamPrefill(prefill);
+    if ((formType === 'exam' || formType === 'template') && prefill) setExamPrefill(prefill);
     setIsDrawerOpen(true);
   };
 
@@ -222,7 +222,7 @@ export default function SuperAdminLayout({
                       onClick={() => openDrawer('exam')} 
                       className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-text-muted hover:text-accent-primary hover:bg-surface-hover hover:pl-5 transition-all text-left w-full cursor-pointer bg-transparent border-none"
                     >
-                      <FileText size={16}/> Create Exam Template
+                      <FileText size={16}/> Create Exam
                     </button>
                   </div>
                 </div>

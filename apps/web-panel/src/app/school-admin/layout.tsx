@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 import Link from 'next/link';
-import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight, Layers } from 'lucide-react';
 
 const navItems = [
   {
@@ -29,6 +29,11 @@ const navItems = [
     icon: <GraduationCap className="w-5 h-5" />,
   },
   {
+    label: 'Manage Batches',
+    href: '/students',
+    icon: <Layers className="w-5 h-5" />,
+  },
+  {
     label: 'Results',
     href: '/results',
     icon: <FileText className="w-5 h-5" />,
@@ -46,6 +51,40 @@ export default function SchoolAdminLayout({
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [role, setRole] = useState<string>('school_admin');
+  const [schoolName, setSchoolName] = useState<string>('');
+  const [breadcrumbNames, setBreadcrumbNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchBreadcrumbName = async () => {
+      const segments = pathname?.split('/').filter(Boolean) || [];
+      const lastSegment = segments[segments.length - 1];
+      
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lastSegment);
+      
+      if (isUUID && !breadcrumbNames[lastSegment]) {
+         const type = segments[segments.length - 2];
+         const supabase = createClient();
+         
+         if (type === 'exams') {
+            const { data } = await supabase.from('exams').select('title').eq('id', lastSegment).single();
+            if (data?.title) setBreadcrumbNames(prev => ({...prev, [lastSegment]: data.title}));
+         } else if (type === 'teachers') {
+            const { data } = await supabase.from('teachers').select('full_name').eq('id', lastSegment).single();
+            if (data?.full_name) setBreadcrumbNames(prev => ({...prev, [lastSegment]: data.full_name}));
+         } else if (type === 'students') {
+            const { data } = await supabase.from('students').select('full_name').eq('id', lastSegment).single();
+            if (data?.full_name) setBreadcrumbNames(prev => ({...prev, [lastSegment]: data.full_name}));
+         }
+      }
+    };
+    fetchBreadcrumbName();
+  }, [pathname]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -53,6 +92,12 @@ export default function SchoolAdminLayout({
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setRole(user.user_metadata?.role || 'school_admin');
+        const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single();
+        const schoolId = profile?.school_id || user.user_metadata?.school_id || user.user_metadata?.schoolId;
+        if (schoolId) {
+          const { data: school } = await supabase.from('schools').select('name').eq('id', schoolId).single();
+          if (school) setSchoolName(school.name);
+        }
       }
     };
     fetchUser();
@@ -79,6 +124,43 @@ export default function SchoolAdminLayout({
     return pathname?.startsWith(href);
   };
 
+  const getBreadcrumbs = () => {
+    const segments = pathname?.split('/').filter(Boolean) || [];
+    const crumbs = [];
+
+    // The root is always Dashboard
+    if (segments[0] === 'school-admin' || segments.length === 0 || (segments.length === 1 && segments[0] !== 'exams' && segments[0] !== 'teachers' && segments[0] !== 'students' && segments[0] !== 'results')) {
+      crumbs.push({ label: 'Dashboard', href: '/' });
+    } else {
+      crumbs.push({ label: 'Dashboard', href: '/' });
+    }
+
+    if (segments.includes('exams')) {
+      crumbs.push({ label: 'Exams', href: '/exams' });
+    } else if (segments.includes('teachers')) {
+      crumbs.push({ label: 'Teachers', href: '/teachers' });
+    } else if (segments.includes('students')) {
+      crumbs.push({ label: 'Students', href: '/students' });
+    } else if (segments.includes('results')) {
+      crumbs.push({ label: 'Results', href: '/results' });
+    }
+
+    const lastSegment = segments[segments.length - 1];
+    
+    // Add additional segments if it's a detail page
+    if (lastSegment && !['exams', 'teachers', 'students', 'results', 'school-admin'].includes(lastSegment)) {
+      if (lastSegment === 'new') {
+         crumbs.push({ label: 'New', href: null });
+      } else {
+         crumbs.push({ label: breadcrumbNames[lastSegment] || lastSegment, href: null });
+      }
+    }
+
+    return crumbs;
+  };
+
+  const breadcrumbs = getBreadcrumbs();
+
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-[#f5f9f9]">
       {/* Mobile Backdrop */}
@@ -88,7 +170,15 @@ export default function SchoolAdminLayout({
       />
 
       {/* Sidebar */}
-      <aside className={`fixed md:relative z-50 h-[100dvh] bg-[#1a2e2e] border-r border-[#243f3f] transition-all duration-300 flex flex-col overflow-hidden ${sidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full md:translate-x-0 md:w-16'}`}>
+      <aside className={`fixed md:relative z-50 h-[100dvh] bg-[#1a2e2e] border-r border-[#243f3f] transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full md:translate-x-0 md:w-16'}`}>
+        
+        {/* Desktop Toggle Button */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="hidden md:flex absolute -right-3 top-5 w-6 h-6 bg-[#243f3f] rounded-full items-center justify-center text-[#8ab8b8] hover:text-white hover:bg-[#325252] transition-colors border border-[#1a2e2e] z-50 shadow-sm cursor-pointer"
+        >
+          {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+        </button>
         <div className="h-16 flex items-center px-4 border-b border-[#243f3f] flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-white flex items-center justify-center flex-shrink-0 rounded-lg shadow-sm">
@@ -148,13 +238,38 @@ export default function SchoolAdminLayout({
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-[#e0f2f2] flex items-center justify-between px-6 shadow-sm sticky top-0 z-30">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-[#8ab8b8] hover:text-[#008080] hover:bg-[#e0f2f2] rounded-lg p-2 transition-colors"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="text-[#8ab8b8] hover:text-[#008080] hover:bg-[#e0f2f2] rounded-lg p-2 transition-colors md:hidden"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div className="flex items-center text-[12px] md:text-[13px] font-medium text-text-main overflow-hidden">
+              {breadcrumbs.map((crumb, index) => {
+                const isLast = index === breadcrumbs.length - 1;
+                return (
+                  <span key={index} className={`items-center ${isLast ? 'flex' : 'hidden md:inline-flex'}`}>
+                    {crumb.href ? (
+                      <Link href={crumb.href} className="hover:text-[#008080] text-[#555555] transition-colors font-normal whitespace-nowrap">
+                        {crumb.label}
+                      </Link>
+                    ) : (
+                      <span className="text-[#1a2e2e] font-bold whitespace-nowrap">{crumb.label}</span>
+                    )}
+                    {index < breadcrumbs.length - 1 && <span className="text-[#b2d8d8] mx-2">/</span>}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4 ml-auto">
+            {schoolName && (
+              <span className="text-sm font-medium text-[#555555] hidden sm:block truncate max-w-[200px]" title={schoolName}>
+                {schoolName}
+              </span>
+            )}
             <div className="relative" ref={dropdownRef}>
               <div 
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
