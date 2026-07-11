@@ -81,8 +81,14 @@ export default function SchoolAdminLayout({
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-[#f5f9f9]">
+      {/* Mobile Backdrop */}
+      <div 
+        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 md:hidden ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-16'} bg-[#1a2e2e] border-r border-[#243f3f] transition-all duration-300 flex flex-col overflow-hidden`}>
+      <aside className={`fixed md:relative z-50 h-[100dvh] bg-[#1a2e2e] border-r border-[#243f3f] transition-all duration-300 flex flex-col overflow-hidden ${sidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full md:translate-x-0 md:w-16'}`}>
         <div className="h-16 flex items-center px-4 border-b border-[#243f3f] flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-white flex items-center justify-center flex-shrink-0 rounded-lg shadow-sm">
@@ -114,6 +120,11 @@ export default function SchoolAdminLayout({
                 className={`flex items-center gap-3 px-3 py-3 text-sm font-medium transition-all duration-200 group ${
                   isActive(item.href) ? activeClass : inactiveClass
                 }`}
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                    setSidebarOpen(false);
+                  }
+                }}
               >
                 <div className={`transition-transform duration-200 ${isActive(item.href) ? 'text-[#00c8c8]' : 'text-[#8ab8b8] group-hover:text-white group-hover:scale-110'}`}>
                   {item.icon}

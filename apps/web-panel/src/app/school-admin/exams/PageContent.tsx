@@ -150,8 +150,9 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
             <p className="text-[#555555] mt-1 text-sm font-medium">Create your first exam to get started</p>
           </div>
         ) : (
-          <table className="w-full">
-            <thead>
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[800px]">
+              <thead>
               <tr className="bg-[#f5f9f9] border-b border-[#e0f2f2]">
                 <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Title</th>
                 <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Duration</th>
@@ -184,7 +185,8 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
       </div>
     </div>

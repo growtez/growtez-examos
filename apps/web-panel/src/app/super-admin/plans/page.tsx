@@ -380,7 +380,7 @@ export default function PlansDashboard() {
       {/* ── Plan Drawer ────────────────────────────────── */}
       {showPlanModal && mounted && createPortal(
         <div className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-sm" onClick={() => setShowPlanModal(false)}>
-          <div className="bg-bg border-l border-border h-full w-full max-w-md p-6 space-y-4 flex flex-col justify-start animate-in slide-in-from-right duration-250" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-bg border-l border-border h-[100dvh] w-full max-w-md p-6 space-y-4 flex flex-col justify-start animate-in slide-in-from-right duration-250" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between pb-2 border-b border-border/50">
               <h2 className="text-lg font-bold text-text-main">{editingPlan ? 'Edit Plan' : 'Setup Plan'}</h2>
               <button onClick={() => setShowPlanModal(false)} className="text-text-muted hover:text-text-main transition-colors">
@@ -390,7 +390,7 @@ export default function PlansDashboard() {
 
             {error && <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm">{error}</div>}
 
-            <div className="flex-1 overflow-y-auto space-y-4 pt-3 pb-3 pr-1">
+            <div className="flex-1 overflow-y-auto space-y-4 pt-3 pb-24 pr-1">
               {/* Name */}
               <div className="relative">
                 <input type="text" placeholder="Plan Name" value={planForm.name}
