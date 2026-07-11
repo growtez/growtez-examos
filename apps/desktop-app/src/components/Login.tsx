@@ -248,7 +248,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
       >
         <div className="shrink-0 h-[3vh] md:h-[5vh] min-h-[20px]"></div>
 
-        <div className="bg-white w-full max-w-md mx-auto border border-[#E4E7EC] rounded-xl shadow-xl overflow-hidden shrink-0">
+        <div className="bg-white w-full max-w-md mx-auto border border-[#E4E7EC] rounded-none shadow-xl overflow-hidden shrink-0">
           {/* Card header bar */}
           <div className="bg-[#008080] py-4 px-6 text-center">
             <span className="text-white font-extrabold text-sm uppercase tracking-widest">CANDIDATE LOGIN</span>
@@ -292,7 +292,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
                         }
                       }}
                       placeholder="Search school / center..."
-                      className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-lg text-[#1D2939] placeholder-[#98A2B3] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm pr-10"
+                      className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] placeholder-[#98A2B3] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm pr-10"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                       <svg className="h-5 w-5 text-[#667085]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -301,7 +301,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
                     </div>
 
                     {isOpen && (
-                      <div className="absolute z-50 mt-1 w-full bg-white border border-[#E4E7EC] rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      <div className="absolute z-50 mt-1 w-full bg-white border border-[#E4E7EC] rounded-none shadow-lg max-h-60 overflow-y-auto">
                         {filteredSchools.length > 0 ? (
                           filteredSchools.map((school) => (
                             <div
@@ -338,7 +338,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
                     onChange={(e) => setRollNumber(e.target.value)}
                     required
                     placeholder="Enter your roll number"
-                    className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-lg text-[#1D2939] placeholder-[#98A2B3] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
+                    className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] placeholder-[#98A2B3] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
                   />
                 </div>
 
@@ -349,12 +349,12 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
                     value={dob}
                     onChange={(e) => setDob(e.target.value)}
                     required
-                    className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-lg text-[#1D2939] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
+                    className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
                   />
                 </div>
 
                 {error && (
-                  <div className="border border-[#F04438]/20 bg-[#F04438]/10 p-3 rounded-lg text-[#F04438] text-sm font-semibold flex items-center gap-2">
+                  <div className="border border-[#F04438]/20 bg-[#F04438]/10 p-3 rounded-none text-[#F04438] text-sm font-semibold flex items-center gap-2">
                     <span>⚠</span> {error}
                   </div>
                 )}
@@ -363,7 +363,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold rounded-lg transition-colors disabled:opacity-50 text-sm uppercase tracking-wider shadow-sm"
+                    className="w-full py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold rounded-none transition-colors disabled:opacity-50 text-sm uppercase tracking-wider shadow-sm"
                   >
                     {loading ? 'AUTHENTICATING...' : 'LOGIN'}
                   </button>
@@ -379,7 +379,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
                       const mockExam = { id: 'dev-exam', title: 'Dev Exam', duration_minutes: 60 };
                       onLoginSuccess(mockStudent, mockExam, 'exam');
                     }}
-                    className="w-full py-2 bg-[#7A5AF8]/10 hover:bg-[#7A5AF8]/20 text-[#7A5AF8] font-bold border border-[#7A5AF8]/20 rounded-lg transition-colors text-xs uppercase tracking-wider"
+                    className="w-full py-2 bg-[#7A5AF8]/10 hover:bg-[#7A5AF8]/20 text-[#7A5AF8] font-bold border border-[#7A5AF8]/20 rounded-none transition-colors text-xs uppercase tracking-wider"
                   >
                     DEV: SKIP LOGIN
                   </button>
@@ -388,7 +388,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
             ) : (
               /* Exam Selection Form */
               <div className="space-y-5">
-                <div className="bg-[#12B76A]/10 border border-[#12B76A]/20 p-4 rounded-lg text-center">
+                <div className="bg-[#12B76A]/10 border border-[#12B76A]/20 p-4 rounded-none text-center">
                   <p className="text-[#12B76A] text-sm font-bold uppercase tracking-wider">✓ Authentication Successful</p>
                   <p className="text-[#667085] text-sm mt-1">Roll No: <span className="font-bold text-[#1D2939]">{rollNumber}</span></p>
                 </div>
@@ -398,7 +398,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
                   <select
                     value={selectedExamId}
                     onChange={(e) => setSelectedExamId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-lg text-[#1D2939] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
+                    className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
                   >
                     {assignedExams.map((exam) => (
                       <option key={exam.id} value={exam.id}>
@@ -409,7 +409,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
                 </div>
 
                 {error && (
-                  <div className="border border-[#F04438]/20 bg-[#F04438]/10 p-3 rounded-lg text-[#F04438] text-sm font-semibold flex items-center gap-2">
+                  <div className="border border-[#F04438]/20 bg-[#F04438]/10 p-3 rounded-none text-[#F04438] text-sm font-semibold flex items-center gap-2">
                     <span>⚠</span> {error}
                   </div>
                 )}
@@ -418,13 +418,13 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
                   <button
                     onClick={handleStartExam}
                     disabled={loading}
-                    className="flex-1 py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold rounded-lg transition-colors text-sm uppercase tracking-wider shadow-sm"
+                    className="flex-1 py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold rounded-none transition-colors text-sm uppercase tracking-wider shadow-sm"
                   >
                     {loading ? 'LOADING...' : 'START EXAM'}
                   </button>
                   <button
                     onClick={() => { setAuthSuccess(false); setAssignedExams([]); }}
-                    className="px-6 py-3 bg-white hover:bg-[#F9FAFB] text-[#667085] font-bold border border-[#E4E7EC] rounded-lg transition-colors text-sm uppercase shadow-sm"
+                    className="px-6 py-3 bg-white hover:bg-[#F9FAFB] text-[#667085] font-bold border border-[#E4E7EC] rounded-none transition-colors text-sm uppercase shadow-sm"
                   >
                     BACK
                   </button>

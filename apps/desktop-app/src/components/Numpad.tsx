@@ -43,7 +43,7 @@ export default function Numpad({ value, onChange }: NumpadProps) {
   ];
 
   return (
-    <div className="mt-4 p-4 bg-[#F9FAFB] border border-[#E4E7EC] rounded-xl max-w-[280px] shadow-sm select-none">
+    <div className="mt-4 p-4 bg-[#F9FAFB] border border-[#E4E7EC] rounded-none max-w-[280px] shadow-sm select-none">
       <div className="grid grid-cols-3 gap-2">
         {rows.map((row, rIdx) => (
           <React.Fragment key={rIdx}>
@@ -52,7 +52,7 @@ export default function Numpad({ value, onChange }: NumpadProps) {
                 key={key}
                 type="button"
                 onClick={() => handleKeyClick(key)}
-                className="h-12 flex items-center justify-center font-bold text-base text-[#1D2939] bg-white border border-[#E4E7EC] rounded-lg shadow-sm hover:bg-gray-50 active:bg-gray-100 hover:border-[#008080]/30 transition-all cursor-pointer"
+                className="h-12 flex items-center justify-center font-bold text-base text-[#1D2939] bg-white border border-[#E4E7EC] rounded-none shadow-sm hover:bg-gray-50 active:bg-gray-100 hover:border-[#008080]/30 transition-all cursor-pointer"
               >
                 {key}
               </button>
@@ -63,7 +63,7 @@ export default function Numpad({ value, onChange }: NumpadProps) {
         <button
           type="button"
           onClick={() => handleKeyClick('BACKSPACE')}
-          className="col-span-2 h-12 flex items-center justify-center gap-1.5 font-bold text-xs text-[#667085] bg-white border border-[#E4E7EC] rounded-lg shadow-sm hover:bg-red-50 hover:text-[#F04438] hover:border-[#F04438]/20 transition-all cursor-pointer uppercase"
+          className="col-span-2 h-12 flex items-center justify-center gap-1.5 font-bold text-xs text-[#667085] bg-white border border-[#E4E7EC] rounded-none shadow-sm hover:bg-red-50 hover:text-[#F04438] hover:border-[#F04438]/20 transition-all cursor-pointer uppercase"
           title="Backspace"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -71,11 +71,11 @@ export default function Numpad({ value, onChange }: NumpadProps) {
           </svg>
           Backspace
         </button>
-
+ 
         <button
           type="button"
           onClick={() => handleKeyClick('CLEAR')}
-          className="col-span-1 h-12 flex items-center justify-center font-bold text-xs text-[#667085] bg-white border border-[#E4E7EC] rounded-lg shadow-sm hover:bg-red-50 hover:text-[#F04438] hover:border-[#F04438]/20 transition-all cursor-pointer uppercase"
+          className="col-span-1 h-12 flex items-center justify-center font-bold text-xs text-[#667085] bg-white border border-[#E4E7EC] rounded-none shadow-sm hover:bg-red-50 hover:text-[#F04438] hover:border-[#F04438]/20 transition-all cursor-pointer uppercase"
         >
           Clear
         </button>
