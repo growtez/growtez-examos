@@ -20,6 +20,84 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [role, setRole] = useState<string>('school_admin');
+  const [creating, setCreating] = useState(false);
+
+  const handleCreateExam = async (templateId?: string) => {
+    const supabase = createClient();
+    setCreating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+      if (!user) throw new Error('Not authenticated');
+
+      let currentRole = user.user_metadata?.role || 'school_admin';
+      let schoolId = schoolIdProp;
+
+      if (!schoolId) {
+        if (currentRole === 'school_admin') {
+          const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
+          schoolId = profile?.school_id;
+        } else {
+          const { data: profile } = await supabase.from('teachers').select('school_id').eq('id', user.id).single();
+          schoolId = profile?.school_id;
+        }
+      }
+      if (!schoolId) throw new Error('School not found');
+
+      let title = 'Untitled Exam';
+      let description = '';
+      let duration_minutes = 180;
+      let marking_scheme = { mcq_correct: 4, mcq_wrong: -1, nat_correct: 4, nat_wrong: 0 };
+      let exam_instructions = [
+        'The test contains multiple-choice questions (MCQs) and numerical value questions.',
+        'No deduction from the total score will be made if no response is indicated.',
+        'The test will automatically end when the time limit is reached.'
+      ];
+      let templateSubjects: any[] = [];
+
+      if (templateId) {
+        const { data: template } = await supabase.from('exam_templates').select('*, exam_template_subjects(*)').eq('id', templateId).single();
+        if (template) {
+          title = template.title || title;
+          description = template.description || description;
+          duration_minutes = template.duration_minutes || duration_minutes;
+          if (template.marking_scheme) marking_scheme = template.marking_scheme;
+          if (template.exam_instructions) exam_instructions = template.exam_instructions;
+          if (template.exam_template_subjects) templateSubjects = template.exam_template_subjects;
+        }
+      }
+
+      const { data: exam, error } = await supabase.from('exams').insert({
+        school_id: schoolId,
+        title,
+        description: description || null,
+        duration_minutes,
+        status: 'draft',
+        marking_scheme,
+        exam_instructions,
+        created_by: user.id
+      }).select().single();
+
+      if (error) throw error;
+
+      if (templateSubjects.length > 0) {
+        for (let i = 0; i < templateSubjects.length; i++) {
+          const s = templateSubjects[i];
+          await supabase.from('exam_subjects').insert({
+            exam_id: exam.id,
+            subject_name: s.subject_name,
+            question_count: s.question_count,
+            sort_order: i
+          });
+        }
+      }
+      
+      router.push(`/exams/${exam.id}`);
+    } catch (err: any) {
+      alert('Error creating exam: ' + err.message);
+      setCreating(false);
+    }
+  };
 
   const fetchExams = async () => {
     const supabase = createClient();
@@ -130,11 +208,11 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                 <Trash2 size={18} />
                 Trash
               </Link>
-              <Link href="/exams/new"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#008080] text-white text-sm font-semibold rounded-xl hover:bg-[#006666] hover:shadow-lg hover:shadow-[#008080]/30 transition-all active:scale-95">
+              <button onClick={() => handleCreateExam()} disabled={creating}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#008080] text-white text-sm font-semibold rounded-xl hover:bg-[#006666] hover:shadow-lg hover:shadow-[#008080]/30 transition-all active:scale-95 disabled:opacity-50">
                 <Plus size={18} />
-                Create Exam
-              </Link>
+                {creating ? 'Creating...' : 'Create Exam'}
+              </button>
             </>
           )}
         </div>
@@ -174,12 +252,13 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                     </span>
                   </div>
                 </div>
-                <Link
-                  href={`/exams/new?templateId=${template.id}`}
-                  className="mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-[#008080]/10 text-[#008080] text-[12px] font-bold hover:bg-[#008080] hover:text-white transition-all border border-[#008080]/20 cursor-pointer"
+                <button
+                  onClick={() => handleCreateExam(template.id)}
+                  disabled={creating}
+                  className="mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-[#008080]/10 text-[#008080] text-[12px] font-bold hover:bg-[#008080] hover:text-white transition-all border border-[#008080]/20 cursor-pointer disabled:opacity-50"
                 >
-                  <Plus size={13} /> Use Template
-                </Link>
+                  <Plus size={13} /> {creating ? 'Creating...' : 'Use Template'}
+                </button>
               </div>
             ))}
           </div>

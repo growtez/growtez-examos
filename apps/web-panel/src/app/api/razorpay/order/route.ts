@@ -1,18 +1,63 @@
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
 export async function POST(req: Request) {
   try {
+    const supabaseAuth = createServerClient();
+    const { data: { user } } = await supabaseAuth.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
     );
 
-    const { amount, planId, examId, schoolId, planName } = await req.json();
+    const { planId, examId, schoolId, planName } = await req.json();
 
-    if (!amount || !schoolId || (!planId && !examId)) {
+    if (!schoolId || (!planId && !examId)) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+    }
+
+    // Step 8: Protect Duplicate Payments
+    if (examId) {
+      const { data: existingExam } = await supabase
+        .from('exams')
+        .select('is_paid')
+        .eq('id', examId)
+        .single();
+      
+      if (existingExam?.is_paid) {
+        return NextResponse.json({ error: 'Already purchased' }, { status: 400 });
+      }
+    }
+
+    let calculatedAmount = 300; // Default fallback
+    if (examId) {
+      const { data: feePlan } = await supabase
+        .from('plans')
+        .select('price')
+        .eq('name', 'Fixed Payment')
+        .single();
+      
+      if (feePlan) {
+        calculatedAmount = Number(feePlan.price);
+      }
+    } else if (planId) {
+      const { data: planData } = await supabase
+        .from('plans')
+        .select('price')
+        .eq('id', planId)
+        .single();
+      
+      if (!planData) {
+        return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
+      }
+      calculatedAmount = Number(planData.price);
     }
 
     if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
@@ -28,7 +73,7 @@ export async function POST(req: Request) {
     const receiptId = `parikshaos_rcpt_${Date.now()}`;
 
     const orderOptions = {
-      amount: amount * 100, // Razorpay amount is in currency subunits (paise)
+      amount: calculatedAmount * 100, // Razorpay amount is in currency subunits (paise)
       currency: 'INR',
       receipt: receiptId,
       notes: {

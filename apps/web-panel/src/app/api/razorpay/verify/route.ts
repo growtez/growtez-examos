@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
 export async function POST(req: Request) {
   try {
+    const supabaseAuth = createServerClient();
+    const { data: { user } } = await supabaseAuth.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -16,9 +24,31 @@ export async function POST(req: Request) {
       razorpay_signature, 
       schoolId, 
       examId,
-      planId, 
-      amount 
+      planId
     } = body;
+
+    let calculatedAmount = 300; // Default fallback
+    if (examId) {
+      const { data: feePlan } = await supabase
+        .from('plans')
+        .select('price')
+        .eq('name', 'Fixed Payment')
+        .single();
+      
+      if (feePlan) {
+        calculatedAmount = Number(feePlan.price);
+      }
+    } else if (planId) {
+      const { data: planData } = await supabase
+        .from('plans')
+        .select('price')
+        .eq('id', planId)
+        .single();
+      if (!planData) {
+        return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
+      }
+      calculatedAmount = Number(planData.price);
+    }
 
     const secret = process.env.RAZORPAY_KEY_SECRET;
     if (!secret) {
@@ -34,13 +64,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
+    // Step 12: Prevent Double Verification
+    const { data: existingPayment } = await supabase
+      .from('payment_history')
+      .select('id')
+      .eq('razorpay_payment_id', razorpay_payment_id)
+      .single();
+
+    if (existingPayment) {
+      // Already verified, return success without inserting again
+      return NextResponse.json({ success: true, message: 'Already verified' }, { status: 200 });
+    }
+
     // Insert into payment_history
     const { error: insertError } = await supabase.from('payment_history').insert({
       school_id: schoolId,
       plan_id: planId || null,
       exam_id: examId || null,
       razorpay_payment_id: razorpay_payment_id,
-      amount_paid: amount,
+      amount_paid: calculatedAmount,
       payment_type: examId ? 'exam_fee' : 'credit_purchase'
     });
 
