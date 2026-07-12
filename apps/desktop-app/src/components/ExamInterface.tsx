@@ -17,6 +17,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, { answer: string | null; marked: boolean; visited: boolean }>>({});
   const [showCalculator, setShowCalculator] = useState(false);
+  const [school, setSchool] = useState<{ name: string; logo_url: string | null } | null>(null);
   
   // Calculate time remaining based on server time and exam end_time
   const getInitialTimeLeft = () => {
@@ -35,6 +36,31 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const [headerOpen, setHeaderOpen] = useState(true);
   // Prevent double auto-submit
   const autoSubmittedRef = useRef(false);
+
+  useEffect(() => {
+    const fetchSchoolData = async () => {
+      const schoolId = exam?.school_id || studentProfile?.school_id;
+      if (!schoolId || (typeof schoolId === 'string' && schoolId.startsWith('dev-'))) {
+        setSchool({ name: 'Dev School', logo_url: null });
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('schools')
+          .select('name, logo_url')
+          .eq('id', schoolId)
+          .single();
+        if (error) throw error;
+        if (data) {
+          setSchool({ name: data.name, logo_url: data.logo_url });
+        }
+      } catch (err) {
+        console.warn('Failed to fetch school details, using fallback:', err);
+        setSchool({ name: 'ParikshaOS School', logo_url: null });
+      }
+    };
+    fetchSchoolData();
+  }, [exam?.school_id, studentProfile?.school_id]);
 
   useEffect(() => {
     const fetchExamData = async () => {
@@ -439,10 +465,10 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         {headerOpen ? (
           <>
             <div className="flex items-center gap-3">
-              <img src="/logo.png" alt="ParikshaOS Logo" className="w-12 h-12 object-contain" />
+              <img src={school?.logo_url || "/logo.png"} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-12 h-12 object-contain" />
               <div>
-                <h1 className="text-[#008080] text-[20px] font-extrabold tracking-widest m-0 leading-tight uppercase">ParikshaOS</h1>
-                <p className="text-[9px] text-[#667085] uppercase tracking-wider font-semibold">Powered by Growtez</p>
+                <h1 className="text-[#008080] text-[20px] font-extrabold tracking-widest m-0 leading-tight uppercase">{school?.name || 'ParikshaOS'}</h1>
+                {/* <p className="text-[9px] text-[#667085] uppercase tracking-wider font-semibold">Powered by Growtez</p> */}
               </div>
             </div>
 
@@ -470,8 +496,8 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         ) : (
           <>
             <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="ParikshaOS Logo" className="w-6 h-6 object-contain" />
-              <h1 className="text-[#008080] text-[15px] font-extrabold tracking-wider m-0 uppercase">ParikshaOS</h1>
+              <img src={school?.logo_url || "/logo.png"} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-6 h-6 object-contain" />
+              <h1 className="text-[#008080] text-[15px] font-extrabold tracking-wider m-0 uppercase">{school?.name || 'ParikshaOS'}</h1>
             </div>
 
             <div className="flex items-center gap-3">
@@ -598,13 +624,16 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                 ) : (
                   <div className="mt-8 max-w-sm font-sans">
                     <label className="block text-xs font-bold text-[#667085] uppercase tracking-wider mb-2">Numeric Answer:</label>
-                    <input
-                      type="text"
-                      value={answers[currentQuestion.id]?.answer || ''}
-                      onChange={(e) => handleNatChange(currentQuestion.id, e.target.value)}
-                      className="border border-[#E4E7EC] rounded-none px-4 py-2.5 w-full focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] font-mono text-sm bg-white text-[#1D2939] shadow-sm transition-all"
-                      placeholder="Type your response here..."
-                    />
+                    {/* Read-only display — input only accepted via the on-screen Numpad below */}
+                    <div
+                      className="border border-[#E4E7EC] rounded-none px-4 py-2.5 w-full font-mono text-sm bg-[#F9FAFB] text-[#1D2939] shadow-sm min-h-[42px] select-none cursor-default flex items-center"
+                      aria-label="Numeric answer display"
+                    >
+                      {answers[currentQuestion.id]?.answer
+                        ? <span>{answers[currentQuestion.id]?.answer}</span>
+                        : <span className="text-[#98A2B3]">Use numpad below to enter answer</span>
+                      }
+                    </div>
                     <Numpad
                       value={answers[currentQuestion.id]?.answer || ''}
                       onChange={(val) => handleNatChange(currentQuestion.id, val)}

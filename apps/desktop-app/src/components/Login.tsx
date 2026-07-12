@@ -24,6 +24,15 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const handleCloseApp = async () => {
+    try {
+      const { appWindow } = await import('@tauri-apps/api/window');
+      await appWindow.close();
+    } catch (e) {
+      console.error('[KioskMode] Failed to close application window.', e);
+    }
+  };
+
   // Compute filtered list of schools based on search term
   const filteredSchools = schools.filter((school) =>
     school.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -37,6 +46,8 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
         const currentSchool = schools.find((s) => s.id === selectedSchoolId);
         if (currentSchool) {
           setSearchTerm(currentSchool.name);
+        } else {
+          setSearchTerm('');
         }
       }
     };
@@ -47,6 +58,8 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
         const currentSchool = schools.find((s) => s.id === selectedSchoolId);
         if (currentSchool) {
           setSearchTerm(currentSchool.name);
+        } else {
+          setSearchTerm('');
         }
       }
     };
@@ -80,16 +93,13 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
 
         if (!error && data && data.length > 0) {
           setSchools(data);
-          setSelectedSchoolId(data[0].id);
         } else {
           // Fallback if no schools found or query fails
           setSchools([{ id: 'dev-school', name: 'Dev School (Offline Fallback)' }]);
-          setSelectedSchoolId('dev-school');
         }
       } catch (err) {
         console.warn('Failed to fetch schools, using offline fallback', err);
         setSchools([{ id: 'dev-school', name: 'Dev School (Offline Fallback)' }]);
-        setSelectedSchoolId('dev-school');
       }
     };
     fetchSchools();
@@ -232,9 +242,20 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
         <div className="flex items-center gap-3">
           <img src="/logo.png" alt="ParikshaOS Logo" className="w-12 h-12 object-contain" />
           <div>
-            <h1 className="text-[#008080] text-[20px] font-extrabold tracking-widest m-0 leading-tight uppercase">ParikshaOS</h1>
+            <h1 className="text-[#008080] text-[20px] font-extrabold tracking-widest m-0 leading-tight">ParikshaOS</h1>
             <p className="text-[9px] text-[#667085] uppercase tracking-wider font-semibold">Powered by Growtez</p>
           </div>
+        </div>
+        <div>
+          <button
+            onClick={handleCloseApp}
+            className="flex items-center gap-2 px-4 py-2 bg-[#F04438] hover:bg-[#d13b30] active:bg-[#b83029] text-white font-bold rounded-lg transition-all text-xs uppercase tracking-wider shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Exit Application
+          </button>
         </div>
       </header>
 
