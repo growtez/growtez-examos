@@ -82,6 +82,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [savingExam, setSavingExam] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [currentStep, setCurrentStep] = useState(1);
+  const [examFee, setExamFee] = useState<number>(300);
   
   // Exam Form States
   const [title, setTitle] = useState('');
@@ -190,7 +191,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       }).eq('id', params.id);
       
       if (error) throw error;
-      setExam(prev => prev ? { ...prev, title: currentTitle, description: currentDesc, duration_minutes: currentDuration, exam_instructions: filteredInstructions } : null);
+      setExam((prev: any) => prev ? { ...prev, title: currentTitle, description: currentDesc, duration_minutes: currentDuration, exam_instructions: filteredInstructions } : null);
       setSaveStatus('saved');
       setTimeout(() => {
         setSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
@@ -495,6 +496,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       .order('full_name', { ascending: true });
     setTeachers(allTeachers || []);
 
+    // Fetch the Fixed Payment plan to get the exam conduction fee dynamically
+    const { data: feePlan } = await supabase
+      .from('plans')
+      .select('price')
+      .eq('name', 'Fixed Payment')
+      .single();
+    if (feePlan) {
+      setExamFee(Number(feePlan.price));
+    }
+
     // Fetch exam templates
     const { data: allTemplates } = await supabase
       .from('exam_templates')
@@ -546,7 +557,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     const { data: { user } } = await supabase.auth.getUser();
     
     openRazorpayCheckout({
-      amount: 300,
+      amount: examFee,
       examId: exam.id,
       planName: `Exam Publish Fee: ${exam.title}`,
       schoolId: exam.school_id,
@@ -1688,7 +1699,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               <button onClick={handlePayment} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm">
                 <CreditCard size={16} />
-                Pay ₹300 to Publish
+                Pay ₹{examFee} to Publish
               </button>
             )}
             

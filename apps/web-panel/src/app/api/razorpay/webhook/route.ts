@@ -39,6 +39,7 @@ export async function POST(req: Request) {
     if (event === 'order.paid' || event === 'payment.captured') {
       const schoolId = payment.notes.school_id;
       const planId = payment.notes.plan_id;
+      const examId = payment.notes.exam_id;
       
       if (!schoolId) {
         return NextResponse.json({ success: true, message: 'No school_id in notes' }, { status: 200 });
@@ -56,21 +57,25 @@ export async function POST(req: Request) {
         const { error: insertError } = await supabase.from('payment_history').insert({
           school_id: schoolId,
           plan_id: planId || null,
+          exam_id: examId || null,
           razorpay_payment_id: payment.id,
           amount_paid: payment.amount / 100, // convert paise to INR
-          payment_type: 'credit_purchase'
+          payment_type: examId ? 'exam_fee' : 'credit_purchase'
         });
 
-        if (!insertError && planId) {
-          const { data: planData } = await supabase.from('plans').select('credits_awarded').eq('id', planId).single();
-          if (planData && planData.credits_awarded) {
-            // Increment credits (read-modify-write)
-            const { data: schoolData } = await supabase.from('schools').select('exam_credits').eq('id', schoolId).single();
-            const currentCredits = schoolData?.exam_credits || 0;
-            
-            await supabase.from('schools').update({
-              exam_credits: currentCredits + planData.credits_awarded
-            }).eq('id', schoolId);
+        if (!insertError) {
+          if (examId) {
+            await supabase.from('exams').update({ is_paid: true }).eq('id', examId);
+          } else if (planId) {
+            const { data: planData } = await supabase.from('plans').select('credits_awarded').eq('id', planId).single();
+            if (planData && planData.credits_awarded) {
+              const { data: schoolData } = await supabase.from('schools').select('exam_credits').eq('id', schoolId).single();
+              const currentCredits = schoolData?.exam_credits || 0;
+              
+              await supabase.from('schools').update({
+                exam_credits: currentCredits + planData.credits_awarded
+              }).eq('id', schoolId);
+            }
           }
         }
       }
