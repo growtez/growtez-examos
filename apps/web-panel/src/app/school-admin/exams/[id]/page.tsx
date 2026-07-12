@@ -80,6 +80,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [savingExam, setSavingExam] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   
   // Exam Form States
   const [title, setTitle] = useState('');
@@ -96,7 +97,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [editSubjectId, setEditSubjectId] = useState<string | null>(null);
   const [inlineEditSubjectCount, setInlineEditSubjectCount] = useState(0);
   const [assignedSearchQuery, setAssignedSearchQuery] = useState('');
-  const [assignedBatchFilter, setAssignedBatchFilter] = useState('');
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [addingStudent, setAddingStudent] = useState(false);
   const [addError, setAddError] = useState('');
@@ -119,6 +119,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [filterCourse, setFilterCourse] = useState('');
   const [filterBatch, setFilterBatch] = useState('');
   const [filterSession, setFilterSession] = useState('');
+  const [assignedBatchFilter, setAssignedBatchFilter] = useState('');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [bulkAssigning, setBulkAssigning] = useState(false);
   
@@ -126,7 +127,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [showAddSubjectModal, setShowAddSubjectModal] = useState(false);
 
   // Manage Subject Teachers State
-  const [manageTeachersSubject, setManageTeachersSubject] = useState<any>(null);
+  const [manageTeachersSubject, setManageTeachersSubject] = useState<any | null>(null);
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
   const [showInstructionPreview, setShowInstructionPreview] = useState(false);
 
@@ -140,40 +141,62 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     }
   }, [exam]);
 
-  const handleSaveExamDetails = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setSavingExam(true);
+  const autoSaveExamDetails = async (
+    currentTitle = title,
+    currentDesc = description,
+    currentDuration = durationMinutes,
+    currentMcqCorrect = mcqCorrect,
+    currentMcqWrong = mcqWrong,
+    currentNatCorrect = natCorrect,
+    currentNatWrong = natWrong,
+    currentInstructions = instructionsList
+  ) => {
+    if (!currentTitle.trim() || currentDuration < 1) {
+      return;
+    }
+    setSaveStatus('saving');
     try {
-      const filteredInstructions = instructionsList.filter(inst => inst.trim() !== '');
+      const filteredInstructions = currentInstructions.filter(inst => inst.trim() !== '');
       const { error } = await supabase.from('exams').update({
-        title,
-        description,
-        duration_minutes: durationMinutes,
+        title: currentTitle,
+        description: currentDesc,
+        duration_minutes: currentDuration,
         marking_scheme: { 
-          mcq_correct: parseFloat(String(mcqCorrect)) || 0, 
-          mcq_wrong: parseFloat(String(mcqWrong)) || 0, 
-          nat_correct: parseFloat(String(natCorrect)) || 0, 
-          nat_wrong: parseFloat(String(natWrong)) || 0 
+          mcq_correct: parseFloat(String(currentMcqCorrect)) || 0, 
+          mcq_wrong: parseFloat(String(currentMcqWrong)) || 0, 
+          nat_correct: parseFloat(String(currentNatCorrect)) || 0, 
+          nat_wrong: parseFloat(String(currentNatWrong)) || 0 
         },
         exam_instructions: filteredInstructions,
       }).eq('id', params.id);
       
       if (error) throw error;
-      setExam({ ...exam, title, description, duration_minutes: durationMinutes, exam_instructions: filteredInstructions });
-      alert('Exam details saved successfully!');
+      setExam(prev => prev ? { ...prev, title: currentTitle, description: currentDesc, duration_minutes: currentDuration, exam_instructions: filteredInstructions } : null);
+      setSaveStatus('saved');
+      setTimeout(() => {
+        setSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
+      }, 3000);
     } catch (err: any) {
-      alert('Failed to save details: ' + err.message);
-    } finally {
-      setSavingExam(false);
+      console.error(err);
+      setSaveStatus('error');
     }
   };
 
+  const handleSaveExamDetails = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    await autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList);
+  };
+
   const addInstructionItem = () => {
-    setInstructionsList([...instructionsList, '']);
+    const updated = [...instructionsList, ''];
+    setInstructionsList(updated);
+    autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, updated);
   };
 
   const removeInstructionItem = (index: number) => {
-    setInstructionsList(instructionsList.filter((_, i) => i !== index));
+    const updated = instructionsList.filter((_, i) => i !== index);
+    setInstructionsList(updated);
+    autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, updated);
   };
 
   const updateInstructionItem = (index: number, value: string) => {
@@ -1276,12 +1299,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 <div className="space-y-2">
                   <div>
                     <label className="block text-xs font-semibold text-[#555555] mb-1">Title *</label>
-                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required
+                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)} required
                       className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-[#555555] mb-1">Description</label>
-                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
+                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)} rows={2}
                       className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all resize-none text-xs font-medium" />
                   </div>
                   <div>
@@ -1294,7 +1317,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         const endString = new Date(end.getTime() - end.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
                         setEndTime(endString);
                       }
-                    }} min={1} required
+                    }} onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)} min={1} required
                       className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
                   </div>
                 </div>
@@ -1306,22 +1329,22 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                   <div>
                     <label className="block text-[11px] font-semibold text-[#555555] mb-1">MCQ Correct</label>
-                    <input type="number" step="any" value={mcqCorrect} onChange={(e) => setMcqCorrect(e.target.value)}
+                    <input type="number" step="any" value={mcqCorrect} onChange={(e) => setMcqCorrect(e.target.value)} onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                       className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-[#555555] mb-1">MCQ Wrong (-)</label>
-                    <input type="number" step="any" value={mcqWrong} onChange={(e) => setMcqWrong(e.target.value)}
+                    <input type="number" step="any" value={mcqWrong} onChange={(e) => setMcqWrong(e.target.value)} onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                       className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-[#555555] mb-1">NAT Correct</label>
-                    <input type="number" step="any" value={natCorrect} onChange={(e) => setNatCorrect(e.target.value)}
+                    <input type="number" step="any" value={natCorrect} onChange={(e) => setNatCorrect(e.target.value)} onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                       className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
                   </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-[#555555] mb-1">NAT Wrong (-)</label>
-                    <input type="number" step="any" value={natWrong} onChange={(e) => setNatWrong(e.target.value)}
+                    <input type="number" step="any" value={natWrong} onChange={(e) => setNatWrong(e.target.value)} onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                       className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
                   </div>
                 </div>
@@ -1346,7 +1369,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   {instructionsList.map((inst, index) => (
                     <div key={index} className="flex items-center gap-2 w-full">
                       <span className="text-[#8ab8b8] font-bold text-[11px] w-4 text-right flex-shrink-0">{index + 1}.</span>
-                      <input type="text" value={inst} onChange={(e) => updateInstructionItem(index, e.target.value)}
+                      <input type="text" value={inst} onChange={(e) => updateInstructionItem(index, e.target.value)} onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                         placeholder="e.g. Do not close browser..."
                         className="flex-1 min-w-0 px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
                       {instructionsList.length > 1 && (
@@ -1361,10 +1384,27 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
           
-          <div className="flex justify-end pt-2">
-            <button type="submit" disabled={savingExam}
+          <div className="flex justify-between items-center pt-2">
+            <div className="text-xs font-semibold">
+              {saveStatus === 'saving' && (
+                <span className="text-[#008080] flex items-center gap-1.5 animate-pulse">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#008080]" /> Saving...
+                </span>
+              )}
+              {saveStatus === 'saved' && (
+                <span className="text-emerald-600 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" /> Saved
+                </span>
+              )}
+              {saveStatus === 'error' && (
+                <span className="text-red-500 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Error saving
+                </span>
+              )}
+            </div>
+            <button type="submit" disabled={saveStatus === 'saving'}
               className="px-6 py-2.5 bg-[#008080] text-white font-bold rounded-lg hover:bg-[#006666] transition-all disabled:opacity-50 shadow-md shadow-[#008080]/20 text-xs">
-              {savingExam ? 'Saving...' : 'Save Details'}
+              Save Details
             </button>
           </div>
         </form>
