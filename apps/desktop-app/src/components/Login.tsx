@@ -1,22 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { getDeviceId } from '../lib/deviceId';
 
 type Step = 'login' | 'waiting_room' | 'exam' | 'submitted';
 
 interface LoginProps {
   onLoginSuccess: (studentData: any, selectedExam: any, initialStep?: Step) => void;
-  serverTimeOffset?: number;
 }
 
-export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginProps) {
+export default function Login({ onLoginSuccess }: LoginProps) {
   const [schools, setSchools] = useState<any[]>([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
   const [rollNumber, setRollNumber] = useState('');
   const [dob, setDob] = useState('');
   const [loading, setLoading] = useState(false);
-  const [authSuccess, setAuthSuccess] = useState(false);
-  const [assignedExams, setAssignedExams] = useState<any[]>([]);
-  const [selectedExamId, setSelectedExamId] = useState('');
+
   const [error, setError] = useState('');
 
   // States and refs for searchable dropdown
@@ -116,6 +114,10 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
     setError('');
     setLoading(true);
 
+    // Track authenticated user ID so the catch block can clear the session lock
+    // if something fails after check_and_set_student_session has already fired.
+    let authedUserId: string | null = null;
+
     try {
       if (!selectedSchoolId) throw new Error('Please select your school');
       if (!rollNumber.trim()) throw new Error('Please enter your roll number');
@@ -134,12 +136,12 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
       if (authError && authError.message.toLowerCase().includes('invalid login credentials')) {
         const formattedDobForEmail = dob.replace(/-/g, '');
         email = `${rollNumber.trim()}_${formattedDobForEmail}@${selectedSchoolId}.student.examos.local`;
-        
+
         const retryAuth = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        
+
         authData = retryAuth.data;
         authError = retryAuth.error;
       }
@@ -147,7 +149,23 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
       if (authError) throw authError;
       if (!authData || !authData.user) throw new Error('Authentication failed: user not found');
 
-      // Fetch student profile details
+      authedUserId = authData.user.id;
+
+      // 1. Check and lock the device session — prevents simultaneous logins on other devices
+      const devId = getDeviceId();
+      const { data: isSessionValid, error: sessionError } = await supabase.rpc(
+        'check_and_set_student_session',
+        { p_student_id: authData.user.id, p_device_id: devId }
+      );
+
+      if (sessionError || !isSessionValid) {
+        throw new Error(
+          'This student is already logged in on another device. ' +
+          'Please wait for the active session to expire or contact your administrator.'
+        );
+      }
+
+      // 2. Fetch student profile details
       const { data: profile, error: profileError } = await supabase
         .from('students')
         .select('*')
@@ -158,12 +176,12 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
         throw new Error('Student profile not found. Please contact school admin.');
       }
 
-      // Fetch exams assigned to this student
+      // 3. Auto-select the first active exam — no exam selection UI needed
       const { data: examAssignments, error: examError } = await supabase
         .from('exam_students')
         .select('*, exams:exam_id(*)')
         .eq('student_id', authData.user.id)
-        .eq('status', 'assigned'); // only fetch exams that are assigned and not already submitted
+        .eq('status', 'assigned');
 
       if (examError) throw examError;
 
@@ -175,60 +193,22 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
         throw new Error('No active exams assigned to you at this moment.');
       }
 
-      setAssignedExams(activeExams);
-      setSelectedExamId(activeExams[0].id);
-      setAuthSuccess(true);
+      // 4. Redirect directly to Waiting Room — skipping the exam selection screen
+      onLoginSuccess(profile, activeExams[0], 'waiting_room');
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
       try {
+        // If the session was already locked before the error, release it
+        if (authedUserId) {
+          await supabase.rpc('clear_student_session', {
+            p_student_id: authedUserId,
+            p_device_id: getDeviceId(),
+          });
+        }
         await supabase.auth.signOut();
       } catch (signOutErr) {
-        console.warn('Signout failed', signOutErr);
+        console.warn('Signout/session clear failed', signOutErr);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStartExam = async () => {
-    setLoading(true);
-    try {
-      const selectedExam = assignedExams.find(e => e.id === selectedExamId);
-      if (!selectedExam) throw new Error('Please select an exam');
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { data: profile } = await supabase
-        .from('students')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      const now = new Date(Date.now() + serverTimeOffset);
-      const startTime = selectedExam.start_time ? new Date(selectedExam.start_time) : null;
-      const endTime = selectedExam.end_time ? new Date(selectedExam.end_time) : null;
-
-      // Check if we are outside the exam boundary
-      if ((startTime && now < startTime) || (endTime && now > endTime)) {
-        // Direct to waiting room if too early or too late
-        onLoginSuccess(profile, selectedExam, 'waiting_room');
-        return;
-      }
-
-      // If we are within time boundary, update student exam status to 'in_progress'
-      await supabase
-        .from('exam_students')
-        .update({
-          status: 'in_progress',
-          started_at: new Date(now.getTime() - serverTimeOffset).toISOString(),
-        })
-        .eq('exam_id', selectedExamId)
-        .eq('student_id', user.id);
-
-      onLoginSuccess(profile, selectedExam, 'exam');
-    } catch (err: any) {
-      setError(err.message || 'Failed to start exam');
     } finally {
       setLoading(false);
     }
@@ -276,8 +256,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
           </div>
 
           <div className="p-8">
-            {!authSuccess ? (
-              /* Credentials Form */
+            {/* Credentials Form — single-step login, redirects directly to Waiting Room */}
               <form onSubmit={handleStudentAuth} className="space-y-5">
                 <div>
                   <label className="block text-xs font-bold text-[#667085] mb-2 uppercase tracking-wider">Select School / Center</label>
@@ -389,7 +368,7 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
                     {loading ? 'AUTHENTICATING...' : 'LOGIN'}
                   </button>
                 </div>
-                
+
                 {/* DEV BYPASS BUTTON FOR TESTING */}
                 <div className="pt-2">
                   <button
@@ -406,52 +385,6 @@ export default function Login({ onLoginSuccess, serverTimeOffset = 0 }: LoginPro
                   </button>
                 </div>
               </form>
-            ) : (
-              /* Exam Selection Form */
-              <div className="space-y-5">
-                <div className="bg-[#12B76A]/10 border border-[#12B76A]/20 p-4 rounded-none text-center">
-                  <p className="text-[#12B76A] text-sm font-bold uppercase tracking-wider">✓ Authentication Successful</p>
-                  <p className="text-[#667085] text-sm mt-1">Roll No: <span className="font-bold text-[#1D2939]">{rollNumber}</span></p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-[#667085] mb-2 uppercase tracking-wider">Select Examination</label>
-                  <select
-                    value={selectedExamId}
-                    onChange={(e) => setSelectedExamId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
-                  >
-                    {assignedExams.map((exam) => (
-                      <option key={exam.id} value={exam.id}>
-                        {exam.title} ({exam.duration_minutes} mins)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {error && (
-                  <div className="border border-[#F04438]/20 bg-[#F04438]/10 p-3 rounded-none text-[#F04438] text-sm font-semibold flex items-center gap-2">
-                    <span>⚠</span> {error}
-                  </div>
-                )}
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={handleStartExam}
-                    disabled={loading}
-                    className="flex-1 py-3 bg-[#008080] hover:bg-[#006666] text-white font-bold rounded-none transition-colors text-sm uppercase tracking-wider shadow-sm"
-                  >
-                    {loading ? 'LOADING...' : 'START EXAM'}
-                  </button>
-                  <button
-                    onClick={() => { setAuthSuccess(false); setAssignedExams([]); }}
-                    className="px-6 py-3 bg-white hover:bg-[#F9FAFB] text-[#667085] font-bold border border-[#E4E7EC] rounded-none transition-colors text-sm uppercase shadow-sm"
-                  >
-                    BACK
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

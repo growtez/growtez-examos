@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import Login from './components/Login';
 import ExamInterface from './components/ExamInterface';
 import WaitingRoom from './components/WaitingRoom';
+import { supabase } from './lib/supabase';
+import { getDeviceId } from './lib/deviceId';
 
 type Step = 'login' | 'waiting_room' | 'exam' | 'submitted';
 
@@ -23,8 +25,9 @@ const activateKioskMode = async () => {
 /**
  * Closes the application via Tauri's window API.
  * Only callable after exam submission when all data has been saved.
+ * The session-aware version inside App handles clearing the DB session first.
  */
-const handleCloseApp = async () => {
+const closeAppWindow = async () => {
   try {
     const { appWindow } = await import('@tauri-apps/api/window');
     await appWindow.close();
@@ -60,9 +63,47 @@ function App() {
     };
   }, [kioskActive]);
 
+  // ── Session Heartbeat ───────────────────────────────────────────────────────
+  // Sends a heartbeat every 20 seconds to keep the single-session lock alive.
+  // Stops when the student is on the login or submitted screen.
+  useEffect(() => {
+    if (!studentProfile?.id || step === 'login' || step === 'submitted') return;
+
+    const devId = getDeviceId();
+    const interval = setInterval(async () => {
+      try {
+        const { data: isSuccess, error } = await supabase.rpc('heartbeat_student_session', {
+          p_student_id: studentProfile.id,
+          p_device_id: devId,
+        });
+        if (error || !isSuccess) {
+          console.warn('[Session] Heartbeat failed — session may have been taken over or expired.');
+        }
+      } catch (e) {
+        console.error('[Session] Failed to send heartbeat', e);
+      }
+    }, 20000);
+
+    return () => clearInterval(interval);
+  }, [studentProfile, step]);
+
+  // ── Session-aware app close ─────────────────────────────────────────────────
+  const handleCloseApp = async () => {
+    try {
+      if (studentProfile?.id) {
+        await supabase.rpc('clear_student_session', {
+          p_student_id: studentProfile.id,
+          p_device_id: getDeviceId(),
+        });
+      }
+    } catch (e) {
+      console.warn('[Session] Failed to clear session on close:', e);
+    }
+    await closeAppWindow();
+  };
+
   const handleLoginSuccess = async (profile: any, exam: any, initialStep: Step = 'exam') => {
     try {
-      const { supabase } = await import('./lib/supabase');
       const { data, error } = await supabase.rpc('get_server_time');
       if (!error && data) {
         const serverTime = new Date(data).getTime();
