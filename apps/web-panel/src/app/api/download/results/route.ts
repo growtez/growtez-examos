@@ -6,6 +6,8 @@ import autoTable from 'jspdf-autotable';
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const examId = searchParams.get('examId');
+  const courseFilter = searchParams.get('course');
+  const batchFilter = searchParams.get('batch');
 
   if (!examId) {
     return new NextResponse('Missing examId', { status: 400 });
@@ -25,15 +27,19 @@ export async function GET(request: NextRequest) {
   }
 
   // 2. Fetch results
-  const { data: results, error: resultsError } = await supabase
+  const { data: resultsData, error: resultsError } = await supabase
     .from('results')
-    .select('*, students:student_id(full_name, roll_number)')
+    .select('*, students:student_id(full_name, roll_number, course, batch)')
     .eq('exam_id', examId)
     .order('total_marks', { ascending: false });
 
-  if (resultsError || !results) {
+  if (resultsError || !resultsData) {
     return new NextResponse('Error fetching results', { status: 500 });
   }
+
+  let results = resultsData;
+  if (courseFilter) results = results.filter(r => r.students?.course === courseFilter);
+  if (batchFilter) results = results.filter(r => r.students?.batch === batchFilter);
 
   // Generate PDF using jsPDF
   try {
@@ -41,6 +47,12 @@ export async function GET(request: NextRequest) {
     const testName = exam.title || 'Exam Results';
     const schoolName = exam.schools?.name || 'Results Report';
     const totalStudents = results.length;
+    const totalExamMarks = exam.total_marks || 'N/A';
+    
+    let filterText = '';
+    if (courseFilter || batchFilter) {
+      filterText = `Filters: ${courseFilter || 'All Courses'} | ${batchFilter || 'All Batches'}`;
+    }
 
     // Header
     doc.setFontSize(18);
@@ -51,6 +63,8 @@ export async function GET(request: NextRequest) {
     doc.setTextColor(85, 85, 85);
     doc.text(`Test Name: ${testName}`, 40, 60);
     doc.text(`Total Students Appeared: ${totalStudents}`, 40, 75);
+    doc.text(`Total Marks: ${totalExamMarks}`, 40, 90);
+    if (filterText) doc.text(filterText, 40, 105);
 
     // Collect all unique subjects from the results
     const subjectSet = new Set<string>();
@@ -69,7 +83,7 @@ export async function GET(request: NextRequest) {
         index + 1,
         res.students?.roll_number || 'N/A',
         res.students?.full_name || 'Unknown',
-        res.total_marks ?? 0
+        `${res.total_marks ?? 0} / ${totalExamMarks}`
       ];
 
       // Subject wise correct answers
@@ -88,7 +102,7 @@ export async function GET(request: NextRequest) {
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 95,
+      startY: filterText ? 115 : 100,
       styles: { fontSize: 9, cellPadding: 5 },
       headStyles: { fillColor: [0, 128, 128], textColor: 255 },
       alternateRowStyles: { fillColor: [245, 249, 249] },

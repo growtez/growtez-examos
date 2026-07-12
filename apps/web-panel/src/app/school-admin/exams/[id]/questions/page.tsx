@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ReactCrop, { type Crop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function QuestionsPage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
@@ -322,9 +322,9 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
   return (
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-8">
-        <Link href={`/exams/${params.id}`} className="inline-flex items-center gap-1.5 text-[#8ab8b8] hover:text-[#008080] text-sm font-bold uppercase tracking-wider transition-colors mb-4">
+        <Link href={userRole === 'teacher' ? '/exams' : `/exams/${params.id}?step=2`} className="inline-flex items-center gap-1.5 text-[#8ab8b8] hover:text-[#008080] text-sm font-bold uppercase tracking-wider transition-colors mb-4">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
-          Back to Exam
+          {userRole === 'teacher' ? 'Back to Dashboard' : 'Back to Exam'}
         </Link>
         <h2 className="text-2xl font-bold text-[#1a2e2e]">{exam?.title} — Questions</h2>
       </div>
@@ -419,6 +419,16 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
           </div>
         ))}
       </div>
+
+      {/* Completion CTA */}
+      {currentSubject && questions.length >= currentSubject.question_count && (
+        <div className="flex justify-center mt-8 mb-12">
+          <Link href={userRole === 'teacher' ? '/exams' : `/exams/${params.id}?step=2`} className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#008080] text-white font-bold rounded-xl shadow-lg shadow-[#008080]/30 hover:bg-[#006666] hover:-translate-y-0.5 transition-all text-sm">
+            <CheckCircle2 size={18} />
+            Submit Questions
+          </Link>
+        </div>
+      )}
 
       {/* Add/Edit Question Form Modal */}
       {showForm && (
