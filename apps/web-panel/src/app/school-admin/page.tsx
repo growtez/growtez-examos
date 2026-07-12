@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { Users, GraduationCap, FileText, CheckCircle, Plus, Users2, Layers, ArrowRight } from 'lucide-react';
+import { Users, GraduationCap, FileText, CheckCircle, Users2, Layers, ArrowRight } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import CreateExamButton from '@/components/CreateExamButton';
 
 export default async function SchoolAdminDashboard() {
   const supabase = createClient();
@@ -200,10 +201,7 @@ export default async function SchoolAdminDashboard() {
             Quick Actions
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 flex-grow">
-          <Link href="/exams/new" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer text-center">
-            <Plus size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
-            <span className="font-semibold text-xs text-[#1a2e2e]">Create Exam</span>
-          </Link>
+          <CreateExamButton />
           <Link href="/teachers" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer text-center">
             <Users size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
             <span className="font-semibold text-xs text-[#1a2e2e]">Manage Teachers</span>

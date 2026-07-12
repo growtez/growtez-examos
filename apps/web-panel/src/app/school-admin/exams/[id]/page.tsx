@@ -81,6 +81,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [publishing, setPublishing] = useState(false);
   const [savingExam, setSavingExam] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [currentStep, setCurrentStep] = useState(1);
   
   // Exam Form States
   const [title, setTitle] = useState('');
@@ -124,6 +125,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [bulkAssigning, setBulkAssigning] = useState(false);
   
   const [teachers, setTeachers] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [applyingTemplate, setApplyingTemplate] = useState(false);
   const [showAddSubjectModal, setShowAddSubjectModal] = useState(false);
 
   // Manage Subject Teachers State
@@ -134,6 +137,22 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   // Instructions Editing State & Helpers
   const [instructionsList, setInstructionsList] = useState<string[]>([]);
   const [editInstructionsMode, setEditInstructionsMode] = useState(false);
+
+  const canProceedToNextStep = (step: number) => {
+    if (step === 1) {
+      return title.trim() !== '' && durationMinutes > 0 && subjects.length > 0;
+    }
+    if (step === 2) {
+      return subjects.length > 0 && subjects.every(s => (questionCounts[s.id] || 0) >= s.question_count);
+    }
+    if (step === 3) {
+      return assignedStudents.length > 0;
+    }
+    if (step === 4) {
+      return startTime !== '' && endTime !== '';
+    }
+    return true;
+  };
 
   useEffect(() => {
     if (exam) {
@@ -185,6 +204,61 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const handleSaveExamDetails = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     await autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList);
+  };
+
+  const handleTemplateApply = async (template: any) => {
+    if (!template) return;
+    setApplyingTemplate(true);
+    try {
+      const newTitle = template.title || title;
+      const newDesc = template.description || description;
+      const newDuration = template.duration_minutes || durationMinutes;
+      const newMcqCorrect = template.marking_scheme?.mcq_correct ?? mcqCorrect;
+      const newMcqWrong = template.marking_scheme?.mcq_wrong ?? mcqWrong;
+      const newNatCorrect = template.marking_scheme?.nat_correct ?? natCorrect;
+      const newNatWrong = template.marking_scheme?.nat_wrong ?? natWrong;
+      const newInstructions = template.exam_instructions?.length ? template.exam_instructions : instructionsList;
+
+      setTitle(newTitle);
+      setDescription(newDesc);
+      setDurationMinutes(newDuration);
+      setMcqCorrect(newMcqCorrect);
+      setMcqWrong(newMcqWrong);
+      setNatCorrect(newNatCorrect);
+      setNatWrong(newNatWrong);
+      setInstructionsList(newInstructions);
+
+      // Save exam details
+      await autoSaveExamDetails(newTitle, newDesc, newDuration, newMcqCorrect, newMcqWrong, newNatCorrect, newNatWrong, newInstructions);
+
+      // Apply subjects if template has them (replace existing)
+      if (template.exam_template_subjects?.length > 0) {
+        // Delete existing subjects first
+        await supabase.from('exam_subjects').delete().eq('exam_id', params.id);
+        // Insert template subjects
+        for (let i = 0; i < template.exam_template_subjects.length; i++) {
+          const s = template.exam_template_subjects[i];
+          await supabase.from('exam_subjects').insert({
+            exam_id: params.id,
+            subject_name: s.subject_name,
+            question_count: s.question_count,
+            sort_order: i,
+          });
+        }
+        // Refresh subjects state
+        const { data: subjectsData } = await supabase
+          .from('exam_subjects')
+          .select('*, exam_subject_teachers(*, teachers:teacher_id(full_name))')
+          .eq('exam_id', params.id)
+          .order('sort_order');
+        setSubjects(subjectsData || []);
+        setQuestionCounts({});
+      }
+    } catch (err: any) {
+      console.error('Failed to apply template:', err);
+    } finally {
+      setApplyingTemplate(false);
+    }
   };
 
   const addInstructionItem = () => {
@@ -420,6 +494,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       .order('department', { ascending: true })
       .order('full_name', { ascending: true });
     setTeachers(allTeachers || []);
+
+    // Fetch exam templates
+    const { data: allTemplates } = await supabase
+      .from('exam_templates')
+      .select('*, exam_template_subjects(*)')
+      .order('created_at', { ascending: false });
+    setTemplates(allTemplates || []);
 
     setLoading(false);
   };
@@ -1003,13 +1084,49 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8 mb-10">
+      {/* Stepper Header */}
+      {role !== 'teacher' && exam?.status === 'draft' && (
+        <div className="mb-8 flex items-center justify-between relative max-w-3xl mx-auto">
+          <div className="absolute left-0 top-5 -translate-y-1/2 w-full h-1 bg-[#e0f2f2] z-0 rounded-full"></div>
+          <div className="absolute left-0 top-5 -translate-y-1/2 h-1 bg-[#008080] z-0 rounded-full transition-all duration-300" style={{ width: `${((currentStep - 1) / 4) * 100}%` }}></div>
+          
+          {[
+            { step: 1, label: 'Setup' },
+            { step: 2, label: 'Questions' },
+            { step: 3, label: 'Candidates' },
+            { step: 4, label: 'Schedule' },
+            { step: 5, label: 'Publish' }
+          ].map((s) => (
+            <div key={s.step} className="relative z-10 flex flex-col items-center gap-2">
+              <button 
+                onClick={() => {
+                  // Only allow navigating to completed steps or next step
+                  if (s.step < currentStep || (s.step === currentStep + 1 && canProceedToNextStep(currentStep))) {
+                    setCurrentStep(s.step);
+                  }
+                }}
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 border-2
+                  ${currentStep === s.step ? 'bg-[#008080] text-white border-[#008080] shadow-md shadow-[#008080]/30 scale-110' : 
+                    currentStep > s.step ? 'bg-[#008080] text-white border-[#008080]' : 
+                    'bg-white text-[#8ab8b8] border-[#e0f2f2]'}`}
+              >
+                {currentStep > s.step ? <Check size={18} /> : s.step}
+              </button>
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${currentStep === s.step ? 'text-[#1a2e2e]' : currentStep > s.step ? 'text-[#008080]' : 'text-[#8ab8b8]'}`}>
+                {s.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className={`grid grid-cols-1 ${role !== 'teacher' && exam?.status === 'draft' ? 'max-w-4xl mx-auto' : 'xl:grid-cols-3 gap-6 lg:gap-8'} mb-10`}>
         
         {/* Left Column (Main Content) */}
-        <div className="xl:col-span-2 space-y-6">
+        <div className={`${role !== 'teacher' && exam?.status === 'draft' ? 'col-span-1' : 'xl:col-span-2'} space-y-6`}>
           
-
       {/* Subjects */}
+      {(!exam || exam.status !== 'draft' || role === 'teacher' || currentStep === 1 || currentStep === 2) && (
       <div className="bg-white border border-[#e0f2f2] rounded-2xl p-6 mb-6 shadow-sm">
         <div className="mb-4 border-b border-[#f0f7f7] pb-1.5">
           <h3 className="text-lg font-bold text-[#1a2e2e]">Subjects</h3>
@@ -1093,8 +1210,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           )}
         </div>
       </div>
+      )}
 
 {/* Assigned Students */}
+      {(!exam || exam.status !== 'draft' || role === 'teacher' || currentStep === 3) && (
       <div className="bg-white border border-[#e0f2f2] rounded-2xl p-6 mb-6 shadow-sm">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
@@ -1263,6 +1382,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           </div>
         )}
       </div>
+      )}
 
       {/* Super Admin Payment Override */}
       {role === 'super_admin' && (
@@ -1290,8 +1410,65 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       
 
       {/* Editable Exam Details Form */}
-      {role !== 'teacher' && !isExamOver && exam?.status === 'draft' ? (
+      {role !== 'teacher' && !isExamOver && exam?.status === 'draft' && currentStep === 1 ? (
         <form onSubmit={handleSaveExamDetails} className="space-y-4 mb-6">
+
+          {/* Template Picker */}
+          {templates.length > 0 && (
+            <div className="bg-white border border-[#e0f2f2] rounded-xl p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-3 border-b border-[#f0f7f7] pb-2">
+                <h3 className="text-sm font-bold text-[#1a2e2e] flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-md bg-[#008080]/10 flex items-center justify-center">
+                    <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 5h16M4 10h16M4 15h10" /></svg>
+                  </span>
+                  Load from Template
+                </h3>
+                {applyingTemplate && (
+                  <span className="text-[11px] text-[#008080] flex items-center gap-1.5 font-semibold animate-pulse">
+                    <span className="w-3 h-3 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
+                    Applying...
+                  </span>
+                )}
+              </div>
+              {/* Dropdown */}
+              <div className="mb-3">
+                <select
+                  onChange={(e) => {
+                    const selected = templates.find(t => t.id === e.target.value);
+                    if (selected) handleTemplateApply(selected);
+                    e.target.value = '';
+                  }}
+                  defaultValue=""
+                  disabled={applyingTemplate}
+                  className="w-full px-3 py-2 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] text-xs font-semibold focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all disabled:opacity-50"
+                >
+                  <option value="" disabled>— Choose a template to auto-fill fields —</option>
+                  {templates.map(t => (
+                    <option key={t.id} value={t.id}>{t.title} ({t.duration_minutes} min, {t.exam_template_subjects?.length || 0} subjects)</option>
+                  ))}
+                </select>
+              </div>
+              {/* Template Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                {templates.map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => handleTemplateApply(t)}
+                    disabled={applyingTemplate}
+                    className="text-left p-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl hover:border-[#008080] hover:bg-[#e0f2f2]/30 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <p className="text-xs font-bold text-[#1a2e2e] truncate group-hover:text-[#008080] transition-colors">{t.title}</p>
+                    <p className="text-[10px] text-[#555555] mt-0.5">{t.duration_minutes} min · {t.exam_template_subjects?.length || 0} subjects</p>
+                    {t.exam_template_subjects?.length > 0 && (
+                      <p className="text-[10px] text-[#8ab8b8] mt-1 truncate">{t.exam_template_subjects.map((s: any) => s.subject_name).join(' · ')}</p>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Exam Details */}
             <div className="bg-white border border-[#e0f2f2] rounded-xl p-3.5 sm:p-4 shadow-sm order-1 h-full">
@@ -1434,9 +1611,33 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       )}
 
 
+          {/* Stepper Navigation */}
+          {role !== 'teacher' && exam?.status === 'draft' && (
+            <div className="flex items-center justify-between mt-8 border-t border-[#e0f2f2] pt-6 pb-4">
+              <button 
+                onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
+                disabled={currentStep === 1}
+                className={`px-6 py-2.5 rounded-xl font-semibold transition-all ${currentStep === 1 ? 'opacity-0 pointer-events-none' : 'bg-white border border-[#e0f2f2] text-[#555555] hover:bg-[#f5f9f9]'}`}
+              >
+                Back
+              </button>
+              
+              {currentStep < 5 && (
+                <button 
+                  onClick={() => setCurrentStep(prev => Math.min(5, prev + 1))}
+                  disabled={!canProceedToNextStep(currentStep)}
+                  className="px-6 py-2.5 bg-[#008080] text-white rounded-xl font-semibold hover:bg-[#006666] transition-all disabled:opacity-50 shadow-md shadow-[#008080]/20"
+                >
+                  Next Step
+                </button>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Right Column (Sidebar) */}
+        {(!exam || exam.status !== 'draft' || role === 'teacher' || currentStep === 4 || currentStep === 5) && (
         <div className="xl:col-span-1">
           <div className="sticky top-6 flex flex-col gap-5">
 
@@ -1444,12 +1645,15 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             {/* Publish Button */}
       {exam.status === 'draft' && role !== 'teacher' && (
         <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-6 shadow-sm">
-          <h3 className="text-lg font-bold text-[#1a2e2e] mb-2">Publish Exam</h3>
+          <h3 className="text-lg font-bold text-[#1a2e2e] mb-2">{currentStep === 4 ? 'Schedule Exam' : 'Publish Exam'}</h3>
           <p className="text-[#555555] text-sm font-medium mb-6">
-            {allQuestionsReady
-              ? 'All questions are ready. Set the start and end times, then publish the exam.'
-              : 'Some subjects still need more questions. Add all required questions before publishing.'}
+            {currentStep === 4 
+              ? 'Set the start and end times for the exam.' 
+              : allQuestionsReady
+                ? 'All questions are ready. You can now publish the exam.'
+                : 'Some subjects still need more questions. Add all required questions before publishing.'}
           </p>
+          {(currentStep === 4 || role === 'teacher' || exam.status !== 'draft') && (
           <div className="flex flex-col gap-4 mb-6">
             <div>
               <label className="block text-xs font-semibold text-[#1a2e2e] mb-1.5">Start Time (Auto-publish) *</label>
@@ -1470,7 +1674,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all disabled:opacity-50 text-sm font-medium" />
             </div>
           </div>
+          )}
 
+          {(currentStep === 5 || role === 'teacher' || exam.status !== 'draft') && (
           <div className="flex items-center gap-4">
             {exam.is_paid ? (
               <button onClick={handlePublish} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
@@ -1492,13 +1698,14 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </span>
             )}
           </div>
+          )}
         </div>
       )}
 
       
-
           </div>
         </div>
+        )}
       </div>
 
       {/* Manage Teachers Modal */}
