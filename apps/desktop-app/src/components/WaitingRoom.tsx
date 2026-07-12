@@ -5,11 +5,10 @@ interface WaitingRoomProps {
   studentProfile: any;
   exam: any;
   onStartExam: () => void;
-  onGoBack: () => void;
   serverTimeOffset: number;
 }
 
-export default function WaitingRoom({ studentProfile, exam, onStartExam, onGoBack, serverTimeOffset }: WaitingRoomProps) {
+export default function WaitingRoom({ studentProfile, exam, onStartExam, serverTimeOffset }: WaitingRoomProps) {
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
   const [isEnded, setIsEnded] = useState(false);
   const [canStart, setCanStart] = useState(false);
@@ -198,11 +197,6 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, onGoBac
               </ul>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-[#E4E7EC] text-center">
-              <button onClick={onGoBack} className="text-sm text-[#667085] hover:text-[#008080] font-bold transition-colors uppercase tracking-wider">
-                &larr; Go back to login
-              </button>
-            </div>
 
           </div>
         </div>
