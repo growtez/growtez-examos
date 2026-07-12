@@ -517,7 +517,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setLoading(false);
   };
 
-  const handlePublish = async () => {
+  const handlePublish = async (bypassPayment = false) => {
     if (!startTime || !endTime) {
       alert('Please set a start time and end time before publishing.');
       return;
@@ -530,17 +530,21 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setPublishing(true);
     
     try {
-      if (!exam.is_paid) {
+      if (!exam.is_paid && !bypassPayment) {
         alert('You must pay the exam conduction fee before publishing this exam.');
         setPublishing(false);
         return;
       }
       
-      const updates = {
+      const updates: any = {
         status: 'published',
         start_time: new Date(startTime).toISOString(),
         end_time: new Date(endTime).toISOString()
       };
+
+      if (bypassPayment && !exam.is_paid) {
+        updates.is_paid = true;
+      }
       
       await supabase.from('exams').update(updates).eq('id', params.id);
       setExam({ ...exam, ...updates });
@@ -1154,7 +1158,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       )}
 
       {/* Subjects */}
-      {(!exam || exam.status !== 'draft' || role === 'teacher' || currentStep === 1 || currentStep === 2) && (
+      {(!exam || exam.status !== 'draft' || role === 'teacher' || currentStep === 2) && (
       <div className="bg-white border border-[#e0f2f2] rounded-2xl p-6 mb-6 shadow-sm">
         <div className="mb-4 border-b border-[#f0f7f7] pb-1.5">
           <h3 className="text-lg font-bold text-[#1a2e2e]">Subjects</h3>
@@ -1572,6 +1576,71 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 </div>
             </div>
 
+            {/* Subjects (Step 1 Position) */}
+            <div className="bg-white border border-[#e0f2f2] rounded-xl p-3.5 sm:p-4 shadow-sm lg:col-span-2 order-3 h-full mb-4">
+              <div className="mb-4 border-b border-[#f0f7f7] pb-1.5 flex justify-between items-center">
+                <h3 className="text-sm font-bold text-[#1a2e2e]">Subjects</h3>
+                <button 
+                  type="button" 
+                  onClick={(e) => { e.preventDefault(); setShowAddSubjectModal(true); }}
+                  className="text-[11px] font-bold text-[#008080] hover:underline flex items-center gap-1"
+                >
+                  <Plus size={12} /> Add Subject
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {subjects.map((s) => {
+                  const added = questionCounts[s.id] || 0;
+                  const needed = s.question_count;
+                  const complete = added >= needed;
+                  return (
+                    <div key={s.id} className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl p-3 flex flex-col justify-between">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[#1a2e2e] font-bold text-xs">{s.subject_name}</span>
+                        <button 
+                          type="button"
+                          onClick={(e) => handleDeleteSubject(e, s.id, s.subject_name)} 
+                          className="text-red-400 hover:text-red-600 transition-colors p-1"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {added}/{needed} q&apos;s
+                        </span>
+                        {editSubjectId !== s.id && (
+                          <button type="button" onClick={(e) => { e.preventDefault(); setInlineEditSubjectCount(needed); setEditSubjectId(s.id); }} className="text-[#8ab8b8] hover:text-[#008080] transition-colors p-1">
+                            <Edit2 size={12} />
+                          </button>
+                        )}
+                        {editSubjectId === s.id && (
+                          <div className="flex items-center gap-1">
+                            <input type="number" value={inlineEditSubjectCount} onChange={(e) => setInlineEditSubjectCount(Math.max(0, parseInt(e.target.value) || 0))} className="w-12 px-1 py-0.5 text-[10px] border border-[#008080] rounded outline-none font-bold" min="0" />
+                            <button type="button" onClick={() => handleSaveSubjectCount(s.id)} className="text-white bg-[#008080] p-0.5 rounded"><Check size={12}/></button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {s.exam_subject_teachers?.map((est: any) => (
+                          <span key={est.id} className="text-[9px] font-bold uppercase tracking-wider text-[#008080] bg-white border border-[#b2d8d8] px-1.5 py-0.5 rounded">
+                            {est.teachers?.full_name?.split(' ')[0] || 'Teacher'}
+                          </span>
+                        ))}
+                        <button type="button" onClick={(e) => { 
+                          e.preventDefault(); 
+                          setManageTeachersSubject(s); 
+                          setSelectedTeacherIds(s.exam_subject_teachers?.map((est: any) => est.teacher_id) || []); 
+                        }} className="text-[#8ab8b8] hover:text-[#008080] text-[9px] font-bold uppercase tracking-wider border border-dashed border-[#b2d8d8] px-1.5 py-0.5 rounded flex items-center">
+                          <Plus size={8} className="mr-0.5"/> Add
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Exam Instructions */}
             <div className="bg-white border border-[#e0f2f2] rounded-xl p-3.5 sm:p-4 shadow-sm order-3 lg:col-span-2">
                 <div className="flex items-center justify-between mb-3 border-b border-[#f0f7f7] pb-1.5">
@@ -1724,17 +1793,24 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           {(currentStep === 5 || role === 'teacher' || exam.status !== 'draft') && (
           <div className="flex items-center gap-4">
             {exam.is_paid ? (
-              <button onClick={handlePublish} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
+              <button onClick={() => handlePublish(false)} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-[#008080] hover:bg-[#006666] text-white font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm">
                 <Play size={16} />
                 {publishing ? 'Publishing...' : 'Publish Exam'}
               </button>
             ) : (
-              <button onClick={handlePayment} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm">
-                <CreditCard size={16} />
-                Pay ₹{examFee} to Publish
-              </button>
+              <div className="flex items-center gap-3">
+                <button onClick={handlePayment} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm">
+                  <CreditCard size={16} />
+                  Pay ₹{examFee} to Publish
+                </button>
+                <button onClick={() => handlePublish(true)} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
+                  className="inline-flex items-center gap-1.5 px-4 py-3 bg-gray-800 hover:bg-gray-900 text-white text-sm font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm"
+                  title="Dev Tool: Skip payment entirely">
+                  <Play size={14} /> Dev Publish
+                </button>
+              </div>
             )}
             
             {!exam.is_paid && (
