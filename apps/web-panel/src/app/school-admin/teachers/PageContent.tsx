@@ -287,7 +287,7 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
                   placeholder="e.g. Mathematics" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Temporary Password</label>
+                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Password</label>
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6}
                   className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all"
                   placeholder="Min 6 characters" />

@@ -18,14 +18,21 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [generatingStudentId, setGeneratingStudentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [courseFilter, setCourseFilter] = useState('');
+  const [batchFilter, setBatchFilter] = useState('');
 
   const filteredResults = results.filter(res => {
-    if (!searchQuery) return true;
     const term = searchQuery.toLowerCase();
     const name = res.students?.full_name?.toLowerCase() || '';
     const rollNo = res.students?.roll_number?.toLowerCase() || '';
-    return name.includes(term) || rollNo.includes(term);
+    const matchesSearch = !searchQuery || name.includes(term) || rollNo.includes(term);
+    const matchesCourse = !courseFilter || res.students?.course === courseFilter;
+    const matchesBatch = !batchFilter || res.students?.batch === batchFilter;
+    return matchesSearch && matchesCourse && matchesBatch;
   });
+
+  const uniqueCourses = Array.from(new Set(results.map(r => r.students?.course).filter(Boolean)));
+  const uniqueBatches = Array.from(new Set(results.map(r => r.students?.batch).filter(Boolean)));
 
   useEffect(() => {
     const fetchExams = async () => {
@@ -76,7 +83,7 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
     // Fetch Results
     const { data: resultsData, error } = await supabase
       .from('results')
-      .select('*, students:student_id(full_name, roll_number)')
+      .select('*, students:student_id(full_name, roll_number, course, batch)')
       .eq('exam_id', selectedExamId)
       .order('total_marks', { ascending: false });
 
@@ -100,14 +107,92 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
     setLoadingResults(false);
   };
 
-  const handleDownloadAllResults = () => {
+  const handleDownloadAllResults = async () => {
     if (!selectedExamId) return;
-    const link = document.createElement('a');
-    link.href = `/api/download/results?examId=${selectedExamId}`;
-    link.download = '';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    
+    const exam = exams.find(e => e.id === selectedExamId);
+    if (!exam) return;
+
+    if (filteredResults.length === 0) {
+      alert("No results to download for the current filters.");
+      return;
+    }
+
+    try {
+      setIsGeneratingPdf(true);
+      
+      let calculatedTotal = 0;
+      if (questions && questions.length > 0) {
+        calculatedTotal = questions.reduce((sum, q) => sum + (q.positive_marks || 0), 0);
+      }
+      
+      const formattedDate = exam.start_time ? new Date(exam.start_time).toLocaleDateString() : 'N/A';
+      const totalExamMarks = calculatedTotal > 0 ? calculatedTotal : (exam.total_marks || 'N/A');
+      const batchText = batchFilter ? `Batch: ${batchFilter}` : 'All Batches';
+      const courseText = courseFilter ? `Course: ${courseFilter}` : 'All Courses';
+      const filterText = `${courseText} | ${batchText}`;
+
+      let html = `
+        <div style="font-family: Arial, sans-serif; padding: 30px; color: #1a2e2e;">
+          <h1 style="text-align: center; color: #008080; margin-bottom: 5px;">${exam.title}</h1>
+          <h3 style="text-align: center; color: #555555; margin-top: 0; margin-bottom: 5px;">Exam Results</h3>
+          <div style="text-align: center; color: #777777; margin-bottom: 30px; font-size: 14px;">
+            <strong>Date:</strong> ${formattedDate} | <strong>Total Marks:</strong> ${totalExamMarks} | <strong>${filterText}</strong>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; text-align: left;">
+            <thead>
+              <tr style="background-color: #f5f9f9;">
+                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Roll No</th>
+                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Name</th>
+                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Course</th>
+                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Batch</th>
+                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Session</th>
+                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Status</th>
+                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Score</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      for (const row of filteredResults) {
+        let statusText = 'Completed';
+        const score = row.total_marks ?? 'N/A';
+        const scoreColor = score === 'Absent' || score === 'N/A' ? '#999' : '#008080';
+
+        html += `
+          <tr>
+            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.roll_number || ''}</td>
+            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.full_name || ''}</td>
+            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.course || ''}</td>
+            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.batch || ''}</td>
+            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.session || ''}</td>
+            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${statusText}</td>
+            <td style="padding: 8px 10px; border: 1px solid #e0f2f2; font-weight: bold; color: ${scoreColor};">${score}</td>
+          </tr>
+        `;
+      }
+
+      html += `
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      const html2pdf = (await import('html2pdf.js')).default;
+      const opt: any = {
+        margin: 10,
+        filename: `${exam.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_results${batchFilter ? `_${batchFilter.replace(/[^a-z0-9]/gi, '_').toLowerCase()}` : ''}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      await html2pdf().set(opt).from(html).save();
+    } catch (err: any) {
+      alert('Failed to generate results PDF: ' + err.message);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   const handleDownloadStudentAnswerKey = (studentResult: any) => {
@@ -138,10 +223,10 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
           <button 
             onClick={handleDownloadAllResults}
             disabled={isGeneratingPdf}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#008080] hover:bg-[#006666] text-white font-semibold text-sm rounded-xl transition-all shadow-sm shadow-[#008080]/20 disabled:opacity-70"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#008080] hover:bg-[#006666] text-white font-semibold text-sm rounded-xl transition-all shadow-sm shadow-[#008080]/20 disabled:opacity-70 whitespace-nowrap"
           >
             {isGeneratingPdf ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-            {isGeneratingPdf ? 'Generating PDF...' : 'Download Results PDF'}
+            {isGeneratingPdf ? 'Generating...' : 'Download Results PDF'}
           </button>
         )}
       </div>
@@ -171,17 +256,35 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
       {/* Search & Actions */}
       {results.length > 0 && !loadingResults && (
         <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-          <div className="relative w-full sm:w-96">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-[#8ab8b8]" />
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            <div className="relative w-full sm:w-80">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={18} className="text-[#8ab8b8]" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search by student name or roll no..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium placeholder:text-[#8ab8b8]"
+              />
             </div>
-            <input
-              type="text"
-              placeholder="Search by student name or roll no..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium placeholder:text-[#8ab8b8]"
-            />
+            <select
+              value={courseFilter}
+              onChange={(e) => setCourseFilter(e.target.value)}
+              className="px-4 py-2.5 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium w-full sm:w-40 appearance-none"
+            >
+              <option value="">All Courses</option>
+              {uniqueCourses.map((c: any) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select
+              value={batchFilter}
+              onChange={(e) => setBatchFilter(e.target.value)}
+              className="px-4 py-2.5 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium w-full sm:w-40 appearance-none"
+            >
+              <option value="">All Batches</option>
+              {uniqueBatches.map((b: any) => <option key={b} value={b}>{b}</option>)}
+            </select>
           </div>
         </div>
       )}

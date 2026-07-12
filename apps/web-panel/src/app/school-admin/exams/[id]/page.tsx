@@ -82,6 +82,25 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [savingExam, setSavingExam] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [currentStep, setCurrentStep] = useState(1);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const step = searchParams.get('step');
+      if (step) {
+        const parsedStep = parseInt(step);
+        if (!isNaN(parsedStep) && parsedStep >= 1 && parsedStep <= 5) {
+          setCurrentStep(parsedStep);
+        }
+      }
+    }
+  }, []);
+
+  const handleSetStep = (step: number) => {
+    setCurrentStep(step);
+    window.history.replaceState(null, '', `?step=${step}`);
+  };
+
   const [examFee, setExamFee] = useState<number>(300);
   
   // Exam Form States
@@ -122,6 +141,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [filterBatch, setFilterBatch] = useState('');
   const [filterSession, setFilterSession] = useState('');
   const [assignedBatchFilter, setAssignedBatchFilter] = useState('');
+  const [assignedCourseFilter, setAssignedCourseFilter] = useState('');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [bulkAssigning, setBulkAssigning] = useState(false);
   
@@ -133,6 +153,14 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   // Manage Subject Teachers State
   const [manageTeachersSubject, setManageTeachersSubject] = useState<any | null>(null);
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
+  const [showAddTeacherMode, setShowAddTeacherMode] = useState(false);
+  const [newTeacherName, setNewTeacherName] = useState('');
+  const [newTeacherEmail, setNewTeacherEmail] = useState('');
+  const [newTeacherPassword, setNewTeacherPassword] = useState('');
+  const [newTeacherDepartment, setNewTeacherDepartment] = useState('');
+  const [addingTeacher, setAddingTeacher] = useState(false);
+  const [addTeacherError, setAddTeacherError] = useState('');
+  
   const [showInstructionPreview, setShowInstructionPreview] = useState(false);
 
   // Instructions Editing State & Helpers
@@ -815,6 +843,18 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     }
   };
 
+  const handleDownloadCsvTemplate = () => {
+    const csvContent = "name,roll_number,dob,course,batch,session\nAarav Patel,2024001,15/06/2005,NEET,Morning,2024-25\nPriya Singh,2024002,22/03/2005,JEE,Evening,2024-25";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "student_import_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleRemoveStudent = (examStudentId: string, studentId: string) => {
     setConfirmDialog({
       isOpen: true,
@@ -855,6 +895,61 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       window.location.href = `/exams/${newExamId}`;
     }
   };
+
+  const handleCreateAndAssignTeacher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddTeacherError('');
+    setAddingTeacher(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
+      const schoolIdToUse = profile?.school_id || exam?.school_id;
+      if (!schoolIdToUse) throw new Error('No school found');
+
+      const res = await fetch('/api/users/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: newTeacherEmail,
+          password: newTeacherPassword,
+          full_name: newTeacherName,
+          role: 'teacher',
+          school_id: schoolIdToUse,
+          department: newTeacherDepartment || null
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to add teacher');
+
+      // Add to teachers list
+      const { data: updatedTeachers } = await supabase
+        .from('teachers')
+        .select('*')
+        .eq('school_id', schoolIdToUse)
+        .order('full_name', { ascending: true });
+        
+      if (updatedTeachers) {
+        setTeachers(updatedTeachers);
+        const added = updatedTeachers.find(t => t.email === newTeacherEmail);
+        if (added) {
+          setSelectedTeacherIds(prev => [...prev, added.id]);
+        }
+      }
+
+      setShowAddTeacherMode(false);
+      setNewTeacherName('');
+      setNewTeacherEmail('');
+      setNewTeacherPassword('');
+      setNewTeacherDepartment('');
+    } catch (err: any) {
+      setAddTeacherError(err.message);
+    } finally {
+      setAddingTeacher(false);
+    }
+  };
+
 
   const handleUnpublish = () => {
     setConfirmDialog({
@@ -950,12 +1045,14 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   });
 
   const uniqueAssignedBatches = Array.from(new Set(assignedStudents.map((s: any) => s.students?.batch).filter(Boolean)));
+  const uniqueAssignedCourses = Array.from(new Set(assignedStudents.map((s: any) => s.students?.course).filter(Boolean)));
 
   const filteredAssignedStudents = assignedStudents.filter((as: any) => {
     const matchesSearch = as.students?.full_name?.toLowerCase().includes(assignedSearchQuery.toLowerCase()) || 
                           as.students?.roll_number?.toLowerCase().includes(assignedSearchQuery.toLowerCase());
     const matchesBatch = assignedBatchFilter ? as.students?.batch === assignedBatchFilter : true;
-    return matchesSearch && matchesBatch;
+    const matchesCourse = assignedCourseFilter ? as.students?.course === assignedCourseFilter : true;
+    return matchesSearch && matchesBatch && matchesCourse;
   });
 
   const downloadResultsPDF = async () => {
@@ -967,15 +1064,25 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     try {
       setGeneratingPDF(true);
       
+      // Calculate actual total marks by fetching questions
+      const { data: qs } = await supabase.from('questions').select('positive_marks').eq('exam_id', params.id);
+      let calculatedTotal = 0;
+      if (qs && qs.length > 0) {
+        calculatedTotal = qs.reduce((sum, q) => sum + (q.positive_marks || 0), 0);
+      }
+      
       const formattedDate = exam.start_time ? new Date(exam.start_time).toLocaleDateString() : 'N/A';
+      const totalExamMarks = calculatedTotal > 0 ? calculatedTotal : (exam.total_marks || 'N/A');
       const batchText = assignedBatchFilter ? `Batch: ${assignedBatchFilter}` : 'All Batches';
+      const courseText = assignedCourseFilter ? `Course: ${assignedCourseFilter}` : 'All Courses';
+      const filterText = `${courseText} | ${batchText}`;
 
       let html = `
         <div style="font-family: Arial, sans-serif; padding: 30px; color: #1a2e2e;">
           <h1 style="text-align: center; color: #008080; margin-bottom: 5px;">${exam.title}</h1>
           <h3 style="text-align: center; color: #555555; margin-top: 0; margin-bottom: 5px;">Exam Results</h3>
           <div style="text-align: center; color: #777777; margin-bottom: 30px; font-size: 14px;">
-            <strong>Date:</strong> ${formattedDate} | <strong>${batchText}</strong>
+            <strong>Date:</strong> ${formattedDate} | <strong>Total Marks:</strong> ${totalExamMarks} | <strong>${filterText}</strong>
           </div>
           <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; text-align: left;">
             <thead>
@@ -1000,8 +1107,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           if (row.status === 'submitted') statusText = 'Submitted';
           else if (row.status === 'in_progress') statusText = 'In Progress';
         }
-        
-        const score = row.result ? row.result.total_marks : (isExamOver ? (row.status === 'assigned' ? 'Absent' : 'N/A') : 'N/A');
+        let score = row.result ? row.result.total_marks : (isExamOver ? (row.status === 'assigned' ? 'Absent' : 'N/A') : 'N/A');
+        const scoreColor = score === 'Absent' || score === 'N/A' ? '#999' : '#008080';
 
         html += `
           <tr>
@@ -1011,7 +1118,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.batch || ''}</td>
             <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.session || ''}</td>
             <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${statusText}</td>
-            <td style="padding: 8px 10px; border: 1px solid #e0f2f2; font-weight: bold; color: ${score === 'Absent' || score === 'N/A' ? '#999' : '#008080'};">${score}</td>
+            <td style="padding: 8px 10px; border: 1px solid #e0f2f2; font-weight: bold; color: ${scoreColor};">${score}</td>
           </tr>
         `;
       }
@@ -1118,7 +1225,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 onClick={() => {
                   // Only allow navigating to completed steps or next step
                   if (s.step < currentStep || (s.step === currentStep + 1 && canProceedToNextStep(currentStep))) {
-                    setCurrentStep(s.step);
+                    handleSetStep(s.step);
                   }
                 }}
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 border-2
@@ -1233,10 +1340,15 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
                 <div className="flex items-center mt-2">
-                  {isAssignedTeacher && (
+                  {isAssignedTeacher && displayStatus !== 'completed' && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#b2d8d8] text-[#008080] text-[11px] font-bold rounded-lg group-hover:bg-[#e0f2f2] transition-colors shadow-sm whitespace-nowrap w-full justify-center">
                       <Plus size={14} />
                       Manage Questions
+                    </span>
+                  )}
+                  {isAssignedTeacher && displayStatus === 'completed' && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#e0f2f2] text-[#555555] text-[11px] font-bold rounded-lg group-hover:bg-[#f5f9f9] transition-colors shadow-sm whitespace-nowrap w-full justify-center">
+                      View Questions
                     </span>
                   )}
                 </div>
@@ -1297,9 +1409,20 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             className="w-full sm:w-80 px-4 py-2 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm font-medium" />
             
           <select 
+            value={assignedCourseFilter} 
+            onChange={(e) => setAssignedCourseFilter(e.target.value)}
+            className="px-4 py-2 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm font-medium w-full sm:w-40 appearance-none"
+          >
+            <option value="">All Courses</option>
+            {uniqueAssignedCourses.map((course: any) => (
+              <option key={course} value={course}>{course}</option>
+            ))}
+          </select>
+
+          <select 
             value={assignedBatchFilter} 
             onChange={(e) => setAssignedBatchFilter(e.target.value)}
-            className="px-4 py-2 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm font-medium w-full sm:w-48 appearance-none"
+            className="px-4 py-2 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm font-medium w-full sm:w-40 appearance-none"
           >
             <option value="">All Batches</option>
             {uniqueAssignedBatches.map((batch: any) => (
@@ -1311,10 +1434,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             <button 
               onClick={downloadResultsPDF}
               disabled={generatingPDF}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white text-[#1a2e2e] text-sm font-semibold border border-[#e0f2f2] rounded-xl hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm w-full sm:w-auto disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white text-[#1a2e2e] text-sm font-semibold border border-[#e0f2f2] rounded-xl hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm w-full sm:w-auto disabled:opacity-50 whitespace-nowrap"
             >
-              <Download size={16} />
-              {generatingPDF ? 'Generating PDF...' : 'Download PDF'}
+              {generatingPDF ? <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" /> : <Download size={16} />}
+              {generatingPDF ? 'Generating...' : 'Download PDF'}
             </button>
           )}
         </div>
@@ -1624,7 +1747,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       <div className="flex flex-wrap gap-1 mt-1">
                         {s.exam_subject_teachers?.map((est: any) => (
                           <span key={est.id} className="text-[9px] font-bold uppercase tracking-wider text-[#008080] bg-white border border-[#b2d8d8] px-1.5 py-0.5 rounded">
-                            {est.teachers?.full_name?.split(' ')[0] || 'Teacher'}
+                            {est.teachers?.full_name || 'Teacher'}
                           </span>
                         ))}
                         <button type="button" onClick={(e) => { 
@@ -1724,30 +1847,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-
-          {/* Stepper Navigation */}
-          {role !== 'teacher' && exam?.status === 'draft' && (
-            <div className="flex items-center justify-between mt-8 border-t border-[#e0f2f2] pt-6 pb-4">
-              <button 
-                onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
-                disabled={currentStep === 1}
-                className={`px-6 py-2.5 rounded-xl font-semibold transition-all ${currentStep === 1 ? 'opacity-0 pointer-events-none' : 'bg-white border border-[#e0f2f2] text-[#555555] hover:bg-[#f5f9f9]'}`}
-              >
-                Back
-              </button>
-              
-              {currentStep < 5 && (
-                <button 
-                  onClick={() => setCurrentStep(prev => Math.min(5, prev + 1))}
-                  disabled={!canProceedToNextStep(currentStep)}
-                  className="px-6 py-2.5 bg-[#008080] text-white rounded-xl font-semibold hover:bg-[#006666] transition-all disabled:opacity-50 shadow-md shadow-[#008080]/20"
-                >
-                  Next Step
-                </button>
-              )}
-            </div>
-          )}
-
         </div>
 
         {/* Right Column (Sidebar) */}
@@ -1829,37 +1928,107 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         )}
       </div>
 
+      {/* Stepper Navigation */}
+      {role !== 'teacher' && exam?.status === 'draft' && (
+        <div className="flex items-center justify-between mt-8 border-t border-[#e0f2f2] pt-6 pb-12">
+          <button 
+            onClick={() => handleSetStep(Math.max(1, currentStep - 1))}
+            disabled={currentStep === 1}
+            className={`px-6 py-2.5 rounded-xl font-semibold transition-all ${currentStep === 1 ? 'opacity-0 pointer-events-none' : 'bg-white border border-[#e0f2f2] text-[#555555] hover:bg-[#f5f9f9] shadow-sm'}`}
+          >
+            Back
+          </button>
+          
+          {currentStep < 5 && (
+            <button 
+              onClick={() => handleSetStep(Math.min(5, currentStep + 1))}
+              disabled={!canProceedToNextStep(currentStep)}
+              className="px-6 py-2.5 bg-[#008080] text-white rounded-xl font-semibold hover:bg-[#006666] transition-all disabled:opacity-50 shadow-md shadow-[#008080]/20"
+            >
+              Next Step
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Manage Teachers Modal */}
       {manageTeachersSubject && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setManageTeachersSubject(null)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <div className="bg-[#008080] px-6 py-4 flex items-center justify-between">
               <span className="text-white font-bold">Manage Teachers for {manageTeachersSubject.subject_name}</span>
-              <button onClick={() => setManageTeachersSubject(null)} className="text-white/70 hover:text-white transition-colors">✕</button>
+              <button onClick={() => { setManageTeachersSubject(null); setShowAddTeacherMode(false); setAddTeacherError(''); }} className="text-white/70 hover:text-white transition-colors">✕</button>
             </div>
-            <div className="p-6">
-              <div className="max-h-60 overflow-y-auto mb-4 border border-[#e0f2f2] rounded-lg">
-                {teachers.length === 0 ? (
-                  <div className="p-4 text-center text-[#555555] text-sm">No teachers available. Please add teachers first.</div>
-                ) : (
-                  teachers.map(t => (
-                    <label key={t.id} className="flex items-center gap-3 p-3 hover:bg-[#f5f9f9] cursor-pointer border-b border-[#e0f2f2] last:border-0">
-                      <input type="checkbox" checked={selectedTeacherIds.includes(t.id)} 
-                        onChange={(e) => {
-                          if (e.target.checked) setSelectedTeacherIds([...selectedTeacherIds, t.id]);
-                          else setSelectedTeacherIds(selectedTeacherIds.filter(id => id !== t.id));
-                        }} 
-                        className="w-4 h-4 text-[#008080] rounded border-[#b2d8d8] focus:ring-[#008080]" />
-                      <span className="text-sm font-medium text-[#1a2e2e]">{t.full_name} <span className="text-xs text-[#8ab8b8]">({t.department || 'No Dept'})</span></span>
-                    </label>
-                  ))
-                )}
+            
+            {showAddTeacherMode ? (
+              <form onSubmit={handleCreateAndAssignTeacher} className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-[#1a2e2e] font-bold text-sm">Create New Teacher</h4>
+                  <button type="button" onClick={() => { setShowAddTeacherMode(false); setAddTeacherError(''); }} className="text-[#008080] text-xs font-bold hover:underline">Back to List</button>
+                </div>
+                
+                <div className="space-y-3 mb-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#555555] mb-1">Full Name</label>
+                    <input type="text" value={newTeacherName} onChange={e => setNewTeacherName(e.target.value)} required className="w-full px-3 py-2 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-sm focus:outline-none focus:border-[#008080]" placeholder="e.g. Dr. Sharma" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#555555] mb-1">Email</label>
+                    <input type="email" value={newTeacherEmail} onChange={e => setNewTeacherEmail(e.target.value)} required className="w-full px-3 py-2 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-sm focus:outline-none focus:border-[#008080]" placeholder="sharma@school.com" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#555555] mb-1">Department</label>
+                    <input type="text" value={newTeacherDepartment} onChange={e => setNewTeacherDepartment(e.target.value)} required className="w-full px-3 py-2 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-sm focus:outline-none focus:border-[#008080]" placeholder="e.g. Mathematics" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#555555] mb-1">Password</label>
+                    <input type="password" value={newTeacherPassword} onChange={e => setNewTeacherPassword(e.target.value)} required minLength={6} className="w-full px-3 py-2 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-sm focus:outline-none focus:border-[#008080]" placeholder="Min 6 characters" />
+                  </div>
+                </div>
+
+                {addTeacherError && <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-xl text-xs font-medium mb-4">{addTeacherError}</div>}
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button type="button" onClick={() => { setShowAddTeacherMode(false); setAddTeacherError(''); }} className="px-4 py-2 bg-white border border-[#e0f2f2] text-[#555555] rounded-xl hover:bg-[#f5f9f9] text-sm font-semibold transition-colors">Cancel</button>
+                  <button type="submit" disabled={addingTeacher} className="px-4 py-2 bg-[#008080] text-white rounded-xl hover:bg-[#006666] text-sm font-semibold transition-colors shadow-sm disabled:opacity-50">
+                    {addingTeacher ? 'Creating...' : 'Create & Select'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-xs font-semibold text-[#555555]">Select existing teachers:</span>
+                  <button type="button" onClick={() => { setShowAddTeacherMode(true); setAddTeacherError(''); }} className="text-[#008080] text-xs font-bold hover:underline flex items-center gap-1">
+                    <Plus size={12} /> Add New Teacher
+                  </button>
+                </div>
+                <div className="max-h-60 overflow-y-auto mb-4 border border-[#e0f2f2] rounded-lg custom-scrollbar">
+                  {teachers.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <p className="text-[#555555] text-sm font-medium">No teachers available.</p>
+                      <p className="text-[#8ab8b8] text-xs mt-1">Please add a new teacher above.</p>
+                    </div>
+                  ) : (
+                    teachers.map(t => (
+                      <label key={t.id} className="flex items-center gap-3 p-3 hover:bg-[#f5f9f9] cursor-pointer border-b border-[#e0f2f2] last:border-0 transition-colors">
+                        <input type="checkbox" checked={selectedTeacherIds.includes(t.id)} 
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedTeacherIds([...selectedTeacherIds, t.id]);
+                            else setSelectedTeacherIds(selectedTeacherIds.filter(id => id !== t.id));
+                          }} 
+                          className="w-4 h-4 text-[#008080] rounded border-[#b2d8d8] focus:ring-[#008080] cursor-pointer" />
+                        <span className="text-sm font-medium text-[#1a2e2e]">{t.full_name} <span className="text-xs text-[#8ab8b8]">({t.department || 'No Dept'})</span></span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                <div className="flex justify-end gap-3 pt-2">
+                  <button type="button" onClick={() => setManageTeachersSubject(null)} className="px-4 py-2 bg-white border border-[#e0f2f2] text-[#555555] rounded-xl hover:bg-[#f5f9f9] text-sm font-semibold transition-colors">Cancel</button>
+                  <button type="button" onClick={handleSaveSubjectTeachers} className="px-4 py-2 bg-[#008080] text-white rounded-xl hover:bg-[#006666] text-sm font-semibold transition-colors shadow-sm">Save Teachers</button>
+                </div>
               </div>
-              <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setManageTeachersSubject(null)} className="px-4 py-2 bg-white border border-[#e0f2f2] text-[#555555] rounded-xl hover:bg-[#f5f9f9] text-sm font-semibold transition-colors">Cancel</button>
-                <button type="button" onClick={handleSaveSubjectTeachers} className="px-4 py-2 bg-[#008080] text-white rounded-xl hover:bg-[#006666] text-sm font-semibold transition-colors shadow-sm">Save Teachers</button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       )}
@@ -2219,7 +2388,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               ) : (
                 <form onSubmit={handleCsvImport} className="space-y-4">
                   <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl p-5">
-                    <p className="text-[#1a2e2e] text-sm font-bold mb-2">CSV Format:</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[#1a2e2e] text-sm font-bold">CSV Format:</p>
+                      <button type="button" onClick={handleDownloadCsvTemplate} className="inline-flex items-center gap-1.5 text-xs font-bold text-[#008080] hover:underline bg-white px-2 py-1 rounded border border-[#008080]/20 shadow-sm hover:bg-[#e0f2f2] transition-colors">
+                        <Download size={12} /> Download Template
+                      </button>
+                    </div>
                     <code className="text-xs text-[#008080] bg-white px-4 py-3 block border border-[#e0f2f2] rounded-lg font-mono overflow-x-auto whitespace-nowrap">
                       name, roll_number, dob, course, batch, session<br />
                       Aarav Patel, 2024001, 15/06/2005, NEET, Morning, 2024-25<br />
