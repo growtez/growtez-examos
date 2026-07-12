@@ -8,6 +8,7 @@ export default function FeedbackPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [schoolId, setSchoolId] = useState<string | null>(null);
+  const [schoolName, setSchoolName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   
   const [message, setMessage] = useState('');
@@ -22,9 +23,10 @@ export default function FeedbackPage() {
       if (!user) return;
       setUserId(user.id);
       
-      const { data: admin } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
+      const { data: admin } = await supabase.from('school_admins').select('school_id, schools(name)').eq('id', user.id).single();
       if (admin?.school_id) {
         setSchoolId(admin.school_id);
+        setSchoolName((admin.schools as any)?.name || '');
         
         // Fetch existing feedback
         const { data: fbs } = await supabase.from('feedback')
@@ -71,8 +73,26 @@ export default function FeedbackPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#1a2e2e]">Submit Feedback</h1>
-        <p className="text-[#555555] mt-1">Send a feature request, bug report, or general feedback directly to the ParikshaOS team.</p>
+        <h1 className="text-2xl font-bold text-[#1a2e2e]">Help & Support</h1>
+        <p className="text-[#555555] mt-1">Get in touch with the ParikshaOS team or submit a feature request/bug report.</p>
+      </div>
+
+      {/* Direct Contact Banner */}
+      <div className="bg-gradient-to-r from-[#008080]/10 to-[#005555]/10 border border-[#008080]/20 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+        <div>
+          <h2 className="text-[#1a2e2e] font-bold text-lg">Need immediate assistance?</h2>
+          <p className="text-[#555555] text-sm mt-1">Reach out to our support team directly via WhatsApp or Email.</p>
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <a href={`https://wa.me/9101840955?text=${encodeURIComponent(`Hello ParikshaOS Support, this is ${schoolName || 'a school admin'}, we are reaching out regarding...`)}`} target="_blank" rel="noreferrer" className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-xl shadow-sm transition-colors text-sm">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+            WhatsApp
+          </a>
+          <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=support@parikshaos.com&su=${encodeURIComponent(`Support Request - ${schoolName || 'School'}`)}&body=${encodeURIComponent(`Hello ParikshaOS Support,\n\nWe are reaching out regarding...`)}`} target="_blank" rel="noreferrer" className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-[#e0f2f2] hover:border-[#008080] text-[#1a2e2e] font-bold rounded-xl shadow-sm transition-colors text-sm">
+            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            Email Us
+          </a>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

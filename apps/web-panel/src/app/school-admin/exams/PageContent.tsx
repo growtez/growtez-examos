@@ -52,11 +52,14 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
       .eq('is_trashed', false)
       .order('created_at', { ascending: false });
 
+    let assignedTeacherSubjects: any[] = [];
+
     if (currentRole === 'teacher' && userId) {
       const { data: assignedSubjects } = await supabase.from('exam_subject_teachers').select('exam_subject_id').eq('teacher_id', userId);
       const examSubjectIds = assignedSubjects?.map(s => s.exam_subject_id) || [];
       if (examSubjectIds.length > 0) {
-        const { data: subjects } = await supabase.from('exam_subjects').select('exam_id').in('id', examSubjectIds);
+        const { data: subjects } = await supabase.from('exam_subjects').select('exam_id, subject_name, id').in('id', examSubjectIds);
+        assignedTeacherSubjects = subjects || [];
         const uniqueExamIds = Array.from(new Set(subjects?.map(s => s.exam_id) || []));
         if (uniqueExamIds.length > 0) {
           examQuery = examQuery.in('id', uniqueExamIds);
@@ -79,7 +82,16 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
       .select('*, exam_template_subjects(*)')
       .order('created_at', { ascending: false });
 
-    setExams(data || []);
+    if (currentRole === 'teacher' && data) {
+      const mappedExams = data.map(exam => ({
+        ...exam,
+        teacherSubjects: assignedTeacherSubjects.filter(s => s.exam_id === exam.id)
+      }));
+      setExams(mappedExams);
+    } else {
+      setExams(data || []);
+    }
+    
     setTemplates(templatesData || []);
     setLoading(false);
   };
@@ -94,8 +106,14 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#1a2e2e]">Exams</h2>
-          <p className="text-[#555555] mt-1 text-sm font-medium">Create and manage examinations</p>
+          <h2 className="text-2xl font-bold text-[#1a2e2e]">
+            {role === 'teacher' ? 'My Assigned Exams' : 'Exams'}
+          </h2>
+          <p className="text-[#555555] mt-1 text-sm font-medium">
+            {role === 'teacher' 
+              ? 'Manage and prepare questions for your assigned subjects.' 
+              : 'Create and manage examinations'}
+          </p>
         </div>
         <div className="flex flex-wrap gap-3">
           <input
@@ -168,8 +186,8 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
         </div>
       )}
 
-      <div className="bg-white border border-[#e0f2f2] rounded-2xl overflow-hidden shadow-sm">
-        {loading ? (
+      {loading ? (
+        <div className="bg-white border border-[#e0f2f2] rounded-2xl overflow-hidden shadow-sm">
           <table className="w-full animate-pulse">
             <thead>
               <tr className="bg-[#f5f9f9]">
@@ -194,15 +212,67 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
               ))}
             </tbody>
           </table>
-        ) : exams.length === 0 ? (
-          <div className="p-16 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#008080]/10 flex items-center justify-center text-[#008080] mb-4">
-              <FileText size={32} />
-            </div>
-            <h3 className="text-[#1a2e2e] font-bold text-lg">No exams yet</h3>
-            <p className="text-[#555555] mt-1 text-sm font-medium">Create your first exam to get started</p>
+        </div>
+      ) : exams.length === 0 ? (
+        <div className="bg-white border border-[#e0f2f2] rounded-2xl overflow-hidden shadow-sm p-16 flex flex-col items-center justify-center text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[#008080]/10 flex items-center justify-center text-[#008080] mb-4">
+            <FileText size={32} />
           </div>
-        ) : (
+          <h3 className="text-[#1a2e2e] font-bold text-lg">No exams yet</h3>
+          <p className="text-[#555555] mt-1 text-sm font-medium">
+            {role === 'teacher' ? "You haven't been assigned any exams yet." : "Create your first exam to get started"}
+          </p>
+        </div>
+      ) : role === 'teacher' ? (
+        /* Teacher Card View */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {exams.filter(exam => (exam.title || '').toLowerCase().includes(searchQuery.toLowerCase())).map((exam) => (
+            <div key={exam.id} className="bg-white rounded-2xl border border-[#e0f2f2] hover:border-[#008080]/30 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group">
+              <div className="p-5 flex-1">
+                <div className="flex justify-between items-start mb-3">
+                  <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${statusColors[exam.status] || statusColors.draft}`}>
+                    {exam.status}
+                  </span>
+                  <span className="text-xs text-[#8ab8b8] font-medium">{new Date(exam.created_at).toLocaleDateString()}</span>
+                </div>
+                <h3 className="text-lg font-bold text-[#1a2e2e] mb-1 group-hover:text-[#008080] transition-colors line-clamp-1" title={exam.title}>{exam.title}</h3>
+                <p className="text-xs text-[#555555] font-medium flex items-center gap-1.5 mb-4">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#008080]/40"></span>
+                  Duration: {exam.duration_minutes} mins
+                </p>
+
+                <div className="bg-[#f5f9f9] rounded-xl p-3 border border-[#e0f2f2]">
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-[#8ab8b8] mb-1.5">Your Assigned Subjects</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {exam.teacherSubjects && exam.teacherSubjects.length > 0 ? (
+                      exam.teacherSubjects.map((ts: any) => (
+                        <span key={ts.id} className="inline-flex px-2 py-1 bg-white text-[#008080] border border-[#b2d8d8] text-[11px] font-bold rounded-lg shadow-sm">
+                          {ts.subject_name}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-[#555555]">No specific subjects</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 border-t border-[#e0f2f2] bg-gray-50/50">
+                <button
+                  onClick={() => router.push(`/exams/${exam.id}`)}
+                  className="w-full py-2.5 bg-[#008080] hover:bg-[#006666] text-white text-sm font-bold rounded-xl transition-all shadow-sm flex justify-center items-center gap-2 group-hover:shadow-md active:scale-[0.98]"
+                >
+                  {exam.status === 'completed' ? 'View Exam Details' : 'Prepare Questions'}
+                  <svg className="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Standard Admin Table View */
+        <div className="bg-white border border-[#e0f2f2] rounded-2xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto w-full">
             <table className="w-full min-w-[800px]">
               <thead>
@@ -240,8 +310,8 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
             </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

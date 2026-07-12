@@ -233,7 +233,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         }
         
         html += `
-          <div style="margin-bottom: 25px; page-break-inside: avoid;">
+          <div class="question-block" style="margin-bottom: 25px; page-break-inside: avoid; break-inside: avoid;">
             <div style="font-weight: bold; margin-bottom: 10px; font-size: 16px;">Q${qIndex}. ${q.question_text || 'Image Question'}</div>
         `;
         
@@ -284,7 +284,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         filename: `${exam.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_question_paper.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: 'css', avoid: '.question-block' }
       };
       
       await html2pdf().set(opt).from(html).save();
@@ -986,6 +987,21 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         <div className="xl:col-span-2 space-y-6">
           
 
+      {/* Teacher Banner */}
+      {role === 'teacher' && (
+        <div className="bg-[#008080]/10 border border-[#008080]/30 rounded-2xl p-5 mb-6 flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-4">
+          <div className="w-10 h-10 rounded-full bg-[#008080]/20 flex items-center justify-center text-[#008080] shrink-0">
+            <BookOpen size={20} />
+          </div>
+          <div>
+            <h3 className="text-[#1a2e2e] font-bold text-base">Question Preparation Mode</h3>
+            <p className="text-[#555555] text-sm font-medium mt-1">
+              Select your assigned subject below to start adding or editing questions. You only have access to manage questions for subjects specifically assigned to you.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Subjects */}
       <div className="bg-white border border-[#e0f2f2] rounded-2xl p-6 mb-6 shadow-sm">
         <div className="mb-4 border-b border-[#f0f7f7] pb-1.5">
@@ -998,10 +1014,25 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             const complete = added >= needed;
             const isAssignedTeacher = role !== 'teacher' || (role === 'teacher' && s.exam_subject_teachers?.some((est: any) => est.teacher_id === userId));
             return (
-              <Link key={s.id} href={`/exams/${params.id}/questions?subject=${s.id}`} className={`flex flex-col justify-between bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl p-4 gap-4 transition-colors ${isAssignedTeacher ? 'hover:bg-[#e0f2f2]/50 group cursor-pointer' : 'opacity-75 pointer-events-none'}`}>
+              <Link 
+                key={s.id} 
+                href={`/exams/${params.id}/questions?subject=${s.id}`} 
+                className={`flex flex-col justify-between rounded-xl p-4 gap-4 transition-all ${
+                  role === 'teacher' 
+                    ? (isAssignedTeacher ? 'bg-white border-2 border-[#008080] shadow-md hover:shadow-lg group cursor-pointer' : 'bg-gray-50 border border-gray-200 opacity-60 pointer-events-none') 
+                    : 'bg-[#f5f9f9] border border-[#e0f2f2] hover:bg-[#e0f2f2]/50 group cursor-pointer'
+                }`}
+              >
                 <div>
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                    <span className="text-[#1a2e2e] font-bold">{s.subject_name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#1a2e2e] font-bold">{s.subject_name}</span>
+                      {role === 'teacher' && isAssignedTeacher && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-[#008080]/10 text-[#008080] px-2 py-0.5 rounded-md">
+                          Your Assignment
+                        </span>
+                      )}
+                    </div>
                     {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
                       <button 
                         onClick={(e) => handleDeleteSubject(e, s.id, s.subject_name)} 
@@ -1118,14 +1149,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             ))}
           </select>
 
-          <button 
-            onClick={downloadResultsPDF}
-            disabled={generatingPDF}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white text-[#1a2e2e] text-sm font-semibold border border-[#e0f2f2] rounded-xl hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm w-full sm:w-auto disabled:opacity-50"
-          >
-            <Download size={16} />
-            {generatingPDF ? 'Generating PDF...' : 'Download PDF'}
-          </button>
+          {isExamOver && (
+            <button 
+              onClick={downloadResultsPDF}
+              disabled={generatingPDF}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-white text-[#1a2e2e] text-sm font-semibold border border-[#e0f2f2] rounded-xl hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm w-full sm:w-auto disabled:opacity-50"
+            >
+              <Download size={16} />
+              {generatingPDF ? 'Generating PDF...' : 'Download PDF'}
+            </button>
+          )}
         </div>
 
         {assignedStudents.length === 0 ? (

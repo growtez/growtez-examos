@@ -45,7 +45,7 @@ export default function SchoolAdminLayout({
   const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [role, setRole] = useState<string>('school_admin');
+  const [role, setRole] = useState<string | null>(null);
   const [schoolName, setSchoolName] = useState<string>('');
   const [breadcrumbNames, setBreadcrumbNames] = useState<Record<string, string>>({});
 
@@ -86,18 +86,27 @@ export default function SchoolAdminLayout({
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        setRole(user.user_metadata?.role || 'school_admin');
+        let currentRole = user.user_metadata?.role;
         let schoolId = user.user_metadata?.school_id || user.user_metadata?.schoolId;
-        if (!schoolId) {
-          const userRole = user.user_metadata?.role || 'school_admin';
-          if (userRole === 'teacher') {
-            const { data: teacherProfile } = await supabase.from('teachers').select('school_id').eq('id', user.id).single();
-            schoolId = teacherProfile?.school_id;
+
+        if (!currentRole || !schoolId) {
+          // Check if they are a school admin
+          const { data: adminProfile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
+          if (adminProfile) {
+            currentRole = 'school_admin';
+            schoolId = adminProfile.school_id;
           } else {
-            const { data: adminProfile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
-            schoolId = adminProfile?.school_id;
+            // Check if they are a teacher
+            const { data: teacherProfile } = await supabase.from('teachers').select('school_id').eq('id', user.id).single();
+            if (teacherProfile) {
+              currentRole = 'teacher';
+              schoolId = teacherProfile.school_id;
+            }
           }
         }
+        
+        setRole(currentRole || 'school_admin');
+
         if (schoolId) {
           const { data: school } = await supabase.from('schools').select('name').eq('id', schoolId).single();
           if (school) setSchoolName(school.name);
@@ -156,7 +165,12 @@ export default function SchoolAdminLayout({
       if (lastSegment === 'new') {
          crumbs.push({ label: 'New', href: null });
       } else {
-         crumbs.push({ label: breadcrumbNames[lastSegment] || lastSegment, href: null });
+         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lastSegment);
+         if (isUUID && !breadcrumbNames[lastSegment]) {
+           crumbs.push({ label: 'Loading...', href: null });
+         } else {
+           crumbs.push({ label: breadcrumbNames[lastSegment] || lastSegment, href: null });
+         }
       }
     }
 
@@ -199,12 +213,19 @@ export default function SchoolAdminLayout({
         </div>
 
         <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto">
-          {navItems.filter(item => {
-            if (role === 'teacher') {
-              return ['Dashboard', 'Exams', 'Results'].includes(item.label);
-            }
-            return true;
-          }).map((item) => {
+          {!role ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="px-3 py-3 rounded-xl bg-[#243f3f]/30 animate-pulse h-11 w-full" />
+              ))}
+            </div>
+          ) : (
+            navItems.filter(item => {
+              if (role === 'teacher') {
+                return ['Dashboard', 'Exams', 'Results'].includes(item.label);
+              }
+              return true;
+            }).map((item) => {
             const activeClass = "bg-[#008080]/15 text-white rounded-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]";
             const inactiveClass = "text-[#8ab8b8] hover:bg-[#243f3f]/50 hover:text-white rounded-xl transparent";
             return (
@@ -226,7 +247,7 @@ export default function SchoolAdminLayout({
                 {sidebarOpen && item.label}
               </Link>
             );
-          })}
+          }))}
         </nav>
 
         <div className="px-3 py-4 border-t border-[#243f3f]">
@@ -276,13 +297,13 @@ export default function SchoolAdminLayout({
             )}
             <div className="relative" ref={dropdownRef}>
               <div 
-                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="w-9 h-9 bg-gradient-to-br from-[#008080] to-[#005555] rounded-full flex items-center justify-center cursor-pointer shadow-sm hover:shadow-md transition-shadow"
+                onClick={() => role !== 'teacher' && setProfileDropdownOpen(!profileDropdownOpen)}
+                className={`w-9 h-9 bg-gradient-to-br from-[#008080] to-[#005555] rounded-full flex items-center justify-center shadow-sm transition-shadow ${role !== 'teacher' ? 'cursor-pointer hover:shadow-md' : ''}`}
               >
                 <User className="text-white w-5 h-5" />
               </div>
               
-              {profileDropdownOpen && (
+              {profileDropdownOpen && role !== 'teacher' && (
                 <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-[#e0f2f2] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="py-2">
                     <Link href="/profile" onClick={() => setProfileDropdownOpen(false)} className="flex items-center px-4 py-2.5 text-sm font-medium text-[#555555] hover:bg-[#f5f9f9] hover:text-[#008080] transition-colors">

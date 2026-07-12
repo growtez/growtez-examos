@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { FileBarChart2, Download, FileText, Loader2, Search } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   const supabase = createClient();
@@ -103,180 +101,23 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
   };
 
   const handleDownloadAllResults = () => {
-    setIsGeneratingPdf(true);
-    try {
-      const doc = new jsPDF('p', 'pt', 'a4');
-      const exam = exams.find(e => e.id === selectedExamId);
-      const testName = exam?.title || 'Exam Results';
-      const totalStudents = results.length;
-
-      // Header
-      doc.setFontSize(18);
-      doc.setTextColor(26, 46, 46);
-      doc.text(schoolName || 'Results Report', 40, 40);
-      
-      doc.setFontSize(11);
-      doc.setTextColor(85, 85, 85);
-      doc.text(`Test Name: ${testName}`, 40, 60);
-      doc.text(`Total Students Appeared: ${totalStudents}`, 40, 75);
-
-      // Collect all unique subjects from the results
-      const subjectSet = new Set<string>();
-      results.forEach(r => {
-        if (Array.isArray(r.section_scores)) {
-          r.section_scores.forEach((s: any) => subjectSet.add(s.subject_name));
-        }
-      });
-      const subjects = Array.from(subjectSet);
-
-      const tableColumn = ["Sl No", "Roll No", "Student Name", "Total Score", ...subjects.map(s => `${s} (Correct)`)];
-      const tableRows: any[] = [];
-
-      results.forEach((res, index) => {
-        const rowData = [
-          index + 1,
-          res.students?.roll_number || 'N/A',
-          res.students?.full_name || 'Unknown',
-          res.total_marks ?? 0
-        ];
-
-        // Subject wise correct answers
-        subjects.forEach(sub => {
-          let correctAnswers = 0;
-          if (Array.isArray(res.section_scores)) {
-             const score = res.section_scores.find((s: any) => s.subject_name === sub);
-             if (score) correctAnswers = score.correct;
-          }
-          rowData.push(correctAnswers);
-        });
-
-        tableRows.push(rowData);
-      });
-
-      autoTable(doc, {
-        head: [tableColumn],
-        body: tableRows,
-        startY: 95,
-        styles: { fontSize: 9, cellPadding: 5 },
-        headStyles: { fillColor: [0, 128, 128], textColor: 255 }, // Teal color
-        alternateRowStyles: { fillColor: [245, 249, 249] },
-      });
-
-      doc.save(`${testName.replace(/[^a-zA-Z0-9]/g, '_')}_Results.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-    } finally {
-      setIsGeneratingPdf(false);
-    }
+    if (!selectedExamId) return;
+    const link = document.createElement('a');
+    link.href = `/api/download/results?examId=${selectedExamId}`;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleDownloadStudentAnswerKey = (studentResult: any) => {
-    setGeneratingStudentId(studentResult.id);
-    // Use a small timeout so the UI updates to show loading state before the synchronous JS blocks thread
-    setTimeout(() => {
-      try {
-        const exam = exams.find(e => e.id === selectedExamId);
-        const testName = exam?.title || 'Exam';
-        const studentName = studentResult.students?.full_name || 'Unknown';
-        const rollNo = studentResult.students?.roll_number || 'N/A';
-        const marks = studentResult.total_marks ?? 0;
-        const studentAnswers = studentResult.answers || {};
-
-        const html = `
-          <div style="font-family: 'Inter', sans-serif; padding: 20px; color: #1a2e2e; max-width: 800px; margin: 0 auto; background: #ffffff;">
-            <h1 style="color: #008080; font-size: 24px; margin-bottom: 5px;">${schoolName || 'Student Answer Key'}</h1>
-            <div style="margin-bottom: 20px; color: #555555; border-bottom: 2px solid #e0f2f2; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end;">
-              <div>
-                <p style="margin: 3px 0;"><strong>Test Name:</strong> ${testName}</p>
-                <p style="margin: 3px 0;"><strong>Student Name:</strong> ${studentName}</p>
-                <p style="margin: 3px 0;"><strong>Roll Number:</strong> ${rollNo}</p>
-              </div>
-              <h3 style="color: #008080; margin: 0; font-size: 18px;">Total Score: ${marks}</h3>
-            </div>
-            
-            ${questions.map((q, index) => {
-              const studentAns = studentAnswers[q.id]?.answer;
-              const correctAns = q.correct_option;
-              
-              let marksAwarded = 0;
-              if (studentAns !== undefined && studentAns !== null && studentAns !== '') {
-                  if (String(studentAns).trim().toLowerCase() === String(correctAns).trim().toLowerCase()) {
-                      marksAwarded = q.positive_marks || q.marks || 1;
-                  } else {
-                      marksAwarded = q.negative_marks ? -Math.abs(q.negative_marks) : (q.question_type === 'mcq' ? -1 : 0);
-                  }
-              }
-              
-              let qText = q.question_text || 'Image Based Question';
-              
-              let optionsHtml = '';
-              if (q.options && typeof q.options === 'object') {
-                optionsHtml = '<div style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;">';
-                for (const [key, val] of Object.entries(q.options)) {
-                   let borderStyle = '1px solid #e0f2f2';
-                   let bgStyle = 'transparent';
-                   
-                   if (key === correctAns) {
-                     borderStyle = '2px solid #22c55e'; // Green
-                     bgStyle = '#f0fdf4';
-                   } else if (key === studentAns) {
-                     borderStyle = '2px solid #ef4444'; // Red
-                     bgStyle = '#fef2f2';
-                   }
-                   
-                   optionsHtml += `
-                     <div style="padding: 12px 15px; border-radius: 8px; border: ${borderStyle}; background-color: ${bgStyle}; font-size: 14px;">
-                       <strong>${key})</strong> ${val}
-                       ${key === correctAns ? '<span style="color: #22c55e; font-weight: bold; float: right; font-size: 13px;">✓ Correct Answer</span>' : ''}
-                       ${key === studentAns && key !== correctAns ? '<span style="color: #ef4444; font-weight: bold; float: right; font-size: 13px;">✗ Your Answer</span>' : ''}
-                     </div>
-                   `;
-                }
-                optionsHtml += '</div>';
-              }
-
-              return `
-                <div style="margin-bottom: 25px; page-break-inside: avoid; background: #fff; padding: 20px; border: 1px solid #e0f2f2; border-radius: 12px;">
-                  <div style="display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #f5f9f9; padding-bottom: 10px;">
-                    <span style="font-weight: bold; color: #008080; font-size: 14px;">Q.${q.question_number || index + 1} | ${q.exam_subjects?.subject_name || 'General'}</span>
-                    <span style="font-weight: bold; font-size: 14px; color: ${marksAwarded > 0 ? '#22c55e' : marksAwarded < 0 ? '#ef4444' : '#8ab8b8'};">
-                      Marks: ${marksAwarded > 0 ? '+' : ''}${marksAwarded}
-                    </span>
-                  </div>
-                  <div style="font-size: 15px; line-height: 1.6; color: #333333;">
-                    ${qText}
-                  </div>
-                  ${optionsHtml}
-                </div>
-              `;
-            }).join('')}
-          </div>
-        `;
-
-        import('html2pdf.js').then((html2pdfModule) => {
-          const html2pdf = html2pdfModule.default || html2pdfModule;
-          html2pdf().from(html).set({
-            margin: 10,
-            filename: `${studentName.replace(/[^a-zA-Z0-9]/g, '_')}_AnswerKey.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-          }).save().then(() => {
-            setGeneratingStudentId(null);
-          }).catch((err: any) => {
-            console.error('Error in html2pdf:', err);
-            setGeneratingStudentId(null);
-          });
-        }).catch((err: any) => {
-          console.error('Error importing html2pdf:', err);
-          setGeneratingStudentId(null);
-        });
-
-      } catch (error) {
-        console.error('Error generating answer key:', error);
-        setGeneratingStudentId(null);
-      }
-    }, 50);
+    if (!studentResult.id) return;
+    const link = document.createElement('a');
+    link.href = `/api/download/answer-key?resultId=${studentResult.id}`;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const formatTime = (seconds: number | null) => {
