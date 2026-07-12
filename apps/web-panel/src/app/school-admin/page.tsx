@@ -78,9 +78,12 @@ export default async function SchoolAdminDashboard() {
     if (examSubjectIds.length > 0) {
       const { data: subjects } = await supabase.from('exam_subjects').select('exam_id').in('id', examSubjectIds);
       const uniqueExamIds = Array.from(new Set(subjects?.map(s => s.exam_id) || []));
-      teacherExamCount = uniqueExamIds.length;
       
       if (uniqueExamIds.length > 0) {
+        // Only count exams that are not completed
+        const { count } = await supabase.from('exams').select('id', { count: 'exact', head: true }).in('id', uniqueExamIds).neq('status', 'completed');
+        teacherExamCount = count || 0;
+
         const { data: exams } = await supabase.from('exams').select('id, title, status, created_at').in('id', uniqueExamIds).order('created_at', { ascending: false }).limit(3);
         recentExamsTeacher = exams || [];
       }

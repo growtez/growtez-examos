@@ -22,6 +22,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState('');
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
@@ -59,18 +60,38 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
   useEffect(() => { if (selectedSubject) fetchQuestions(); }, [selectedSubject]);
 
   const init = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
+    if (!user) return;
+
+    let currentRole = user.user_metadata?.role;
+    if (!currentRole) {
+       const { data: teacherProfile } = await supabase.from('teachers').select('id').eq('id', user.id).single();
+       if (teacherProfile) currentRole = 'teacher';
+       else currentRole = 'school_admin';
+    }
+
     const { data: examData } = await supabase.from('exams').select('*').eq('id', params.id).single();
     setExam(examData);
 
     const { data: subjectsData } = await supabase
       .from('exam_subjects')
-      .select('*')
+      .select('*, exam_subject_teachers(teacher_id)')
       .eq('exam_id', params.id)
       .order('sort_order');
-    setSubjects(subjectsData || []);
+      
+    let allowedSubjects = subjectsData || [];
+    if (currentRole === 'teacher') {
+       allowedSubjects = allowedSubjects.filter(s => s.exam_subject_teachers?.some((est: any) => est.teacher_id === user.id));
+    }
+    
+    setUserRole(currentRole);
+    setSubjects(allowedSubjects);
 
-    if (!selectedSubject && subjectsData && subjectsData.length > 0) {
-      setSelectedSubject(subjectsData[0].id);
+    if (!selectedSubject && allowedSubjects.length > 0) {
+      setSelectedSubject(allowedSubjects[0].id);
+    } else if (selectedSubject && !allowedSubjects.some(s => s.id === selectedSubject)) {
+      setSelectedSubject(allowedSubjects.length > 0 ? allowedSubjects[0].id : null);
     }
     setLoading(false);
   };
@@ -93,6 +114,11 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
     try {
       if (!exam || !selectedSubject) throw new Error('Missing exam or subject');
       if (!questionText.trim() && !questionImage) throw new Error('Please provide question text or an image.');
+      
+      const subjectDef = subjects.find(s => s.id === selectedSubject);
+      if (!editingQuestionId && subjectDef && questions.length >= subjectDef.question_count) {
+        throw new Error(`Maximum question limit (${subjectDef.question_count}) reached for this subject.`);
+      }
 
       const questionNumber = questions.length + 1;
       const markingScheme = exam.marking_scheme || {};
@@ -304,18 +330,20 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Subject Tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
-        {subjects.map((s) => (
-          <button key={s.id} onClick={() => setSelectedSubject(s.id)}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all shadow-sm ${
-              selectedSubject === s.id
-                ? 'bg-[#008080] text-white border-transparent'
-                : 'bg-white text-[#555555] border border-[#e0f2f2] hover:border-[#008080] hover:text-[#008080]'
-            }`}>
-            {s.subject_name}
-          </button>
-        ))}
-      </div>
+      {userRole !== 'teacher' && (
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
+          {subjects.map((s) => (
+            <button key={s.id} onClick={() => setSelectedSubject(s.id)}
+              className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all shadow-sm ${
+                selectedSubject === s.id
+                  ? 'bg-[#008080] text-white border-transparent'
+                  : 'bg-white text-[#555555] border border-[#e0f2f2] hover:border-[#008080] hover:text-[#008080]'
+              }`}>
+              {s.subject_name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Progress */}
       {currentSubject && (
@@ -326,7 +354,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
               {questions.length} / {currentSubject.question_count} questions
             </span>
           </div>
-          {exam?.status === 'draft' && (
+          {exam?.status === 'draft' && questions.length < currentSubject.question_count && (
             <button onClick={() => { 
               setEditingQuestionId(null); setQuestionText(''); setQuestionImage(null); 
               setOptionA(''); setOptionAImage(null);
