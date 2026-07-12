@@ -45,6 +45,11 @@ export const openRazorpayCheckout = async (params: RazorpayCheckoutParams) => {
     const orderData = await orderResponse.json();
 
     if (!orderResponse.ok) {
+      // If the webhook already processed a previous successful payment but the UI didn't update
+      if (orderData.error === 'Already purchased') {
+        if (onSuccess) onSuccess();
+        return;
+      }
       throw new Error(orderData.error || 'Failed to create order');
     }
 
