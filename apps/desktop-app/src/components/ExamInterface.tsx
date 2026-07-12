@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { getDeviceId } from '../lib/deviceId';
 import Calculator from './Calculator';
 import Numpad from './Numpad';
 
@@ -362,6 +363,13 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       }
       
       try {
+        // Release the single-session lock before signing out (auto-submit success)
+        if (studentProfile?.id) {
+          await supabase.rpc('clear_student_session', {
+            p_student_id: studentProfile.id,
+            p_device_id: getDeviceId(),
+          });
+        }
         await supabase.auth.signOut();
       } catch (signOutErr) {
         console.warn('Signout failed or not authenticated:', signOutErr);
@@ -370,6 +378,13 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
     } catch (err) {
       console.error('Auto-submit failed:', err);
       try {
+        // Release the single-session lock before signing out (auto-submit error)
+        if (studentProfile?.id) {
+          await supabase.rpc('clear_student_session', {
+            p_student_id: studentProfile.id,
+            p_device_id: getDeviceId(),
+          });
+        }
         await supabase.auth.signOut();
       } catch (signOutErr) {
         console.warn('Signout failed or not authenticated:', signOutErr);
@@ -431,6 +446,13 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       }
 
       try {
+        // Release the single-session lock before signing out (manual submit)
+        if (studentProfile?.id) {
+          await supabase.rpc('clear_student_session', {
+            p_student_id: studentProfile.id,
+            p_device_id: getDeviceId(),
+          });
+        }
         await supabase.auth.signOut();
       } catch (signOutErr) {
         console.warn('Signout failed or not authenticated:', signOutErr);
@@ -449,7 +471,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
   const getTimerClass = () => {
     if (timeLeft <= 60) {
-      return 'bg-[#F04438] animate-pulse';
+      return 'bg-[#F04438]';
     } else if (timeLeft <= 300) {
       return 'bg-[#F79009]';
     } else {
@@ -465,7 +487,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         {headerOpen ? (
           <>
             <div className="flex items-center gap-3">
-              <img src={school?.logo_url || "/logo.png"} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-12 h-12 object-contain" />
+              <img src={school?.logo_url || "/logo.png"} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-14 h-14 rounded-full object-cover" />
               <div>
                 <h1 className="text-[#008080] text-[20px] font-extrabold tracking-widest m-0 leading-tight uppercase">{school?.name || 'ParikshaOS'}</h1>
                 {/* <p className="text-[9px] text-[#667085] uppercase tracking-wider font-semibold">Powered by Growtez</p> */}
@@ -496,7 +518,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         ) : (
           <>
             <div className="flex items-center gap-2">
-              <img src={school?.logo_url || "/logo.png"} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-6 h-6 object-contain" />
+              <img src={school?.logo_url || "/logo.png"} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-6 h-6 rounded-full object-cover" />
               <h1 className="text-[#008080] text-[15px] font-extrabold tracking-wider m-0 uppercase">{school?.name || 'ParikshaOS'}</h1>
             </div>
 
@@ -516,11 +538,11 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       </header>
 
       {/* Low Time Warning Banner */}
-      {timeLeft <= 300 && timeLeft > 0 && (
+      {/* {timeLeft <= 300 && timeLeft > 0 && (
         <div className={`text-white text-center text-xs font-bold py-1.5 uppercase tracking-widest ${timeLeft <= 60 ? 'bg-[#F04438] animate-pulse' : 'bg-[#F79009]'}`}>
           ⚠ Less than {Math.ceil(timeLeft / 60)} minute{timeLeft > 60 ? 's' : ''} remaining — Exam will auto-submit when time runs out!
         </div>
-      )}
+      )} */}
 
       {/* Secondary Bar - Premium Teal */}
       <div className="bg-[#008080] h-[50px] flex items-center justify-between px-6 text-white font-bold uppercase shadow-sm">
@@ -647,29 +669,29 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           </div>
 
           {/* Action Buttons Footer */}
-          <div className="border-t border-[#E4E7EC] p-3 bg-white">
+          <div className="border-t border-[#E4E7EC] py-2 px-4 bg-white">
             <div className="flex items-center gap-1.5">
               <button
                 onClick={handleSaveAndNext}
-                className="bg-[#008080] hover:bg-[#006666] text-white px-5 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
+                className="bg-[#008080] hover:bg-[#006666] text-white px-4 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
               >
                 SAVE &amp; NEXT
               </button>
               <button
                 onClick={handleSaveAndMarkForReview}
-                className="bg-[#4A4A4A] hover:bg-[#3A3A3A] text-white px-5 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
+                className="bg-[#4A4A4A] hover:bg-[#3A3A3A] text-white px-4 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
               >
                 SAVE &amp; MARK FOR REVIEW
               </button>
               <button
                 onClick={handleClearResponse}
-                className="bg-[#F0F0F0] hover:bg-[#F9FAFB] text-[#667085] px-5 py-1.5 font-bold text-sm border border-[#E4E7EC] rounded-none transition-colors uppercase shadow-sm"
+                className="bg-[#F0F0F0] hover:bg-[#F9FAFB] text-[#667085] px-4 py-1.5 font-bold text-sm border border-[#E4E7EC] rounded-none transition-colors uppercase shadow-sm"
               >
                 CLEAR RESPONSE
               </button>
               <button
                 onClick={handleMarkForReviewAndNext}
-                className="bg-[#004D4D] hover:bg-[#003333] text-white px-5 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
+                className="bg-[#004D4D] hover:bg-[#003333] text-white px-4 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
               >
                 MARK FOR REVIEW &amp; NEXT
               </button>
@@ -677,19 +699,19 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           </div>
 
           {/* Navigation and Submission Footer Section */}
-          <div className="border-t border-[#E4E7EC] p-4 bg-[#EAF2F2] flex items-center justify-between">
+          <div className="border-t border-[#E4E7EC] py-3 px-4 bg-[#EAF2F2] flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={handleBack}
                 disabled={currentQuestionIndex === 0 && currentSubjectIndex === 0}
-                className="bg-white hover:bg-[#F9FAFB] text-[#667085] px-6 py-2 font-bold text-xs border border-[#D0D5DD] rounded-none transition-colors uppercase disabled:opacity-50 disabled:hover:bg-white"
+                className="bg-white hover:bg-[#F9FAFB] text-[#667085] px-5 py-1.5 font-bold text-xs border border-[#D0D5DD] rounded-none transition-colors uppercase disabled:opacity-50 disabled:hover:bg-white"
               >
                 &lt;&lt; BACK
               </button>
               <button
                 onClick={moveToNext}
                 disabled={currentQuestionIndex === currentQuestions.length - 1 && currentSubjectIndex === subjects.length - 1}
-                className="bg-white hover:bg-[#F9FAFB] text-[#667085] px-6 py-2 font-bold text-xs border border-[#D0D5DD] rounded-none transition-colors uppercase disabled:opacity-50 disabled:hover:bg-white"
+                className="bg-white hover:bg-[#F9FAFB] text-[#667085] px-5 py-1.5 font-bold text-xs border border-[#D0D5DD] rounded-none transition-colors uppercase disabled:opacity-50 disabled:hover:bg-white"
               >
                 NEXT &gt;&gt;
               </button>
@@ -697,7 +719,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
             
             <button
               onClick={() => setShowSubmitModal(true)}
-              className="bg-[#008080] hover:bg-[#006666] text-white px-8 py-2.5 rounded-none font-bold text-sm shadow-sm transition-all uppercase"
+              className="bg-[#008080] hover:bg-[#006666] text-white px-6 py-1.5 rounded-none font-bold text-sm shadow-sm transition-all uppercase"
             >
               SUBMIT
             </button>

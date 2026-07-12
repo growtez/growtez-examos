@@ -55,7 +55,7 @@ export default function FeedbackPage() {
       school_id: schoolId,
       submitted_by: userId,
       message,
-      type
+      type: type === 'bug_report' ? 'bug' : type === 'general' ? 'other' : 'feature_request'
     };
 
     const { data, error } = await supabase.from('feedback').insert([newFeedback]).select().single();
@@ -188,13 +188,13 @@ export default function FeedbackPage() {
                         <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-1 bg-[#e0f2f2] text-[#008080] rounded">
                           {fb.type.replace('_', ' ')}
                         </span>
-                        <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-1 rounded ${
+                        {/* <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-1 rounded ${
                           fb.status === 'resolved' ? 'bg-green-100 text-green-700' :
                           fb.status === 'reviewed' ? 'bg-blue-100 text-blue-700' :
                           'bg-orange-100 text-orange-700'
                         }`}>
                           {fb.status}
-                        </span>
+                        </span> */}
                       </div>
                       <p className="text-sm text-[#1a2e2e] line-clamp-3">{fb.message}</p>
                       <p className="text-xs text-[#8ab8b8] mt-2">

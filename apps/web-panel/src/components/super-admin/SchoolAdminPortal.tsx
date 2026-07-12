@@ -7,7 +7,9 @@ import { TeachersListContent } from '../../app/school-admin/teachers/PageContent
 import { ResultsListContent } from '../../app/school-admin/results/PageContent';
 import { StudentsListContent } from '../../app/school-admin/students/PageContent';
 import DeleteSchoolButton from '../../app/super-admin/schools/DeleteSchoolButton';
-import { LayoutDashboard, FileText, GraduationCap, Trophy, Users } from 'lucide-react';
+import { LayoutDashboard, FileText, GraduationCap, Trophy, Users, MessageSquare, Bell } from 'lucide-react';
+import SchoolFeedbackContent from './SchoolFeedbackContent';
+import SchoolNotificationsContent from './SchoolNotificationsContent';
 
 const menuItems = [
   { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -15,6 +17,8 @@ const menuItems = [
   { id: 'teachers', label: 'Teachers', icon: Users },
   { id: 'students', label: 'Students', icon: GraduationCap },
   { id: 'results', label: 'Results & Reports', icon: Trophy },
+  { id: 'feedback', label: 'Feedback', icon: MessageSquare },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
 
 export function SchoolAdminPortal({ school, schoolAdmin }: { school: any; schoolAdmin: any }) {
@@ -33,6 +37,10 @@ export function SchoolAdminPortal({ school, schoolAdmin }: { school: any; school
         return <StudentsListContent schoolIdProp={schoolId} />;
       case 'results':
         return <ResultsListContent schoolIdProp={schoolId} />;
+      case 'feedback':
+        return <SchoolFeedbackContent schoolId={schoolId} />;
+      case 'notifications':
+        return <SchoolNotificationsContent schoolId={schoolId} schoolName={school.name} />;
       default:
         return <SchoolAdminDashboardView schoolId={schoolId} />;
     }

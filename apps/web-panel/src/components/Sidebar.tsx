@@ -15,7 +15,8 @@ import {
     Users,
     FileText,
     CreditCard,
-    Tag
+    Tag,
+    Bell
 } from 'lucide-react';
 
 export interface NavItem {
@@ -32,6 +33,7 @@ export const defaultNavItems: NavItem[] = [
     { path: '/exams', icon: FileText, label: 'Exams' },
     { path: '/plans', icon: Tag, label: 'Plans' },
     { path: '/subscriptions', icon: CreditCard, label: 'Transactions' },
+    { path: '/notification/notification_page', icon: Bell, label: 'Notifications' },
 ];
 
 const ICON_BOX = 20;
