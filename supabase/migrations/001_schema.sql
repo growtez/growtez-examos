@@ -10,6 +10,8 @@
 ALTER TABLE IF EXISTS public.teachers ADD COLUMN IF NOT EXISTS department TEXT;
 ALTER TABLE IF EXISTS public.questions ADD COLUMN IF NOT EXISTS image_url TEXT;
 ALTER TABLE IF EXISTS public.questions ALTER COLUMN question_text DROP NOT NULL;
+ALTER TABLE IF EXISTS public.students ADD COLUMN IF NOT EXISTS active_device_id TEXT;
+ALTER TABLE IF EXISTS public.students ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMP WITH TIME ZONE;
 
 CREATE TABLE IF NOT EXISTS public.schools (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -58,6 +60,8 @@ CREATE TABLE IF NOT EXISTS public.students (
     course TEXT DEFAULT 'General',
     batch TEXT DEFAULT 'Main',
     session TEXT DEFAULT '2026-27',
+    active_device_id TEXT,
+    last_active_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -542,6 +546,88 @@ BEGIN
   SET status = 'submitted', submitted_at = NOW()
   WHERE exam_id = p_exam_id AND student_id = auth.uid();
   
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- A. check_and_set_student_session
+-- Checks if session is free/expired, and registers the current device if available.
+CREATE OR REPLACE FUNCTION public.check_and_set_student_session(
+    p_student_id UUID,
+    p_device_id TEXT
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_active_device_id TEXT;
+    v_last_active_at TIMESTAMP WITH TIME ZONE;
+    v_now TIMESTAMP WITH TIME ZONE;
+BEGIN
+    v_now := NOW();
+    
+    SELECT active_device_id, last_active_at 
+    INTO v_active_device_id, v_last_active_at
+    FROM public.students
+    WHERE id = p_student_id
+    FOR UPDATE; -- Atomic row lock: prevents two devices from passing the check simultaneously
+    
+    -- Session is claimable if:
+    -- 1. No active device is recorded.
+    -- 2. The recorded device matches the incoming device ID (re-log/re-connection).
+    -- 3. The last activity was more than 60 seconds ago (heartbeat timeout).
+    IF v_active_device_id IS NULL 
+       OR v_active_device_id = p_device_id 
+       OR v_last_active_at IS NULL 
+       OR v_last_active_at < (v_now - INTERVAL '60 seconds') THEN
+       
+        UPDATE public.students
+        SET active_device_id = p_device_id,
+            last_active_at = v_now
+        WHERE id = p_student_id;
+        
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- B. clear_student_session
+-- Clears the session credentials upon logout, exit, or exam submission.
+CREATE OR REPLACE FUNCTION public.clear_student_session(
+    p_student_id UUID,
+    p_device_id TEXT
+)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE public.students
+    SET active_device_id = NULL,
+        last_active_at = NULL
+    WHERE id = p_student_id AND (active_device_id = p_device_id OR active_device_id IS NULL);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- C. heartbeat_student_session
+-- Updates the activity timestamp to keep the session alive.
+CREATE OR REPLACE FUNCTION public.heartbeat_student_session(
+    p_student_id UUID,
+    p_device_id TEXT
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_active_device_id TEXT;  -- DECLARE block must not contain END;
+BEGIN
+    SELECT active_device_id INTO v_active_device_id
+    FROM public.students
+    WHERE id = p_student_id;
+
+    -- Only update if the session is still owned by the current device
+    IF v_active_device_id = p_device_id THEN
+        UPDATE public.students
+        SET last_active_at = NOW()
+        WHERE id = p_student_id;
+        RETURN TRUE;
+    ELSE
+        RETURN FALSE;
+    END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

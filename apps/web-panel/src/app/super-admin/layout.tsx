@@ -72,6 +72,7 @@ export default function SuperAdminLayout({
     if (pathname === '/users') return 'Users';
     if (pathname?.startsWith('/plans')) return 'Plans';
     if (pathname?.startsWith('/subscriptions')) return 'Transactions';
+    if (pathname?.startsWith('/notification')) return 'Notifications';
     return 'Command Center';
   };
 
@@ -103,12 +104,16 @@ export default function SuperAdminLayout({
       crumbs.push({ label: 'Transactions', href: '/subscriptions' });
     }
 
+    if (segments.includes('notification')) {
+      crumbs.push({ label: 'Notifications', href: '/notification/notification_page' });
+    }
+
     const lastSegment = segments[segments.length - 1];
     const isSchoolDetail = segments.includes('schools') && segments.indexOf('schools') < segments.length - 1;
 
     if (isSchoolDetail) {
       crumbs.push({ label: currentSchoolName || '', href: null });
-    } else if (lastSegment && lastSegment !== 'super-admin' && !['schools', 'users', 'exams', 'plans', 'subscriptions'].includes(lastSegment)) {
+    } else if (lastSegment && lastSegment !== 'super-admin' && !['schools', 'users', 'exams', 'plans', 'subscriptions', 'notification', 'notification_page'].includes(lastSegment)) {
       crumbs.push({ label: lastSegment, href: null });
     }
 

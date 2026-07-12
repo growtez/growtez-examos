@@ -59,12 +59,22 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
+      let currentSchoolId = null;
       const { data: admin } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
       if (admin?.school_id) {
+        currentSchoolId = admin.school_id;
+      } else {
+        const { data: teacher } = await supabase.from('teachers').select('school_id').eq('id', user.id).single();
+        if (teacher?.school_id) {
+          currentSchoolId = teacher.school_id;
+        }
+      }
+
+      if (currentSchoolId) {
         // Fetch School Details
         const { data: schoolData } = await supabase.from('schools')
           .select('*')
-          .eq('id', admin.school_id)
+          .eq('id', currentSchoolId)
           .single();
         if (schoolData) {
           setSchool(schoolData);
@@ -72,9 +82,14 @@ export default function ProfilePage() {
       }
 
       // Fetch Notifications
-      const { data: notifs } = await supabase.from('system_notifications')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let query = supabase.from('system_notifications').select('*');
+      if (currentSchoolId) {
+        query = query.or(`target_school_id.eq.${currentSchoolId},target_school_id.is.null`);
+      } else {
+        query = query.is('target_school_id', null);
+      }
+      
+      const { data: notifs } = await query.order('created_at', { ascending: false });
       if (notifs) setNotifications(notifs);
 
       setLoading(false);
@@ -224,12 +239,17 @@ export default function ProfilePage() {
                           <Bell className="w-5 h-5 text-blue-500" />
                         )}
                       </div>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-bold text-[#1a2e2e]">{notif.title}</h4>
-                        <p className="text-sm text-[#555555] mt-1">{notif.message}</p>
-                        <div className="flex items-center gap-1 mt-2 text-xs text-[#8ab8b8]">
+                        <p className="text-sm text-[#555555] mt-1 whitespace-pre-wrap">{notif.message}</p>
+                        {notif.image_url && (
+                          <div className="mt-2.5 rounded-xl overflow-hidden max-w-md border border-[#e0f2f2] shadow-sm">
+                            <img src={notif.image_url} alt="Announcement media" className="max-h-48 w-full object-cover" />
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1 mt-2.5 text-xs text-[#8ab8b8] font-semibold">
                           <Clock className="w-3 h-3" />
-                          <span>{new Date(notif.created_at).toLocaleDateString()}</span>
+                          <span>{new Date(notif.created_at).toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
