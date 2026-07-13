@@ -355,7 +355,7 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
                 <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[10%]" onClick={() => toggleSort('newest')}>
                   <div className="flex items-center gap-2">Added {getSortIcon('newest')}</div>
                 </th>
-                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%] text-right">Actions</th>
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%] text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -371,15 +371,15 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
                     ) : '—'}
                   </td>
                   <td className="py-2.5 px-4 align-middle text-text-muted text-[13px]">{new Date(t.created_at).toLocaleDateString()}</td>
-                  <td className="py-2.5 px-4 align-middle text-right">
-                    <div className="flex items-center justify-end gap-1.5">
+                  <td className="py-2.5 px-4 align-middle text-center">
+                    <div className="flex justify-center gap-1.5">
                       <button onClick={() => {
                         setName(t.full_name);
                         setEmail(t.email);
                         setDepartment(t.department || '');
                         setEditTeacherId(t.id);
-                      }} className="text-accent-primary hover:text-accent-primary/80 text-[12px] font-semibold px-2 py-1 rounded-md hover:bg-surface-hover transition-colors border border-transparent hover:border-accent-primary/10">Edit</button>
-                      <button onClick={() => setDeleteTeacherId(t.id)} className="text-red-500 hover:text-red-600 text-[12px] font-semibold px-2 py-1 rounded-md hover:bg-red-500/10 transition-colors border border-transparent">Delete</button>
+                      }} className="text-accent-primary hover:text-accent-primary text-[12px] font-semibold px-2 py-1 rounded-md hover:bg-accent-primary/10 hover:scale-105 active:scale-95 transition-all border border-transparent">Edit</button>
+                      <button onClick={() => setDeleteTeacherId(t.id)} className="text-red-500 hover:text-red-600 text-[12px] font-semibold px-2 py-1 rounded-md hover:bg-red-500/10 hover:scale-105 active:scale-95 transition-all border border-transparent">Delete</button>
                     </div>
                   </td>
                 </tr>

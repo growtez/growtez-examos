@@ -1,13 +1,78 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { FileBarChart2, Download, FileText, Loader2, Search, ChevronLeft, ChevronRight, Filter, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react';
+import { FileBarChart2, Download, FileText, Loader2, Search, ChevronLeft, ChevronRight, Filter, ArrowUpDown, ArrowUp, ArrowDown, X, Calendar, Clock, Users, CalendarDays } from 'lucide-react';
 
-export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
+const CustomCalendar = ({ exams, selectedDate, onSelectDate }: { exams: any[], selectedDate: Date | null, onSelectDate: (d: Date | null) => void }) => {
+  const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
+  
+  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+  const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+  
+  // Set of date strings (YYYY-MM-DD) that have completed exams
+  const examDates = new Set(exams.map(e => e.start_time ? new Date(e.start_time).toLocaleDateString('en-CA') : null).filter(Boolean));
+
+  const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+
+  const days = [];
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    days.push(<div key={`empty-${i}`} className="w-8 h-8"></div>);
+  }
+  for (let i = 1; i <= daysInMonth; i++) {
+    const d = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i);
+    const dateString = d.toLocaleDateString('en-CA');
+    const hasExam = examDates.has(dateString);
+    const isSelected = selectedDate && selectedDate.toLocaleDateString('en-CA') === dateString;
+    const isToday = new Date().toLocaleDateString('en-CA') === dateString;
+    
+    days.push(
+      <button
+        key={i}
+        type="button"
+        onClick={() => onSelectDate(isSelected ? null : d)}
+        className={`relative w-8 h-8 flex items-center justify-center rounded-full text-xs font-semibold transition-all border-none cursor-pointer ${
+          isSelected ? 'bg-accent-primary text-white shadow-md' : 
+          isToday ? 'bg-surface-hover text-accent-primary' : 'text-text-main hover:bg-surface-hover bg-transparent'
+        } ${hasExam && !isSelected ? 'ring-2 ring-accent-primary/60 ring-offset-1 ring-offset-surface' : ''}`}
+      >
+        {i}
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-surface border border-border rounded-xl shadow-xl p-4 w-72 z-50">
+      <div className="flex justify-between items-center mb-4">
+        <button type="button" onClick={prevMonth} className="text-text-muted hover:text-text-main p-1 rounded hover:bg-surface-hover transition-colors bg-transparent border-none cursor-pointer"><ChevronLeft size={16} /></button>
+        <span className="font-bold text-sm text-text-main">{currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
+        <button type="button" onClick={nextMonth} className="text-text-muted hover:text-text-main p-1 rounded hover:bg-surface-hover transition-colors bg-transparent border-none cursor-pointer"><ChevronRight size={16} /></button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-center mb-2">
+        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+          <div key={day} className="text-[10px] font-bold text-text-muted uppercase">{day}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-y-2 gap-x-1 place-items-center">
+        {days}
+      </div>
+      {selectedDate && (
+        <button type="button" onClick={() => onSelectDate(null)} className="mt-4 w-full py-2 text-xs font-semibold text-text-muted hover:text-red-500 bg-surface-hover hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border-none cursor-pointer">
+          Clear Date Filter
+        </button>
+      )}
+    </div>
+  );
+};
+
+export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?: string, examIdProp?: string }) {
+  const router = useRouter();
   const supabase = createClient();
+  const [viewMode, setViewMode] = useState<'exams_list' | 'exam_results'>(examIdProp ? 'exam_results' : 'exams_list');
   const [exams, setExams] = useState<any[]>([]);
-  const [selectedExamId, setSelectedExamId] = useState<string>('');
+  const [selectedExamId, setSelectedExamId] = useState<string>(examIdProp || '');
   const [results, setResults] = useState<any[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [loadingExams, setLoadingExams] = useState(true);
@@ -15,6 +80,7 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
   const [schoolId, setSchoolId] = useState<string | null>(schoolIdProp || null);
   const [schoolName, setSchoolName] = useState<string>('');
   
+  // Results view filters
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [generatingStudentId, setGeneratingStudentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,6 +90,22 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
   const [perPage, setPerPage] = useState(8);
   const [sortBy, setSortBy] = useState('rank');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // Exams list filters
+  const [examSearchQuery, setExamSearchQuery] = useState('');
+  const [examDateFilter, setExamDateFilter] = useState<Date | null>(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const calendarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setIsCalendarOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const toggleSort = (newSort: string) => {
     if (sortBy === newSort) {
@@ -49,7 +131,6 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
   }).sort((a, b) => {
     if (sortBy === 'name') return (a.students?.full_name || '').localeCompare(b.students?.full_name || '');
     if (sortBy === 'score') return (b.total_marks ?? 0) - (a.total_marks ?? 0);
-    // default rank (total_marks desc)
     return (b.total_marks ?? 0) - (a.total_marks ?? 0);
   });
 
@@ -93,61 +174,45 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
 
       const { data } = await supabase
         .from('exams')
-        .select('*')
+        .select(`*, results(id)`)
         .eq('school_id', activeSchoolId)
+        .eq('status', 'completed')
         .order('created_at', { ascending: false });
 
-      const examsList = data || [];
+      const examsList = (data || []).map(e => ({
+        ...e,
+        submissionCount: e.results ? e.results.length : 0
+      }));
       setExams(examsList);
       setLoadingExams(false);
-      setSelectedExamId('all');
-      fetchResults('all', examsList);
     };
     fetchExams();
   }, []);
 
   useEffect(() => {
-    if (selectedExamId && exams.length > 0) {
-      fetchResults(selectedExamId, exams);
+    if (viewMode === 'exam_results' && selectedExamId) {
+      fetchResults(selectedExamId);
     }
-  }, [selectedExamId]);
+  }, [viewMode, selectedExamId]);
 
-  const fetchResults = async (examId = selectedExamId, currentExams = exams) => {
+  const fetchResults = async (examId: string) => {
     setLoadingResults(true);
-    
-    let resultsData;
-    let questionsData;
-
     try {
-      if (examId === 'all') {
-        const examIds = currentExams.map(e => e.id);
-        const { data, error } = await supabase
-          .from('results')
-          .select('*, students:student_id(full_name, roll_number, course, batch), exams:exam_id(title, total_marks, start_time)')
-          .in('exam_id', examIds)
-          .order('total_marks', { ascending: false });
-        if (error) throw error;
-        resultsData = data;
-        questionsData = [];
-      } else {
-        const { data, error } = await supabase
-          .from('results')
-          .select('*, students:student_id(full_name, roll_number, course, batch), exams:exam_id(title, total_marks, start_time)')
-          .eq('exam_id', examId)
-          .order('total_marks', { ascending: false });
-        if (error) throw error;
-        resultsData = data;
+      const { data, error } = await supabase
+        .from('results')
+        .select('*, students:student_id(full_name, roll_number, course, batch), exams:exam_id(title, total_marks, start_time)')
+        .eq('exam_id', examId)
+        .order('total_marks', { ascending: false });
+      
+      if (error) throw error;
+      setResults(data || []);
 
-        const { data: qData } = await supabase
-          .from('questions')
-          .select('*, exam_subjects(subject_name)')
-          .eq('exam_id', examId)
-          .order('question_number', { ascending: true });
-        questionsData = qData;
-      }
-
-      setResults(resultsData || []);
-      setQuestions(questionsData || []);
+      const { data: qData } = await supabase
+        .from('questions')
+        .select('*, exam_subjects(subject_name)')
+        .eq('exam_id', examId)
+        .order('question_number', { ascending: true });
+      setQuestions(qData || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -260,13 +325,141 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
     return `${mins}m ${secs}s`;
   };
 
+  const getEndTime = (startTime: string, durationMinutes: number) => {
+    if (!startTime || !durationMinutes) return null;
+    const start = new Date(startTime);
+    const end = new Date(start.getTime() + durationMinutes * 60000);
+    return end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  if (viewMode === 'exams_list') {
+    const filteredExams = exams.filter(e => {
+      const matchesSearch = e.title.toLowerCase().includes(examSearchQuery.toLowerCase());
+      let matchesDate = true;
+      if (examDateFilter && e.start_time) {
+        matchesDate = new Date(e.start_time).toLocaleDateString('en-CA') === examDateFilter.toLocaleDateString('en-CA');
+      } else if (examDateFilter && !e.start_time) {
+        matchesDate = false;
+      }
+      return matchesSearch && matchesDate;
+    });
+
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
+        <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-text-main tracking-tight">Exam Results</h1>
+            <p className="text-text-muted mt-1.5 font-medium">Select an exam to view detailed student performance and analytics.</p>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+              <input
+                type="text"
+                placeholder="Search Exams..."
+                value={examSearchQuery}
+                onChange={(e) => setExamSearchQuery(e.target.value)}
+                className="w-full py-2 pl-9 pr-4 bg-surface-hover border border-border rounded-xl text-text-main text-[13px] focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all shadow-sm"
+              />
+            </div>
+            <div className="relative" ref={calendarRef}>
+              <button 
+                onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold border transition-all cursor-pointer ${
+                  examDateFilter ? 'bg-accent-primary/10 text-accent-primary border-accent-primary/20' : 'bg-surface border-border text-text-main hover:bg-surface-hover'
+                }`}
+              >
+                <CalendarDays size={16} />
+                {examDateFilter ? examDateFilter.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Filter by Date'}
+              </button>
+              {isCalendarOpen && (
+                <div className="absolute right-0 top-full mt-2 z-50">
+                  <CustomCalendar 
+                    exams={exams} 
+                    selectedDate={examDateFilter} 
+                    onSelectDate={(d) => { setExamDateFilter(d); setIsCalendarOpen(false); }} 
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {loadingExams ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} className="h-[220px] bg-surface border border-border rounded-2xl animate-pulse"></div>
+            ))}
+          </div>
+        ) : filteredExams.length === 0 ? (
+          <div className="bg-surface border border-border rounded-2xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
+            <div className="w-20 h-20 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-5">
+              <FileBarChart2 size={36} />
+            </div>
+            <h3 className="text-text-main font-bold text-2xl mb-2">No Exams Found</h3>
+            <p className="text-text-muted text-base font-medium max-w-md">Once exams are created and students submit their answers, the results will appear here.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredExams.map(exam => (
+              <div 
+                key={exam.id} 
+                onClick={() => router.push(`/results/${exam.id}`)}
+                className="bg-surface border border-border hover:border-accent-primary p-6 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group flex flex-col justify-between min-h-[220px]"
+              >
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700`}>
+                      {exam.status || 'Draft'}
+                    </span>
+                    {exam.total_marks && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted bg-surface-hover px-2 py-1 rounded-md border border-border/50">
+                        {exam.total_marks} Marks
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-lg font-bold text-text-main group-hover:text-accent-primary transition-colors line-clamp-2 leading-snug">{exam.title}</h3>
+                  
+                  <div className="mt-5 space-y-3">
+                    <div className="flex items-center gap-2.5 text-text-muted text-xs font-semibold bg-surface-hover px-3 py-1.5 rounded-lg border border-border/50">
+                      <Calendar size={14} className="text-accent-primary/70" />
+                      {exam.start_time ? new Date(exam.start_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date set'}
+                    </div>
+                    <div className="flex items-center gap-2.5 text-text-muted text-xs font-semibold bg-surface-hover px-3 py-1.5 rounded-lg border border-border/50">
+                      <Clock size={14} className="text-accent-primary/70" />
+                      {exam.start_time ? (
+                        exam.duration_minutes ? (
+                          `${new Date(exam.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${getEndTime(exam.start_time, exam.duration_minutes)}`
+                        ) : (
+                          new Date(exam.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        )
+                      ) : '—'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 pt-5 border-t border-border flex justify-between items-center">
+                  <div className="flex items-center gap-1.5 text-text-muted">
+                    <Users size={16} />
+                    <span className="text-xs font-bold"><span className="text-text-main">{exam.submissionCount}</span> Submissions</span>
+                  </div>
+                  <span className="w-8 h-8 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary group-hover:bg-accent-primary group-hover:text-white transition-colors">
+                    <ChevronRight size={16} />
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
-
-
-
+    <div className="animate-in fade-in slide-in-from-right-8 duration-500 max-w-7xl mx-auto mt-4">
       {/* Control Panel */}
-      {!loadingResults && !loadingExams && (
+      {!loadingResults && (
         <div className="flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border mb-4">
           {/* Search Box */}
           <div className="relative w-full md:max-w-[260px] shrink-0">
@@ -282,41 +475,36 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
 
           {/* Inline Active Filters */}
           <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0">
-            {(searchQuery || courseFilter || batchFilter || selectedExamId !== 'all' || sortBy !== 'rank') ? (
+            {(searchQuery || courseFilter || batchFilter || sortBy !== 'rank') ? (
               <>
                 <span className="text-[11px] text-text-muted font-medium uppercase tracking-wider shrink-0 mr-1">Active:</span>
                 {searchQuery && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
                     "{searchQuery}"
-                    <button onClick={() => setSearchQuery('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
-                  </span>
-                )}
-                {selectedExamId !== 'all' && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
-                    {exams.find(e => e.id === selectedExamId)?.title || 'Selected Exam'}
-                    <button onClick={() => setSelectedExamId('all')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                    <button type="button" onClick={() => setSearchQuery('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
                   </span>
                 )}
                 {courseFilter && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
                     {courseFilter}
-                    <button onClick={() => setCourseFilter('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                    <button type="button" onClick={() => setCourseFilter('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
                   </span>
                 )}
                 {batchFilter && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
                     {batchFilter}
-                    <button onClick={() => setBatchFilter('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                    <button type="button" onClick={() => setBatchFilter('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
                   </span>
                 )}
                 {sortBy !== 'rank' && (
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
                     {sortBy === 'name' ? 'Name' : sortBy}
-                    <button onClick={() => setSortBy('rank')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                    <button type="button" onClick={() => setSortBy('rank')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
                   </span>
                 )}
                 <button 
-                  onClick={() => { setSearchQuery(''); setCourseFilter(''); setBatchFilter(''); setSelectedExamId('all'); setSortBy('rank'); setPage(1); }}
+                  type="button"
+                  onClick={() => { setSearchQuery(''); setCourseFilter(''); setBatchFilter(''); setSortBy('rank'); setPage(1); }}
                   className="text-[11px] text-text-muted hover:text-red-500 transition-colors ml-1 bg-transparent border-none cursor-pointer font-medium shrink-0"
                 >
                   Clear
@@ -329,17 +517,17 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
 
           {/* Pagination Controls */}
           <div className="flex items-center justify-between md:justify-start gap-1 shrink-0 md:border-x md:border-border/50 px-3 py-1.5 md:py-0 w-full md:w-auto">
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+            <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
               <ChevronLeft size={14} />
             </button>
             <div className="flex items-center justify-center gap-1 w-[80px]">
               {getPaginationPages().map((p, i) => p === '...' ? (
                 <div key={`ellipsis-${i}`} className="w-6 h-6 flex items-center justify-center text-[11px] text-text-muted">…</div>
               ) : (
-                <button key={p} onClick={() => setPage(p as number)} className={`w-6 h-6 flex items-center justify-center rounded text-[11px] font-semibold transition-colors border-none cursor-pointer ${safePage === p ? 'bg-accent-primary text-white' : 'text-text-muted hover:bg-surface-hover bg-transparent'}`}>{p as number}</button>
+                <button type="button" key={p} onClick={() => setPage(p as number)} className={`w-6 h-6 flex items-center justify-center rounded text-[11px] font-semibold transition-colors border-none cursor-pointer ${safePage === p ? 'bg-accent-primary text-white' : 'text-text-muted hover:bg-surface-hover bg-transparent'}`}>{p as number}</button>
               ))}
             </div>
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+            <button type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
               <ChevronRight size={14} />
             </button>
           </div>
@@ -351,6 +539,7 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
             </select>
             <div className="relative group flex-1 md:flex-none">
               <button 
+                type="button"
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
                 className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-medium"
               >
@@ -359,13 +548,6 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
               <div className={`absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col p-3 space-y-3 ${
                 isFilterOpen ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'
               }`}>
-                <div>
-                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Exam</label>
-                  <select value={selectedExamId} onChange={(e) => { setSelectedExamId(e.target.value); setPage(1); }} className="w-full p-1.5 bg-surface-hover border border-border rounded-lg text-xs text-text-main focus:outline-none">
-                    <option value="all">All Exams</option>
-                    {exams.map(exam => <option key={exam.id} value={exam.id}>{exam.title}</option>)}
-                  </select>
-                </div>
                 <div>
                   <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Course</label>
                   <select value={courseFilter} onChange={(e) => { setCourseFilter(e.target.value); setPage(1); }} className="w-full p-1.5 bg-surface-hover border border-border rounded-lg text-xs text-text-main focus:outline-none">
@@ -385,6 +567,7 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
             
             {results.length > 0 && exams.find(e => e.id === selectedExamId)?.status === 'completed' && (
               <button 
+                type="button"
                 onClick={handleDownloadAllResults}
                 disabled={isGeneratingPdf}
                 className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary hover:bg-accent-primary/80 text-white transition-all text-[12px] font-medium disabled:opacity-75 cursor-pointer border-none flex-1 md:flex-none shadow-sm"
@@ -410,7 +593,6 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
-                <th className="px-6 py-4"></th>
               </tr>
             </thead>
             <tbody>
@@ -419,7 +601,6 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
                   <td className="px-6 py-4"><div className="w-6 h-6 rounded-full bg-bg"></div></td>
                   <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-24"></div></td>
                   <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-40"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-12"></div></td>
                   <td className="px-6 py-4">
                     <div className="h-3 bg-bg rounded w-32 mb-1.5"></div>
                     <div className="h-3 bg-surface border border-border rounded w-24"></div>
@@ -431,8 +612,6 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
               ))}
             </tbody>
           </table>
-        ) : !selectedExamId ? (
-          <div className="p-16 text-center text-text-muted font-medium">Please select an exam to view results.</div>
         ) : results.length === 0 ? (
           <div className="p-16 flex flex-col items-center justify-center text-center">
             <div className="w-16 h-16 rounded-2xl bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-4">
@@ -455,16 +634,13 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
                   <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[25%]" onClick={() => toggleSort('name')}>
                     <div className="flex items-center gap-2">Student Name {getSortIcon('name')}</div>
                   </th>
-                  {selectedExamId === 'all' && (
-                    <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">Exam</th>
-                  )}
                   <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors text-center w-[10%]" onClick={() => toggleSort('score')}>
                     <div className="flex items-center gap-2 justify-center">Score {getSortIcon('score')}</div>
                   </th>
                   <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[20%]">Subject Breakdown</th>
                   <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[10%]">Time Taken</th>
                   <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[15%]">Submitted At</th>
-                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-right w-[10%]">Action</th>
+                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[10%]">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -488,11 +664,6 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
                       <td className="py-2.5 px-4 align-middle">
                         <span className="text-text-main font-semibold text-[13px]">{res.students?.full_name}</span>
                       </td>
-                      {selectedExamId === 'all' && (
-                        <td className="py-2.5 px-4 align-middle text-text-muted text-[13px]">
-                          {res.exams?.title || '—'}
-                        </td>
-                      )}
                       <td className="py-2.5 px-4 align-middle text-center">
                         <span className="text-accent-primary font-bold text-base">{res.total_marks ?? 0}</span>
                       </td>
@@ -522,12 +693,13 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
                           <span className="text-text-muted">—</span>
                         )}
                       </td>
-                      <td className="py-2.5 px-4 align-middle text-right">
+                      <td className="py-2.5 px-4 align-middle text-center">
                         {res.submitted_at ? (
                           <button 
+                            type="button"
                             onClick={() => handleDownloadStudentAnswerKey(res)}
                             disabled={generatingStudentId === res.id}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface border border-border hover:bg-surface-hover text-accent-primary font-semibold text-[11px] rounded-lg transition-colors disabled:opacity-50"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface hover:bg-accent-primary/10 text-accent-primary font-semibold text-[11px] rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:active:scale-100 border-none cursor-pointer"
                           >
                             {generatingStudentId === res.id ? <Loader2 size={12} className="animate-spin" /> : <FileText size={12} />}
                             Answer Key

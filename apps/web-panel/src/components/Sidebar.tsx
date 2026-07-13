@@ -91,7 +91,7 @@ const NavItemComponent = ({
                                     key={idx}
                                     href={sub.path}
                                     onClick={onLinkClick}
-                                    className={`px-2.5 py-2 text-[12px] rounded transition-colors mb-0.5 block ${isActive ? 'text-sidebar-accent font-semibold bg-[#A0D9B4]/15' : 'text-sidebar-text-muted hover:text-sidebar-text hover:bg-sidebar-hover'}`}
+                                    className={`px-2.5 py-2 text-[12px] rounded transition-colors mb-0.5 block ${isActive ? 'text-accent-primary font-semibold bg-accent-primary/15' : 'text-sidebar-text-muted hover:text-sidebar-text hover:bg-sidebar-hover'}`}
                                 >
                                     {sub.label}
                                 </Link>
@@ -109,7 +109,7 @@ const NavItemComponent = ({
         <Link
             href={item.path!}
             onClick={onLinkClick}
-            className={`w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg mb-1 border transition-colors ${isActive ? 'bg-sidebar-accent text-[#1A202C] border-sidebar-accent font-semibold' : 'text-sidebar-text-muted bg-transparent border-transparent hover:bg-sidebar-hover hover:text-sidebar-text'}`}
+            className={`w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg mb-1 border transition-colors ${isActive ? 'bg-accent-primary/15 text-accent-primary border-accent-primary font-semibold' : 'text-sidebar-text-muted bg-transparent border-transparent hover:bg-sidebar-hover hover:text-sidebar-text'}`}
             onMouseEnter={(e) => onMouseEnter(e, item.label)}
             onMouseLeave={onMouseLeave}
         >
@@ -223,8 +223,8 @@ export default function Sidebar({
         >
             <div className="border-b border-sidebar-border py-4 pl-4 pr-4 flex items-center justify-between overflow-hidden">
                 <div className="flex items-center overflow-hidden">
-                    <div className="w-6 h-6 bg-sidebar-accent flex items-center justify-center rounded-sm shrink-0">
-                        <span className="text-[#1A202C] font-extrabold text-xs">P</span>
+                    <div className="w-6 h-6 bg-accent-primary flex items-center justify-center rounded-sm shrink-0">
+                        <span className="text-white font-extrabold text-xs">P</span>
                     </div>
                     <span
                         className={`text-lg ml-2 font-extrabold bg-gradient-to-br from-white to-sidebar-text-muted text-transparent bg-clip-text tracking-tight font-poppins leading-none overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out ${effectiveCollapsed ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100'}`}
