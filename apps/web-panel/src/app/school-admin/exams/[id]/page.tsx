@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { ArrowLeft, BookOpen, Clock, Copy, Globe, Link2, MoreVertical, Plus, Settings2, Trash2, Users, AlertCircle, Copy as CopyIcon, Play, Edit2, Check, Download, ShieldCheck, CreditCard } from 'lucide-react';
+import { ArrowLeft, BookOpen, Clock, Copy, Globe, Link2, MoreVertical, Plus, Settings2, Trash2, Users, AlertCircle, Copy as CopyIcon, Play, Edit2, Check, Download, ShieldCheck, CreditCard, Save, CheckCircle2, FilePlus2, X, Search, Link as LinkIcon, ChevronLeft } from 'lucide-react';
+import ReactCrop, { type Crop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 import { openRazorpayCheckout } from '@/components/RazorpayCheckout';
 
 function CustomCombobox({ value, onChange, options, placeholder, className }: { value: string, onChange: (v: string) => void, options: string[], placeholder: string, className: string }) {
@@ -191,8 +193,214 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   // Instructions Editing State & Helpers
   const [instructionsList, setInstructionsList] = useState<string[]>([]);
   const [editInstructionsMode, setEditInstructionsMode] = useState(false);
+  // ---- Questions Step 3 States ----
+  const [drawerSubjectId, setDrawerSubjectId] = useState<string | null>(null);
+  const [drawerView, setDrawerView] = useState<'list' | 'editor'>('list');
+  const [drawerQuestions, setDrawerQuestions] = useState<any[]>([]);
+  const [drawerLoading, setDrawerLoading] = useState(false);
+  const [drawerFormLoading, setDrawerFormLoading] = useState(false);
+  const [drawerError, setDrawerError] = useState('');
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
 
-  const canProceedToNextStep = (step: number) => {
+  const [qType, setQType] = useState<'mcq' | 'nat'>('mcq');
+  const [qText, setQText] = useState('');
+  const [qImage, setQImage] = useState<string | null>(null);
+  
+  const [rawImageToCrop, setRawImageToCrop] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<'question' | 'A' | 'B' | 'C' | 'D' | null>(null);
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<any>(null);
+  const [imageRef, setImageRef] = useState<HTMLImageElement | null>(null);
+  
+  const [optA, setOptA] = useState('');
+  const [optAImg, setOptAImg] = useState<string | null>(null);
+  const [optB, setOptB] = useState('');
+  const [optBImg, setOptBImg] = useState<string | null>(null);
+  const [optC, setOptC] = useState('');
+  const [optCImg, setOptCImg] = useState<string | null>(null);
+  const [optD, setOptD] = useState('');
+  const [optDImg, setOptDImg] = useState<string | null>(null);
+  const [correctAnswer, setCorrectAnswer] = useState('A');
+  const [natAnswer, setNatAnswer] = useState('');
+
+
+  
+  const openManageQuestions = async (subjectId: string) => {
+    setDrawerSubjectId(subjectId);
+    setDrawerView('list');
+    setEditingQuestionId(null);
+    setQType('mcq'); setQText(''); setQImage(null);
+    setOptA(''); setOptAImg(null); setOptB(''); setOptBImg(null);
+    setOptC(''); setOptCImg(null); setOptD(''); setOptDImg(null);
+    setCorrectAnswer('A'); setNatAnswer(''); setDrawerError('');
+    
+    setDrawerLoading(true);
+    const { data } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('exam_subject_id', subjectId)
+      .order('question_number', { ascending: true });
+    setDrawerQuestions(data || []);
+    setDrawerLoading(false);
+  };
+
+  const fetchDrawerQuestions = async () => {
+    if (!drawerSubjectId) return;
+    const { data } = await supabase.from('questions').select('*').eq('exam_subject_id', drawerSubjectId).order('question_number', { ascending: true });
+    setDrawerQuestions(data || []);
+    setQuestionCounts(prev => ({ ...prev, [drawerSubjectId]: data?.length || 0 }));
+  };
+
+  const handleDrawerNewQuestion = () => {
+    setEditingQuestionId(null);
+    setQType('mcq'); setQText(''); setQImage(null);
+    setOptA(''); setOptAImg(null); setOptB(''); setOptBImg(null);
+    setOptC(''); setOptCImg(null); setOptD(''); setOptDImg(null);
+    setCorrectAnswer('A'); setNatAnswer(''); setDrawerError('');
+    setDrawerView('editor');
+  };
+
+  const doSaveQuestion = async (e: any, addAnother: boolean) => {
+    e.preventDefault();
+    setDrawerError('');
+    setDrawerFormLoading(true);
+    try {
+      if (!qText.trim() && !qImage) throw new Error('Please provide question text or an image.');
+      
+      const subjectDef = subjects.find(s => s.id === drawerSubjectId);
+      if (!editingQuestionId && subjectDef && drawerQuestions.length >= subjectDef.question_count) {
+        throw new Error(`Maximum question limit (${subjectDef.question_count}) reached.`);
+      }
+
+      const markingScheme = exam?.marking_scheme || {};
+      const questionData: any = {
+        exam_id: params.id,
+        school_id: exam?.school_id,
+        exam_subject_id: drawerSubjectId,
+        question_type: qType,
+        question_text: qText,
+        question_number: editingQuestionId ? undefined : drawerQuestions.length + 1,
+        image_url: qImage,
+        marks: qType === 'mcq' ? (markingScheme.mcq_correct || 4) : (markingScheme.nat_correct || 4),
+        positive_marks: qType === 'mcq' ? (markingScheme.mcq_correct || 4) : (markingScheme.nat_correct || 4),
+        negative_marks: qType === 'mcq' ? (markingScheme.mcq_wrong || -1) : (markingScheme.nat_wrong || 0),
+      };
+
+      if (qType === 'mcq') {
+        questionData.options = { A: optA, A_image: optAImg, B: optB, B_image: optBImg, C: optC, C_image: optCImg, D: optD, D_image: optDImg };
+        questionData.correct_option = correctAnswer;
+      } else {
+        questionData.options = {};
+        questionData.correct_option = natAnswer;
+      }
+
+      if (editingQuestionId) {
+        const { error } = await supabase.from('questions').update(questionData).eq('id', editingQuestionId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('questions').insert(questionData);
+        if (error) throw error;
+      }
+
+      await fetchDrawerQuestions();
+      
+      if (addAnother) {
+        handleDrawerNewQuestion();
+      } else {
+        setDrawerView('list');
+      }
+    } catch (err: any) {
+      setDrawerError(err.message);
+    } finally {
+      setDrawerFormLoading(false);
+    }
+  };
+
+  const handleDrawerEditQuestion = (q: any) => {
+    setEditingQuestionId(q.id);
+    setQType(q.question_type);
+    setQText(q.question_text || '');
+    setQImage(q.image_url || null);
+    if (q.question_type === 'mcq') {
+      setOptA(q.options?.A || ''); setOptAImg(q.options?.A_image || null);
+      setOptB(q.options?.B || ''); setOptBImg(q.options?.B_image || null);
+      setOptC(q.options?.C || ''); setOptCImg(q.options?.C_image || null);
+      setOptD(q.options?.D || ''); setOptDImg(q.options?.D_image || null);
+      setCorrectAnswer(q.correct_option || 'A'); setNatAnswer('');
+    } else {
+      setNatAnswer(q.correct_option || '');
+    }
+    setDrawerView('editor');
+  };
+
+  const handleDrawerDeleteQuestion = async (qId: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Question',
+      message: 'Are you sure you want to delete this question?',
+      confirmText: 'Delete',
+      confirmColor: 'bg-red-500 hover:bg-red-600 shadow-red-500/20',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        await supabase.from('questions').delete().eq('id', qId);
+        fetchDrawerQuestions();
+      }
+    });
+  };
+
+  const handleDrawerImageUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'question' | 'A' | 'B' | 'C' | 'D') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setCropTarget(target);
+      setRawImageToCrop(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCropAndSave = () => {
+    if (!completedCrop || !imageRef || !completedCrop.width || !completedCrop.height) {
+      if (imageRef) {
+        setCrop({ unit: '%', width: 100, height: 100, x: 0, y: 0 });
+        setCompletedCrop({ width: imageRef.naturalWidth, height: imageRef.naturalHeight, x: 0, y: 0, unit: 'px' });
+      }
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    const scaleX = imageRef.naturalWidth / imageRef.width;
+    const scaleY = imageRef.naturalHeight / imageRef.height;
+    const cropWidth = completedCrop.width * scaleX;
+    const cropHeight = completedCrop.height * scaleY;
+
+    const MAX_WIDTH = 800;
+    let finalWidth = cropWidth;
+    let finalHeight = cropHeight;
+    if (finalWidth > MAX_WIDTH) {
+      finalHeight = Math.round((finalHeight * MAX_WIDTH) / finalWidth);
+      finalWidth = MAX_WIDTH;
+    }
+    canvas.width = finalWidth;
+    canvas.height = finalHeight;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, finalWidth, finalHeight);
+      ctx.drawImage(imageRef, completedCrop.x * scaleX, completedCrop.y * scaleY, cropWidth, cropHeight, 0, 0, finalWidth, finalHeight);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+      if (cropTarget === 'question') setQImage(dataUrl);
+      else if (cropTarget === 'A') setOptAImg(dataUrl);
+      else if (cropTarget === 'B') setOptBImg(dataUrl);
+      else if (cropTarget === 'C') setOptCImg(dataUrl);
+      else if (cropTarget === 'D') setOptDImg(dataUrl);
+    }
+    setRawImageToCrop(null);
+    setCropTarget(null);
+    setCrop(undefined);
+    setCompletedCrop(null);
+  };
+    const canProceedToNextStep = (step: number) => {
     if (step === 1) {
       return (
         title.trim() !== '' &&
@@ -207,10 +415,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       );
     }
     if (step === 2) {
-      return subjects.length > 0 && subjects.every(s => (questionCounts[s.id] || 0) >= s.question_count);
+      return assignedStudents.length > 0;
     }
     if (step === 3) {
-      return assignedStudents.length > 0;
+      return subjects.length > 0 && subjects.every(s => (questionCounts[s.id] || 0) >= s.question_count);
     }
     if (step === 4) {
       return startTime !== '' && endTime !== '';
@@ -644,7 +852,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       onSuccess: () => {
         alert('Payment successful! You can now publish the exam.');
         // Update local state instantly for immediate UI feedback
-        setExam(prev => prev ? { ...prev, is_paid: true } : null);
+        setExam((prev: any) => prev ? { ...prev, is_paid: true } : null);
         fetchExamData();
       },
       onError: (err: any) => {
@@ -654,11 +862,11 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   };
 
   const handleTogglePaid = async () => {
+    const newStatus = !exam.is_paid;
     try {
       setPublishing(true);
-      const newStatus = !exam.is_paid;
       // Update local state instantly for immediate UI feedback
-      setExam(prev => prev ? { ...prev, is_paid: newStatus } : null);
+      setExam((prev: any) => prev ? { ...prev, is_paid: newStatus } : null);
       // Update database in background
       const { error } = await supabase.from('exams').update({ is_paid: newStatus }).eq('id', exam.id);
       if (error) throw error;
@@ -666,7 +874,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     } catch (err: any) {
       alert('Failed to update status: ' + err.message);
       // Revert local state on error
-      setExam(prev => prev ? { ...prev, is_paid: !newStatus } : null);
+      setExam((prev: any) => prev ? { ...prev, is_paid: !newStatus } : null);
     } finally {
       setPublishing(false);
     }
@@ -681,7 +889,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setEditDurationMode(false);
     // Update local state instantly for immediate UI feedback
     setDurationMinutes(inlineEditDuration);
-    setExam(prev => prev ? { ...prev, duration_minutes: inlineEditDuration } : null);
+    setExam((prev: any) => prev ? { ...prev, duration_minutes: inlineEditDuration } : null);
     // Update database in background
     await supabase.from('exams').update({ duration_minutes: inlineEditDuration }).eq('id', params.id);
   };
@@ -1158,7 +1366,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const totalQuestionsNeeded = subjects.reduce((acc, s) => acc + s.question_count, 0);
   const totalQuestionsAdded = Object.values(questionCounts).reduce((a, b) => a + b, 0);
   const allQuestionsReady = subjects.every(s => (questionCounts[s.id] || 0) >= s.question_count);
-  // Steps 1-3 must be done before scheduling (step 4 itself is what's being filled in here)
+  // Steps 1-3 (Setup, Students, Questions) must be done before scheduling (step 4 itself is what's being filled in here)
   const stepsBeforeScheduleComplete = canProceedToNextStep(1) && canProceedToNextStep(2) && canProceedToNextStep(3);
   // All prior steps must be complete before publishing, even though steps can now be viewed freely
   const allStepsComplete = canProceedToNextStep(1) && canProceedToNextStep(2) && canProceedToNextStep(3) && canProceedToNextStep(4);
@@ -1404,8 +1612,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           
           {[
             { step: 1, label: 'Setup' },
-            { step: 2, label: 'Questions' },
-            { step: 3, label: 'Candidates' },
+            { step: 2, label: 'Students' },
+            { step: 3, label: 'Questions' },
             { step: 4, label: 'Schedule' },
             { step: 5, label: 'Publish' }
           ].map((s) => (
@@ -1448,116 +1656,279 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      {/* Subjects */}
-      {(!exam || exam.status !== 'draft' || role === 'teacher' || currentStep === 2) && (
-      <div className="bg-surface border border-border rounded-2xl p-6 mb-6 shadow-sm">
-        <div className="mb-4 border-b border-[#f0f7f7] pb-1.5">
-          <h3 className="text-lg font-bold text-text-main">Subjects</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {subjects.map((s) => {
-            const added = questionCounts[s.id] || 0;
-            const needed = s.question_count;
-            const complete = added >= needed;
-            const isAssignedTeacher = role !== 'teacher' || (role === 'teacher' && s.exam_subject_teachers?.some((est: any) => est.teacher_id === userId));
-            return (
-              <Link 
-                key={s.id} 
-                href={`/exams/${params.id}/questions?subject=${s.id}`} 
-                className={`flex flex-col justify-between rounded-xl p-4 gap-4 transition-all ${
-                  role === 'teacher' 
-                    ? (isAssignedTeacher ? 'bg-surface border-2 border-[#008080] shadow-md hover:shadow-lg group cursor-pointer' : 'bg-gray-50 border border-gray-200 opacity-60 pointer-events-none') 
-                    : 'bg-bg border border-border hover:bg-surface-hover/50 group cursor-pointer'
-                }`}
+      {/* Subjects Split View (Questions Step) */}
+      {(!exam || exam.status !== 'draft' || role === 'teacher' || currentStep === 3) && (
+      <div className="flex flex-col md:flex-row gap-6 mb-6">
+        {/* Left Side: Subjects List */}
+        <div className="w-full md:w-[320px] shrink-0 bg-surface border border-border rounded-2xl p-5 shadow-sm h-fit">
+          <div className="mb-4 border-b border-[#f0f7f7] pb-1.5 flex justify-between items-center">
+            <h3 className="text-lg font-bold text-text-main">Subjects</h3>
+            {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
+              <button 
+                type="button" 
+                onClick={() => { setShowAddSubjectModal(true); setNewSubjectTeacherSearch(''); }}
+                className="text-accent-primary hover:text-accent-primary/80 transition-colors p-1"
+                title="Add Subject"
               >
-                <div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-text-main font-bold">{s.subject_name}</span>
-                      {role === 'teacher' && isAssignedTeacher && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-accent-primary/10 text-accent-primary px-2 py-0.5 rounded-md">
-                          Your Assignment
-                        </span>
+                <Plus size={18} />
+              </button>
+            )}
+          </div>
+          
+          <div className="flex flex-col gap-3 max-h-[600px] overflow-y-auto custom-scrollbar pr-1">
+            {subjects.map((s) => {
+              const added = questionCounts[s.id] || 0;
+              const needed = s.question_count;
+              const complete = added >= needed;
+              const isAssignedTeacher = role !== 'teacher' || (role === 'teacher' && s.exam_subject_teachers?.some((est: any) => est.teacher_id === userId));
+              const isSelected = drawerSubjectId === s.id;
+              
+              return (
+                <div
+                  key={s.id}
+                  onClick={() => { if (isAssignedTeacher) openManageQuestions(s.id); }}
+                  role="button"
+                  tabIndex={isAssignedTeacher ? 0 : -1}
+                  className={`flex flex-col rounded-xl p-3 gap-2 transition-all text-left ${
+                    role === 'teacher' 
+                      ? (isAssignedTeacher 
+                          ? (isSelected ? 'bg-accent-primary/5 border-2 border-accent-primary shadow-sm' : 'bg-surface border-2 border-transparent hover:border-accent-primary/50 cursor-pointer')
+                          : 'bg-gray-50 border border-gray-200 opacity-60 pointer-events-none') 
+                      : (isSelected ? 'bg-accent-primary/5 border-2 border-accent-primary shadow-sm' : 'bg-bg border border-border hover:border-accent-primary/50 cursor-pointer')
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-1">
+                    <span className="text-text-main font-bold text-sm truncate">{s.subject_name}</span>
+                    <div className="flex items-center gap-1 pointer-events-auto shrink-0">
+                      {!isExamOver && exam?.status === 'draft' && editSubjectId !== s.id && role !== 'teacher' && (
+                        <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); setInlineEditSubjectCount(needed); setEditSubjectId(s.id); }} className="text-text-muted hover:text-accent-primary transition-colors p-1 rounded-md hover:bg-surface-hover">
+                          <Edit2 size={12} />
+                        </button>
+                      )}
+                      {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteSubject(e, s.id, s.subject_name); }} className="text-red-400 hover:text-red-600 transition-colors p-1 rounded-md hover:bg-red-50">
+                          <Trash2 size={12} />
+                        </button>
                       )}
                     </div>
-                    {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
-                      <button 
-                        onClick={(e) => handleDeleteSubject(e, s.id, s.subject_name)} 
-                        className="text-red-400 hover:text-red-600 transition-colors p-1.5 border border-transparent hover:border-red-200 rounded-lg hover:bg-red-50 bg-surface shadow-sm pointer-events-auto"
-                        title="Delete Subject"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                  </div>
+                  
+                  {editSubjectId === s.id && (
+                    <div className="flex items-center gap-1 pointer-events-auto" onClick={e => { e.stopPropagation(); e.preventDefault(); }}>
+                      <input type="number" value={inlineEditSubjectCount} onChange={(e) => setInlineEditSubjectCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 px-2 py-1 text-xs border border-[#008080] rounded outline-none font-bold text-text-main" min="1" />
+                      <button onClick={() => handleSaveSubjectCount(s.id)} className="text-white bg-accent-primary hover:bg-accent-primary/80 p-1 rounded transition-colors"><Check size={14}/></button>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between mt-1">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {added}/{needed} Qs
+                    </span>
+                    {role === 'teacher' && isAssignedTeacher && (
+                      <span className="text-[9px] font-bold uppercase tracking-wider bg-accent-primary/10 text-accent-primary px-1.5 py-0.5 rounded">
+                        Assigned
+                      </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5 mb-3">
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                      {added}/{needed} questions
-                    </span>
-                    {!isExamOver && exam?.status === 'draft' && editSubjectId !== s.id && role !== 'teacher' && (
-                      <button onClick={(e) => { e.preventDefault(); setInlineEditSubjectCount(needed); setEditSubjectId(s.id); }} className="text-text-muted hover:text-accent-primary transition-colors p-1 rounded-md hover:bg-surface-hover pointer-events-auto">
-                        <Edit2 size={14} />
-                      </button>
+                </div>
+              );
+            })}
+            {subjects.length === 0 && (
+              <div className="text-center py-6 text-text-muted text-sm font-medium">No subjects added.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Side: Questions Area */}
+        <div className="flex-1 bg-surface border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[650px]">
+          {drawerSubjectId ? (
+            <>
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-surface shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  {drawerView === 'editor' && (
+                    <button onClick={() => setDrawerView('list')} className="text-text-muted hover:text-text-main transition-colors p-1.5 -ml-1.5 rounded-lg hover:bg-surface-hover shrink-0">
+                      <ChevronLeft size={20} />
+                    </button>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-text-main text-lg font-bold truncate">{subjects.find(s => s.id === drawerSubjectId)?.subject_name}</p>
+                    <p className="text-text-muted text-sm font-semibold">
+                      {drawerView === 'list'
+                        ? `${drawerQuestions.length} / ${subjects.find(s => s.id === drawerSubjectId)?.question_count ?? 0} questions`
+                        : (editingQuestionId ? 'Editing question' : 'New question')}
+                    </p>
+                  </div>
+                </div>
+                {drawerView === 'list' && exam?.status === 'draft' && (
+                  <button onClick={handleDrawerNewQuestion} className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent-primary text-white font-semibold rounded-xl text-sm hover:bg-accent-primary/80 transition-all shadow-sm active:scale-95 shrink-0">
+                    <Plus size={16} /> Add Question
+                  </button>
+                )}
+              </div>
+              
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+                {drawerView === 'list' ? (
+                  <div className="space-y-4">
+                    {drawerLoading ? (
+                      <div className="flex justify-center p-8"><span className="w-6 h-6 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" /></div>
+                    ) : drawerQuestions.length === 0 ? (
+                      <div className="text-center py-12">
+                        <BookOpen size={32} className="mx-auto mb-3 text-border" />
+                        <p className="text-text-muted font-medium">No questions added yet.</p>
+                      </div>
+                    ) : (
+                      drawerQuestions.map((q, idx) => (
+                        <div key={q.id} className="bg-bg border border-border rounded-xl p-4 hover:border-accent-primary/30 transition-colors shadow-sm">
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 rounded-lg bg-surface border border-border flex items-center justify-center text-xs text-text-main font-bold">{idx + 1}</span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${q.question_type === 'mcq' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
+                                {q.question_type}
+                              </span>
+                              <span className="text-[10px] font-bold text-text-muted">+{q.positive_marks} / {q.negative_marks}</span>
+                            </div>
+                            {exam?.status === 'draft' && (
+                              <div className="flex items-center gap-2">
+                                <button onClick={() => handleDrawerEditQuestion(q)} className="text-accent-primary hover:bg-accent-primary/10 p-1.5 rounded-lg transition-colors"><Edit2 size={14} /></button>
+                                <button onClick={() => handleDrawerDeleteQuestion(q.id)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><Trash2 size={14} /></button>
+                              </div>
+                            )}
+                          </div>
+                          {q.question_text && <p className="text-text-main font-medium text-sm mb-3">{q.question_text}</p>}
+                          {q.image_url && <img src={q.image_url} alt="Question" className="max-w-full max-h-32 object-contain rounded border border-border mb-3" />}
+                          
+                          {q.question_type === 'mcq' && q.options && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                              {['A', 'B', 'C', 'D'].map(opt => (
+                                <div key={opt} className={`p-2.5 rounded-lg text-xs border transition-colors flex items-start ${q.correct_option === opt ? 'bg-accent-primary/5 border-accent-primary text-accent-primary font-bold' : 'bg-surface text-text-muted border-border font-medium'}`}>
+                                  <span className="mr-1.5">{opt}.</span>
+                                  <div className="flex flex-col gap-1.5">
+                                    {q.options[opt] && <span>{q.options[opt]}</span>}
+                                    {q.options[`${opt}_image`] && <img src={q.options[`${opt}_image`]} alt={opt} className="max-w-[100px] max-h-[80px] object-contain rounded border border-border" />}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {q.question_type === 'nat' && (
+                            <div className="inline-flex px-3 py-1.5 bg-accent-primary/5 border border-accent-primary rounded-lg text-xs text-accent-primary font-bold mt-2">Answer: {q.correct_option}</div>
+                          )}
+                        </div>
+                      ))
                     )}
-                    {editSubjectId === s.id && (
-                      <div className="flex items-center gap-1 pointer-events-auto" onClick={e => e.preventDefault()}>
-                        <input type="number" value={inlineEditSubjectCount} onChange={(e) => setInlineEditSubjectCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 px-2 py-1 text-xs border border-[#008080] rounded outline-none font-bold text-text-main" min="1" />
-                        <button onClick={() => handleSaveSubjectCount(s.id)} className="text-white bg-accent-primary hover:bg-accent-primary/80 p-1 rounded transition-colors"><Check size={14}/></button>
+                  </div>
+                ) : (
+                  <form onSubmit={(e) => doSaveQuestion(e, false)} className="space-y-5">
+                    {/* Question Type */}
+                    <div className="flex bg-bg rounded-xl p-1 border border-border">
+                      <button type="button" onClick={() => setQType('mcq')} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${qType === 'mcq' ? 'bg-surface text-accent-primary shadow-sm' : 'text-text-muted'}`}>MCQ</button>
+                      <button type="button" onClick={() => setQType('nat')} className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${qType === 'nat' ? 'bg-surface text-accent-primary shadow-sm' : 'text-text-muted'}`}>NAT</button>
+                    </div>
+
+                    {/* Question Text */}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-text-main mb-1 uppercase tracking-wider">Question Text</label>
+                        <textarea value={qText} onChange={(e) => setQText(e.target.value)} rows={3} className="w-full px-3 py-2 bg-bg border border-border rounded-xl text-text-main focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 outline-none resize-none text-sm font-medium" placeholder="Enter question..." />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-text-main mb-1 uppercase tracking-wider">Image (Optional)</label>
+                        <div className="flex items-center gap-3">
+                          <input type="file" accept="image/*" onChange={(e) => handleDrawerImageUpload(e, 'question')} className="hidden" id="q-img" />
+                          <label htmlFor="q-img" className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-bg border border-border text-accent-primary font-semibold text-xs rounded-lg hover:bg-surface-hover">
+                            Upload Image
+                          </label>
+                          {qImage && (
+                            <div className="relative group">
+                              <img src={qImage} alt="Preview" className="h-10 rounded border border-border object-contain" />
+                              <button type="button" onClick={() => setQImage(null)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100">✕</button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {qType === 'mcq' ? (
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {[
+                            { label: 'Option A', val: optA, setVal: setOptA, img: optAImg, setImg: setOptAImg, id: 'A' }, 
+                            { label: 'Option B', val: optB, setVal: setOptB, img: optBImg, setImg: setOptBImg, id: 'B' }, 
+                            { label: 'Option C', val: optC, setVal: setOptC, img: optCImg, setImg: setOptCImg, id: 'C' }, 
+                            { label: 'Option D', val: optD, setVal: setOptD, img: optDImg, setImg: setOptDImg, id: 'D' }
+                          ].map((opt) => (
+                            <div key={opt.label} className="bg-bg p-3 rounded-xl border border-border">
+                              <label className="block text-xs font-semibold text-text-muted mb-1">{opt.label}</label>
+                              <input type="text" value={opt.val} onChange={(e) => opt.setVal(e.target.value)} className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm mb-2 outline-none focus:border-accent-primary" />
+                              <div className="flex items-center gap-2">
+                                <input type="file" accept="image/*" onChange={(e) => handleDrawerImageUpload(e, opt.id as any)} className="hidden" id={`img-${opt.id}`} />
+                                <label htmlFor={`img-${opt.id}`} className="cursor-pointer inline-flex items-center gap-1 px-2 py-1 bg-surface border border-border text-accent-primary font-semibold text-[10px] rounded hover:bg-surface-hover">
+                                  Add Image
+                                </label>
+                                {opt.img && (
+                                  <div className="relative group">
+                                    <img src={opt.img} alt="Preview" className="h-6 rounded border border-border object-contain" />
+                                    <button type="button" onClick={() => opt.setImg(null)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-3 h-3 flex items-center justify-center text-[8px]">✕</button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-text-main mb-1 uppercase tracking-wider">Correct Answer</label>
+                          <div className="flex gap-2">
+                            {['A', 'B', 'C', 'D'].map((opt) => (
+                              <button key={opt} type="button" onClick={() => setCorrectAnswer(opt)}
+                                className={`w-10 h-10 rounded-xl text-sm font-bold border-2 transition-all ${correctAnswer === opt ? 'bg-accent-primary border-accent-primary text-white' : 'bg-bg border-border text-text-muted hover:border-accent-primary'}`}>
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div>
+                        <label className="block text-xs font-semibold text-text-main mb-1 uppercase tracking-wider">Correct Numerical Answer</label>
+                        <input type="text" value={natAnswer} onChange={(e) => setNatAnswer(e.target.value)} required className="w-full px-3 py-2 bg-bg border border-border rounded-xl outline-none focus:border-accent-primary text-sm font-medium" />
                       </div>
                     )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                    {s.exam_subject_teachers?.map((est: any) => (
-                      <span key={est.id} className="text-[10px] font-bold uppercase tracking-wider text-accent-primary bg-surface border border-border px-2 py-0.5 rounded-md">
-                        {est.teachers?.full_name || 'Unknown'}
-                      </span>
-                    ))}
-                    {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
-                      <button onClick={(e) => {
-                        e.preventDefault();
-                        setManageTeachersSubject(s);
-                        setSelectedTeacherIds(s.exam_subject_teachers?.map((est: any) => est.teacher_id) || []);
-                        setTeacherSearchQuery('');
-                      }} className="text-text-muted hover:text-accent-primary bg-surface border border-dashed border-border p-0.5 px-1.5 rounded-md hover:bg-surface-hover transition-colors pointer-events-auto text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                        <Plus size={10} /> Assign Teacher
+
+                    {drawerError && <div className="bg-red-50 text-red-600 p-2 rounded-lg text-xs font-semibold">{drawerError}</div>}
+                    
+                    <div className="flex gap-2 pt-2 border-t border-border mt-4">
+                      <button type="button" onClick={() => setDrawerView('list')} className="flex-1 py-2 bg-surface border border-border text-text-muted font-semibold rounded-xl text-sm hover:bg-surface-hover">
+                        Cancel
                       </button>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center mt-2">
-                  {isAssignedTeacher && displayStatus !== 'completed' && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border text-accent-primary text-[11px] font-bold rounded-lg group-hover:bg-surface-hover transition-colors shadow-sm whitespace-nowrap w-full justify-center">
-                      <Plus size={14} />
-                      Manage Questions
-                    </span>
-                  )}
-                  {isAssignedTeacher && displayStatus === 'completed' && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border text-text-muted text-[11px] font-bold rounded-lg group-hover:bg-bg transition-colors shadow-sm whitespace-nowrap w-full justify-center">
-                      View Questions
-                    </span>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-          
-          {/* Add Subject Card */}
-          {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
-            <button 
-              type="button" 
-              onClick={() => { setShowAddSubjectModal(true); setNewSubjectTeacherSearch(''); }}
-              className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-6 text-accent-primary hover:bg-[#f0f7f7] hover:border-accent-primary transition-colors min-h-[140px] h-full"
-            >
-              <Plus size={24} />
-              <span className="text-sm font-bold">Add Subject</span>
-            </button>
+                      <button type="submit" disabled={drawerFormLoading} className="flex-1 py-2 bg-accent-primary text-white font-semibold rounded-xl text-sm hover:bg-accent-primary/80 disabled:opacity-50">
+                        {drawerFormLoading ? 'Saving...' : 'Save Question'}
+                      </button>
+                      {!editingQuestionId && (
+                        <button type="button" onClick={(e) => doSaveQuestion(e, true)} disabled={drawerFormLoading} className="flex-1 py-2 bg-accent-primary/10 text-accent-primary font-semibold rounded-xl text-sm hover:bg-accent-primary/20 disabled:opacity-50">
+                          Save & Add Next
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-text-muted p-6">
+              <BookOpen size={48} className="mb-4 text-border" />
+              <p className="text-lg font-bold text-text-main mb-2">Manage Questions</p>
+              <p className="text-sm text-center max-w-sm">
+                Select a subject from the list on the left to add, edit, or remove questions.
+              </p>
+            </div>
           )}
         </div>
       </div>
       )}
-
-{/* Assigned Students */}
-      {(!exam || exam.status !== 'draft' || role === 'teacher' || currentStep === 3) && (
+{/* Assigned Students (Students Step) */}
+      {(!exam || exam.status !== 'draft' || role === 'teacher' || currentStep === 2) && (
       <div className="bg-surface border border-border rounded-2xl p-6 mb-6 shadow-sm">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div>
@@ -1948,7 +2319,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </form>
-      ) : (role !== 'teacher' && exam?.status === 'draft' && [2, 3, 4].includes(currentStep)) ? null : (
+      ) : (role !== 'teacher' && exam?.status === 'draft' && [2, 3, 4, 5].includes(currentStep)) ? null : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-bg border border-border rounded-2xl p-5 flex items-center gap-4">
             <div className="w-12 h-12 bg-accent-primary/10 rounded-xl flex items-center justify-center text-accent-primary">
@@ -1986,9 +2357,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         <div className="bg-bg border border-border rounded-2xl p-6 shadow-sm">
           <h3 className="text-lg font-bold text-text-main mb-2">{currentStep === 4 ? 'Schedule Exam' : 'Publish Exam'}</h3>
           <p className="text-text-muted text-sm font-medium mb-6">
-            {currentStep === 4 
-              ? 'Set the start and end times for the exam.' 
-              : allStepsComplete
+            {currentStep === 4 ? 'Set the start and end times for the exam.' : allStepsComplete
                 ? 'All steps are complete. You can now publish the exam.'
                 : 'Some steps are still incomplete. Finish all steps before publishing.'}
           </p>
@@ -2657,6 +3026,43 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Crop tool for the Manage Questions drawer */}
+      {rawImageToCrop && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-[65] p-4 animate-in fade-in">
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
+              <span className="text-white font-bold">Crop Image</span>
+              <button type="button" onClick={() => setRawImageToCrop(null)} className="text-white/70 hover:text-white transition-colors">✕</button>
+            </div>
+            <div className="p-6 flex-1 overflow-auto bg-bg flex justify-center items-center">
+              <ReactCrop
+                crop={crop}
+                onChange={(c: any) => setCrop(c)}
+                onComplete={(c: any) => setCompletedCrop(c)}
+                className="max-h-full"
+              >
+                <img
+                  src={rawImageToCrop || undefined}
+                  onLoad={(e) => setImageRef(e.currentTarget)}
+                  alt="Crop preview"
+                  className="max-h-[60vh] object-contain"
+                />
+              </ReactCrop>
+            </div>
+            <div className="p-6 border-t border-border bg-surface flex justify-end gap-3">
+              <button type="button" onClick={() => setRawImageToCrop(null)}
+                className="px-5 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={handleCropAndSave}
+                className="px-5 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm">
+                Crop & Apply
+              </button>
+            </div>
           </div>
         </div>
       )}

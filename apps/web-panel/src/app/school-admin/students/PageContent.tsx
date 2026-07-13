@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { ChevronLeft, ChevronRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, Plus, Share2, Copy, Check, FileDown } from 'lucide-react';
 
 function CustomCombobox({ value, onChange, options, placeholder, className }: { value: string, onChange: (v: string) => void, options: string[], placeholder: string, className: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -82,6 +82,8 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [schoolId, setSchoolId] = useState<string | null>(schoolIdProp || null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentYear = new Date().getFullYear();
@@ -359,6 +361,35 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
     document.body.removeChild(link);
   };
 
+  const handleDownloadSampleCsv = () => {
+    const csvContent = "data:text/csv;charset=utf-8,"
+      + "name,roll_number,dob,course,batch,session\n"
+      + "Aarav Patel,2024001,15/06/2005,JEE,Main,2024-25\n"
+      + "Priya Singh,2024002,22/03/2005,JEE,Main,2024-25";
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "students_sample_format.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const registrationLink = typeof window !== 'undefined' && schoolId
+    ? `${window.location.origin}/register/${schoolId}`
+    : '';
+
+  const handleCopyShareLink = async () => {
+    if (!registrationLink) return;
+    try {
+      await navigator.clipboard.writeText(registrationLink);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      setError('Failed to copy link');
+    }
+  };
+
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
       {success && (
@@ -376,6 +407,10 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
         <button onClick={() => setShowImportModal(true)}
           className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface hover:bg-surface-hover transition-colors text-[12px] font-semibold border border-border shrink-0 cursor-pointer">
           Import CSV
+        </button>
+        <button onClick={() => setShowShareModal(true)}
+          className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors text-[12px] font-semibold border border-emerald-500/20 shrink-0 cursor-pointer">
+          <Share2 size={14} /> Share Registration Link
         </button>
         <button onClick={() => {
           setEditStudentId(null);
@@ -697,6 +732,10 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
                 Aarav Patel, 2024001, 15/06/2005<br />
                 Priya Singh, 2024002, 22/03/2005
               </code>
+              <button type="button" onClick={handleDownloadSampleCsv}
+                className="mt-3 flex items-center justify-center gap-1.5 w-full px-3.5 py-2 rounded-xl bg-surface hover:bg-surface-hover transition-colors text-[12px] font-semibold border border-border cursor-pointer text-text-main">
+                <FileDown size={14} /> Download Sample CSV
+              </button>
             </div>
             <form onSubmit={handleCsvImport} className="space-y-4">
               <div>
@@ -716,6 +755,47 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
                 </button>
               </div>
             </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Registration Link Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowShareModal(false)}>
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
+              <span className="text-white font-bold">Student Self-Registration Link</span>
+              <button onClick={() => setShowShareModal(false)} className="text-white/70 hover:text-white transition-colors">✕</button>
+            </div>
+            <div className="p-6">
+              <p className="text-text-muted text-sm mb-4">
+                Share this link with students so they can register themselves. New registrations will appear in your students list.
+              </p>
+              <div className="flex items-center gap-2 bg-surface-hover border border-border p-3 rounded-xl mb-4">
+                <input
+                  type="text"
+                  readOnly
+                  value={registrationLink}
+                  className="flex-1 bg-transparent text-text-main text-xs font-mono outline-none truncate"
+                  onFocus={(e) => e.target.select()}
+                />
+                <button
+                  onClick={handleCopyShareLink}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary hover:bg-accent-primary/80 text-white text-xs font-semibold shrink-0 transition-all cursor-pointer"
+                >
+                  {linkCopied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
+                </button>
+              </div>
+              {!schoolId && (
+                <p className="text-red-500 text-xs">School not found — link unavailable.</p>
+              )}
+              <div className="flex justify-end pt-2">
+                <button onClick={() => setShowShareModal(false)}
+                  className="px-6 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors">
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
