@@ -30,6 +30,7 @@ import {
   Search,
   Link as LinkIcon,
   ChevronLeft,
+  Filter,
 } from "lucide-react";
 import ReactCrop, { type Crop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -396,6 +397,50 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     downloadResultsPDF,
   } = useExamDetailPage(params.id);
 
+  const [questionSearchQuery, setQuestionSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
+
+  const handleExportQuestions = () => {
+    if (!drawerSubjectId) return;
+    const activeSubjectName = subjects.find(s => s.id === drawerSubjectId)?.subject_name || 'Subject';
+    
+    const headers = ["No.", "Type", "Positive Marks", "Negative Marks", "Question Text", "Option A", "Option B", "Option C", "Option D", "Correct Option/Value"];
+    
+    const filtered = drawerQuestions.filter(q => {
+      const matchesSearch = q.question_text?.toLowerCase().includes(questionSearchQuery.toLowerCase());
+      const matchesType = typeFilter === 'all' || q.question_type === typeFilter;
+      return matchesSearch && matchesType;
+    });
+
+    const rows = filtered.map((q, idx) => {
+      const isMcq = q.question_type === 'mcq';
+      return [
+        idx + 1,
+        q.question_type || '',
+        q.positive_marks ?? 0,
+        q.negative_marks ?? 0,
+        q.question_text || '',
+        isMcq && q.options?.A ? q.options.A : '',
+        isMcq && q.options?.B ? q.options.B : '',
+        isMcq && q.options?.C ? q.options.C : '',
+        isMcq && q.options?.D ? q.options.D : '',
+        q.correct_option || ''
+      ];
+    });
+    
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+      + [headers.join(","), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+      
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${activeSubjectName}_questions_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const isExamOver = exam?.end_time
     ? new Date(exam.end_time) < new Date()
     : false;
@@ -459,103 +504,184 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           className={`${isDraftStepperMode ? "" : "xl:col-span-2"} space-y-6`}
         >
           
-          {/* Template select + 3-dot menu (Draft Stepper Mode) */}
           {isDraftStepperMode && (
-            <div className="sticky -top-6 z-20 bg-bg pt-6 pb-3 mb-4 border-b border-border flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-bold text-text-main">
-                Step {currentStep} ·{" "}
-                {STEPPER_STEPS.find((s) => s.step === currentStep)?.label}
-              </h2>
+            <div className="sticky -top-6 z-40 bg-bg pt-6 pb-3 mb-4 border-b border-border flex flex-col gap-3">
+              {/* Row 1: Title, Pills, Actions */}
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 w-full">
+                {/* Title */}
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-text-main whitespace-nowrap">
+                    Step {currentStep} ·{" "}
+                    {STEPPER_STEPS.find((s) => s.step === currentStep)?.label}
+                  </h2>
+                </div>
 
-              <div className="flex items-center gap-2">
-                {currentStep === 2 && !isExamOver && role !== "teacher" && (
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => { setShowAddStudentModal(true); setAddMode('link'); setAddError(''); setAddSuccess(''); }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary text-white text-xs font-semibold rounded-lg hover:bg-accent-primary/90 transition-all active:scale-95 shadow-sm"
-                    >
-                      <Link2 size={14} />
-                      Share Link
-                    </button>
-                    <button
-                      onClick={() => { setShowAddStudentModal(true); setAddMode('search'); setAddError(''); setAddSuccess(''); }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface text-text-main text-xs font-semibold border border-border rounded-lg hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
-                    >
-                      <Plus size={14} />
-                      Add Student
-                    </button>
-                    <button
-                      onClick={() => { setShowAddStudentModal(true); setAddMode('csv'); setAddError(''); setAddSuccess(''); }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface text-text-main text-xs font-semibold border border-border rounded-lg hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
-                    >
-                      <Plus size={14} />
-                      Import CSV
-                    </button>
-                  </div>
-                )}
-                {templates.length > 0 && currentStep === 1 && (
-                  <div className="flex items-center gap-1.5">
-                    <select
-                      onChange={(e) => {
-                        const selected = templates.find(
-                          (t) => t.id === e.target.value,
+                {/* Centered Pills */}
+                <div className="flex items-center justify-center min-w-0">
+                  {currentStep === 3 && (
+                    <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar px-1 max-w-full">
+                      {subjects.map((s) => {
+                        const added = questionCounts[s.id] || 0;
+                        const needed = s.question_count;
+                        const complete = added >= needed;
+                        const isSelected = drawerSubjectId === s.id;
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => openManageQuestions(s.id)}
+                            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${
+                              isSelected
+                                ? "bg-accent-primary text-white border-accent-primary shadow-sm"
+                                : "bg-surface border-border text-text-main hover:border-accent-primary/50"
+                            }`}
+                          >
+                            {s.subject_name}
+                            <span className={isSelected ? "text-white/80" : complete ? "text-emerald-600" : "text-amber-600"}>
+                              {added}/{needed}
+                            </span>
+                          </button>
                         );
-                        if (selected) handleTemplateApply(selected);
-                        e.target.value = "";
-                      }}
-                      defaultValue=""
-                      disabled={applyingTemplate}
-                      className="px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main text-xs font-semibold focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all disabled:opacity-50"
-                    >
-                      <option value="" disabled>
-                        Template...
-                      </option>
-                      {templates.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.title}
-                        </option>
-                      ))}
-                    </select>
-                    {applyingTemplate && (
-                      <span className="text-[10px] text-accent-primary flex items-center gap-1 font-semibold animate-pulse">
-                        <span className="w-2 h-2 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
-                      </span>
-                    )}
-                  </div>
-                )}
-                <div className="relative" ref={moreMenuRef}>
-                  <button
-                    onClick={() => setShowMoreMenu(!showMoreMenu)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
-                  >
-                    <MoreVertical size={14} />
-                  </button>
-                  {showMoreMenu && (
-                    <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
-                      <button
-                        onClick={() => {
-                          handleDuplicate();
-                          setShowMoreMenu(false);
-                        }}
-                        className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
-                      >
-                        <Copy size={12} />
-                        Duplicate
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleTrash();
-                          setShowMoreMenu(false);
-                        }}
-                        className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
-                      >
-                        <Trash2 size={12} />
-                        Trash
-                      </button>
+                      })}
                     </div>
                   )}
                 </div>
+
+                {/* Actions */}
+                <div className="flex items-center justify-end gap-2">
+                  {currentStep === 2 && !isExamOver && role !== "teacher" && (
+                    <button
+                      onClick={() => { setShowAddStudentModal(true); setAddMode('search'); setAddError(''); setAddSuccess(''); }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary text-white text-xs font-semibold rounded-lg hover:bg-accent-primary/90 transition-all active:scale-95 shadow-sm"
+                    >
+                      <Plus size={14} />
+                      Add Students
+                    </button>
+                  )}
+
+                  {currentStep === 3 && drawerSubjectId && !isExamOver && role !== "teacher" && drawerQuestions.length < (subjects.find(s => s.id === drawerSubjectId)?.question_count ?? 0) && (
+                    <button
+                      onClick={handleDrawerNewQuestion}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary text-white font-semibold rounded-lg text-xs hover:bg-accent-primary/80 transition-all shadow-sm active:scale-95"
+                    >
+                      <Plus size={14} /> Add Question
+                    </button>
+                  )}
+
+                  {templates.length > 0 && currentStep === 1 && (
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        onChange={(e) => {
+                          const selected = templates.find(
+                            (t) => t.id === e.target.value
+                          );
+                          if (selected) handleTemplateApply(selected);
+                          e.target.value = "";
+                        }}
+                        defaultValue=""
+                        disabled={applyingTemplate}
+                        className="px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main text-xs font-semibold focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all disabled:opacity-50"
+                      >
+                        <option value="" disabled>
+                          Template...
+                        </option>
+                        {templates.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.title}
+                          </option>
+                        ))}
+                      </select>
+                      {applyingTemplate && (
+                        <span className="text-[10px] text-accent-primary flex items-center gap-1 font-semibold animate-pulse">
+                          <span className="w-2 h-2 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="relative" ref={moreMenuRef}>
+                    <button
+                      onClick={() => setShowMoreMenu(!showMoreMenu)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
+                    >
+                      <MoreVertical size={14} />
+                    </button>
+                    {showMoreMenu && (
+                      <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+                        <button
+                          onClick={() => {
+                            handleDuplicate();
+                            setShowMoreMenu(false);
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
+                        >
+                          <Copy size={12} />
+                          Duplicate
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleTrash();
+                            setShowMoreMenu(false);
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                        >
+                          <Trash2 size={12} />
+                          Trash
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
+
+              {/* Row 2: Search Filter Row (only for Step 3) */}
+              {currentStep === 3 && drawerSubjectId && (
+                <div className="flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border">
+                  {/* Search Box */}
+                  <div className="relative w-full md:max-w-[260px] shrink-0">
+                    <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search questions..."
+                      value={questionSearchQuery}
+                      onChange={(e) => setQuestionSearchQuery(e.target.value)}
+                      className="w-full py-2 pl-4 pr-10 bg-surface-hover border border-border rounded-full text-text-main text-[13px] focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all font-medium"
+                    />
+                  </div>
+
+                  {/* Filter Dropdown */}
+                  <div className="relative shrink-0">
+                    <button 
+                      type="button"
+                      onClick={() => setIsTypeFilterOpen(!isTypeFilterOpen)}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-semibold cursor-pointer"
+                    >
+                      <Filter size={14} className="text-accent-primary" /> 
+                      {typeFilter === 'all' ? 'All Types' : typeFilter.toUpperCase()}
+                    </button>
+                    {isTypeFilterOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setIsTypeFilterOpen(false)} />
+                        <div className="absolute left-0 mt-2 w-40 bg-surface border border-border rounded-xl shadow-lg py-1 z-50 flex flex-col">
+                          <button type="button" onClick={() => { setTypeFilter('all'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'all' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>All Types</button>
+                          <button type="button" onClick={() => { setTypeFilter('mcq'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'mcq' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>MCQ</button>
+                          <button type="button" onClick={() => { setTypeFilter('nat'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'nat' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>NAT</button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className="flex-1" />
+
+                  {/* Export Button */}
+                  <button 
+                    onClick={handleExportQuestions}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary text-white hover:bg-accent-hover transition-colors text-[12px] font-semibold shadow-sm cursor-pointer border-none"
+                  >
+                    <Download size={14} /> Export
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -706,6 +832,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setManageTeachersSubject={setManageTeachersSubject}
               setSelectedTeacherIds={setSelectedTeacherIds}
               setTeacherSearchQuery={setTeacherSearchQuery}
+              searchQuery={questionSearchQuery}
+              typeFilter={typeFilter}
             />
           )}
 
@@ -891,28 +1019,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           </div>
         )}
       </div>
-
-      {/* Stepper Navigation */}
-      {isDraftStepperMode && (
-        <div className="flex items-center justify-between mt-8 border-t border-border pt-6 pb-12">
-          <button
-            onClick={() => handleSetStep(Math.max(1, currentStep - 1))}
-            disabled={currentStep === 1}
-            className={`px-6 py-2.5 rounded-xl font-semibold transition-all ${currentStep === 1 ? "opacity-0 pointer-events-none" : "bg-surface border border-border text-text-muted hover:bg-bg shadow-sm"}`}
-          >
-            Back
-          </button>
-
-          {currentStep < 5 && (
-            <button
-              onClick={() => handleSetStep(Math.min(5, currentStep + 1))}
-              className="px-6 py-2.5 bg-accent-primary text-white rounded-xl font-semibold hover:bg-accent-primary/80 transition-all disabled:opacity-50 shadow-md shadow-accent-primary/20"
-            >
-              Next Step
-            </button>
-          )}
-        </div>
-      )}
 
       {/* Manage Teachers Modal */}
       {manageTeachersSubject && (

@@ -1,7 +1,5 @@
-'use client';
-
 import React from 'react';
-import { BookOpen, Plus, Edit2, Trash2, Check, ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
+import { BookOpen, Edit2, Trash2, Search } from 'lucide-react';
 
 interface Step3QuestionsProps {
   role: string;
@@ -64,6 +62,8 @@ interface Step3QuestionsProps {
   setManageTeachersSubject: (subject: any) => void;
   setSelectedTeacherIds: (ids: string[]) => void;
   setTeacherSearchQuery: (query: string) => void;
+  searchQuery: string;
+  typeFilter: string;
 }
 
 export default function Step3Questions({
@@ -125,119 +125,81 @@ export default function Step3Questions({
   setManageTeachersSubject,
   setSelectedTeacherIds,
   setTeacherSearchQuery,
+  searchQuery,
+  typeFilter,
 }: Step3QuestionsProps) {
-  return (
-    <div className="flex flex-col md:flex-row gap-4 mb-4">
-      {/* Left Side: Subjects List (Sticky Sidebar) */}
-      <div className="w-full md:w-[200px] shrink-0 bg-surface border border-border rounded-xl p-3 shadow-sm h-fit md:sticky md:top-0 z-10">
-        <div className="mb-3 border-b border-[#f0f7f7] pb-1 flex justify-between items-center">
-          <h3 className="text-sm font-bold text-text-main">Subjects</h3>
-          {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
-            <button
-              type="button"
-              onClick={() => { setShowAddSubjectModal(true); setNewSubjectTeacherSearch(''); }}
-              className="text-accent-primary hover:text-accent-primary/80 transition-colors p-1"
-              title="Add Subject"
-            >
-              <Plus size={15} />
-            </button>
-          )}
-        </div>
 
-        <div className="flex flex-col gap-2 max-h-[600px] overflow-y-auto custom-scrollbar pr-1">
+  const isDraftStepperMode = role !== 'teacher' && exam?.status === 'draft';
+
+  return (
+    <div className="flex flex-col gap-4 mb-4">
+      {!isDraftStepperMode && (
+        <div className="flex items-center justify-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 -mx-1 px-1">
           {subjects.map((s) => {
             const added = questionCounts[s.id] || 0;
             const needed = s.question_count;
             const complete = added >= needed;
-            const isAssignedTeacher = role !== 'teacher' || (role === 'teacher' && s.exam_subject_teachers?.some((est: any) => est.teacher_id === userId));
+            const isAssignedTeacher =
+              role !== 'teacher' ||
+              (role === 'teacher' && s.exam_subject_teachers?.some((est: any) => est.teacher_id === userId));
             const isSelected = drawerSubjectId === s.id;
 
             return (
-              <div
+              <button
                 key={s.id}
-                onClick={() => { if (isAssignedTeacher) openManageQuestions(s.id); }}
-                role="button"
-                tabIndex={isAssignedTeacher ? 0 : -1}
-                className={`flex flex-col rounded-lg p-2.5 gap-1.5 transition-all text-left ${
-                  role === 'teacher'
-                    ? (isAssignedTeacher
-                        ? (isSelected ? 'bg-accent-primary/5 border-2 border-accent-primary shadow-sm' : 'bg-surface border-2 border-transparent hover:border-accent-primary/50 cursor-pointer')
-                        : 'bg-gray-50 border border-gray-200 opacity-60 pointer-events-none')
-                    : (isSelected ? 'bg-accent-primary/5 border-2 border-accent-primary shadow-sm' : 'bg-bg border border-border hover:border-accent-primary/50 cursor-pointer')
+                type="button"
+                disabled={!isAssignedTeacher}
+                onClick={() => isAssignedTeacher && openManageQuestions(s.id)}
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${
+                  !isAssignedTeacher
+                    ? 'bg-gray-50 border-gray-200 text-gray-400 opacity-60 cursor-not-allowed'
+                    : isSelected
+                      ? 'bg-accent-primary text-white border-accent-primary shadow-sm'
+                      : 'bg-surface border-border text-text-main hover:border-accent-primary/50'
                 }`}
               >
-                <div className="flex flex-wrap items-center justify-between gap-1">
-                  <span className="text-text-main font-semibold text-xs truncate">{s.subject_name}</span>
-                  <div className="flex items-center gap-1 pointer-events-auto shrink-0">
-                    {!isExamOver && exam?.status === 'draft' && editSubjectId !== s.id && role !== 'teacher' && (
-                      <button onClick={(e) => { e.stopPropagation(); e.preventDefault(); setInlineEditSubjectCount(needed); setEditSubjectId(s.id); }} className="text-text-muted hover:text-accent-primary transition-colors p-1 rounded-md hover:bg-surface-hover">
-                        <Edit2 size={12} />
-                      </button>
-                    )}
-                    {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
-                      <button onClick={(e) => { e.stopPropagation(); handleDeleteSubject(e, s.id, s.subject_name); }} className="text-red-400 hover:text-red-600 transition-colors p-1 rounded-md hover:bg-red-50">
-                        <Trash2 size={12} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {editSubjectId === s.id && (
-                  <div className="flex items-center gap-1 pointer-events-auto" onClick={e => { e.stopPropagation(); e.preventDefault(); }}>
-                    <input type="number" value={inlineEditSubjectCount} onChange={(e) => setInlineEditSubjectCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 px-2 py-1 text-xs border border-[#008080] rounded outline-none font-bold text-text-main" min="1" />
-                    <button onClick={() => handleSaveSubjectCount(s.id)} className="text-white bg-accent-primary hover:bg-accent-primary/80 p-1 rounded transition-colors"><Check size={14}/></button>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                    {added}/{needed} Qs
-                  </span>
-                  {role === 'teacher' && isAssignedTeacher && (
-                    <span className="text-[9px] font-bold uppercase tracking-wider bg-accent-primary/10 text-accent-primary px-1.5 py-0.5 rounded">
-                      Assigned
-                    </span>
-                  )}
-                </div>
-              </div>
+                {s.subject_name}
+                <span className={isSelected ? 'text-white/80' : complete ? 'text-emerald-600' : 'text-amber-600'}>
+                  {added}/{needed}
+                </span>
+              </button>
             );
           })}
-          {subjects.length === 0 && (
-            <div className="text-center py-4 text-text-muted text-xs font-medium">No subjects added.</div>
-          )}
         </div>
-      </div>
+      )}
 
-      {/* Right Side: Questions Area (Sticky with internal scroll) */}
-      <div className="flex-1 bg-surface border border-border rounded-xl shadow-sm overflow-hidden flex flex-col min-h-[550px] md:sticky md:top-0 md:h-[calc(100vh-100px)]">
+
+
+      {/* Questions Area — outer card border/background removed */}
+      <div className="flex-1 flex flex-col min-h-[550px]">
+        {/* Content Area */}
         {drawerSubjectId ? (
-          <>
-            <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-surface shrink-0 sticky top-0 z-10">
-              <div className="min-w-0">
-                <p className="text-text-main text-sm font-bold truncate">{subjects.find(s => s.id === drawerSubjectId)?.subject_name}</p>
-                <p className="text-text-muted text-xs font-semibold">
-                  {`${drawerQuestions.length} / ${subjects.find(s => s.id === drawerSubjectId)?.question_count ?? 0} questions`}
-                </p>
-              </div>
-              {exam?.status === 'draft' && drawerQuestions.length < (subjects.find(s => s.id === drawerSubjectId)?.question_count ?? 0) && (
-                <button onClick={handleDrawerNewQuestion} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary text-white font-semibold rounded-lg text-xs hover:bg-accent-primary/80 transition-all shadow-sm active:scale-95 shrink-0">
-                  <Plus size={16} /> Add Question
-                </button>
-              )}
-            </div>
-
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
-              <div className="space-y-3">
-                {drawerLoading ? (
-                  <div className="flex justify-center p-8"><span className="w-6 h-6 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" /></div>
-                ) : drawerQuestions.length === 0 ? (
-                  <div className="text-center py-12">
-                    <BookOpen size={32} className="mx-auto mb-3 text-border" />
-                    <p className="text-text-muted font-medium">No questions added yet.</p>
-                  </div>
-                ) : (
-                  drawerQuestions.map((q, idx) => (
-                    <div key={q.id} className="p-3 bg-bg border border-border rounded-lg group relative">
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
+            <div className="space-y-3">
+              {drawerLoading ? (
+                <div className="flex justify-center p-8"><span className="w-6 h-6 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" /></div>
+              ) : drawerQuestions.length === 0 ? (
+                <div className="text-center py-12">
+                  <BookOpen size={32} className="mx-auto mb-3 text-border" />
+                  <p className="text-text-muted font-medium">No questions added yet.</p>
+                </div>
+              ) : (
+                (() => {
+                  const filtered = drawerQuestions.filter(q => {
+                    const matchesSearch = q.question_text?.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesType = typeFilter === 'all' || q.question_type === typeFilter;
+                    return matchesSearch && matchesType;
+                  });
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center py-12 mx-4 bg-surface border border-border rounded-xl shadow-sm">
+                        <Search size={32} className="mx-auto mb-3 text-border animate-pulse" />
+                        <p className="text-text-muted font-medium">No questions match your search/filters.</p>
+                      </div>
+                    );
+                  }
+                  return filtered.map((q, idx) => (
+                    <div key={q.id} className="mx-4 p-4 bg-surface border border-border rounded-xl shadow-sm group relative">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className="w-5 h-5 rounded bg-surface border border-border flex items-center justify-center text-[10px] text-text-main font-bold">{idx + 1}</span>
@@ -272,17 +234,17 @@ export default function Step3Questions({
                         <div className="inline-flex px-3 py-1.5 bg-accent-primary/5 border border-accent-primary rounded-lg text-xs text-accent-primary font-bold mt-2">Answer: {q.correct_option}</div>
                       )}
                     </div>
-                  ))
-                )}
-              </div>
+                  ));
+                })()
+              )}
             </div>
-          </>
+          </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-text-muted p-4">
             <BookOpen size={36} className="mb-3 text-border" />
             <p className="text-sm font-bold text-text-main mb-1">Manage Questions</p>
             <p className="text-xs text-center max-w-sm">
-              Select a subject from the list on the left to add, edit, or remove questions.
+              Select a subject from the navigation pills above to view questions.
             </p>
           </div>
         )}
