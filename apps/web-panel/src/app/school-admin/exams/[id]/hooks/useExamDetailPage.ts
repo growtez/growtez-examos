@@ -738,6 +738,9 @@ export function useExamDetailPage(paramsId: string) {
 
     const { data: examData } = await supabase.from('exams').select('*').eq('id', paramsId).single();
     setExam(examData);
+    if (examData) {
+      window.dispatchEvent(new CustomEvent('exam-status-update', { detail: { status: examData.status } }));
+    }
     if (!examData) { setLoading(false); return; }
     
     if (examData.start_time) setStartTime(formatForInput(examData.start_time));
@@ -880,6 +883,7 @@ export function useExamDetailPage(paramsId: string) {
       
       await supabase.from('exams').update(updates).eq('id', paramsId);
       setExam({ ...exam, ...updates });
+      window.dispatchEvent(new CustomEvent('exam-status-update', { detail: { status: 'published' } }));
     } catch (err) {
       console.error(err);
       alert('An unexpected error occurred while publishing.');
@@ -1323,7 +1327,10 @@ export function useExamDetailPage(paramsId: string) {
         setPublishing(true);
         const updates = { status: 'draft', start_time: null, end_time: null };
         const { error } = await supabase.from('exams').update(updates).eq('id', paramsId);
-        if (!error) setExam({ ...exam, ...updates });
+        if (!error) {
+          setExam({ ...exam, ...updates });
+          window.dispatchEvent(new CustomEvent('exam-status-update', { detail: { status: 'draft' } }));
+        }
         else alert('Failed to unpublish exam.');
         setPublishing(false);
       }

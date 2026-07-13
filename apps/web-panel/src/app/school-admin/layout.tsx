@@ -49,6 +49,7 @@ export default function SchoolAdminLayout({
   const [schoolName, setSchoolName] = useState<string>('');
   const [breadcrumbNames, setBreadcrumbNames] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [examStatus, setExamStatus] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -143,17 +144,19 @@ export default function SchoolAdminLayout({
     const handleSaveStatusUpdate = (e: any) => {
       const { status } = e.detail;
       setSaveStatus(status);
-      if (status === 'saved') {
-        setTimeout(() => {
-          setSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
-        }, 3000);
-      }
     };
     window.addEventListener('save-status-update', handleSaveStatusUpdate);
+
+    const handleExamStatusUpdate = (e: any) => {
+      const { status } = e.detail;
+      setExamStatus(status);
+    };
+    window.addEventListener('exam-status-update', handleExamStatusUpdate);
 
     return () => {
       window.removeEventListener('breadcrumb-update', handleBreadcrumbUpdate);
       window.removeEventListener('save-status-update', handleSaveStatusUpdate);
+      window.removeEventListener('exam-status-update', handleExamStatusUpdate);
     };
   }, [pathname]);
 
@@ -388,7 +391,7 @@ export default function SchoolAdminLayout({
               })}
             </div>
             {saveStatus !== 'idle' && (
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ml-2 shrink-0 ${
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ml-3 shrink-0 ${
                 saveStatus === 'saving' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
                 saveStatus === 'saved' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
                 'bg-red-500/10 text-red-500 border-red-500/20'
@@ -398,6 +401,16 @@ export default function SchoolAdminLayout({
                 {saveStatus === 'saving' ? 'Saving...' :
                  saveStatus === 'saved' ? 'Saved' :
                  'Error'}
+              </span>
+            )}
+            {examStatus && (
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ml-2 shrink-0 ${
+                examStatus === 'draft' ? 'bg-gray-100 text-gray-600 border-gray-200' :
+                examStatus === 'published' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                examStatus === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                'bg-gray-100 text-gray-600 border-gray-200'
+              }`}>
+                {examStatus.charAt(0).toUpperCase() + examStatus.slice(1)}
               </span>
             )}
           </div>

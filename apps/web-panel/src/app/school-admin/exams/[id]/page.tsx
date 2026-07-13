@@ -1,27 +1,69 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import Link from 'next/link';
-import { ArrowLeft, BookOpen, Clock, Copy, Globe, Link2, MoreVertical, Plus, Settings2, Trash2, Users, AlertCircle, Copy as CopyIcon, Play, Edit2, Check, Download, ShieldCheck, CreditCard, Save, CheckCircle2, FilePlus2, X, Search, Link as LinkIcon, ChevronLeft } from 'lucide-react';
-import ReactCrop, { type Crop } from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css';
-import { openRazorpayCheckout } from '@/components/RazorpayCheckout';
-import Step1Details from './components/Step1Details';
-import Step2Students from './components/Step2Students';
-import Step3Questions from './components/Step3Questions';
-import Step4Schedule from './components/Step4Schedule';
-import Step5Publish from './components/Step5Publish';
-import { useExamDetailPage } from './hooks/useExamDetailPage';
+import { useState, useEffect, useRef } from "react";
+import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  BookOpen,
+  Clock,
+  Copy,
+  Globe,
+  Link2,
+  MoreVertical,
+  Plus,
+  Settings2,
+  Trash2,
+  Users,
+  AlertCircle,
+  Copy as CopyIcon,
+  Play,
+  Edit2,
+  Check,
+  Download,
+  ShieldCheck,
+  CreditCard,
+  Save,
+  CheckCircle2,
+  FilePlus2,
+  X,
+  Search,
+  Link as LinkIcon,
+  ChevronLeft,
+} from "lucide-react";
+import ReactCrop, { type Crop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
+import { openRazorpayCheckout } from "@/components/RazorpayCheckout";
+import Step1Details from "./components/Step1Details";
+import Step2Students from "./components/Step2Students";
+import Step3Questions from "./components/Step3Questions";
+import Step4Schedule from "./components/Step4Schedule";
+import Step5Publish from "./components/Step5Publish";
+import { useExamDetailPage } from "./hooks/useExamDetailPage";
 
-function CustomCombobox({ value, onChange, options, placeholder, className }: { value: string, onChange: (v: string) => void, options: string[], placeholder: string, className: string }) {
+function CustomCombobox({
+  value,
+  onChange,
+  options,
+  placeholder,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder: string;
+  className: string;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [filteredOptions, setFilteredOptions] = useState(options);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -30,7 +72,9 @@ function CustomCombobox({ value, onChange, options, placeholder, className }: { 
   }, []);
 
   useEffect(() => {
-    setFilteredOptions(options.filter(o => o.toLowerCase().includes(value.toLowerCase())));
+    setFilteredOptions(
+      options.filter((o) => o.toLowerCase().includes(value.toLowerCase())),
+    );
   }, [value, options]);
 
   return (
@@ -45,10 +89,22 @@ function CustomCombobox({ value, onChange, options, placeholder, className }: { 
         onFocus={() => setIsOpen(true)}
         placeholder={placeholder}
         className={`${className} text-ellipsis overflow-hidden whitespace-nowrap`}
-        style={{ paddingRight: '1.75rem' }}
+        style={{ paddingRight: "1.75rem" }}
       />
       <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-text-muted bg-transparent">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M19 9l-7 7-7-7"
+          ></path>
+        </svg>
       </div>
       {isOpen && filteredOptions.length > 0 && (
         <ul className="absolute z-10 w-full bg-surface border border-border mt-1 rounded-xl shadow-xl shadow-[#008080]/10 max-h-[130px] overflow-y-auto custom-scrollbar">
@@ -71,11 +127,19 @@ function CustomCombobox({ value, onChange, options, placeholder, className }: { 
 }
 
 const statusColors: Record<string, string> = {
-  draft: 'bg-slate-500/10 text-gray-500 border-slate-500/20',
-  published: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  active: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  completed: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+  draft: "bg-slate-500/10 text-gray-500 border-slate-500/20",
+  published: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  active: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  completed: "bg-violet-500/10 text-violet-400 border-violet-500/20",
 };
+
+const STEPPER_STEPS = [
+  { step: 1, label: "Setup" },
+  { step: 2, label: "Students" },
+  { step: 3, label: "Questions" },
+  { step: 4, label: "Schedule" },
+  { step: 5, label: "Publish" },
+] as const;
 
 export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const {
@@ -332,76 +396,124 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     downloadResultsPDF,
   } = useExamDetailPage(params.id);
 
-  const isExamOver = exam?.end_time ? new Date(exam.end_time) < new Date() : false;
-  const displayStatus = isExamOver ? 'completed' : exam?.status || 'draft';
+  const isExamOver = exam?.end_time
+    ? new Date(exam.end_time) < new Date()
+    : false;
+  const displayStatus = isExamOver ? "completed" : exam?.status || "draft";
+  const isDraftStepperMode = role !== "teacher" && exam?.status === "draft";
 
   return (
-    <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-4 lg:px-8">
-      
-      {/* Title & Actions */}
-      <div className="mb-2 flex flex-col xl:flex-row xl:justify-between xl:items-center gap-3">
-        <div className="flex-1 min-w-0 xl:w-auto pr-0 xl:pr-8">
-          <div className="flex items-center gap-2 mb-1 min-w-0">
-            <input 
-              type="text"
-              value={title}
-              onChange={(e) => {
-                const newTitle = e.target.value;
-                setTitle(newTitle);
-                setExam((prev: any) => prev ? {...prev, title: newTitle} : null);
-                window.dispatchEvent(new CustomEvent('breadcrumb-update', { detail: { id: params.id, title: newTitle } }));
-              }}
-              onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-              disabled={role === 'teacher' || exam?.status !== 'draft'}
-              className={`text-lg font-bold text-text-main bg-transparent border-none outline-none rounded-lg px-2 -ml-2 transition-colors flex-1 min-w-0 truncate ${role !== 'teacher' && exam?.status === 'draft' ? 'hover:bg-surface-hover focus:ring-2 focus:ring-accent-primary/20 cursor-text' : 'cursor-default'}`}
-              placeholder="Exam Title"
-            />
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusColors[displayStatus] || statusColors.draft}`}>
-              {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
-            </span>
-          </div>
-
-        </div>
-        
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2 xl:shrink-0 mt-2 xl:mt-0">
-            {isExamOver && (
-              <button 
-                onClick={downloadQuestionPaper}
-                disabled={generatingPDF}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-accent-primary to-accent-primary/70 border border-[#004d4d] rounded-lg text-xs font-semibold text-white hover:from-[#006666] hover:to-[#004d4d] transition-all shadow-sm hover:shadow-md disabled:opacity-50"
-              >
-                <Download size={14} />
-                {generatingPDF ? 'Generating...' : 'Download Paper'}
-              </button>
-            )}
-            {role !== 'teacher' && (
-              <>
-                {!isExamOver && exam?.status !== 'draft' && (
-                  <button 
-                    onClick={handleUnpublish}
-                    disabled={publishing}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-all shadow-sm disabled:opacity-50"
+    <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div
+        className={`grid grid-cols-1 ${isDraftStepperMode ? "grid-cols-[auto_1fr]" : "xl:grid-cols-3 gap-6 lg:gap-8"} mb-10`}
+      >
+        {/* Vertical Stepper (Left Column) — fixed size, top-aligned, never shifts */}
+        {isDraftStepperMode && (
+          <div className="shrink-0 w-16 self-start sticky top-6 mr-2">
+            <div className="flex flex-col items-center">
+              {STEPPER_STEPS.map((s, idx) => {
+                const isActive = currentStep === s.step;
+                const isDone = !isActive && canProceedToNextStep(s.step);
+                const isSegmentFilled = currentStep > s.step;
+                return (
+                  <div
+                    key={s.step}
+                    className="flex flex-col items-center w-full"
                   >
-                    <Settings2 size={14} />
-                    Unpublish
-                  </button>
+                    <div className="flex flex-col items-center gap-1">
+                      <button
+                        onClick={() => handleSetStep(s.step)}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] leading-none transition-colors duration-200 border-2 shrink-0
+                          ${
+                            isActive
+                              ? "bg-accent-primary text-white border-[#008080]"
+                              : isDone
+                                ? "bg-accent-primary text-white border-[#008080]"
+                                : "bg-surface text-text-muted border-border"
+                          }`}
+                      >
+                        {isDone ? <Check size={10} /> : s.step}
+                      </button>
+                      <span
+                        className={`text-[9px] font-bold uppercase tracking-tight leading-none whitespace-nowrap ${isActive ? "text-text-main" : isDone ? "text-accent-primary" : "text-text-muted"}`}
+                      >
+                        {s.label}
+                      </span>
+                    </div>
+                    {idx < STEPPER_STEPS.length - 1 && (
+                      <div className="w-0.5 h-6 my-1 rounded-full bg-border overflow-hidden shrink-0">
+                        <div
+                          className={`w-full rounded-full transition-all duration-300 ${isSegmentFilled ? "h-full bg-accent-primary" : "h-0 bg-accent-primary"}`}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Main Content Column */}
+        <div
+          className={`${isDraftStepperMode ? "" : "xl:col-span-2"} space-y-6`}
+        >
+          
+          {/* Template select + 3-dot menu (Draft Stepper Mode) */}
+          {isDraftStepperMode && (
+            <div className="sticky -top-6 z-20 bg-bg pt-6 pb-3 mb-4 border-b border-border flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-bold text-text-main">
+                Step {currentStep} ·{" "}
+                {STEPPER_STEPS.find((s) => s.step === currentStep)?.label}
+              </h2>
+
+              <div className="flex items-center gap-2">
+                {currentStep === 2 && !isExamOver && role !== "teacher" && (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => { setShowAddStudentModal(true); setAddMode('link'); setAddError(''); setAddSuccess(''); }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary text-white text-xs font-semibold rounded-lg hover:bg-accent-primary/90 transition-all active:scale-95 shadow-sm"
+                    >
+                      <Link2 size={14} />
+                      Share Link
+                    </button>
+                    <button
+                      onClick={() => { setShowAddStudentModal(true); setAddMode('search'); setAddError(''); setAddSuccess(''); }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface text-text-main text-xs font-semibold border border-border rounded-lg hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
+                    >
+                      <Plus size={14} />
+                      Add Student
+                    </button>
+                    <button
+                      onClick={() => { setShowAddStudentModal(true); setAddMode('csv'); setAddError(''); setAddSuccess(''); }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface text-text-main text-xs font-semibold border border-border rounded-lg hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
+                    >
+                      <Plus size={14} />
+                      Import CSV
+                    </button>
+                  </div>
                 )}
-                {templates.length > 0 && exam?.status === 'draft' && (
+                {templates.length > 0 && currentStep === 1 && (
                   <div className="flex items-center gap-1.5">
                     <select
                       onChange={(e) => {
-                        const selected = templates.find(t => t.id === e.target.value);
+                        const selected = templates.find(
+                          (t) => t.id === e.target.value,
+                        );
                         if (selected) handleTemplateApply(selected);
-                        e.target.value = '';
+                        e.target.value = "";
                       }}
                       defaultValue=""
                       disabled={applyingTemplate}
-                      className="px-2 py-1.5 bg-bg border border-border rounded-lg text-text-main text-xs font-semibold focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all disabled:opacity-50"
+                      className="px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main text-xs font-semibold focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all disabled:opacity-50"
                     >
-                      <option value="" disabled>Template...</option>
-                      {templates.map(t => (
-                        <option key={t.id} value={t.id}>{t.title}</option>
+                      <option value="" disabled>
+                        Template...
+                      </option>
+                      {templates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.title}
+                        </option>
                       ))}
                     </select>
                     {applyingTemplate && (
@@ -443,305 +555,356 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     </div>
                   )}
                 </div>
-              </>
-            )}
-        </div>
-      </div>
-
-      {/* Stepper Header */}
-      {role !== 'teacher' && exam?.status === 'draft' && (
-        <div className="mb-3 flex items-center justify-between relative max-w-2xl mx-auto">
-          <div className="absolute left-0 top-4 -translate-y-1/2 w-full h-0.5 bg-border z-0 rounded-full"></div>
-          <div className="absolute left-0 top-4 -translate-y-1/2 h-0.5 bg-accent-primary z-0 rounded-full transition-all duration-300" style={{ width: `${((currentStep - 1) / 4) * 100}%` }}></div>
-          
-          {[
-            { step: 1, label: 'Setup' },
-            { step: 2, label: 'Students' },
-            { step: 3, label: 'Questions' },
-            { step: 4, label: 'Schedule' },
-            { step: 5, label: 'Publish' }
-          ].map((s) => (
-            <div key={s.step} className="relative z-10 flex flex-col items-center gap-1">
-              <button 
-                onClick={() => handleSetStep(s.step)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border-2
-                  ${currentStep === s.step ? 'bg-accent-primary text-white border-[#008080] shadow-md shadow-accent-primary/30 scale-110' : 
-                    canProceedToNextStep(s.step) ? 'bg-accent-primary text-white border-[#008080]' : 
-                    'bg-surface text-text-muted border-border'}`}
-              >
-                {currentStep !== s.step && canProceedToNextStep(s.step) ? <Check size={14} /> : s.step}
-              </button>
-              <span className={`text-[9px] font-bold uppercase tracking-wider ${currentStep === s.step ? 'text-text-main' : canProceedToNextStep(s.step) ? 'text-accent-primary' : 'text-text-muted'}`}>
-                {s.label}
-              </span>
+              </div>
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      <div className={`grid grid-cols-1 ${role !== 'teacher' && exam?.status === 'draft' ? '' : 'xl:grid-cols-3 gap-6 lg:gap-8'} mb-10`}>
-        
-        {/* Left Column (Main Content) */}
-        <div className={`${role !== 'teacher' && exam?.status === 'draft' ? 'col-span-1' : 'xl:col-span-2'} space-y-6`}>
-          
+          {/* Action Buttons (Non-Draft Mode) */}
+          {!isDraftStepperMode && (
+            <div className="mb-2 flex flex-col xl:flex-row xl:justify-between xl:items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 xl:shrink-0 mt-2 xl:mt-0">
+                {isExamOver && (
+                  <button
+                    onClick={downloadQuestionPaper}
+                    disabled={generatingPDF}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-accent-primary to-accent-primary/70 border border-[#004d4d] rounded-lg text-xs font-semibold text-white hover:from-[#006666] hover:to-[#004d4d] transition-all shadow-sm hover:shadow-md disabled:opacity-50"
+                  >
+                    <Download size={14} />
+                    {generatingPDF ? "Generating..." : "Download Paper"}
+                  </button>
+                )}
+                {role !== "teacher" && (
+                  <>
+                    {!isExamOver && exam?.status !== "draft" && (
+                      <button
+                        onClick={handleUnpublish}
+                        disabled={publishing}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-all shadow-sm disabled:opacity-50"
+                      >
+                        <Settings2 size={14} />
+                        Unpublish
+                      </button>
+                    )}
+                    <div className="relative" ref={moreMenuRef}>
+                      <button
+                        onClick={() => setShowMoreMenu(!showMoreMenu)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
+                      >
+                        <MoreVertical size={14} />
+                      </button>
+                      {showMoreMenu && (
+                        <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+                          <button
+                            onClick={() => {
+                              handleDuplicate();
+                              setShowMoreMenu(false);
+                            }}
+                            className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
+                          >
+                            <Copy size={12} />
+                            Duplicate
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleTrash();
+                              setShowMoreMenu(false);
+                            }}
+                            className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                          >
+                            <Trash2 size={12} />
+                            Trash
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
-      {/* Teacher Banner */}
-      {role === 'teacher' && (
-        <div className="bg-accent-primary/10 border border-accent-primary/30 rounded-2xl p-5 mb-6 flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-4">
-          <div className="w-10 h-10 rounded-full bg-accent-primary/20 flex items-center justify-center text-accent-primary shrink-0">
-            <BookOpen size={20} />
-          </div>
-          <div>
-            <h3 className="text-text-main font-bold text-base">Question Preparation Mode</h3>
-            <p className="text-text-muted text-sm font-medium mt-1">
-              Select your assigned subject below to start adding or editing questions. You only have access to manage questions for subjects specifically assigned to you.
-            </p>
-          </div>
-        </div>
-      )}
+          {/* Teacher Banner */}
+          {role === "teacher" && (
+            <div className="bg-accent-primary/10 border border-accent-primary/30 rounded-2xl p-5 mb-6 flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-4">
+              <div className="w-10 h-10 rounded-full bg-accent-primary/20 flex items-center justify-center text-accent-primary shrink-0">
+                <BookOpen size={20} />
+              </div>
+              <div>
+                <h3 className="text-text-main font-bold text-base">
+                  Question Preparation Mode
+                </h3>
+                <p className="text-text-muted text-sm font-medium mt-1">
+                  Select your assigned subject below to start adding or editing
+                  questions. You only have access to manage questions for
+                  subjects specifically assigned to you.
+                </p>
+              </div>
+            </div>
+          )}
 
-      {/* Subjects Split View (Questions Step) */}
-      {(!exam || exam.status !== 'draft' || role === 'teacher' || currentStep === 3) && (
-        <Step3Questions
-          role={role}
-          userId={userId}
-          isExamOver={isExamOver}
-          exam={exam}
-          subjects={subjects}
-          questionCounts={questionCounts}
-          drawerSubjectId={drawerSubjectId}
-          drawerView={drawerView}
-          setDrawerView={setDrawerView}
-          drawerQuestions={drawerQuestions}
-          drawerLoading={drawerLoading}
-          drawerFormLoading={drawerFormLoading}
-          drawerError={drawerError}
-          editingQuestionId={editingQuestionId}
-          qType={qType}
-          setQType={setQType}
-          qText={qText}
-          setQText={setQText}
-          qImage={qImage}
-          setQImage={setQImage}
-          optA={optA}
-          setOptA={setOptA}
-          optAImg={optAImg}
-          setOptAImg={setOptAImg}
-          optB={optB}
-          setOptB={setOptB}
-          optBImg={optBImg}
-          setOptBImg={setOptBImg}
-          optC={optC}
-          setOptC={setOptC}
-          optCImg={optCImg}
-          setOptCImg={setOptCImg}
-          optD={optD}
-          setOptD={setOptD}
-          optDImg={optDImg}
-          setOptDImg={setOptDImg}
-          correctAnswer={correctAnswer}
-          setCorrectAnswer={setCorrectAnswer}
-          natAnswer={natAnswer}
-          setNatAnswer={setNatAnswer}
-          openManageQuestions={openManageQuestions}
-          handleDrawerNewQuestion={handleDrawerNewQuestion}
-          handleDrawerCancel={handleDrawerCancel}
-          doSaveQuestion={doSaveQuestion}
-          handleDrawerEditQuestion={handleDrawerEditQuestion}
-          handleDrawerDeleteQuestion={handleDrawerDeleteQuestion}
-          handleDrawerImageUpload={handleDrawerImageUpload}
-          setShowAddSubjectModal={setShowAddSubjectModal}
-          setNewSubjectTeacherSearch={setNewSubjectTeacherSearch}
-          editSubjectId={editSubjectId}
-          setEditSubjectId={setEditSubjectId}
-          inlineEditSubjectCount={inlineEditSubjectCount}
-          setInlineEditSubjectCount={setInlineEditSubjectCount}
-          handleSaveSubjectCount={handleSaveSubjectCount}
-          handleDeleteSubject={handleDeleteSubject}
-          setManageTeachersSubject={setManageTeachersSubject}
-          setSelectedTeacherIds={setSelectedTeacherIds}
-          setTeacherSearchQuery={setTeacherSearchQuery}
-        />
-      )}
+          {/* Subjects Split View (Questions Step) */}
+          {(!exam ||
+            exam.status !== "draft" ||
+            role === "teacher" ||
+            currentStep === 3) && (
+            <Step3Questions
+              role={role}
+              userId={userId}
+              isExamOver={isExamOver}
+              exam={exam}
+              subjects={subjects}
+              questionCounts={questionCounts}
+              drawerSubjectId={drawerSubjectId}
+              drawerView={drawerView}
+              setDrawerView={setDrawerView}
+              drawerQuestions={drawerQuestions}
+              drawerLoading={drawerLoading}
+              drawerFormLoading={drawerFormLoading}
+              drawerError={drawerError}
+              editingQuestionId={editingQuestionId}
+              qType={qType}
+              setQType={setQType}
+              qText={qText}
+              setQText={setQText}
+              qImage={qImage}
+              setQImage={setQImage}
+              optA={optA}
+              setOptA={setOptA}
+              optAImg={optAImg}
+              setOptAImg={setOptAImg}
+              optB={optB}
+              setOptB={setOptB}
+              optBImg={optBImg}
+              setOptBImg={setOptBImg}
+              optC={optC}
+              setOptC={setOptC}
+              optCImg={optCImg}
+              setOptCImg={setOptCImg}
+              optD={optD}
+              setOptD={setOptD}
+              optDImg={optDImg}
+              setOptDImg={setOptDImg}
+              correctAnswer={correctAnswer}
+              setCorrectAnswer={setCorrectAnswer}
+              natAnswer={natAnswer}
+              setNatAnswer={setNatAnswer}
+              openManageQuestions={openManageQuestions}
+              handleDrawerNewQuestion={handleDrawerNewQuestion}
+              handleDrawerCancel={handleDrawerCancel}
+              doSaveQuestion={doSaveQuestion}
+              handleDrawerEditQuestion={handleDrawerEditQuestion}
+              handleDrawerDeleteQuestion={handleDrawerDeleteQuestion}
+              handleDrawerImageUpload={handleDrawerImageUpload}
+              setShowAddSubjectModal={setShowAddSubjectModal}
+              setNewSubjectTeacherSearch={setNewSubjectTeacherSearch}
+              editSubjectId={editSubjectId}
+              setEditSubjectId={setEditSubjectId}
+              inlineEditSubjectCount={inlineEditSubjectCount}
+              setInlineEditSubjectCount={setInlineEditSubjectCount}
+              handleSaveSubjectCount={handleSaveSubjectCount}
+              handleDeleteSubject={handleDeleteSubject}
+              setManageTeachersSubject={setManageTeachersSubject}
+              setSelectedTeacherIds={setSelectedTeacherIds}
+              setTeacherSearchQuery={setTeacherSearchQuery}
+            />
+          )}
 
-      {/* Assigned Students (Students Step) */}
-      {(!exam || exam.status !== 'draft' || role === 'teacher' || currentStep === 2) && (
-        <Step2Students
-          role={role}
-          isExamOver={isExamOver}
-          exam={exam}
-          assignedStudents={assignedStudents}
-          setAssignedStudents={setAssignedStudents}
-          assignedSearchQuery={assignedSearchQuery}
-          setAssignedSearchQuery={setAssignedSearchQuery}
-          assignedCourseFilter={assignedCourseFilter}
-          setAssignedCourseFilter={setAssignedCourseFilter}
-          assignedBatchFilter={assignedBatchFilter}
-          setAssignedBatchFilter={setAssignedBatchFilter}
-          setShowAddStudentModal={setShowAddStudentModal}
-          setAddMode={setAddMode}
-          setAddError={setAddError}
-          setAddSuccess={setAddSuccess}
-          addSuccess={addSuccess}
-          downloadResultsPDF={downloadResultsPDF}
-          generatingPDF={generatingPDF}
-          setConfirmDialog={setConfirmDialog}
-          handleRemoveStudent={handleRemoveStudent}
-          supabase={supabase}
-          paramsId={params.id}
-        />
-      )}
+          {/* Assigned Students (Students Step) */}
+          {(!exam ||
+            exam.status !== "draft" ||
+            role === "teacher" ||
+            currentStep === 2) && (
+            <Step2Students
+              role={role}
+              isExamOver={isExamOver}
+              exam={exam}
+              assignedStudents={assignedStudents}
+              setAssignedStudents={setAssignedStudents}
+              assignedSearchQuery={assignedSearchQuery}
+              setAssignedSearchQuery={setAssignedSearchQuery}
+              assignedCourseFilter={assignedCourseFilter}
+              setAssignedCourseFilter={setAssignedCourseFilter}
+              assignedBatchFilter={assignedBatchFilter}
+              setAssignedBatchFilter={setAssignedBatchFilter}
+              setShowAddStudentModal={setShowAddStudentModal}
+              setAddMode={setAddMode}
+              setAddError={setAddError}
+              setAddSuccess={setAddSuccess}
+              addSuccess={addSuccess}
+              downloadResultsPDF={downloadResultsPDF}
+              generatingPDF={generatingPDF}
+              setConfirmDialog={setConfirmDialog}
+              handleRemoveStudent={handleRemoveStudent}
+              supabase={supabase}
+              paramsId={params.id}
+            />
+          )}
 
-      {/* Super Admin Payment Override */}
-      {role === 'super_admin' && (
-        <div className="bg-bg border border-border rounded-2xl p-6 shadow-sm mb-6 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-text-main mb-1">Super Admin Override</h3>
-            <p className="text-text-muted text-sm font-medium">Toggle the payment status of this exam without processing a transaction.</p>
-          </div>
-          <button 
-            onClick={handleTogglePaid}
-            disabled={publishing}
-            className={`inline-flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-colors shadow-sm
-              ${exam.is_paid 
-                ? 'bg-amber-500/10 text-amber-600 border border-amber-500/30 hover:bg-amber-500/20' 
-                : 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 hover:bg-emerald-500/20'}
-              ${publishing ? 'opacity-50 cursor-not-allowed' : ''}
+          {/* Super Admin Payment Override */}
+          {role === "super_admin" && (
+            <div className="bg-bg border border-border rounded-2xl p-6 shadow-sm mb-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-text-main mb-1">
+                  Super Admin Override
+                </h3>
+                <p className="text-text-muted text-sm font-medium">
+                  Toggle the payment status of this exam without processing a
+                  transaction.
+                </p>
+              </div>
+              <button
+                onClick={handleTogglePaid}
+                disabled={publishing}
+                className={`inline-flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-colors shadow-sm
+              ${
+                exam.is_paid
+                  ? "bg-amber-500/10 text-amber-600 border border-amber-500/30 hover:bg-amber-500/20"
+                  : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 hover:bg-emerald-500/20"
+              }
+              ${publishing ? "opacity-50 cursor-not-allowed" : ""}
             `}
-          >
-            {publishing ? <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" /> : <ShieldCheck size={16} />}
-            {exam.is_paid ? 'Mark as Unpaid' : 'Mark as Paid'}
-          </button>
-        </div>
-      )}
+              >
+                {publishing ? (
+                  <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                ) : (
+                  <ShieldCheck size={16} />
+                )}
+                {exam.is_paid ? "Mark as Unpaid" : "Mark as Paid"}
+              </button>
+            </div>
+          )}
 
-      
-
-      {/* Editable Exam Details Form */}
-      {role !== 'teacher' && !isExamOver && exam?.status === 'draft' && currentStep === 1 ? (
-        <Step1Details
-          role={role}
-          isExamOver={isExamOver}
-          exam={exam}
-          title={title}
-          setTitle={setTitle}
-          setExam={setExam}
-          description={description}
-          setDescription={setDescription}
-          durationMinutes={durationMinutes}
-          setDurationMinutes={setDurationMinutes}
-          startTime={startTime}
-          setEndTime={setEndTime}
-          mcqCorrect={mcqCorrect}
-          setMcqCorrect={setMcqCorrect}
-          mcqWrong={mcqWrong}
-          setMcqWrong={setMcqWrong}
-          natCorrect={natCorrect}
-          setNatCorrect={setNatCorrect}
-          natWrong={natWrong}
-          setNatWrong={setNatWrong}
-          instructionsList={instructionsList}
-          updateInstructionItem={updateInstructionItem}
-          addInstructionItem={addInstructionItem}
-          removeInstructionItem={removeInstructionItem}
-          autoSaveExamDetails={autoSaveExamDetails}
-          setShowInstructionPreview={setShowInstructionPreview}
-          subjects={subjects}
-          questionCounts={questionCounts}
-          setShowAddSubjectModal={setShowAddSubjectModal}
-          editSubjectId={editSubjectId}
-          setEditSubjectId={setEditSubjectId}
-          inlineEditSubjectCount={inlineEditSubjectCount}
-          setInlineEditSubjectCount={setInlineEditSubjectCount}
-          handleSaveSubjectCount={handleSaveSubjectCount}
-          handleDeleteSubject={handleDeleteSubject}
-          setManageTeachersSubject={setManageTeachersSubject}
-          setSelectedTeacherIds={setSelectedTeacherIds}
-          setTeacherSearchQuery={setTeacherSearchQuery}
-          handleSaveExamDetails={handleSaveExamDetails}
-          paramsId={params.id}
-        />
-      ) : (role !== 'teacher' && exam?.status === 'draft' && [2, 3, 4, 5].includes(currentStep)) ? null : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="bg-bg border border-border rounded-2xl p-5 flex items-center gap-4">
-            <div className="w-12 h-12 bg-accent-primary/10 rounded-xl flex items-center justify-center text-accent-primary">
-              <Clock size={24} />
+          {/* Editable Exam Details Form */}
+          {role !== "teacher" &&
+          !isExamOver &&
+          exam?.status === "draft" &&
+          currentStep === 1 ? (
+            <Step1Details
+              role={role}
+              isExamOver={isExamOver}
+              exam={exam}
+              title={title}
+              setTitle={setTitle}
+              setExam={setExam}
+              description={description}
+              setDescription={setDescription}
+              durationMinutes={durationMinutes}
+              setDurationMinutes={setDurationMinutes}
+              startTime={startTime}
+              setEndTime={setEndTime}
+              mcqCorrect={mcqCorrect}
+              setMcqCorrect={setMcqCorrect}
+              mcqWrong={mcqWrong}
+              setMcqWrong={setMcqWrong}
+              natCorrect={natCorrect}
+              setNatCorrect={setNatCorrect}
+              natWrong={natWrong}
+              setNatWrong={setNatWrong}
+              instructionsList={instructionsList}
+              updateInstructionItem={updateInstructionItem}
+              addInstructionItem={addInstructionItem}
+              removeInstructionItem={removeInstructionItem}
+              autoSaveExamDetails={autoSaveExamDetails}
+              setShowInstructionPreview={setShowInstructionPreview}
+              subjects={subjects}
+              questionCounts={questionCounts}
+              setShowAddSubjectModal={setShowAddSubjectModal}
+              editSubjectId={editSubjectId}
+              setEditSubjectId={setEditSubjectId}
+              inlineEditSubjectCount={inlineEditSubjectCount}
+              setInlineEditSubjectCount={setInlineEditSubjectCount}
+              handleSaveSubjectCount={handleSaveSubjectCount}
+              handleDeleteSubject={handleDeleteSubject}
+              setManageTeachersSubject={setManageTeachersSubject}
+              setSelectedTeacherIds={setSelectedTeacherIds}
+              setTeacherSearchQuery={setTeacherSearchQuery}
+              handleSaveExamDetails={handleSaveExamDetails}
+              paramsId={params.id}
+            />
+          ) : role !== "teacher" &&
+            exam?.status === "draft" &&
+            [2, 3, 4, 5].includes(currentStep) ? null : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-bg border border-border rounded-2xl p-5 flex items-center gap-4">
+                <div className="w-12 h-12 bg-accent-primary/10 rounded-xl flex items-center justify-center text-accent-primary">
+                  <Clock size={24} />
+                </div>
+                <div className="flex-1">
+                  <p className="text-text-muted text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    Duration
+                  </p>
+                  <p className="text-xl font-bold text-text-main mt-0.5">
+                    {exam?.duration_minutes || 0} min
+                  </p>
+                </div>
+              </div>
+              <div className="bg-bg border border-border rounded-2xl p-5 flex items-center gap-4">
+                <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
+                  <BookOpen size={24} />
+                </div>
+                <div>
+                  <p className="text-text-muted text-xs font-bold uppercase tracking-wider">
+                    Questions
+                  </p>
+                  <p className="text-xl font-bold text-text-main mt-0.5">
+                    {totalQuestionsAdded} / {totalQuestionsNeeded}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-text-muted text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-                Duration
-              </p>
-              <p className="text-xl font-bold text-text-main mt-0.5">{exam?.duration_minutes || 0} min</p>
-            </div>
-          </div>
-          <div className="bg-bg border border-border rounded-2xl p-5 flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
-              <BookOpen size={24} />
-            </div>
-            <div>
-              <p className="text-text-muted text-xs font-bold uppercase tracking-wider">Questions</p>
-              <p className="text-xl font-bold text-text-main mt-0.5">{totalQuestionsAdded} / {totalQuestionsNeeded}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
+          )}
         </div>
 
         {/* Right Column (Sidebar) */}
-        {(!exam || exam.status !== 'draft' || role === 'teacher' || currentStep === 4 || currentStep === 5) && (
-        <div className="xl:col-span-1">
-          <div className="sticky top-6 flex flex-col gap-5">
-
-
-            {/* Publish Button */}
-      {exam?.status === 'draft' && role !== 'teacher' && (
-        <>
-          {currentStep === 4 && (
-            <Step4Schedule
-              startTime={startTime}
-              setStartTime={setStartTime}
-              endTime={endTime}
-              setEndTime={setEndTime}
-              durationMinutes={durationMinutes}
-              stepsBeforeScheduleComplete={stepsBeforeScheduleComplete}
-              publishing={publishing}
-            />
-          )}
-          {currentStep === 5 && (
-            <Step5Publish
-              exam={exam}
-              allStepsComplete={allStepsComplete}
-              publishing={publishing}
-              startTime={startTime}
-              endTime={endTime}
-              examFee={examFee}
-              handlePublish={handlePublish}
-              handlePayment={handlePayment}
-            />
-          )}
-        </>
-      )}
-
-      
+        {!isDraftStepperMode && (
+          <div className="xl:col-span-1">
+            <div className="sticky top-6 flex flex-col gap-5">
+              {/* Publish Button */}
+              {exam?.status === "draft" && role !== "teacher" && (
+                <>
+                  {currentStep === 4 && (
+                    <Step4Schedule
+                      startTime={startTime}
+                      setStartTime={setStartTime}
+                      endTime={endTime}
+                      setEndTime={setEndTime}
+                      durationMinutes={durationMinutes}
+                      stepsBeforeScheduleComplete={stepsBeforeScheduleComplete}
+                      publishing={publishing}
+                    />
+                  )}
+                  {currentStep === 5 && (
+                    <Step5Publish
+                      exam={exam}
+                      allStepsComplete={allStepsComplete}
+                      publishing={publishing}
+                      startTime={startTime}
+                      endTime={endTime}
+                      examFee={examFee}
+                      handlePublish={handlePublish}
+                      handlePayment={handlePayment}
+                    />
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
         )}
       </div>
 
       {/* Stepper Navigation */}
-      {role !== 'teacher' && exam?.status === 'draft' && (
+      {isDraftStepperMode && (
         <div className="flex items-center justify-between mt-8 border-t border-border pt-6 pb-12">
-          <button 
+          <button
             onClick={() => handleSetStep(Math.max(1, currentStep - 1))}
             disabled={currentStep === 1}
-            className={`px-6 py-2.5 rounded-xl font-semibold transition-all ${currentStep === 1 ? 'opacity-0 pointer-events-none' : 'bg-surface border border-border text-text-muted hover:bg-bg shadow-sm'}`}
+            className={`px-6 py-2.5 rounded-xl font-semibold transition-all ${currentStep === 1 ? "opacity-0 pointer-events-none" : "bg-surface border border-border text-text-muted hover:bg-bg shadow-sm"}`}
           >
             Back
           </button>
-          
+
           {currentStep < 5 && (
-            <button 
+            <button
               onClick={() => handleSetStep(Math.min(5, currentStep + 1))}
               className="px-6 py-2.5 bg-accent-primary text-white rounded-xl font-semibold hover:bg-accent-primary/80 transition-all disabled:opacity-50 shadow-md shadow-accent-primary/20"
             >
@@ -753,53 +916,144 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Manage Teachers Modal */}
       {manageTeachersSubject && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setManageTeachersSubject(null)}>
-          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+          onClick={() => setManageTeachersSubject(null)}
+        >
+          <div
+            className="bg-surface rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
-              <span className="text-white font-bold">Manage Teachers for {manageTeachersSubject.subject_name}</span>
-              <button onClick={() => { setManageTeachersSubject(null); setShowAddTeacherMode(false); setAddTeacherError(''); }} className="text-white/70 hover:text-white transition-colors">✕</button>
+              <span className="text-white font-bold">
+                Manage Teachers for {manageTeachersSubject.subject_name}
+              </span>
+              <button
+                onClick={() => {
+                  setManageTeachersSubject(null);
+                  setShowAddTeacherMode(false);
+                  setAddTeacherError("");
+                }}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
             </div>
-            
+
             {showAddTeacherMode ? (
               <form onSubmit={handleCreateAndAssignTeacher} className="p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-text-main font-bold text-sm">Create New Teacher</h4>
-                  <button type="button" onClick={() => { setShowAddTeacherMode(false); setAddTeacherError(''); }} className="text-accent-primary text-xs font-bold hover:underline">Back to List</button>
+                  <h4 className="text-text-main font-bold text-sm">
+                    Create New Teacher
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddTeacherMode(false);
+                      setAddTeacherError("");
+                    }}
+                    className="text-accent-primary text-xs font-bold hover:underline"
+                  >
+                    Back to List
+                  </button>
                 </div>
-                
+
                 <div className="space-y-3 mb-4">
                   <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1">Full Name</label>
-                    <input type="text" value={newTeacherName} onChange={e => setNewTeacherName(e.target.value)} required className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary" placeholder="e.g. Dr. Sharma" />
+                    <label className="block text-xs font-semibold text-text-muted mb-1">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newTeacherName}
+                      onChange={(e) => setNewTeacherName(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
+                      placeholder="e.g. Dr. Sharma"
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1">Email</label>
-                    <input type="email" value={newTeacherEmail} onChange={e => setNewTeacherEmail(e.target.value)} required className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary" placeholder="sharma@school.com" />
+                    <label className="block text-xs font-semibold text-text-muted mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      value={newTeacherEmail}
+                      onChange={(e) => setNewTeacherEmail(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
+                      placeholder="sharma@school.com"
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1">Department</label>
-                    <input type="text" value={newTeacherDepartment} onChange={e => setNewTeacherDepartment(e.target.value)} required className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary" placeholder="e.g. Mathematics" />
+                    <label className="block text-xs font-semibold text-text-muted mb-1">
+                      Department
+                    </label>
+                    <input
+                      type="text"
+                      value={newTeacherDepartment}
+                      onChange={(e) => setNewTeacherDepartment(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
+                      placeholder="e.g. Mathematics"
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1">Password</label>
-                    <input type="password" value={newTeacherPassword} onChange={e => setNewTeacherPassword(e.target.value)} required minLength={6} className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary" placeholder="Min 6 characters" />
+                    <label className="block text-xs font-semibold text-text-muted mb-1">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      value={newTeacherPassword}
+                      onChange={(e) => setNewTeacherPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
+                      placeholder="Min 6 characters"
+                    />
                   </div>
                 </div>
 
-                {addTeacherError && <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-xl text-xs font-medium mb-4">{addTeacherError}</div>}
+                {addTeacherError && (
+                  <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-xl text-xs font-medium mb-4">
+                    {addTeacherError}
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-3 pt-2">
-                  <button type="button" onClick={() => { setShowAddTeacherMode(false); setAddTeacherError(''); }} className="px-4 py-2 bg-surface border border-border text-text-muted rounded-xl hover:bg-bg text-sm font-semibold transition-colors">Cancel</button>
-                  <button type="submit" disabled={addingTeacher} className="px-4 py-2 bg-accent-primary text-white rounded-xl hover:bg-accent-primary/80 text-sm font-semibold transition-colors shadow-sm disabled:opacity-50">
-                    {addingTeacher ? 'Creating...' : 'Create & Assign'}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddTeacherMode(false);
+                      setAddTeacherError("");
+                    }}
+                    className="px-4 py-2 bg-surface border border-border text-text-muted rounded-xl hover:bg-bg text-sm font-semibold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={addingTeacher}
+                    className="px-4 py-2 bg-accent-primary text-white rounded-xl hover:bg-accent-primary/80 text-sm font-semibold transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    {addingTeacher ? "Creating..." : "Create & Assign"}
                   </button>
                 </div>
               </form>
             ) : (
               <div className="p-6">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-xs font-semibold text-text-muted">Select existing teachers:</span>
-                  <button type="button" onClick={() => { setShowAddTeacherMode(true); setAddTeacherError(''); }} className="text-accent-primary text-xs font-bold hover:underline flex items-center gap-1">
+                  <span className="text-xs font-semibold text-text-muted">
+                    Select existing teachers:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddTeacherMode(true);
+                      setAddTeacherError("");
+                    }}
+                    className="text-accent-primary text-xs font-bold hover:underline flex items-center gap-1"
+                  >
                     <Plus size={12} /> Add New Teacher
                   </button>
                 </div>
@@ -813,31 +1067,72 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 <div className="max-h-60 overflow-y-auto mb-4 border border-border rounded-lg custom-scrollbar">
                   {teachers.length === 0 ? (
                     <div className="p-6 text-center">
-                      <p className="text-text-muted text-sm font-medium">No teachers available.</p>
-                      <p className="text-text-muted text-xs mt-1">Please add a new teacher above.</p>
+                      <p className="text-text-muted text-sm font-medium">
+                        No teachers available.
+                      </p>
+                      <p className="text-text-muted text-xs mt-1">
+                        Please add a new teacher above.
+                      </p>
                     </div>
                   ) : (
                     teachers
-                      .filter(t => 
-                        t.full_name.toLowerCase().includes(teacherSearchQuery.toLowerCase()) ||
-                        (t.department || '').toLowerCase().includes(teacherSearchQuery.toLowerCase())
+                      .filter(
+                        (t) =>
+                          t.full_name
+                            .toLowerCase()
+                            .includes(teacherSearchQuery.toLowerCase()) ||
+                          (t.department || "")
+                            .toLowerCase()
+                            .includes(teacherSearchQuery.toLowerCase()),
                       )
-                      .map(t => (
-                      <label key={t.id} className="flex items-center gap-3 p-3 hover:bg-bg cursor-pointer border-b border-border last:border-0 transition-colors">
-                        <input type="checkbox" checked={selectedTeacherIds.includes(t.id)} 
-                          onChange={(e) => {
-                            if (e.target.checked) setSelectedTeacherIds([...selectedTeacherIds, t.id]);
-                            else setSelectedTeacherIds(selectedTeacherIds.filter(id => id !== t.id));
-                          }} 
-                          className="w-4 h-4 text-accent-primary rounded border-border focus:ring-accent-primary cursor-pointer" />
-                        <span className="text-sm font-medium text-text-main">{t.full_name} <span className="text-xs text-text-muted">({t.department || 'No Dept'})</span></span>
-                      </label>
-                    ))
+                      .map((t) => (
+                        <label
+                          key={t.id}
+                          className="flex items-center gap-3 p-3 hover:bg-bg cursor-pointer border-b border-border last:border-0 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedTeacherIds.includes(t.id)}
+                            onChange={(e) => {
+                              if (e.target.checked)
+                                setSelectedTeacherIds([
+                                  ...selectedTeacherIds,
+                                  t.id,
+                                ]);
+                              else
+                                setSelectedTeacherIds(
+                                  selectedTeacherIds.filter(
+                                    (id) => id !== t.id,
+                                  ),
+                                );
+                            }}
+                            className="w-4 h-4 text-accent-primary rounded border-border focus:ring-accent-primary cursor-pointer"
+                          />
+                          <span className="text-sm font-medium text-text-main">
+                            {t.full_name}{" "}
+                            <span className="text-xs text-text-muted">
+                              ({t.department || "No Dept"})
+                            </span>
+                          </span>
+                        </label>
+                      ))
                   )}
                 </div>
                 <div className="flex justify-end gap-3 pt-2">
-                  <button type="button" onClick={() => setManageTeachersSubject(null)} className="px-4 py-2 bg-surface border border-border text-text-muted rounded-xl hover:bg-bg text-sm font-semibold transition-colors">Cancel</button>
-                  <button type="button" onClick={handleSaveSubjectTeachers} className="px-4 py-2 bg-accent-primary text-white rounded-xl hover:bg-accent-primary/80 text-sm font-semibold transition-colors shadow-sm">Save Teachers</button>
+                  <button
+                    type="button"
+                    onClick={() => setManageTeachersSubject(null)}
+                    className="px-4 py-2 bg-surface border border-border text-text-muted rounded-xl hover:bg-bg text-sm font-semibold transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveSubjectTeachers}
+                    className="px-4 py-2 bg-accent-primary text-white rounded-xl hover:bg-accent-primary/80 text-sm font-semibold transition-colors shadow-sm"
+                  >
+                    Save Teachers
+                  </button>
                 </div>
               </div>
             )}
@@ -847,51 +1142,93 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Instruction Preview Modal */}
       {showInstructionPreview && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4" onClick={() => setShowInstructionPreview(false)}>
-          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
+          onClick={() => setShowInstructionPreview(false)}
+        >
+          <div
+            className="bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="bg-accent-primary px-6 py-4 flex items-center justify-between shrink-0">
-              <span className="text-white font-bold">Exam Instructions Preview</span>
-              <button onClick={() => setShowInstructionPreview(false)} className="text-white/70 hover:text-white transition-colors">✕</button>
+              <span className="text-white font-bold">
+                Exam Instructions Preview
+              </span>
+              <button
+                onClick={() => setShowInstructionPreview(false)}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
             </div>
             <div className="p-6 overflow-y-auto bg-[#F9FAFB]">
-              <p className="text-sm text-text-muted mb-4 text-center font-medium">This is how the instructions will appear to the student in the exam app.</p>
-              
+              <p className="text-sm text-text-muted mb-4 text-center font-medium">
+                This is how the instructions will appear to the student in the
+                exam app.
+              </p>
+
               <div className="border border-[#E4E7EC] rounded-xl p-8 bg-surface shadow-sm max-w-2xl mx-auto">
                 <div className="border-l-4 border-[#008080] pl-3 mb-4">
-                  <h3 className="text-sm font-extrabold text-[#1D2939] uppercase tracking-wider">Important Instructions</h3>
+                  <h3 className="text-sm font-extrabold text-[#1D2939] uppercase tracking-wider">
+                    Important Instructions
+                  </h3>
                 </div>
                 <ul className="space-y-3">
                   {/* General Instructions */}
                   <li className="flex gap-3 text-sm text-[#667085] font-medium">
-                    <span className="text-accent-primary font-bold mt-0.5">▸</span>
-                    Do not refresh the page or close the application once the exam has started.
+                    <span className="text-accent-primary font-bold mt-0.5">
+                      ▸
+                    </span>
+                    Do not refresh the page or close the application once the
+                    exam has started.
                   </li>
                   <li className="flex gap-3 text-sm text-[#667085] font-medium">
-                    <span className="text-accent-primary font-bold mt-0.5">▸</span>
-                    The timer will run continuously. If you get disconnected, your time will keep running on the server.
+                    <span className="text-accent-primary font-bold mt-0.5">
+                      ▸
+                    </span>
+                    The timer will run continuously. If you get disconnected,
+                    your time will keep running on the server.
                   </li>
                   <li className="flex gap-3 text-sm text-[#667085] font-medium">
-                    <span className="text-accent-primary font-bold mt-0.5">▸</span>
+                    <span className="text-accent-primary font-bold mt-0.5">
+                      ▸
+                    </span>
                     Your answers are automatically saved as you select them.
                   </li>
                   <li className="flex gap-3 text-sm text-[#667085] font-medium">
-                    <span className="text-accent-primary font-bold mt-0.5">▸</span>
-                    Once the exam end time is reached, it will be automatically submitted regardless of your progress.
+                    <span className="text-accent-primary font-bold mt-0.5">
+                      ▸
+                    </span>
+                    Once the exam end time is reached, it will be automatically
+                    submitted regardless of your progress.
                   </li>
 
                   {/* Custom Exam-Specific Instructions */}
-                  {instructionsList.filter(i => i.trim() !== '').map((inst, idx) => (
-                    <li key={idx} className="flex gap-3 text-sm text-[#667085] font-medium bg-emerald-50/50 p-2 -mx-2 rounded border border-dashed border-emerald-100">
-                      <span className="text-accent-primary font-bold mt-0.5">▸</span>
-                      {inst}
-                      <span className="ml-auto text-[10px] uppercase font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded tracking-wider self-start shrink-0">Your Addition</span>
-                    </li>
-                  ))}
+                  {instructionsList
+                    .filter((i) => i.trim() !== "")
+                    .map((inst, idx) => (
+                      <li
+                        key={idx}
+                        className="flex gap-3 text-sm text-[#667085] font-medium bg-emerald-50/50 p-2 -mx-2 rounded border border-dashed border-emerald-100"
+                      >
+                        <span className="text-accent-primary font-bold mt-0.5">
+                          ▸
+                        </span>
+                        {inst}
+                        <span className="ml-auto text-[10px] uppercase font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded tracking-wider self-start shrink-0">
+                          Your Addition
+                        </span>
+                      </li>
+                    ))}
                 </ul>
               </div>
             </div>
             <div className="px-6 py-4 border-t border-border shrink-0 flex justify-end">
-              <button type="button" onClick={() => setShowInstructionPreview(false)} className="px-6 py-2.5 bg-accent-primary text-white font-semibold rounded-xl hover:bg-accent-primary/80 text-sm transition-colors shadow-sm">
+              <button
+                type="button"
+                onClick={() => setShowInstructionPreview(false)}
+                className="px-6 py-2.5 bg-accent-primary text-white font-semibold rounded-xl hover:bg-accent-primary/80 text-sm transition-colors shadow-sm"
+              >
                 Close Preview
               </button>
             </div>
@@ -901,192 +1238,295 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Add Student Modal */}
       {showAddStudentModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setShowAddStudentModal(false); setAddError(''); setAddSuccess(''); setAddMode('link'); setLinkCopied(false); setSearchQuery(''); }}>
-          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setShowAddStudentModal(false);
+            setAddError("");
+            setAddSuccess("");
+            setAddMode("link");
+            setLinkCopied(false);
+            setSearchQuery("");
+          }}
+        >
+          <div
+            className="bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
               <span className="text-white font-bold">Add Students to Exam</span>
-              <button onClick={() => { setShowAddStudentModal(false); setAddError(''); setAddSuccess(''); setAddMode('link'); setLinkCopied(false); setSearchQuery(''); }} className="text-white/70 hover:text-white transition-colors">✕</button>
+              <button
+                onClick={() => {
+                  setShowAddStudentModal(false);
+                  setAddError("");
+                  setAddSuccess("");
+                  setAddMode("link");
+                  setLinkCopied(false);
+                  setSearchQuery("");
+                }}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
             </div>
 
             <div className="p-6 h-[550px] flex flex-col">
               {/* Tabs */}
               <div className="flex bg-bg rounded-xl p-1 mb-6 border border-border shrink-0">
                 <button
-                  onClick={() => { setAddMode('link'); setAddError(''); setAddSuccess(''); }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === 'link' ? 'bg-surface text-accent-primary shadow-sm' : 'text-text-muted hover:text-text-main'}`}
+                  onClick={() => {
+                    setAddMode("link");
+                    setAddError("");
+                    setAddSuccess("");
+                  }}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "link" ? "bg-surface text-accent-primary shadow-sm" : "text-text-muted hover:text-text-main"}`}
                 >
                   Share Link
                 </button>
                 <button
-                  onClick={() => { setAddMode('search'); setAddError(''); setAddSuccess(''); }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === 'search' || addMode === 'create' ? 'bg-surface text-accent-primary shadow-sm' : 'text-text-muted hover:text-text-main'}`}
+                  onClick={() => {
+                    setAddMode("search");
+                    setAddError("");
+                    setAddSuccess("");
+                  }}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "search" || addMode === "create" ? "bg-surface text-accent-primary shadow-sm" : "text-text-muted hover:text-text-main"}`}
                 >
                   Search & Add
                 </button>
                 <button
-                  onClick={() => { setAddMode('csv'); setAddError(''); setAddSuccess(''); }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === 'csv' ? 'bg-surface text-accent-primary shadow-sm' : 'text-text-muted hover:text-text-main'}`}
+                  onClick={() => {
+                    setAddMode("csv");
+                    setAddError("");
+                    setAddSuccess("");
+                  }}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "csv" ? "bg-surface text-accent-primary shadow-sm" : "text-text-muted hover:text-text-main"}`}
                 >
                   Import CSV
                 </button>
               </div>
 
-              {addSuccess && <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-emerald-600 text-sm font-medium mb-6">{addSuccess}</div>}
-              {addError && <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-red-600 text-sm font-medium mb-6 flex items-center gap-2"><AlertCircle size={16}/> {addError}</div>}
+              {addSuccess && (
+                <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-emerald-600 text-sm font-medium mb-6">
+                  {addSuccess}
+                </div>
+              )}
+              {addError && (
+                <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-red-600 text-sm font-medium mb-6 flex items-center gap-2">
+                  <AlertCircle size={16} /> {addError}
+                </div>
+              )}
 
-              {addMode === 'link' ? (
+              {addMode === "link" ? (
                 <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar flex flex-col">
                   <div className="bg-surface border border-border rounded-xl p-6">
-                    <Globe size={32} className="mx-auto text-accent-primary mb-3" />
-                    <p className="text-text-main text-base font-bold text-center mb-2">Public Registration Link</p>
-                    <p className="text-text-muted text-sm font-medium text-center mb-5">Share this link with students. They will be automatically added to this exam upon completing the form.</p>
-                    
+                    <Globe
+                      size={32}
+                      className="mx-auto text-accent-primary mb-3"
+                    />
+                    <p className="text-text-main text-base font-bold text-center mb-2">
+                      Public Registration Link
+                    </p>
+                    <p className="text-text-muted text-sm font-medium text-center mb-5">
+                      Share this link with students. They will be automatically
+                      added to this exam upon completing the form.
+                    </p>
+
                     <div className="bg-bg border border-border p-4 rounded-xl mb-5 space-y-3">
-                      <p className="text-xs font-bold text-accent-primary uppercase tracking-wider mb-2">Optional: Pre-fill Student Details</p>
+                      <p className="text-xs font-bold text-accent-primary uppercase tracking-wider mb-2">
+                        Optional: Pre-fill Student Details
+                      </p>
                       <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Course</label>
-                          <CustomCombobox 
-                            value={linkCourse} 
-                            onChange={setLinkCourse} 
-                            options={uniqueCourses as string[]} 
+                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                            Course
+                          </label>
+                          <CustomCombobox
+                            value={linkCourse}
+                            onChange={setLinkCourse}
+                            options={uniqueCourses as string[]}
                             placeholder="e.g. NEET"
-                            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary" 
+                            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Batch</label>
-                          <CustomCombobox 
-                            value={linkBatch} 
-                            onChange={setLinkBatch} 
-                            options={uniqueBatches as string[]} 
+                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                            Batch
+                          </label>
+                          <CustomCombobox
+                            value={linkBatch}
+                            onChange={setLinkBatch}
+                            options={uniqueBatches as string[]}
                             placeholder="e.g. Morning"
-                            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary" 
+                            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Session</label>
-                          <CustomCombobox 
-                            value={linkSession} 
-                            onChange={setLinkSession} 
-                            options={uniqueSessions as string[]} 
+                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                            Session
+                          </label>
+                          <CustomCombobox
+                            value={linkSession}
+                            onChange={setLinkSession}
+                            options={uniqueSessions as string[]}
                             placeholder="e.g. 2024-25"
-                            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary" 
+                            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
                           />
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <input 
-                        type="text" 
-                        readOnly 
-                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ''}`}
-                        className="flex-1 px-4 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-muted font-mono focus:outline-none truncate" 
+                      <input
+                        type="text"
+                        readOnly
+                        value={`${typeof window !== "undefined" ? window.location.origin : ""}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`}
+                        className="flex-1 px-4 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-muted font-mono focus:outline-none truncate"
                       />
-                      <button 
+                      <button
                         onClick={() => {
-                          const url = `${window.location.origin}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ''}`;
+                          const url = `${window.location.origin}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`;
                           navigator.clipboard.writeText(url);
                           setLinkCopied(true);
                           setTimeout(() => setLinkCopied(false), 2000);
                         }}
                         className="px-4 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5"
                       >
-                        <CopyIcon size={16}/>
-                        {linkCopied ? 'Copied!' : 'Copy'}
+                        <CopyIcon size={16} />
+                        {linkCopied ? "Copied!" : "Copy"}
                       </button>
                     </div>
                   </div>
                   <div className="flex gap-3 pt-2 mt-auto">
-                    <button type="button" onClick={() => { setShowAddStudentModal(false); setAddError(''); setSearchQuery(''); }} className="flex-1 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddStudentModal(false);
+                        setAddError("");
+                        setSearchQuery("");
+                      }}
+                      className="flex-1 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors"
+                    >
                       Close
                     </button>
                   </div>
                 </div>
-              ) : addMode === 'search' ? (
+              ) : addMode === "search" ? (
                 <div className="space-y-4 flex-1 flex flex-col overflow-hidden">
                   <div className="flex flex-col gap-3 shrink-0">
-                    <input 
-                      type="text" 
-                      value={searchQuery} 
-                      onChange={e => setSearchQuery(e.target.value)} 
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search by name or roll number..."
                       className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
                     />
                     <div className="flex gap-2">
                       <select
                         value={filterCourse}
-                        onChange={e => setFilterCourse(e.target.value)}
+                        onChange={(e) => setFilterCourse(e.target.value)}
                         className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary"
                       >
                         <option value="">All Courses</option>
-                        {uniqueCourses.map((c: any) => <option key={c} value={c}>{c}</option>)}
+                        {uniqueCourses.map((c: any) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
                       </select>
                       <select
                         value={filterBatch}
-                        onChange={e => setFilterBatch(e.target.value)}
+                        onChange={(e) => setFilterBatch(e.target.value)}
                         className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary"
                       >
                         <option value="">All Batches</option>
-                        {uniqueBatches.map((b: any) => <option key={b} value={b}>{b}</option>)}
+                        {uniqueBatches.map((b: any) => (
+                          <option key={b} value={b}>
+                            {b}
+                          </option>
+                        ))}
                       </select>
                       <select
                         value={filterSession}
-                        onChange={e => setFilterSession(e.target.value)}
+                        onChange={(e) => setFilterSession(e.target.value)}
                         className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary"
                       >
                         <option value="">All Sessions</option>
-                        {uniqueSessions.map((s: any) => <option key={s} value={s}>{s}</option>)}
+                        {uniqueSessions.map((s: any) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
                       </select>
                     </div>
                   </div>
-                  
+
                   {filteredStudents.length > 0 && (
                     <div className="flex justify-between items-center px-1 shrink-0">
                       <div className="text-xs font-semibold text-text-muted">
                         {selectedStudents.length} selected
                       </div>
                       <div className="flex gap-3">
-                        <button 
+                        <button
                           onClick={() => {
-                            if (selectedStudents.length === filteredStudents.length) {
+                            if (
+                              selectedStudents.length ===
+                              filteredStudents.length
+                            ) {
                               setSelectedStudents([]);
                             } else {
-                              setSelectedStudents(filteredStudents.map(s => s.id));
+                              setSelectedStudents(
+                                filteredStudents.map((s) => s.id),
+                              );
                             }
                           }}
                           className="text-accent-primary text-xs font-bold hover:underline"
                         >
-                          {selectedStudents.length === filteredStudents.length ? 'Deselect All' : 'Select All'}
+                          {selectedStudents.length === filteredStudents.length
+                            ? "Deselect All"
+                            : "Select All"}
                         </button>
                       </div>
                     </div>
                   )}
 
                   <div className="flex-1 overflow-y-auto border border-border rounded-xl divide-y divide-[#e0f2f2] custom-scrollbar">
-                    {filteredStudents.map(student => (
-                      <div key={student.id} className="p-3 flex justify-between items-center hover:bg-bg transition-colors cursor-pointer" onClick={() => {
-                        setSelectedStudents(prev => 
-                          prev.includes(student.id) 
-                            ? prev.filter(id => id !== student.id)
-                            : [...prev, student.id]
-                        );
-                      }}>
+                    {filteredStudents.map((student) => (
+                      <div
+                        key={student.id}
+                        className="p-3 flex justify-between items-center hover:bg-bg transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedStudents((prev) =>
+                            prev.includes(student.id)
+                              ? prev.filter((id) => id !== student.id)
+                              : [...prev, student.id],
+                          );
+                        }}
+                      >
                         <div className="flex items-center gap-3">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={selectedStudents.includes(student.id)}
-                            onChange={() => {}} 
+                            onChange={() => {}}
                             className="w-4 h-4 text-accent-primary border-border rounded focus:ring-accent-primary cursor-pointer"
                           />
                           <div>
-                            <p className="font-semibold text-text-main text-sm">{student.full_name}</p>
-                            <p className="text-xs font-mono text-accent-primary mt-0.5">Roll: {student.roll_number} <span className="text-text-muted px-1">•</span> <span className="text-gray-500 font-sans">{student.course} ({student.batch})</span></p>
+                            <p className="font-semibold text-text-main text-sm">
+                              {student.full_name}
+                            </p>
+                            <p className="text-xs font-mono text-accent-primary mt-0.5">
+                              Roll: {student.roll_number}{" "}
+                              <span className="text-text-muted px-1">•</span>{" "}
+                              <span className="text-gray-500 font-sans">
+                                {student.course} ({student.batch})
+                              </span>
+                            </p>
                           </div>
                         </div>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleAssignExisting(student.id); }} 
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAssignExisting(student.id);
+                          }}
                           className="px-4 py-2 bg-surface-hover text-accent-primary hover:bg-accent-primary hover:text-white rounded-lg text-xs font-bold uppercase tracking-wide transition-colors"
                         >
                           Assign
@@ -1095,13 +1535,15 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     ))}
                     {filteredStudents.length === 0 && (
                       <div className="p-6 text-center">
-                        <p className="text-sm font-medium text-text-muted">No available students found.</p>
+                        <p className="text-sm font-medium text-text-muted">
+                          No available students found.
+                        </p>
                       </div>
                     )}
                   </div>
-                  
+
                   {selectedStudents.length > 0 && (
-                    <button 
+                    <button
                       onClick={handleBulkAssign}
                       disabled={bulkAssigning}
                       className="w-full py-3 mt-2 shrink-0 bg-accent-primary hover:bg-accent-primary/80 text-white font-bold rounded-xl shadow-lg shadow-accent-primary/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -1109,90 +1551,145 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       {bulkAssigning ? (
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       ) : (
-                        `Assign ${selectedStudents.length} Selected Student${selectedStudents.length !== 1 ? 's' : ''}`
+                        `Assign ${selectedStudents.length} Selected Student${selectedStudents.length !== 1 ? "s" : ""}`
                       )}
                     </button>
                   )}
 
                   <div className="pt-2 text-center shrink-0">
-                    <p className="text-sm font-medium text-text-muted">Can't find the student?</p>
-                    <button 
-                      type="button" 
-                      onClick={() => { setAddMode('create'); setAddError(''); setAddSuccess(''); }} 
+                    <p className="text-sm font-medium text-text-muted">
+                      Can't find the student?
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddMode("create");
+                        setAddError("");
+                        setAddSuccess("");
+                      }}
                       className="mt-2 text-accent-primary font-bold text-sm hover:underline"
                     >
                       Create New Student
                     </button>
                   </div>
                 </div>
-              ) : addMode === 'create' ? (
-                <form onSubmit={handleAddStudent} className="space-y-4 flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+              ) : addMode === "create" ? (
+                <form
+                  onSubmit={handleAddStudent}
+                  className="space-y-4 flex-1 flex flex-col overflow-y-auto custom-scrollbar"
+                >
                   <div className="flex justify-between items-center mb-4">
-                    <h4 className="text-text-main font-bold text-sm">Create New Student</h4>
-                    <button 
-                      type="button" 
-                      onClick={() => { setAddMode('search'); setAddError(''); setAddSuccess(''); }} 
+                    <h4 className="text-text-main font-bold text-sm">
+                      Create New Student
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddMode("search");
+                        setAddError("");
+                        setAddSuccess("");
+                      }}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-bg text-accent-primary hover:bg-surface-hover hover:text-[#006666] rounded-lg text-xs font-bold transition-colors border border-border"
                     >
                       <ArrowLeft size={14} /> Back
                     </button>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1.5">Full Name</label>
-                    <input type="text" value={newName} onChange={e => setNewName(e.target.value)} required
+                    <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      required
                       placeholder="Aarav Patel"
-                      className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all" />
+                      className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1.5">Roll Number</label>
-                    <input type="text" value={newRoll} onChange={e => setNewRoll(e.target.value)} required
+                    <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                      Roll Number
+                    </label>
+                    <input
+                      type="text"
+                      value={newRoll}
+                      onChange={(e) => setNewRoll(e.target.value)}
+                      required
                       placeholder="2024001"
-                      className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all" />
+                      className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1.5">Date of Birth <span className="text-text-muted font-normal">(password = DDMMYYYY)</span></label>
-                    <input type="date" value={newDob} onChange={e => setNewDob(e.target.value)} required
-                      className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all" />
+                    <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                      Date of Birth{" "}
+                      <span className="text-text-muted font-normal">
+                        (password = DDMMYYYY)
+                      </span>
+                    </label>
+                    <input
+                      type="date"
+                      value={newDob}
+                      onChange={(e) => setNewDob(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
+                    />
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-text-muted mb-1.5">Course</label>
-                      <CustomCombobox 
-                        value={newCourse} 
-                        onChange={setNewCourse} 
-                        options={uniqueCourses as string[]} 
+                      <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                        Course
+                      </label>
+                      <CustomCombobox
+                        value={newCourse}
+                        onChange={setNewCourse}
+                        options={uniqueCourses as string[]}
                         placeholder="e.g. NEET"
-                        className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all" 
+                        className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-text-muted mb-1.5">Batch</label>
-                      <CustomCombobox 
-                        value={newBatch} 
-                        onChange={setNewBatch} 
-                        options={uniqueBatches as string[]} 
+                      <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                        Batch
+                      </label>
+                      <CustomCombobox
+                        value={newBatch}
+                        onChange={setNewBatch}
+                        options={uniqueBatches as string[]}
                         placeholder="e.g. Morning"
-                        className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all" 
+                        className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-text-muted mb-1.5">Session</label>
-                      <CustomCombobox 
-                        value={newSession} 
-                        onChange={setNewSession} 
-                        options={uniqueSessions as string[]} 
+                      <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                        Session
+                      </label>
+                      <CustomCombobox
+                        value={newSession}
+                        onChange={setNewSession}
+                        options={uniqueSessions as string[]}
                         placeholder="e.g. 2024-25"
-                        className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all" 
+                        className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
                       />
                     </div>
                   </div>
                   <div className="flex gap-3 pt-4">
-                    <button type="submit" disabled={addingStudent}
-                      className="flex-1 py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl disabled:opacity-50 text-sm transition-colors shadow-sm shadow-accent-primary/20">
-                      {addingStudent ? 'Creating...' : 'Create & Assign'}
+                    <button
+                      type="submit"
+                      disabled={addingStudent}
+                      className="flex-1 py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl disabled:opacity-50 text-sm transition-colors shadow-sm shadow-accent-primary/20"
+                    >
+                      {addingStudent ? "Creating..." : "Create & Assign"}
                     </button>
-                    <button type="button" onClick={() => { setShowAddStudentModal(false); setAddError(''); setSearchQuery(''); }}
-                      className="px-6 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddStudentModal(false);
+                        setAddError("");
+                        setSearchQuery("");
+                      }}
+                      className="px-6 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors"
+                    >
                       Cancel
                     </button>
                   </div>
@@ -1201,29 +1698,53 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 <form onSubmit={handleCsvImport} className="space-y-4">
                   <div className="bg-bg border border-border rounded-xl p-5">
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-text-main text-sm font-bold">CSV Format:</p>
-                      <button type="button" onClick={handleDownloadCsvTemplate} className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-primary hover:underline bg-surface px-2 py-1 rounded border border-accent-primary/20 shadow-sm hover:bg-surface-hover transition-colors">
+                      <p className="text-text-main text-sm font-bold">
+                        CSV Format:
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleDownloadCsvTemplate}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-primary hover:underline bg-surface px-2 py-1 rounded border border-accent-primary/20 shadow-sm hover:bg-surface-hover transition-colors"
+                      >
                         <Download size={12} /> Download Template
                       </button>
                     </div>
                     <code className="text-xs text-accent-primary bg-surface px-4 py-3 block border border-border rounded-lg font-mono overflow-x-auto whitespace-nowrap">
-                      name, roll_number, dob, course, batch, session<br />
-                      Aarav Patel, 2024001, 15/06/2005, NEET, Morning, 2024-25<br />
+                      name, roll_number, dob, course, batch, session
+                      <br />
+                      Aarav Patel, 2024001, 15/06/2005, NEET, Morning, 2024-25
+                      <br />
                       Priya Singh, 2024002, 22/03/2005, JEE, Evening, 2024-25
                     </code>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1.5">Select CSV File</label>
-                    <input type="file" accept=".csv,.txt" required onChange={e => setCsvFile(e.target.files?.[0] || null)}
-                      className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main file:mr-4 file:py-2 file:px-4 file:border-0 file:rounded-lg file:bg-accent-primary/10 file:text-accent-primary file:font-semibold hover:file:bg-accent-primary/20 transition-all text-sm" />
+                    <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                      Select CSV File
+                    </label>
+                    <input
+                      type="file"
+                      accept=".csv,.txt"
+                      required
+                      onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                      className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main file:mr-4 file:py-2 file:px-4 file:border-0 file:rounded-lg file:bg-accent-primary/10 file:text-accent-primary file:font-semibold hover:file:bg-accent-primary/20 transition-all text-sm"
+                    />
                   </div>
                   <div className="flex gap-3 pt-4">
-                    <button type="submit" disabled={addingStudent || !csvFile}
-                      className="flex-1 py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl disabled:opacity-50 text-sm transition-colors shadow-sm shadow-accent-primary/20">
-                      {addingStudent ? 'Importing...' : 'Import CSV'}
+                    <button
+                      type="submit"
+                      disabled={addingStudent || !csvFile}
+                      className="flex-1 py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl disabled:opacity-50 text-sm transition-colors shadow-sm shadow-accent-primary/20"
+                    >
+                      {addingStudent ? "Importing..." : "Import CSV"}
                     </button>
-                    <button type="button" onClick={() => { setShowAddStudentModal(false); setAddError(''); }}
-                      className="px-6 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddStudentModal(false);
+                        setAddError("");
+                      }}
+                      className="px-6 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors"
+                    >
                       Cancel
                     </button>
                   </div>
@@ -1242,22 +1763,31 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertCircle size={24} className="text-red-500" />
               </div>
-              <h3 className="text-lg font-bold text-text-main mb-2">{confirmDialog.title}</h3>
-              <p className="text-text-muted text-sm font-medium mb-6">{confirmDialog.message}</p>
+              <h3 className="text-lg font-bold text-text-main mb-2">
+                {confirmDialog.title}
+              </h3>
+              <p className="text-text-muted text-sm font-medium mb-6">
+                {confirmDialog.message}
+              </p>
               <div className="flex gap-3">
-                <button 
-                  onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                <button
+                  onClick={() =>
+                    setConfirmDialog((prev) => ({ ...prev, isOpen: false }))
+                  }
                   className="flex-1 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   onClick={confirmDialog.onConfirm}
                   className={`flex-1 py-3 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm ${
-                    confirmDialog.confirmColor.includes('red') ? 'bg-red-500 hover:bg-red-600 shadow-red-500/20' : 
-                    confirmDialog.confirmColor.includes('orange') ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/20' : 
-                    confirmDialog.confirmColor.includes('amber') ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20' : 
-                    'bg-accent-primary hover:bg-accent-primary/80 shadow-accent-primary/20'
+                    confirmDialog.confirmColor.includes("red")
+                      ? "bg-red-500 hover:bg-red-600 shadow-red-500/20"
+                      : confirmDialog.confirmColor.includes("orange")
+                        ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
+                        : confirmDialog.confirmColor.includes("amber")
+                          ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
+                          : "bg-accent-primary hover:bg-accent-primary/80 shadow-accent-primary/20"
                   }`}
                 >
                   {confirmDialog.confirmText}
@@ -1274,24 +1804,56 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           <div className="bg-surface rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-accent-primary px-6 py-4 flex justify-between items-center">
               <h3 className="text-white font-bold">Add Subject</h3>
-              <button onClick={() => setShowAddSubjectModal(false)} className="text-white/70 hover:text-white">✕</button>
+              <button
+                onClick={() => setShowAddSubjectModal(false)}
+                className="text-white/70 hover:text-white"
+              >
+                ✕
+              </button>
             </div>
             <form onSubmit={handleAddSubject} className="p-6">
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-xs font-semibold text-text-muted mb-1.5">Subject Name</label>
-                  <input type="text" value={newSubject.name} onChange={(e) => setNewSubject({...newSubject, name: e.target.value})} required
+                  <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                    Subject Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newSubject.name}
+                    onChange={(e) =>
+                      setNewSubject({ ...newSubject, name: e.target.value })
+                    }
+                    required
                     className="w-full px-4 py-2.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium"
-                    placeholder="e.g. Physics" />
+                    placeholder="e.g. Physics"
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-text-muted mb-1.5">No. of Questions</label>
-                  <input type="number" value={newSubject.questionCount} onChange={(e) => setNewSubject({...newSubject, questionCount: Math.max(0, parseInt(e.target.value) || 0)})} min="0" required
-                    className="w-full px-4 py-2.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium" />
+                  <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                    No. of Questions
+                  </label>
+                  <input
+                    type="number"
+                    value={newSubject.questionCount}
+                    onChange={(e) =>
+                      setNewSubject({
+                        ...newSubject,
+                        questionCount: Math.max(
+                          0,
+                          parseInt(e.target.value) || 0,
+                        ),
+                      })
+                    }
+                    min="0"
+                    required
+                    className="w-full px-4 py-2.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium"
+                  />
                 </div>
               </div>
               <div className="mb-6">
-                <label className="block text-xs font-semibold text-text-muted mb-2">Assign Teachers</label>
+                <label className="block text-xs font-semibold text-text-muted mb-2">
+                  Assign Teachers
+                </label>
                 <input
                   type="text"
                   placeholder="Search teachers..."
@@ -1302,32 +1864,55 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 <div className="max-h-60 overflow-y-auto border border-border rounded-lg custom-scrollbar">
                   {teachers.length === 0 ? (
                     <div className="p-6 text-center">
-                      <p className="text-text-muted text-sm font-medium">No teachers available.</p>
+                      <p className="text-text-muted text-sm font-medium">
+                        No teachers available.
+                      </p>
                     </div>
                   ) : (
                     teachers
-                      .filter(t => 
-                        t.full_name.toLowerCase().includes(newSubjectTeacherSearch.toLowerCase()) ||
-                        (t.department || '').toLowerCase().includes(newSubjectTeacherSearch.toLowerCase())
+                      .filter(
+                        (t) =>
+                          t.full_name
+                            .toLowerCase()
+                            .includes(newSubjectTeacherSearch.toLowerCase()) ||
+                          (t.department || "")
+                            .toLowerCase()
+                            .includes(newSubjectTeacherSearch.toLowerCase()),
                       )
-                      .map(t => (
-                      <label key={t.id} className="flex items-center gap-3 p-3 hover:bg-bg cursor-pointer border-b border-border last:border-0 transition-colors">
-                        <input type="checkbox" checked={newSubject.teacherIds.includes(t.id)} 
-                          onChange={() => toggleNewSubjectTeacher(t.id)} 
-                          className="w-4 h-4 text-accent-primary rounded border-border focus:ring-accent-primary cursor-pointer" />
-                        <span className="text-sm font-medium text-text-main">{t.full_name} <span className="text-xs text-text-muted">({t.department || 'No Dept'})</span></span>
-                      </label>
-                    ))
+                      .map((t) => (
+                        <label
+                          key={t.id}
+                          className="flex items-center gap-3 p-3 hover:bg-bg cursor-pointer border-b border-border last:border-0 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={newSubject.teacherIds.includes(t.id)}
+                            onChange={() => toggleNewSubjectTeacher(t.id)}
+                            className="w-4 h-4 text-accent-primary rounded border-border focus:ring-accent-primary cursor-pointer"
+                          />
+                          <span className="text-sm font-medium text-text-main">
+                            {t.full_name}{" "}
+                            <span className="text-xs text-text-muted">
+                              ({t.department || "No Dept"})
+                            </span>
+                          </span>
+                        </label>
+                      ))
                   )}
                 </div>
               </div>
               <div className="flex justify-end gap-3">
-                <button type="button" onClick={() => setShowAddSubjectModal(false)}
-                  className="px-5 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setShowAddSubjectModal(false)}
+                  className="px-5 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors"
+                >
                   Cancel
                 </button>
-                <button type="submit"
-                  className="px-5 py-2.5 bg-accent-primary text-white font-semibold rounded-xl hover:bg-accent-primary/80 text-sm transition-colors shadow-sm">
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-accent-primary text-white font-semibold rounded-xl hover:bg-accent-primary/80 text-sm transition-colors shadow-sm"
+                >
                   Add Subject
                 </button>
               </div>
@@ -1342,7 +1927,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           <div className="bg-surface rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
               <span className="text-white font-bold">Crop Image</span>
-              <button type="button" onClick={() => setRawImageToCrop(null)} className="text-white/70 hover:text-white transition-colors">✕</button>
+              <button
+                type="button"
+                onClick={() => setRawImageToCrop(null)}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
             </div>
             <div className="p-6 flex-1 overflow-auto bg-bg flex justify-center items-center">
               <ReactCrop
@@ -1360,19 +1951,24 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </ReactCrop>
             </div>
             <div className="p-6 border-t border-border bg-surface flex justify-end gap-3">
-              <button type="button" onClick={() => setRawImageToCrop(null)}
-                className="px-5 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors">
+              <button
+                type="button"
+                onClick={() => setRawImageToCrop(null)}
+                className="px-5 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors"
+              >
                 Cancel
               </button>
-              <button type="button" onClick={handleCropAndSave}
-                className="px-5 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm">
+              <button
+                type="button"
+                onClick={handleCropAndSave}
+                className="px-5 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm"
+              >
                 Crop & Apply
               </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

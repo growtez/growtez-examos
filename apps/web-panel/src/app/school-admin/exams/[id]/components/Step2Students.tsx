@@ -66,38 +66,9 @@ export default function Step2Students({
 
   return (
     <div className="bg-surface border border-border rounded-2xl p-6 mb-6 shadow-sm">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <div>
-          <h3 className="text-lg font-bold text-text-main">Students ({assignedStudents.length})</h3>
-          <p className="text-text-muted text-sm font-medium mt-1">Students are specific to this exam</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {!isExamOver && role !== 'teacher' && (
-            <>
-              <button
-                onClick={() => { setShowAddStudentModal(true); setAddMode('link'); setAddError(''); setAddSuccess(''); }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent-primary text-white text-sm font-semibold rounded-xl hover:bg-accent-primary/80 hover:shadow-lg hover:shadow-accent-primary/30 transition-all active:scale-95"
-              >
-                <Link2 size={16} />
-                Share Link
-              </button>
-              <button
-                onClick={() => { setShowAddStudentModal(true); setAddMode('search'); setAddError(''); setAddSuccess(''); }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-surface text-text-main text-sm font-semibold border border-border rounded-xl hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
-              >
-                <Plus size={16} />
-                Add Student
-              </button>
-              <button
-                onClick={() => { setShowAddStudentModal(true); setAddMode('csv'); setAddError(''); setAddSuccess(''); }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-surface text-text-main text-sm font-semibold border border-border rounded-xl hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
-              >
-                <Plus size={16} />
-                Import CSV
-              </button>
-            </>
-          )}
-        </div>
+      <div className="mb-6">
+        <h3 className="text-lg font-bold text-text-main">Students ({assignedStudents.length})</h3>
+        <p className="text-text-muted text-sm font-medium mt-1">Students are specific to this exam</p>
       </div>
 
       {addSuccess && <div className="bg-emerald-50 text-emerald-600 border border-emerald-200 p-4 rounded-xl text-sm font-medium mb-6">{addSuccess}</div>}
