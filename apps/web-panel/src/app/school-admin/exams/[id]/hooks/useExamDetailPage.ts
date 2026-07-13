@@ -169,10 +169,38 @@ export function useExamDetailPage(paramsId: string) {
     setDrawerSubjectId(subjectId);
     setDrawerView('list');
     setEditingQuestionId(null);
-    setQType('mcq'); setQText(''); setQImage(null);
-    setOptA(''); setOptAImg(null); setOptB(''); setOptBImg(null);
-    setOptC(''); setOptCImg(null); setOptD(''); setOptDImg(null);
-    setCorrectAnswer('A'); setNatAnswer(''); setDrawerError('');
+    
+    // Load draft from localStorage if one exists
+    if (typeof window !== 'undefined') {
+      const key = `exam-question-draft-${paramsId}-${subjectId}`;
+      const saved = window.localStorage.getItem(key);
+      if (saved) {
+        try {
+          const draft = JSON.parse(saved);
+          setQType(draft.qType || 'mcq');
+          setQText(draft.qText || '');
+          setQImage(draft.qImage || null);
+          setOptA(draft.optA || '');
+          setOptAImg(draft.optAImg || null);
+          setOptB(draft.optB || '');
+          setOptBImg(draft.optBImg || null);
+          setOptC(draft.optC || '');
+          setOptCImg(draft.optCImg || null);
+          setOptD(draft.optD || '');
+          setOptDImg(draft.optDImg || null);
+          setCorrectAnswer(draft.correctAnswer || 'A');
+          setNatAnswer(draft.natAnswer || '');
+          setDrawerError('');
+        } catch (e) {
+          console.error('Failed to parse draft', e);
+          clearDraft();
+        }
+      } else {
+        clearDraft();
+      }
+    } else {
+      clearDraft();
+    }
     
     setDrawerLoading(true);
     const { data } = await supabase
@@ -191,14 +219,108 @@ export function useExamDetailPage(paramsId: string) {
     setQuestionCounts(prev => ({ ...prev, [drawerSubjectId]: data?.length || 0 }));
   };
 
-  const handleDrawerNewQuestion = () => {
+  const clearDraft = () => {
     setEditingQuestionId(null);
     setQType('mcq'); setQText(''); setQImage(null);
     setOptA(''); setOptAImg(null); setOptB(''); setOptBImg(null);
     setOptC(''); setOptCImg(null); setOptD(''); setOptDImg(null);
     setCorrectAnswer('A'); setNatAnswer(''); setDrawerError('');
-    setDrawerView('editor');
+    if (typeof window !== 'undefined' && drawerSubjectId) {
+      window.localStorage.removeItem(`exam-question-draft-${paramsId}-${drawerSubjectId}`);
+    }
   };
+
+  const handleDrawerCancel = () => {
+    clearDraft();
+    setDrawerView('list');
+  };
+
+  const handleDrawerNewQuestion = () => {
+    setEditingQuestionId(null);
+    setDrawerView('editor');
+    
+    // Load draft if one exists
+    if (typeof window !== 'undefined' && drawerSubjectId) {
+      const key = `exam-question-draft-${paramsId}-${drawerSubjectId}`;
+      const saved = window.localStorage.getItem(key);
+      if (saved) {
+        try {
+          const draft = JSON.parse(saved);
+          setQType(draft.qType || 'mcq');
+          setQText(draft.qText || '');
+          setQImage(draft.qImage || null);
+          setOptA(draft.optA || '');
+          setOptAImg(draft.optAImg || null);
+          setOptB(draft.optB || '');
+          setOptBImg(draft.optBImg || null);
+          setOptC(draft.optC || '');
+          setOptCImg(draft.optCImg || null);
+          setOptD(draft.optD || '');
+          setOptDImg(draft.optDImg || null);
+          setCorrectAnswer(draft.correctAnswer || 'A');
+          setNatAnswer(draft.natAnswer || '');
+          setDrawerError('');
+          return;
+        } catch (e) {
+          console.error('Failed to parse draft on new question', e);
+        }
+      }
+    }
+    clearDraft();
+  };
+
+  // Auto-save draft to localStorage whenever fields change
+  useEffect(() => {
+    if (typeof window === 'undefined' || !paramsId || !drawerSubjectId) return;
+    
+    // Only save draft if we are adding a question (not editing an existing one)
+    if (editingQuestionId === null) {
+      const draftData = {
+        qType,
+        qText,
+        qImage,
+        optA,
+        optAImg,
+        optB,
+        optBImg,
+        optC,
+        optCImg,
+        optD,
+        optDImg,
+        correctAnswer,
+        natAnswer,
+      };
+
+      const isDefault = qType === 'mcq' && qText === '' && qImage === null &&
+                        optA === '' && optAImg === null && optB === '' && optBImg === null &&
+                        optC === '' && optCImg === null && optD === '' && optDImg === null &&
+                        correctAnswer === 'A' && natAnswer === '';
+
+      const key = `exam-question-draft-${paramsId}-${drawerSubjectId}`;
+      if (isDefault) {
+        window.localStorage.removeItem(key);
+      } else {
+        window.localStorage.setItem(key, JSON.stringify(draftData));
+      }
+    }
+  }, [
+    paramsId,
+    drawerSubjectId,
+    editingQuestionId,
+    qType,
+    qText,
+    qImage,
+    optA,
+    optAImg,
+    optB,
+    optBImg,
+    optC,
+    optCImg,
+    optD,
+    optDImg,
+    correctAnswer,
+    natAnswer
+  ]);
 
   const doSaveQuestion = async (e: any, addAnother: boolean) => {
     e.preventDefault();
@@ -243,9 +365,10 @@ export function useExamDetailPage(paramsId: string) {
       }
 
       await fetchDrawerQuestions();
+      clearDraft();
       
       if (addAnother) {
-        handleDrawerNewQuestion();
+        setDrawerView('editor');
       } else {
         setDrawerView('list');
       }
@@ -1548,6 +1671,7 @@ export function useExamDetailPage(paramsId: string) {
     openManageQuestions,
     fetchDrawerQuestions,
     handleDrawerNewQuestion,
+    handleDrawerCancel,
     doSaveQuestion,
     handleDrawerEditQuestion,
     handleDrawerDeleteQuestion,

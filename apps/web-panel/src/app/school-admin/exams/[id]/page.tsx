@@ -281,6 +281,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     openManageQuestions,
     fetchDrawerQuestions,
     handleDrawerNewQuestion,
+    handleDrawerCancel,
     doSaveQuestion,
     handleDrawerEditQuestion,
     handleDrawerDeleteQuestion,
@@ -335,12 +336,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const displayStatus = isExamOver ? 'completed' : exam?.status || 'draft';
 
   return (
-    <div className="max-w-[1400px] animate-in fade-in slide-in-from-bottom-4 duration-500 mx-auto px-4 lg:px-8">
+    <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500 px-4 lg:px-8">
       
       {/* Title & Actions */}
-      <div className="mb-3 flex flex-col xl:flex-row xl:justify-between xl:items-start gap-4">
+      <div className="mb-2 flex flex-col xl:flex-row xl:justify-between xl:items-center gap-3">
         <div className="flex-1 min-w-0 xl:w-auto pr-0 xl:pr-8">
-          <div className="flex items-center gap-3 mb-2 min-w-0">
+          <div className="flex items-center gap-2 mb-1 min-w-0">
             <input 
               type="text"
               value={title}
@@ -352,7 +353,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               }}
               onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
               disabled={role === 'teacher' || exam?.status !== 'draft'}
-              className={`text-2xl font-bold text-text-main bg-transparent border-none outline-none rounded-lg px-2 -ml-2 transition-colors flex-1 min-w-0 truncate ${role !== 'teacher' && exam?.status === 'draft' ? 'hover:bg-surface-hover focus:ring-2 focus:ring-accent-primary/20 cursor-text' : 'cursor-default'}`}
+              className={`text-lg font-bold text-text-main bg-transparent border-none outline-none rounded-lg px-2 -ml-2 transition-colors flex-1 min-w-0 truncate ${role !== 'teacher' && exam?.status === 'draft' ? 'hover:bg-surface-hover focus:ring-2 focus:ring-accent-primary/20 cursor-text' : 'cursor-default'}`}
               placeholder="Exam Title"
             />
             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusColors[displayStatus] || statusColors.draft}`}>
@@ -449,9 +450,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Stepper Header */}
       {role !== 'teacher' && exam?.status === 'draft' && (
-        <div className="mb-4 flex items-center justify-between relative max-w-3xl mx-auto">
-          <div className="absolute left-0 top-5 -translate-y-1/2 w-full h-1 bg-border z-0 rounded-full"></div>
-          <div className="absolute left-0 top-5 -translate-y-1/2 h-1 bg-accent-primary z-0 rounded-full transition-all duration-300" style={{ width: `${((currentStep - 1) / 4) * 100}%` }}></div>
+        <div className="mb-3 flex items-center justify-between relative max-w-2xl mx-auto">
+          <div className="absolute left-0 top-4 -translate-y-1/2 w-full h-0.5 bg-border z-0 rounded-full"></div>
+          <div className="absolute left-0 top-4 -translate-y-1/2 h-0.5 bg-accent-primary z-0 rounded-full transition-all duration-300" style={{ width: `${((currentStep - 1) / 4) * 100}%` }}></div>
           
           {[
             { step: 1, label: 'Setup' },
@@ -460,17 +461,17 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             { step: 4, label: 'Schedule' },
             { step: 5, label: 'Publish' }
           ].map((s) => (
-            <div key={s.step} className="relative z-10 flex flex-col items-center gap-1.5">
+            <div key={s.step} className="relative z-10 flex flex-col items-center gap-1">
               <button 
                 onClick={() => handleSetStep(s.step)}
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 border-2
+                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 border-2
                   ${currentStep === s.step ? 'bg-accent-primary text-white border-[#008080] shadow-md shadow-accent-primary/30 scale-110' : 
                     canProceedToNextStep(s.step) ? 'bg-accent-primary text-white border-[#008080]' : 
                     'bg-surface text-text-muted border-border'}`}
               >
-                {currentStep !== s.step && canProceedToNextStep(s.step) ? <Check size={18} /> : s.step}
+                {currentStep !== s.step && canProceedToNextStep(s.step) ? <Check size={14} /> : s.step}
               </button>
-              <span className={`text-[10px] font-bold uppercase tracking-wider ${currentStep === s.step ? 'text-text-main' : canProceedToNextStep(s.step) ? 'text-accent-primary' : 'text-text-muted'}`}>
+              <span className={`text-[9px] font-bold uppercase tracking-wider ${currentStep === s.step ? 'text-text-main' : canProceedToNextStep(s.step) ? 'text-accent-primary' : 'text-text-muted'}`}>
                 {s.label}
               </span>
             </div>
@@ -478,7 +479,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      <div className={`grid grid-cols-1 ${role !== 'teacher' && exam?.status === 'draft' ? 'max-w-4xl mx-auto' : 'xl:grid-cols-3 gap-6 lg:gap-8'} mb-10`}>
+      <div className={`grid grid-cols-1 ${role !== 'teacher' && exam?.status === 'draft' ? '' : 'xl:grid-cols-3 gap-6 lg:gap-8'} mb-10`}>
         
         {/* Left Column (Main Content) */}
         <div className={`${role !== 'teacher' && exam?.status === 'draft' ? 'col-span-1' : 'xl:col-span-2'} space-y-6`}>
@@ -544,6 +545,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           setNatAnswer={setNatAnswer}
           openManageQuestions={openManageQuestions}
           handleDrawerNewQuestion={handleDrawerNewQuestion}
+          handleDrawerCancel={handleDrawerCancel}
           doSaveQuestion={doSaveQuestion}
           handleDrawerEditQuestion={handleDrawerEditQuestion}
           handleDrawerDeleteQuestion={handleDrawerDeleteQuestion}
@@ -1336,7 +1338,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Crop tool for the Manage Questions drawer */}
       {rawImageToCrop && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-[65] p-4 animate-in fade-in">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-[1100] p-4 animate-in fade-in">
           <div className="bg-surface rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
               <span className="text-white font-bold">Crop Image</span>
