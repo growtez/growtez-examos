@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 import Link from 'next/link';
-import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight, Layers } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight, Layers, Moon, Sun } from 'lucide-react';
 
 const navItems = [
   {
@@ -48,6 +48,65 @@ export default function SchoolAdminLayout({
   const [role, setRole] = useState<string | null>(null);
   const [schoolName, setSchoolName] = useState<string>('');
   const [breadcrumbNames, setBreadcrumbNames] = useState<Record<string, string>>({});
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem('theme') === 'dark') {
+      setIsDark(true);
+      document.documentElement.classList.add('dark');
+    } else {
+      setIsDark(false);
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const toggleDarkMode = (event: any) => {
+    const newDark = !isDark;
+
+    const updateTheme = () => {
+      if (newDark) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+        setIsDark(true);
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+        setIsDark(false);
+      }
+    };
+
+    if (!(document as any).startViewTransition) {
+      updateTheme();
+      return;
+    }
+
+    const x = event.clientX;
+    const y = event.clientY;
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    );
+
+    const transition = (document as any).startViewTransition(updateTheme);
+
+    transition.ready.then(() => {
+      const clipPath = [
+        `circle(0px at ${x}px ${y}px)`,
+        `circle(${endRadius}px at ${x}px ${y}px)`
+      ];
+
+      document.documentElement.animate(
+        {
+          clipPath: clipPath,
+        },
+        {
+          duration: 500,
+          easing: 'ease-out',
+          pseudoElement: '::view-transition-new(root)',
+        }
+      );
+    });
+  };
 
   useEffect(() => {
     const fetchBreadcrumbName = async () => {
@@ -180,7 +239,7 @@ export default function SchoolAdminLayout({
   const breadcrumbs = getBreadcrumbs();
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-[#f5f9f9]">
+    <div className="flex h-[100dvh] overflow-hidden bg-bg">
       {/* Mobile Backdrop */}
       <div 
         className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 md:hidden ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
@@ -188,23 +247,23 @@ export default function SchoolAdminLayout({
       />
 
       {/* Sidebar */}
-      <aside className={`fixed md:relative z-50 h-[100dvh] bg-[#1a2e2e] border-r border-[#243f3f] transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full md:translate-x-0 md:w-16'}`}>
+      <aside className={`fixed md:relative z-50 h-[100dvh] bg-sidebar-bg border-r border-sidebar-border transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full md:translate-x-0 md:w-16'}`}>
         
         {/* Desktop Toggle Button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="hidden md:flex absolute -right-3 top-5 w-6 h-6 bg-[#243f3f] rounded-full items-center justify-center text-[#8ab8b8] hover:text-white hover:bg-[#325252] transition-colors border border-[#1a2e2e] z-50 shadow-sm cursor-pointer"
+          className="hidden md:flex absolute -right-3 top-5 w-6 h-6 bg-sidebar-bg rounded-full items-center justify-center text-sidebar-text-muted hover:text-sidebar-text hover:bg-sidebar-hover transition-colors border border-sidebar-border z-50 shadow-sm cursor-pointer"
         >
           {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </button>
-        <div className="h-16 flex items-center px-4 border-b border-[#243f3f] flex-shrink-0">
+        <div className="h-16 flex items-center px-4 border-b border-sidebar-border flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-white flex items-center justify-center flex-shrink-0 rounded-lg shadow-sm">
+            <div className="w-9 h-9 bg-surface flex items-center justify-center flex-shrink-0 rounded-lg shadow-sm">
               <img src="/logo.png" alt="Growtez Logo" className="w-7 h-7 object-contain" />
             </div>
             {sidebarOpen && (
               <div className="overflow-hidden">
-                <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-white to-[#4da6a6] font-extrabold text-lg tracking-wide leading-tight truncate drop-shadow-sm" title="ParikshaOS">
+                <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-sidebar-text to-sidebar-text-muted font-extrabold text-lg tracking-wide leading-tight truncate drop-shadow-sm" title="ParikshaOS">
                   ParikshaOS
                 </h1>
               </div>
@@ -216,7 +275,7 @@ export default function SchoolAdminLayout({
           {!role ? (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="px-3 py-3 rounded-xl bg-[#243f3f]/30 animate-pulse h-11 w-full" />
+                <div key={i} className="px-3 py-3 rounded-xl bg-sidebar-hover animate-pulse h-11 w-full" />
               ))}
             </div>
           ) : (
@@ -226,8 +285,8 @@ export default function SchoolAdminLayout({
               }
               return true;
             }).map((item) => {
-            const activeClass = "bg-[#008080]/15 text-white rounded-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]";
-            const inactiveClass = "text-[#8ab8b8] hover:bg-[#243f3f]/50 hover:text-white rounded-xl transparent";
+            const activeClass = "bg-accent-primary/15 text-sidebar-text rounded-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]";
+            const inactiveClass = "text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text rounded-xl transparent";
             return (
               <Link
                 key={item.href}
@@ -241,7 +300,7 @@ export default function SchoolAdminLayout({
                   }
                 }}
               >
-                <div className={`transition-transform duration-200 ${isActive(item.href) ? 'text-[#00c8c8]' : 'text-[#8ab8b8] group-hover:text-white group-hover:scale-110'}`}>
+                <div className={`transition-transform duration-200 ${isActive(item.href) ? 'text-accent-secondary' : 'text-sidebar-text-muted group-hover:text-sidebar-text group-hover:scale-110'}`}>
                   {item.icon}
                 </div>
                 {sidebarOpen && item.label}
@@ -250,10 +309,18 @@ export default function SchoolAdminLayout({
           }))}
         </nav>
 
-        <div className="px-3 py-4 border-t border-[#243f3f]">
+        <div className="px-3 py-4 border-t border-sidebar-border">
+          <button
+            onClick={toggleDarkMode}
+            className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-sidebar-text-muted hover:text-sidebar-text hover:bg-sidebar-hover rounded-xl transition-all duration-200 w-full group mb-1"
+            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {isDark ? <Sun className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" /> : <Moon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />}
+            {sidebarOpen && (isDark ? 'Light Mode' : 'Dark Mode')}
+          </button>
           <button
             onClick={() => setShowSignoutConfirm(true)}
-            className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-[#8ab8b8] hover:text-[#ff6b6b] hover:bg-[#ff6b6b]/10 rounded-xl transition-all duration-200 w-full group"
+            className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-sidebar-text-muted hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all duration-200 w-full group"
           >
             <LogOut className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
             {sidebarOpen && 'Sign out'}
@@ -262,27 +329,27 @@ export default function SchoolAdminLayout({
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-[#e0f2f2] flex items-center justify-between px-6 shadow-sm sticky top-0 z-30">
+        <header className="h-16 bg-surface/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 shadow-sm sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-[#8ab8b8] hover:text-[#008080] hover:bg-[#e0f2f2] rounded-lg p-2 transition-colors md:hidden"
+              className="text-text-muted hover:text-accent-primary hover:bg-surface-hover rounded-lg p-2 transition-colors md:hidden"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="flex items-center text-sm md:text-base font-medium text-[#1a2e2e] overflow-hidden">
+            <div className="flex items-center text-sm md:text-base font-medium text-text-main overflow-hidden">
               {breadcrumbs.map((crumb, index) => {
                 const isLast = index === breadcrumbs.length - 1;
                 return (
                   <span key={index} className={`items-center ${isLast ? 'flex' : 'hidden md:inline-flex'}`}>
                     {crumb.href ? (
-                      <Link href={crumb.href} className="hover:text-[#008080] text-[#555555] transition-colors font-semibold whitespace-nowrap">
+                      <Link href={crumb.href} className="hover:text-accent-primary text-text-muted transition-colors font-semibold whitespace-nowrap">
                         {crumb.label}
                       </Link>
                     ) : (
-                      <span className="text-[#008080] font-bold whitespace-nowrap">{crumb.label}</span>
+                      <span className="text-accent-primary font-bold whitespace-nowrap">{crumb.label}</span>
                     )}
-                    {index < breadcrumbs.length - 1 && <span className="text-[#b2d8d8] mx-2">/</span>}
+                    {index < breadcrumbs.length - 1 && <span className="text-border mx-2">/</span>}
                   </span>
                 );
               })}
@@ -291,27 +358,27 @@ export default function SchoolAdminLayout({
           
           <div className="flex items-center gap-4 ml-auto">
             {schoolName && (
-              <span className="text-base font-bold text-[#1a2e2e] hidden sm:block truncate max-w-[50vw]" title={schoolName}>
+              <span className="text-base font-bold text-text-main hidden sm:block truncate max-w-[50vw]" title={schoolName}>
                 {schoolName}
               </span>
             )}
             <div className="relative" ref={dropdownRef}>
               <div 
                 onClick={() => role !== 'teacher' && setProfileDropdownOpen(!profileDropdownOpen)}
-                className={`w-9 h-9 bg-gradient-to-br from-[#008080] to-[#005555] rounded-full flex items-center justify-center shadow-sm transition-shadow ${role !== 'teacher' ? 'cursor-pointer hover:shadow-md' : ''}`}
+                className={`w-9 h-9 bg-gradient-to-br from-accent-primary to-accent-primary/70 rounded-full flex items-center justify-center shadow-sm transition-shadow ${role !== 'teacher' ? 'cursor-pointer hover:shadow-md' : ''}`}
               >
                 <User className="text-white w-5 h-5" />
               </div>
               
               {profileDropdownOpen && role !== 'teacher' && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-[#e0f2f2] overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute right-0 mt-2 w-56 bg-surface rounded-xl shadow-lg border border-border overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="py-2">
-                    <Link href="/profile" onClick={() => setProfileDropdownOpen(false)} className="flex items-center px-4 py-2.5 text-sm font-medium text-[#555555] hover:bg-[#f5f9f9] hover:text-[#008080] transition-colors">
-                      <User className="w-4 h-4 mr-3 text-[#8ab8b8]" />
+                    <Link href="/profile" onClick={() => setProfileDropdownOpen(false)} className="flex items-center px-4 py-2.5 text-sm font-medium text-text-muted hover:bg-surface-hover hover:text-accent-primary transition-colors">
+                      <User className="w-4 h-4 mr-3 text-text-muted" />
                       Profile & Notifications
                     </Link>
-                    <Link href="/feedback" onClick={() => setProfileDropdownOpen(false)} className="flex items-center px-4 py-2.5 text-sm font-medium text-[#555555] hover:bg-[#f5f9f9] hover:text-[#008080] transition-colors">
-                      <MessageSquare className="w-4 h-4 mr-3 text-[#8ab8b8]" />
+                    <Link href="/feedback" onClick={() => setProfileDropdownOpen(false)} className="flex items-center px-4 py-2.5 text-sm font-medium text-text-muted hover:bg-surface-hover hover:text-accent-primary transition-colors">
+                      <MessageSquare className="w-4 h-4 mr-3 text-text-muted" />
                       Feedback
                     </Link>
                   </div>
@@ -329,17 +396,17 @@ export default function SchoolAdminLayout({
       {/* Sign Out Confirmation Modal */}
       {showSignoutConfirm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 text-center">
-              <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertCircle size={24} className="text-red-500" />
               </div>
-              <h3 className="text-lg font-bold text-[#1a2e2e] mb-2">Sign Out</h3>
-              <p className="text-[#555555] text-sm font-medium mb-6">Are you sure you want to sign out of your account?</p>
+              <h3 className="text-lg font-bold text-text-main mb-2">Sign Out</h3>
+              <p className="text-text-muted text-sm font-medium mb-6">Are you sure you want to sign out of your account?</p>
               <div className="flex gap-3">
                 <button 
                   onClick={() => setShowSignoutConfirm(false)}
-                  className="flex-1 py-3 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors"
+                  className="flex-1 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors"
                 >
                   Cancel
                 </button>

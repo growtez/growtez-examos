@@ -147,8 +147,8 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#1a2e2e]">Teachers</h2>
-          <p className="text-[#555555] mt-1 text-sm font-medium">Manage your school&apos;s teaching staff</p>
+          <h2 className="text-2xl font-bold text-text-main">Teachers</h2>
+          <p className="text-text-muted mt-1 text-sm font-medium">Manage your school&apos;s teaching staff</p>
         </div>
         <div className="flex gap-4 w-full md:w-auto">
           <div className="relative flex-1 w-full md:w-64 shrink-0">
@@ -157,16 +157,16 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
               placeholder="Search teachers..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all shadow-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-semibold text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all shadow-sm"
             />
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8ab8b8]">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             </div>
           </div>
           <select
             value={selectedDepartment}
             onChange={(e) => setSelectedDepartment(e.target.value)}
-            className="px-4 py-2.5 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all cursor-pointer shadow-sm hover:bg-[#f5f9f9]"
+            className="px-4 py-2.5 bg-surface border border-border rounded-xl text-sm font-semibold text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all cursor-pointer shadow-sm hover:bg-surface-hover"
           >
             <option value="all">All Departments</option>
             {uniqueDepartments.map(dep => (
@@ -175,7 +175,7 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
           </select>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#008080] text-white text-sm font-semibold rounded-xl hover:bg-[#006666] hover:shadow-lg hover:shadow-[#008080]/30 transition-all active:scale-95 whitespace-nowrap"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-primary text-white text-sm font-semibold rounded-xl hover:bg-accent-primary/80 hover:shadow-lg hover:shadow-accent-primary/30 transition-all active:scale-95 whitespace-nowrap"
           >
             <Plus size={18} />
             Add Teacher
@@ -184,11 +184,11 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-[#e0f2f2] rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
         {loading ? (
           <table className="w-full animate-pulse">
             <thead>
-              <tr className="bg-[#f5f9f9]">
+              <tr className="bg-bg">
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
@@ -197,59 +197,59 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
             </thead>
             <tbody>
               {[...Array(5)].map((_, i) => (
-                <tr key={i} className="border-b border-[#e0f2f2]">
+                <tr key={i} className="border-b border-border">
                   <td className="px-6 py-4 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#e0f2f2]"></div>
-                    <div className="h-4 bg-[#e0f2f2] rounded w-48"></div>
+                    <div className="w-8 h-8 rounded-full bg-surface-hover"></div>
+                    <div className="h-4 bg-surface-hover rounded w-48"></div>
                   </td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#e0f2f2] rounded w-56"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#e0f2f2] rounded w-32"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#e0f2f2] rounded w-24"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-surface-hover rounded w-56"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-surface-hover rounded w-32"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-surface-hover rounded w-24"></div></td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : teachers.length === 0 ? (
           <div className="p-16 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#008080]/10 flex items-center justify-center text-[#008080] mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-4">
               <Users size={32} />
             </div>
-            <h3 className="text-[#1a2e2e] font-bold text-lg">No teachers yet</h3>
-            <p className="text-[#555555] mt-1 text-sm font-medium">Add your first teacher to get started</p>
+            <h3 className="text-text-main font-bold text-lg">No teachers yet</h3>
+            <p className="text-text-muted mt-1 text-sm font-medium">Add your first teacher to get started</p>
           </div>
         ) : (
           <div className="overflow-x-auto w-full">
             <table className="w-full min-w-[800px]">
               <thead>
-              <tr className="bg-[#f5f9f9] border-b border-[#e0f2f2]">
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Name</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Email</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Department</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Added</th>
-                <th className="text-center px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Actions</th>
+              <tr className="bg-bg border-b border-border">
+                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Name</th>
+                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Email</th>
+                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Department</th>
+                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Added</th>
+                <th className="text-center px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredTeachers.map((t) => (
-                <tr key={t.id} className="border-b border-[#e0f2f2] hover:bg-[#f5f9f9]/50 transition-colors">
+                <tr key={t.id} className="border-b border-border hover:bg-bg/50 transition-colors">
                   <td className="px-6 py-4">
-                    <span className="text-[#1a2e2e] font-medium">{t.full_name}</span>
+                    <span className="text-text-main font-medium">{t.full_name}</span>
                   </td>
-                  <td className="px-6 py-4 text-[#555555] text-sm">{t.email || '—'}</td>
-                  <td className="px-6 py-4 text-[#555555] text-sm">
+                  <td className="px-6 py-4 text-text-muted text-sm">{t.email || '—'}</td>
+                  <td className="px-6 py-4 text-text-muted text-sm">
                     {t.department ? (
-                      <span className="bg-[#e0f2f2] text-[#008080] px-2 py-1 rounded-md text-xs font-bold uppercase tracking-wider">{t.department}</span>
+                      <span className="bg-surface-hover text-accent-primary px-2 py-1 rounded-md text-xs font-bold uppercase tracking-wider">{t.department}</span>
                     ) : '—'}
                   </td>
-                  <td className="px-6 py-4 text-[#555555] text-sm">{new Date(t.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-text-muted text-sm">{new Date(t.created_at).toLocaleDateString()}</td>
                   <td className="px-6 py-4 text-center flex justify-center gap-2">
                     <button onClick={() => {
                       setName(t.full_name);
                       setEmail(t.email);
                       setDepartment(t.department || '');
                       setEditTeacherId(t.id);
-                    }} className="text-[#008080] hover:text-[#006666] text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-[#e0f2f2] transition-colors">Edit</button>
-                    <button onClick={() => setDeleteTeacherId(t.id)} className="text-red-500 hover:text-red-600 text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">Delete</button>
+                    }} className="text-accent-primary hover:text-accent-primary/80 text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-surface-hover transition-colors">Edit</button>
+                    <button onClick={() => setDeleteTeacherId(t.id)} className="text-red-500 hover:text-red-600 text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-red-500/10 transition-colors">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -262,44 +262,44 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
       {/* Add Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-[#008080] px-6 py-4 flex items-center justify-between">
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
               <span className="text-white font-bold">Add Teacher</span>
               <button onClick={() => setShowModal(false)} className="text-white/70 hover:text-white transition-colors">✕</button>
             </div>
             <form onSubmit={handleAddTeacher} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Full Name</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Full Name</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all"
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                   placeholder="e.g. Dr. Sharma" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Email</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Email</label>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all"
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                   placeholder="sharma@school.com" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Department</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Department</label>
                 <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all"
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                   placeholder="e.g. Mathematics" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Password</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Password</label>
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6}
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all"
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                   placeholder="Min 6 characters" />
               </div>
-              {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-medium">{error}</div>}
+              {error && <div className="bg-red-500/10 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-medium">{error}</div>}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)}
-                  className="px-6 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors">
+                  className="px-6 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors">
                   Cancel
                 </button>
                 <button type="submit" disabled={formLoading}
-                  className="flex-1 py-2.5 bg-[#008080] text-white font-bold rounded-xl shadow-lg shadow-[#008080]/20 hover:bg-[#006666] transition-all disabled:opacity-70 text-sm">
+                  className="flex-1 py-2.5 bg-accent-primary text-white font-bold rounded-xl shadow-lg shadow-accent-primary/20 hover:bg-accent-primary/80 transition-all disabled:opacity-70 text-sm">
                   {formLoading ? 'Adding...' : 'Add Teacher'}
                 </button>
               </div>
@@ -311,36 +311,36 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
       {/* Edit Modal */}
       {editTeacherId && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditTeacherId(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-[#008080] px-6 py-4 flex items-center justify-between">
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
               <span className="text-white font-bold">Edit Teacher</span>
               <button onClick={() => setEditTeacherId(null)} className="text-white/70 hover:text-white transition-colors">✕</button>
             </div>
             <form onSubmit={handleEditTeacher} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Full Name</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Full Name</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all" />
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Email</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Email</label>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all" />
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Department</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Department</label>
                 <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all"
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                   placeholder="e.g. Mathematics" />
               </div>
-              {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-medium">{error}</div>}
+              {error && <div className="bg-red-500/10 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-medium">{error}</div>}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setEditTeacherId(null)}
-                  className="px-6 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors">
+                  className="px-6 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors">
                   Cancel
                 </button>
                 <button type="submit" disabled={formLoading}
-                  className="flex-1 py-2.5 bg-[#008080] text-white font-bold rounded-xl shadow-lg shadow-[#008080]/20 hover:bg-[#006666] transition-all disabled:opacity-70 text-sm">
+                  className="flex-1 py-2.5 bg-accent-primary text-white font-bold rounded-xl shadow-lg shadow-accent-primary/20 hover:bg-accent-primary/80 transition-all disabled:opacity-70 text-sm">
                   {formLoading ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
@@ -352,17 +352,17 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
       {/* Delete Confirmation Modal */}
       {deleteTeacherId && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDeleteTeacherId(null)}>
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface rounded-2xl shadow-xl p-6 w-full max-w-sm animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-600 flex items-center justify-center mx-auto mb-4">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </div>
-              <h3 className="text-lg font-bold text-[#1a2e2e] mb-2">Delete Teacher?</h3>
-              <p className="text-sm text-[#555555]">This action cannot be undone. Are you sure you want to delete this teacher?</p>
+              <h3 className="text-lg font-bold text-text-main mb-2">Delete Teacher?</h3>
+              <p className="text-sm text-text-muted">This action cannot be undone. Are you sure you want to delete this teacher?</p>
             </div>
             <div className="flex gap-3">
               <button onClick={() => setDeleteTeacherId(null)}
-                className="flex-1 px-4 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] transition-colors text-sm">
+                className="flex-1 px-4 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover transition-colors text-sm">
                 Cancel
               </button>
               <button onClick={handleDeleteTeacher}

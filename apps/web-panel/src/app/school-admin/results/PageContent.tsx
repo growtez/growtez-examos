@@ -216,14 +216,14 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-4 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#1a2e2e]">Exam Results</h2>
-          <p className="text-[#555555] mt-1 text-sm font-medium">View student performance and subject-wise score breakdown</p>
+          <h2 className="text-2xl font-bold text-text-main">Exam Results</h2>
+          <p className="text-text-muted mt-1 text-sm font-medium">View student performance and subject-wise score breakdown</p>
         </div>
         {results.length > 0 && exams.find(e => e.id === selectedExamId)?.status === 'completed' && (
           <button 
             onClick={handleDownloadAllResults}
             disabled={isGeneratingPdf}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#008080] hover:bg-[#006666] text-white font-semibold text-sm rounded-xl transition-all shadow-sm shadow-[#008080]/20 disabled:opacity-70 whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold text-sm rounded-xl transition-all shadow-sm shadow-accent-primary/20 disabled:opacity-70 whitespace-nowrap"
           >
             {isGeneratingPdf ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
             {isGeneratingPdf ? 'Generating...' : 'Download Results PDF'}
@@ -232,17 +232,17 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
       </div>
 
       {/* Select Exam */}
-      <div className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-2xl p-6 mb-6">
-        <label className="block text-sm font-semibold text-[#1a2e2e] mb-2">Select Exam</label>
+      <div className="bg-bg border border-border rounded-2xl p-6 mb-6">
+        <label className="block text-sm font-semibold text-text-main mb-2">Select Exam</label>
         {loadingExams ? (
-          <div className="h-12 bg-white/50 animate-pulse rounded-xl w-full max-w-md border border-[#e0f2f2]"></div>
+          <div className="h-12 bg-surface/50 animate-pulse rounded-xl w-full max-w-md border border-border"></div>
         ) : exams.length === 0 ? (
-          <div className="text-[#8ab8b8] text-sm font-medium">No exams created yet.</div>
+          <div className="text-text-muted text-sm font-medium">No exams created yet.</div>
         ) : (
           <select
             value={selectedExamId}
             onChange={(e) => setSelectedExamId(e.target.value)}
-            className="w-full max-w-md px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium"
+            className="w-full max-w-md px-4 py-3 bg-surface border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium"
           >
             {exams.map((exam) => (
               <option key={exam.id} value={exam.id}>
@@ -259,20 +259,20 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
           <div className="flex flex-col sm:flex-row gap-3 w-full">
             <div className="relative w-full sm:w-80">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={18} className="text-[#8ab8b8]" />
+                <Search size={18} className="text-text-muted" />
               </div>
               <input
                 type="text"
                 placeholder="Search by student name or roll no..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium placeholder:text-[#8ab8b8]"
+                className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium placeholder:text-text-muted"
               />
             </div>
             <select
               value={courseFilter}
               onChange={(e) => setCourseFilter(e.target.value)}
-              className="px-4 py-2.5 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium w-full sm:w-40 appearance-none"
+              className="px-4 py-2.5 bg-surface border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium w-full sm:w-40 appearance-none"
             >
               <option value="">All Courses</option>
               {uniqueCourses.map((c: any) => <option key={c} value={c}>{c}</option>)}
@@ -280,7 +280,7 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
             <select
               value={batchFilter}
               onChange={(e) => setBatchFilter(e.target.value)}
-              className="px-4 py-2.5 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm font-medium w-full sm:w-40 appearance-none"
+              className="px-4 py-2.5 bg-surface border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium w-full sm:w-40 appearance-none"
             >
               <option value="">All Batches</option>
               {uniqueBatches.map((b: any) => <option key={b} value={b}>{b}</option>)}
@@ -290,11 +290,11 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
       )}
 
       {/* Results Table */}
-      <div className="bg-white border border-[#e0f2f2] rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
         {loadingResults ? (
           <table className="w-full animate-pulse">
             <thead>
-              <tr className="bg-[#f5f9f9]">
+              <tr className="bg-bg">
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
@@ -307,97 +307,97 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
             </thead>
             <tbody>
               {[...Array(5)].map((_, i) => (
-                <tr key={i} className="border-b border-[#e0f2f2]">
-                  <td className="px-6 py-4"><div className="w-6 h-6 rounded-full bg-[#f5f9f9]"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-24"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-40"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-12"></div></td>
+                <tr key={i} className="border-b border-border">
+                  <td className="px-6 py-4"><div className="w-6 h-6 rounded-full bg-bg"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-24"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-40"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-12"></div></td>
                   <td className="px-6 py-4">
-                    <div className="h-3 bg-[#f5f9f9] rounded w-32 mb-1.5"></div>
-                    <div className="h-3 bg-white border border-[#e0f2f2] rounded w-24"></div>
+                    <div className="h-3 bg-bg rounded w-32 mb-1.5"></div>
+                    <div className="h-3 bg-surface border border-border rounded w-24"></div>
                   </td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-20"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-32"></div></td>
-                  <td className="px-6 py-4"><div className="h-8 bg-[#f5f9f9] rounded w-24"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-20"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-32"></div></td>
+                  <td className="px-6 py-4"><div className="h-8 bg-bg rounded w-24"></div></td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : !selectedExamId ? (
-          <div className="p-16 text-center text-[#8ab8b8] font-medium">Please select an exam to view results.</div>
+          <div className="p-16 text-center text-text-muted font-medium">Please select an exam to view results.</div>
         ) : results.length === 0 ? (
           <div className="p-16 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#008080]/10 flex items-center justify-center text-[#008080] mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-4">
               <FileBarChart2 size={32} />
             </div>
-            <h3 className="text-[#1a2e2e] font-bold text-lg">No submissions yet</h3>
-            <p className="text-[#555555] mt-1 text-sm font-medium">Results will appear here once students submit their exams.</p>
+            <h3 className="text-text-main font-bold text-lg">No submissions yet</h3>
+            <p className="text-text-muted mt-1 text-sm font-medium">Results will appear here once students submit their exams.</p>
           </div>
         ) : filteredResults.length === 0 ? (
-          <div className="p-16 text-center text-[#8ab8b8] font-medium">
+          <div className="p-16 text-center text-text-muted font-medium">
             No students found matching "{searchQuery}"
           </div>
         ) : (
           <div className="overflow-x-auto w-full">
             <table className="w-full whitespace-nowrap min-w-[800px]">
               <thead>
-                <tr className="bg-[#f5f9f9] border-b border-[#e0f2f2]">
-                  <th className="text-center px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Rank</th>
-                  <th className="text-center px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Roll No.</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Student Name</th>
-                  <th className="text-center px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Score</th>
-                  <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Subject Breakdown</th>
-                  <th className="text-center px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Time Taken</th>
-                  <th className="text-center px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Submitted At</th>
-                  <th className="text-center px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Action</th>
+                <tr className="bg-bg border-b border-border">
+                  <th className="text-center px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Rank</th>
+                  <th className="text-center px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Roll No.</th>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Student Name</th>
+                  <th className="text-center px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Score</th>
+                  <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Subject Breakdown</th>
+                  <th className="text-center px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Time Taken</th>
+                  <th className="text-center px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Submitted At</th>
+                  <th className="text-center px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredResults.map((res, index) => (
-                  <tr key={res.id} className="border-b border-[#e0f2f2] hover:bg-[#f5f9f9]/50 transition-colors">
+                  <tr key={res.id} className="border-b border-border hover:bg-bg/50 transition-colors">
                     <td className="px-6 py-4 text-center">
                       <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${
                         index === 0 ? 'bg-amber-100 text-amber-600 border border-amber-200' :
                         index === 1 ? 'bg-slate-100 text-slate-600 border border-slate-200' :
                         index === 2 ? 'bg-orange-100 text-orange-600 border border-orange-200' :
-                        'text-[#8ab8b8] bg-[#f5f9f9]'
+                        'text-text-muted bg-bg'
                       }`}>
                         #{index + 1}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="font-mono text-xs font-bold bg-[#f5f9f9] text-[#008080] px-2 py-1 rounded-md border border-[#e0f2f2]">{res.students?.roll_number}</span>
+                      <span className="font-mono text-xs font-bold bg-bg text-accent-primary px-2 py-1 rounded-md border border-border">{res.students?.roll_number}</span>
                     </td>
                     <td className="px-6 py-4 text-left">
-                      <span className="text-[#1a2e2e] font-semibold">{res.students?.full_name}</span>
+                      <span className="text-text-main font-semibold">{res.students?.full_name}</span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="text-[#008080] font-bold text-lg">{res.total_marks ?? 0}</span>
+                      <span className="text-accent-primary font-bold text-lg">{res.total_marks ?? 0}</span>
                     </td>
                     <td className="px-6 py-4 text-left">
                       <div className="flex flex-col gap-1.5 text-xs">
                         {Array.isArray(res.section_scores) ? (
                           res.section_scores.map((score: any, idx: number) => (
-                            <div key={idx} className="text-[#555555]">
-                              <span className="font-semibold text-[#1a2e2e]">{score.subject_name}:</span> {score.marks} marks ({score.correct}C/{score.wrong}W)
+                            <div key={idx} className="text-text-muted">
+                              <span className="font-semibold text-text-main">{score.subject_name}:</span> {score.marks} marks ({score.correct}C/{score.wrong}W)
                             </div>
                           ))
                         ) : (
-                          <span className="text-[#8ab8b8]">—</span>
+                          <span className="text-text-muted">—</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-[#555555] text-sm font-medium text-center">
+                    <td className="px-6 py-4 text-text-muted text-sm font-medium text-center">
                       {formatTime(res.time_taken_seconds)}
                     </td>
-                    <td className="px-6 py-4 text-[#555555] text-xs font-medium text-center">
+                    <td className="px-6 py-4 text-text-muted text-xs font-medium text-center">
                       {res.submitted_at ? (
                         <>
                           {new Date(res.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}<br/>
-                          <span className="text-[#8ab8b8]">{new Date(res.submitted_at).toLocaleDateString()}</span>
+                          <span className="text-text-muted">{new Date(res.submitted_at).toLocaleDateString()}</span>
                         </>
                       ) : (
-                        <span className="text-[#8ab8b8]">—</span>
+                        <span className="text-text-muted">—</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -405,13 +405,13 @@ export function ResultsListContent({ schoolIdProp }: { schoolIdProp?: string }) 
                         <button 
                           onClick={() => handleDownloadStudentAnswerKey(res)}
                           disabled={generatingStudentId === res.id}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#e0f2f2] hover:bg-[#f5f9f9] text-[#008080] font-medium text-xs rounded-lg transition-colors disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border hover:bg-surface-hover text-accent-primary font-medium text-xs rounded-lg transition-colors disabled:opacity-50"
                         >
                           {generatingStudentId === res.id ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
                           Answer Key
                         </button>
                       ) : (
-                        <span className="text-[#8ab8b8] text-xs font-medium">In Progress</span>
+                        <span className="text-text-muted text-xs font-medium">In Progress</span>
                       )}
                     </td>
                   </tr>

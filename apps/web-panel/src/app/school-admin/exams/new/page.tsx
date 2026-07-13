@@ -238,7 +238,7 @@ export default function NewExamPage() {
     <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500 mx-auto">
       <div className="mb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-[#1a2e2e]">Create New Exam</h2>
+          <h2 className="text-xl font-bold text-text-main">Create New Exam</h2>
         </div>
         {templates.length > 0 && (
           <div>
@@ -248,7 +248,7 @@ export default function NewExamPage() {
                 if (selected) handleTemplateSelect(selected);
               }}
               defaultValue=""
-              className="w-full sm:w-auto px-3 py-2 bg-white border border-[#b2d8d8] rounded-lg text-xs font-bold text-[#008080] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all cursor-pointer hover:bg-[#f5f9f9]"
+              className="w-full sm:w-auto px-3 py-2 bg-surface border border-border rounded-lg text-xs font-bold text-accent-primary focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all cursor-pointer hover:bg-bg"
             >
               <option value="" disabled>Load Template</option>
               {templates.map(t => (
@@ -263,72 +263,72 @@ export default function NewExamPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           
           {/* Exam Details */}
-          <div className="bg-white border border-[#e0f2f2] rounded-xl p-3.5 sm:p-4 shadow-sm order-1 h-full">
-              <h3 className="text-sm font-bold text-[#1a2e2e] mb-3 border-b border-[#f0f7f7] pb-1.5">Exam Details</h3>
+          <div className="bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm order-1 h-full">
+              <h3 className="text-sm font-bold text-text-main mb-3 border-b border-[#f0f7f7] pb-1.5">Exam Details</h3>
               <div className="space-y-2">
                 <div>
-                  <label className="block text-xs font-semibold text-[#555555] mb-1">Title *</label>
+                  <label className="block text-xs font-semibold text-text-muted mb-1">Title *</label>
                   <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required
-                    className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium"
+                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium"
                     placeholder="JEE Main Mock Test 1" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#555555] mb-1">Description</label>
+                  <label className="block text-xs font-semibold text-text-muted mb-1">Description</label>
                   <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
-                    className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all resize-none text-xs font-medium"
+                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all resize-none text-xs font-medium"
                     placeholder="Mock test covering all topics..." />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#555555] mb-1">Duration (minutes) *</label>
+                  <label className="block text-xs font-semibold text-text-muted mb-1">Duration (minutes) *</label>
                   <input type="number" value={durationMinutes} onChange={(e) => setDurationMinutes(parseInt(e.target.value))} min={1} required
-                    className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
                 </div>
               </div>
             </div>
 
           {/* Marking Scheme */}
-          <div className="bg-white border border-[#e0f2f2] rounded-xl p-3.5 sm:p-4 shadow-sm order-2 h-full">
-              <h3 className="text-sm font-bold text-[#1a2e2e] mb-3 border-b border-[#f0f7f7] pb-1.5">Marking Scheme</h3>
+          <div className="bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm order-2 h-full">
+              <h3 className="text-sm font-bold text-text-main mb-3 border-b border-[#f0f7f7] pb-1.5">Marking Scheme</h3>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#555555] mb-1">MCQ Correct</label>
+                  <label className="block text-[11px] font-semibold text-text-muted mb-1">MCQ Correct</label>
                   <input type="number" step="any" value={mcqCorrect} onChange={(e) => setMcqCorrect(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#555555] mb-1">MCQ Wrong (-)</label>
+                  <label className="block text-[11px] font-semibold text-text-muted mb-1">MCQ Wrong (-)</label>
                   <input type="number" step="any" value={mcqWrong} onChange={(e) => setMcqWrong(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#555555] mb-1">NAT Correct</label>
+                  <label className="block text-[11px] font-semibold text-text-muted mb-1">NAT Correct</label>
                   <input type="number" step="any" value={natCorrect} onChange={(e) => setNatCorrect(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-[#555555] mb-1">NAT Wrong (-)</label>
+                  <label className="block text-[11px] font-semibold text-text-muted mb-1">NAT Wrong (-)</label>
                   <input type="number" step="any" value={natWrong} onChange={(e) => setNatWrong(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
                 </div>
               </div>
             </div>
 
           {/* Exam Instructions */}
-          <div className="bg-white border border-[#e0f2f2] rounded-xl p-3.5 sm:p-4 shadow-sm order-3 lg:col-span-2">
+          <div className="bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm order-3 lg:col-span-2">
               <div className="flex items-center justify-between mb-3 border-b border-[#f0f7f7] pb-1.5">
-                <h3 className="text-sm font-bold text-[#1a2e2e]">Exam Instructions</h3>
+                <h3 className="text-sm font-bold text-text-main">Exam Instructions</h3>
                 <button type="button" onClick={addInstruction}
-                  className="inline-flex items-center gap-1 text-[#008080] text-[11px] font-bold hover:underline">
+                  className="inline-flex items-center gap-1 text-accent-primary text-[11px] font-bold hover:underline">
                   <Plus size={12} /> Add
                 </button>
               </div>
               <div className="space-y-1.5">
                 {instructions.map((inst, index) => (
                   <div key={index} className="flex items-center gap-2 w-full">
-                    <span className="text-[#8ab8b8] font-bold text-[11px] w-4 text-right flex-shrink-0">{index + 1}.</span>
+                    <span className="text-text-muted font-bold text-[11px] w-4 text-right flex-shrink-0">{index + 1}.</span>
                     <input type="text" value={inst} onChange={(e) => updateInstruction(index, e.target.value)}
                       placeholder="e.g. Do not close browser..."
-                      className="flex-1 min-w-0 px-3 py-1.5 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                      className="flex-1 min-w-0 px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
                     {instructions.length > 1 && (
                       <button type="button" onClick={() => removeInstruction(index)}
                         className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors flex-shrink-0"
@@ -342,25 +342,25 @@ export default function NewExamPage() {
           </div>
 
           {/* Subjects & Teachers */}
-          <div className="bg-white border border-[#e0f2f2] rounded-xl p-3.5 sm:p-4 shadow-sm order-4 lg:col-span-2">
+          <div className="bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm order-4 lg:col-span-2">
               <div className="mb-3 border-b border-[#f0f7f7] pb-1.5">
-                <h3 className="text-sm font-bold text-[#1a2e2e]">Subjects & Teachers</h3>
+                <h3 className="text-sm font-bold text-text-main">Subjects & Teachers</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {subjects.map((subject, index) => (
-                  <div key={index} className="bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg p-4 relative flex flex-col justify-between">
+                  <div key={index} className="bg-bg border border-border rounded-lg p-4 relative flex flex-col justify-between">
                     <div className="flex gap-3 mb-3">
                       <div className="flex-[2] min-w-0">
-                        <label className="block text-[11px] font-semibold text-[#555555] mb-1">Subject Name</label>
+                        <label className="block text-[11px] font-semibold text-text-muted mb-1">Subject Name</label>
                         <input type="text" value={subject.name} onChange={(e) => updateSubject(index, 'name', e.target.value)} required
-                          className="w-full px-2.5 py-1.5 bg-white border border-[#e0f2f2] rounded-md text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium"
+                          className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-md text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium"
                           placeholder="e.g. Physics" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <label className="block text-[11px] font-semibold text-[#555555] mb-1">Questions</label>
+                        <label className="block text-[11px] font-semibold text-text-muted mb-1">Questions</label>
                         <input type="number" value={subject.questionCount} onChange={(e) => updateSubject(index, 'questionCount', parseInt(e.target.value))} min={1}
-                          className="w-full px-2.5 py-1.5 bg-white border border-[#e0f2f2] rounded-md text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs font-medium" />
+                          className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-md text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
                       </div>
                       {subjects.length > 1 && (
                         <div className="flex items-end">
@@ -374,8 +374,8 @@ export default function NewExamPage() {
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-1.5">
-                        <label className="block text-[11px] font-semibold text-[#555555]">Assign Teachers</label>
-                        <button type="button" onClick={() => setShowTeacherModal(true)} className="text-[#008080] text-[10px] font-bold hover:underline flex items-center gap-0.5">
+                        <label className="block text-[11px] font-semibold text-text-muted">Assign Teachers</label>
+                        <button type="button" onClick={() => setShowTeacherModal(true)} className="text-accent-primary text-[10px] font-bold hover:underline flex items-center gap-0.5">
                           <Plus size={10} /> Add Teacher
                         </button>
                       </div>
@@ -384,35 +384,35 @@ export default function NewExamPage() {
                         <button 
                           type="button" 
                           onClick={() => setActiveDropdownIndex(activeDropdownIndex === index ? null : index)}
-                          className="w-full flex justify-between items-center px-2.5 py-2 bg-white border border-[#e0f2f2] rounded-md text-[#1a2e2e] text-xs font-medium focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all"
+                          className="w-full flex justify-between items-center px-2.5 py-2 bg-surface border border-border rounded-md text-text-main text-xs font-medium focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all"
                         >
-                          <span className={`truncate pr-2 flex-1 text-left ${subject.teacherIds.length === 0 ? "text-[#8ab8b8]" : "text-[#1a2e2e]"}`}>
+                          <span className={`truncate pr-2 flex-1 text-left ${subject.teacherIds.length === 0 ? "text-text-muted" : "text-text-main"}`}>
                             {subject.teacherIds.length === 0 
                               ? "Select Teachers" 
                               : subject.teacherIds.map(id => teachers.find(t => t.id === id)?.full_name).filter(Boolean).join(', ')}
                           </span>
-                          <ChevronDown size={14} className="text-[#8ab8b8] flex-shrink-0" />
+                          <ChevronDown size={14} className="text-text-muted flex-shrink-0" />
                         </button>
 
                         {/* Dropdown Menu */}
                         {activeDropdownIndex === index && (
                           <>
                             <div className="fixed inset-0 z-10" onClick={() => setActiveDropdownIndex(null)}></div>
-                            <div className="absolute z-20 w-full mt-1 bg-white border border-[#e0f2f2] rounded-md shadow-lg max-h-48 overflow-y-auto">
+                            <div className="absolute z-20 w-full mt-1 bg-surface border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
                               {teachers.length === 0 ? (
-                                <div className="p-3 text-xs text-[#8ab8b8] text-center">No teachers available.</div>
+                                <div className="p-3 text-xs text-text-muted text-center">No teachers available.</div>
                               ) : (
                                 teachers.map(t => (
-                                  <label key={t.id} className="flex items-center gap-2 px-3 py-2 hover:bg-[#f5f9f9] cursor-pointer">
+                                  <label key={t.id} className="flex items-center gap-2 px-3 py-2 hover:bg-bg cursor-pointer">
                                     <input 
                                       type="checkbox" 
                                       checked={subject.teacherIds.includes(t.id)} 
                                       onChange={() => toggleTeacher(index, t.id)}
-                                      className="rounded border-[#b2d8d8] text-[#008080] focus:ring-[#008080]/20 w-3.5 h-3.5" 
+                                      className="rounded border-border text-accent-primary focus:ring-accent-primary/20 w-3.5 h-3.5" 
                                     />
-                                    <span className="text-xs text-[#1a2e2e] font-medium flex-1">
+                                    <span className="text-xs text-text-main font-medium flex-1">
                                       {t.full_name} 
-                                      <span className="text-[10px] text-[#8ab8b8] ml-1 font-normal">
+                                      <span className="text-[10px] text-text-muted ml-1 font-normal">
                                         ({t.department || 'Other'})
                                       </span>
                                     </span>
@@ -431,7 +431,7 @@ export default function NewExamPage() {
                 <button 
                   type="button" 
                   onClick={addSubject}
-                  className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#b2d8d8] rounded-lg p-6 text-[#008080] hover:bg-[#f0f7f7] hover:border-[#008080] transition-colors min-h-[140px] h-full"
+                  className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-6 text-accent-primary hover:bg-[#f0f7f7] hover:border-accent-primary transition-colors min-h-[140px] h-full"
                 >
                   <Plus size={24} />
                   <span className="text-sm font-bold">Add Subject</span>
@@ -443,11 +443,11 @@ export default function NewExamPage() {
         {error && <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-xs font-bold">{error}</div>}
 
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
-          <Link href="/exams" className="w-full sm:w-auto text-center px-5 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-bold rounded-lg hover:bg-[#f5f9f9] transition-colors text-xs">
+          <Link href="/exams" className="w-full sm:w-auto text-center px-5 py-2.5 bg-surface border border-border text-text-muted font-bold rounded-lg hover:bg-bg transition-colors text-xs">
             Cancel
           </Link>
           <button type="submit" disabled={loading}
-            className="w-full sm:w-auto px-6 py-2.5 bg-[#008080] text-white font-bold rounded-lg hover:bg-[#006666] transition-all disabled:opacity-50 shadow-md shadow-[#008080]/20 text-xs">
+            className="w-full sm:w-auto px-6 py-2.5 bg-accent-primary text-white font-bold rounded-lg hover:bg-accent-primary/80 transition-all disabled:opacity-50 shadow-md shadow-accent-primary/20 text-xs">
             {loading ? 'Creating...' : 'Create Exam'}
           </button>
         </div>
@@ -456,40 +456,40 @@ export default function NewExamPage() {
       {/* Add Teacher Modal */}
       {showTeacherModal && (
         <div className="fixed inset-0 bg-[#1a2e2e]/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={() => setShowTeacherModal(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="p-5 border-b border-[#e0f2f2] bg-[#f5f9f9]">
-              <h3 className="text-lg font-bold text-[#1a2e2e]">Add New Teacher</h3>
-              <p className="text-xs text-[#555555] mt-0.5">Quickly add a teacher to assign</p>
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="p-5 border-b border-border bg-bg">
+              <h3 className="text-lg font-bold text-text-main">Add New Teacher</h3>
+              <p className="text-xs text-text-muted mt-0.5">Quickly add a teacher to assign</p>
             </div>
             <form onSubmit={handleAddTeacher} className="p-5 space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-[#1a2e2e] mb-1">Full Name</label>
+                <label className="block text-xs font-semibold text-text-main mb-1">Full Name</label>
                 <input type="text" value={newTeacherName} onChange={(e) => setNewTeacherName(e.target.value)} required
-                  className="w-full px-3 py-2 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs"
+                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
                   placeholder="e.g. Dr. Sharma" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#1a2e2e] mb-1">Email</label>
+                <label className="block text-xs font-semibold text-text-main mb-1">Email</label>
                 <input type="email" value={newTeacherEmail} onChange={(e) => setNewTeacherEmail(e.target.value)} required
-                  className="w-full px-3 py-2 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs"
+                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
                   placeholder="sharma@school.com" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#1a2e2e] mb-1">Department</label>
+                <label className="block text-xs font-semibold text-text-main mb-1">Department</label>
                 <input type="text" value={newTeacherDepartment} onChange={(e) => setNewTeacherDepartment(e.target.value)} required
-                  className="w-full px-3 py-2 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs"
+                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
                   placeholder="e.g. Mathematics" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#1a2e2e] mb-1">Temporary Password</label>
+                <label className="block text-xs font-semibold text-text-main mb-1">Temporary Password</label>
                 <div className="relative">
                   <input type={showPassword ? "text" : "password"} value={newTeacherPassword} onChange={(e) => setNewTeacherPassword(e.target.value)} required minLength={6}
-                    className="w-full pl-3 pr-10 py-2 bg-[#f5f9f9] border border-[#e0f2f2] rounded-lg text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080]/20 transition-all text-xs"
+                    className="w-full pl-3 pr-10 py-2 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
                     placeholder="Min 6 characters" />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8ab8b8] hover:text-[#008080] focus:outline-none"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-accent-primary focus:outline-none"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -498,11 +498,11 @@ export default function NewExamPage() {
               {teacherFormError && <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-red-600 text-[11px] font-bold">{teacherFormError}</div>}
               <div className="flex gap-2 pt-3">
                 <button type="submit" disabled={teacherFormLoading}
-                  className="flex-1 py-2 bg-[#008080] text-white text-xs font-bold rounded-lg hover:bg-[#006666] transition-all disabled:opacity-50">
+                  className="flex-1 py-2 bg-accent-primary text-white text-xs font-bold rounded-lg hover:bg-accent-primary/80 transition-all disabled:opacity-50">
                   {teacherFormLoading ? 'Adding...' : 'Add Teacher'}
                 </button>
                 <button type="button" onClick={() => setShowTeacherModal(false)}
-                  className="px-4 py-2 bg-white border border-[#e0f2f2] text-[#555555] text-xs font-bold rounded-lg hover:bg-[#f5f9f9] transition-colors">
+                  className="px-4 py-2 bg-surface border border-border text-text-muted text-xs font-bold rounded-lg hover:bg-bg transition-colors">
                   Cancel
                 </button>
               </div>

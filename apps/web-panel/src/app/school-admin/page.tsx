@@ -63,10 +63,10 @@ export default async function SchoolAdminDashboard() {
   }
 
   const stats = [
-    { label: 'Total Students', value: studentCount, icon: GraduationCap, color: 'text-[#008080]', bg: 'bg-[#e0f2f2]/50', border: 'border-[#b2d8d8]', iconBg: 'bg-[#008080]/10' },
-    { label: 'Teachers', value: teacherCount, icon: Users, color: 'text-[#006666]', bg: 'bg-[#cceded]/50', border: 'border-[#99d4d4]', iconBg: 'bg-[#006666]/10' },
-    { label: 'Total Exams', value: examCount, icon: FileText, color: 'text-[#004d4d]', bg: 'bg-[#b3e0e0]/50', border: 'border-[#80cccc]', iconBg: 'bg-[#004d4d]/10' },
-    { label: 'Active Exams', value: activeExamCount, icon: CheckCircle, color: 'text-white', bg: 'bg-gradient-to-br from-[#008080] to-[#005555]', border: 'border-[#006666]', iconBg: 'bg-white/20' },
+    { label: 'Total Students', value: studentCount, icon: GraduationCap, color: 'text-accent-primary', bg: 'bg-surface-hover/50', border: 'border-border', iconBg: 'bg-accent-primary/10' },
+    { label: 'Teachers', value: teacherCount, icon: Users, color: 'text-accent-primary/80', bg: 'bg-surface-hover/40', border: 'border-border', iconBg: 'bg-accent-primary/10' },
+    { label: 'Total Exams', value: examCount, icon: FileText, color: 'text-accent-primary', bg: 'bg-surface-hover/50', border: 'border-border', iconBg: 'bg-accent-primary/10' },
+    { label: 'Active Exams', value: activeExamCount, icon: CheckCircle, color: 'text-white', bg: 'bg-gradient-to-br from-accent-primary to-accent-primary/70', border: 'border-accent-primary/80', iconBg: 'bg-white/20' },
   ];
 
   if (role === 'teacher') {
@@ -91,21 +91,21 @@ export default async function SchoolAdminDashboard() {
 
     return (
       <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-[#e0f2f2]">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface p-6 rounded-2xl shadow-sm border border-border">
           <div className="flex gap-4 items-center">
-            <div className="w-12 h-12 rounded-xl bg-[#008080]/10 flex items-center justify-center text-[#008080]">
+            <div className="w-12 h-12 rounded-xl bg-accent-primary/10 flex items-center justify-center text-accent-primary">
               <Users className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-[#1a2e2e]">Welcome, {teacherName}</h2>
-              <p className="text-[#555555] mt-1 text-sm font-medium">Manage your assigned exams and questions.</p>
+              <h2 className="text-2xl font-bold text-text-main">Welcome, {teacherName}</h2>
+              <p className="text-text-muted mt-1 text-sm font-medium">Manage your assigned exams and questions.</p>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
           {/* Summary Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-transparent bg-gradient-to-br from-[#008080] to-[#005555] p-6 shadow-xl text-white group">
+          <div className="relative overflow-hidden rounded-2xl border border-transparent bg-gradient-to-br from-accent-primary to-accent-primary/70 p-6 shadow-xl text-white group">
             <div className="flex flex-col justify-between h-full relative z-10">
               <div>
                 <span className="text-xs font-semibold text-white/80 uppercase tracking-widest">Overview</span>
@@ -128,21 +128,21 @@ export default async function SchoolAdminDashboard() {
           </div>
 
           {/* Recent Exams */}
-          <div className="bg-white rounded-2xl border border-[#e0f2f2] p-5 shadow-sm">
-            <h3 className="text-base font-bold text-[#1a2e2e] mb-3">Recent Exams</h3>
+          <div className="bg-surface rounded-2xl border border-border p-5 shadow-sm">
+            <h3 className="text-base font-bold text-text-main mb-3">Recent Exams</h3>
             {recentExamsTeacher.length > 0 ? (
               <div className="space-y-3">
                 {recentExamsTeacher.map((exam) => (
-                  <Link href={`/exams/${exam.id}`} key={exam.id} className="block p-3 rounded-xl border border-[#e0f2f2] hover:border-[#008080] hover:bg-[#f5f9f9] transition-all group">
+                  <Link href={`/exams/${exam.id}`} key={exam.id} className="block p-3 rounded-xl border border-border hover:border-accent-primary hover:bg-surface-hover transition-all group">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="font-bold text-sm text-[#1a2e2e] group-hover:text-[#008080] transition-colors line-clamp-1">{exam.title}</h4>
-                        <p className="text-[11px] text-[#555555] font-medium mt-0.5">
+                        <h4 className="font-bold text-sm text-text-main group-hover:text-accent-primary transition-colors line-clamp-1">{exam.title}</h4>
+                        <p className="text-[11px] text-text-muted font-medium mt-0.5">
                           Added {new Date(exam.created_at).toLocaleDateString()}
                         </p>
                       </div>
                       <span className={`inline-flex px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                        exam.status === 'published' ? 'bg-[#008080]/10 text-[#008080]' :
+                        exam.status === 'published' ? 'bg-accent-primary/10 text-accent-primary' :
                         exam.status === 'active' ? 'bg-emerald-50 text-emerald-600' :
                         exam.status === 'completed' ? 'bg-gray-100 text-gray-600' :
                         'bg-gray-100 text-gray-600'
@@ -152,15 +152,15 @@ export default async function SchoolAdminDashboard() {
                     </div>
                   </Link>
                 ))}
-                <Link href="/exams" className="block text-center text-sm font-semibold text-[#008080] hover:text-[#005555] pt-2">
+                <Link href="/exams" className="block text-center text-sm font-semibold text-accent-primary hover:text-accent-primary/70 pt-2">
                   View all exams →
                 </Link>
               </div>
             ) : (
               <div className="text-center py-8">
-                <FileText className="w-10 h-10 text-[#8ab8b8] mx-auto mb-3" />
-                <p className="text-[#1a2e2e] font-bold">No exams yet</p>
-                <p className="text-sm text-[#555555] font-medium mt-1">You haven't been assigned to any exams.</p>
+                <FileText className="w-10 h-10 text-text-muted mx-auto mb-3" />
+                <p className="text-text-main font-bold">No exams yet</p>
+                <p className="text-sm text-text-muted font-medium mt-1">You haven't been assigned to any exams.</p>
               </div>
             )}
           </div>
@@ -181,7 +181,7 @@ export default async function SchoolAdminDashboard() {
             <div key={stat.label} className={`min-w-[220px] sm:min-w-0 snap-center relative overflow-hidden rounded-xl sm:rounded-2xl border ${stat.border} ${stat.bg} p-3 sm:p-4 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300 group`}>
               <div className="flex justify-between items-start relative z-10">
                 <div>
-                  <span className={`text-[10px] sm:text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-white/80' : 'text-[#555555]'}`}>{stat.label}</span>
+                  <span className={`text-[10px] sm:text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-white/80' : 'text-text-muted'}`}>{stat.label}</span>
                   <p className={`text-xl sm:text-2xl font-extrabold mt-0.5 sm:mt-1 ${stat.color}`}>{stat.value}</p>
                 </div>
                 <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center ${stat.iconBg} transition-transform group-hover:scale-110 duration-300`}>
@@ -196,26 +196,26 @@ export default async function SchoolAdminDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Quick Actions */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#e0f2f2] flex flex-col">
-          <h3 className="text-sm sm:text-base font-bold text-[#1a2e2e] mb-3 flex items-center gap-2">
-            <svg className="w-4 h-4 text-[#008080]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="bg-surface rounded-2xl p-4 shadow-sm border border-border flex flex-col">
+          <h3 className="text-sm sm:text-base font-bold text-text-main mb-3 flex items-center gap-2">
+            <svg className="w-4 h-4 text-accent-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             Quick Actions
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 flex-grow">
           <CreateExamButton />
-          <Link href="/teachers" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer text-center">
-            <Users size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
-            <span className="font-semibold text-xs text-[#1a2e2e]">Manage Teachers</span>
+          <Link href="/teachers" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-border bg-surface hover:bg-surface-hover hover:border-accent-primary transition-all group cursor-pointer text-center">
+            <Users size={14} className="text-accent-primary group-hover:scale-110 transition-transform" />
+            <span className="font-semibold text-xs text-text-main">Manage Teachers</span>
           </Link>
-          <Link href="/students" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer text-center">
-            <Users2 size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
-            <span className="font-semibold text-xs text-[#1a2e2e]">Manage Students</span>
+          <Link href="/students" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-border bg-surface hover:bg-surface-hover hover:border-accent-primary transition-all group cursor-pointer text-center">
+            <Users2 size={14} className="text-accent-primary group-hover:scale-110 transition-transform" />
+            <span className="font-semibold text-xs text-text-main">Manage Students</span>
           </Link>
-          <Link href="/results" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer col-span-2 sm:col-span-1 text-center">
-            <CheckCircle size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
-            <span className="font-semibold text-xs text-[#1a2e2e]">Manage Results</span>
+          <Link href="/results" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-border bg-surface hover:bg-surface-hover hover:border-accent-primary transition-all group cursor-pointer col-span-2 sm:col-span-1 text-center">
+            <CheckCircle size={14} className="text-accent-primary group-hover:scale-110 transition-transform" />
+            <span className="font-semibold text-xs text-text-main">Manage Results</span>
           </Link>
         </div>
         </div>
@@ -223,32 +223,32 @@ export default async function SchoolAdminDashboard() {
         {/* Recent Exams */}
         <Card className="shadow-sm border-border flex flex-col w-full p-4">
           <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/40 mb-3">
-            <CardTitle className="text-sm font-bold flex items-center gap-2 text-[#1a2e2e]">
-              <FileText size={16} className="text-[#008080]" />
+            <CardTitle className="text-sm font-bold flex items-center gap-2 text-text-main">
+              <FileText size={16} className="text-accent-primary" />
               Recent Exams
             </CardTitle>
-            <Link href="/exams" className="text-[11px] font-bold text-[#008080] flex items-center gap-0.5 hover:underline">
+            <Link href="/exams" className="text-[11px] font-bold text-accent-primary flex items-center gap-0.5 hover:underline">
               View all <ArrowRight size={12} />
             </Link>
           </CardHeader>
           <CardContent className="flex-grow flex flex-col justify-start">
             <div className="divide-y divide-border/40 w-full">
               {recentExams.length === 0 ? (
-                <p className="text-xs text-[#555555] py-6 text-center">No exams scheduled.</p>
+                <p className="text-xs text-text-muted py-6 text-center">No exams scheduled.</p>
               ) : (
                 recentExams.map((exam) => (
                   <Link 
                     key={exam.id} 
                     href={`/exams/${exam.id}`}
-                    className="flex items-center justify-between py-2 px-1 hover:bg-[#f5f9f9] rounded transition-colors"
+                    className="flex items-center justify-between py-2 px-1 hover:bg-surface-hover rounded transition-colors"
                   >
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-[#1a2e2e] truncate">{exam.title}</p>
-                      <p className="text-[10px] text-[#555555] truncate">
+                      <p className="text-xs font-semibold text-text-main truncate">{exam.title}</p>
+                      <p className="text-[10px] text-text-muted truncate">
                         {exam.duration_minutes}m • <span className="capitalize">{exam.status}</span>
                       </p>
                     </div>
-                    <span className="text-[9px] text-[#555555] shrink-0 ml-2">
+                    <span className="text-[9px] text-text-muted shrink-0 ml-2">
                       {new Date(exam.created_at).toLocaleDateString()}
                     </span>
                   </Link>

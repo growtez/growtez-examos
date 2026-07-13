@@ -37,15 +37,15 @@ function CustomCombobox({ value, onChange, options, placeholder, className }: { 
         style={{ paddingRight: '1.75rem' }}
         required
       />
-      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-[#8ab8b8] bg-transparent">
+      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-text-muted bg-transparent">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
       </div>
       {isOpen && filteredOptions.length > 0 && (
-        <ul className="absolute z-10 w-full bg-white border border-[#e0f2f2] mt-1 rounded-xl shadow-xl shadow-[#008080]/10 max-h-[130px] overflow-y-auto custom-scrollbar">
+        <ul className="absolute z-10 w-full bg-surface border border-border mt-1 rounded-xl shadow-xl shadow-accent-primary/10 max-h-[130px] overflow-y-auto custom-scrollbar">
           {filteredOptions.map((opt) => (
             <li
               key={opt}
-              className="px-4 py-2.5 hover:bg-[#f5f9f9] cursor-pointer text-sm font-medium text-[#1a2e2e] transition-colors"
+              className="px-4 py-2.5 hover:bg-surface-hover cursor-pointer text-sm font-medium text-text-main transition-colors"
               onClick={() => {
                 onChange(opt);
                 setIsOpen(false);
@@ -301,12 +301,12 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#1a2e2e]">Students</h2>
-          <p className="text-[#555555] mt-1 text-sm font-medium">Manage your school&apos;s students</p>
+          <h2 className="text-2xl font-bold text-text-main">Students</h2>
+          <p className="text-text-muted mt-1 text-sm font-medium">Manage your school&apos;s students</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button onClick={() => setShowImportModal(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm">
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface border border-border text-text-main text-sm font-semibold rounded-xl hover:border-accent-primary hover:text-accent-primary hover:bg-surface-hover transition-all shadow-sm">
             Import CSV
           </button>
           <button onClick={() => {
@@ -315,7 +315,7 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
             setCourse(''); setBatch(''); setSessionVal('');
             setShowModal(true);
           }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#008080] text-white text-sm font-semibold rounded-xl hover:bg-[#006666] hover:shadow-lg hover:shadow-[#008080]/30 transition-all active:scale-95">
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-primary text-white text-sm font-semibold rounded-xl hover:bg-accent-primary/80 hover:shadow-lg hover:shadow-accent-primary/30 transition-all active:scale-95">
             Add Student
           </button>
         </div>
@@ -331,13 +331,13 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
           placeholder="Search by name or roll no..." 
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 px-4 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all w-full shadow-sm"
+          className="flex-1 px-4 py-2.5 bg-surface border border-border text-text-main text-sm font-semibold rounded-xl focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all w-full shadow-sm"
         />
         <div className="flex gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 custom-scrollbar">
           <select 
             value={courseFilter} 
             onChange={(e) => setCourseFilter(e.target.value)}
-            className="px-4 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all shadow-sm cursor-pointer hover:bg-[#f5f9f9]"
+            className="px-4 py-2.5 bg-surface border border-border text-text-main text-sm font-semibold rounded-xl focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all shadow-sm cursor-pointer hover:bg-surface-hover"
           >
             <option value="">All Courses</option>
             {uniqueCourses.map((c: any) => <option key={c} value={c}>{c}</option>)}
@@ -345,7 +345,7 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
           <select 
             value={batchFilter} 
             onChange={(e) => setBatchFilter(e.target.value)}
-            className="px-4 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all shadow-sm cursor-pointer hover:bg-[#f5f9f9]"
+            className="px-4 py-2.5 bg-surface border border-border text-text-main text-sm font-semibold rounded-xl focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all shadow-sm cursor-pointer hover:bg-surface-hover"
           >
             <option value="">All Batches</option>
             {uniqueBatches.map((b: any) => <option key={b} value={b}>{b}</option>)}
@@ -353,7 +353,7 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
           <select 
             value={sessionFilter} 
             onChange={(e) => setSessionFilter(e.target.value)}
-            className="px-4 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all shadow-sm cursor-pointer hover:bg-[#f5f9f9]"
+            className="px-4 py-2.5 bg-surface border border-border text-text-main text-sm font-semibold rounded-xl focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all shadow-sm cursor-pointer hover:bg-surface-hover"
           >
             <option value="">All Sessions</option>
             {uniqueSessions.map((s: any) => <option key={s} value={s}>{s}</option>)}
@@ -361,11 +361,11 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
         </div>
       </div>
 
-      <div className="bg-white border border-[#e0f2f2] rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
         {loading ? (
           <table className="w-full animate-pulse">
             <thead>
-              <tr className="bg-[#f5f9f9]">
+              <tr className="bg-surface-hover">
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
@@ -376,58 +376,58 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
             </thead>
             <tbody>
               {[...Array(5)].map((_, i) => (
-                <tr key={i} className="border-b border-[#e0f2f2]">
-                  <td className="px-6 py-5"><div className="h-4 bg-[#f5f9f9] rounded w-32"></div></td>
-                  <td className="px-6 py-5"><div className="h-4 bg-[#f5f9f9] rounded w-48"></div></td>
-                  <td className="px-6 py-5"><div className="h-4 bg-[#f5f9f9] rounded w-24"></div></td>
-                  <td className="px-6 py-5"><div className="h-4 bg-[#f5f9f9] rounded w-24"></div></td>
-                  <td className="px-6 py-5"><div className="h-4 bg-[#f5f9f9] rounded w-32"></div></td>
-                  <td className="px-6 py-5"><div className="h-4 bg-[#f5f9f9] rounded w-24"></div></td>
+                <tr key={i} className="border-b border-border">
+                  <td className="px-6 py-5"><div className="h-4 bg-surface-hover rounded w-32"></div></td>
+                  <td className="px-6 py-5"><div className="h-4 bg-surface-hover rounded w-48"></div></td>
+                  <td className="px-6 py-5"><div className="h-4 bg-surface-hover rounded w-24"></div></td>
+                  <td className="px-6 py-5"><div className="h-4 bg-surface-hover rounded w-24"></div></td>
+                  <td className="px-6 py-5"><div className="h-4 bg-surface-hover rounded w-32"></div></td>
+                  <td className="px-6 py-5"><div className="h-4 bg-surface-hover rounded w-24"></div></td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : students.length === 0 ? (
           <div className="p-16 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#008080]/10 flex items-center justify-center text-[#008080] mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-4">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
             </div>
-            <h3 className="text-[#1a2e2e] font-bold text-lg">No students yet</h3>
-            <p className="text-[#555555] mt-1 text-sm font-medium">Add students individually or import via CSV</p>
+            <h3 className="text-text-main font-bold text-lg">No students yet</h3>
+            <p className="text-text-muted mt-1 text-sm font-medium">Add students individually or import via CSV</p>
           </div>
         ) : (
           <div className="overflow-x-auto w-full">
             <table className="w-full min-w-[800px]">
               <thead>
-              <tr className="bg-[#f5f9f9] border-b border-[#e0f2f2]">
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Roll No.</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Name</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Course</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Batch</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Session</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">DOB</th>
-                <th className="text-center px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Actions</th>
+              <tr className="bg-surface-hover border-b border-border">
+                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Roll No.</th>
+                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Name</th>
+                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Course</th>
+                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Batch</th>
+                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Session</th>
+                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">DOB</th>
+                <th className="text-center px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-[#555555] font-medium">
+                  <td colSpan={7} className="px-6 py-8 text-center text-text-muted font-medium">
                     No students match your search criteria.
                   </td>
                 </tr>
               ) : filteredStudents.map((s) => (
-                <tr key={s.id} className="border-b border-[#e0f2f2] hover:bg-[#f5f9f9]/50 transition-colors">
+                <tr key={s.id} className="border-b border-border hover:bg-surface-hover transition-colors">
                   <td className="px-6 py-4">
-                    <span className="inline-flex px-3 py-1 bg-[#f5f9f9] border border-[#e0f2f2] text-[#008080] text-xs font-mono font-bold rounded-lg">{s.roll_number}</span>
+                    <span className="inline-flex px-3 py-1 bg-surface-hover border border-border text-accent-primary text-xs font-mono font-bold rounded-lg">{s.roll_number}</span>
                   </td>
-                  <td className="px-6 py-4 text-[#1a2e2e] font-medium">{s.full_name}</td>
-                  <td className="px-6 py-4 text-[#555555] text-sm">
-                    <span className="bg-[#e0f2f2] text-[#008080] px-2 py-1 rounded-md text-xs font-bold uppercase tracking-wider">{s.course}</span>
+                  <td className="px-6 py-4 text-text-main font-medium">{s.full_name}</td>
+                  <td className="px-6 py-4 text-text-muted text-sm">
+                    <span className="bg-surface-hover text-accent-primary px-2 py-1 rounded-md text-xs font-bold uppercase tracking-wider">{s.course}</span>
                   </td>
-                  <td className="px-6 py-4 text-[#555555] text-sm">{s.batch}</td>
-                  <td className="px-6 py-4 text-[#555555] text-sm">{s.session}</td>
-                  <td className="px-6 py-4 text-[#555555] text-sm">{s.date_of_birth ? new Date(s.date_of_birth).toLocaleDateString() : '—'}</td>
+                  <td className="px-6 py-4 text-text-muted text-sm">{s.batch}</td>
+                  <td className="px-6 py-4 text-text-muted text-sm">{s.session}</td>
+                  <td className="px-6 py-4 text-text-muted text-sm">{s.date_of_birth ? new Date(s.date_of_birth).toLocaleDateString() : '—'}</td>
                   <td className="px-6 py-4 text-center flex justify-center gap-2">
                     <button onClick={() => {
                       setName(s.full_name || '');
@@ -438,8 +438,8 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
                       setSessionVal(s.session || '');
                       setEditStudentId(s.id);
                       setShowModal(true);
-                    }} className="text-[#008080] hover:text-[#006666] text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-[#e0f2f2] transition-colors">Edit</button>
-                    <button onClick={() => setDeleteStudentId(s.id)} className="text-red-500 hover:text-red-600 text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">Delete</button>
+                    }} className="text-accent-primary hover:text-accent-primary/80 text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-surface-hover transition-colors">Edit</button>
+                    <button onClick={() => setDeleteStudentId(s.id)} className="text-red-500 hover:text-red-600 text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">Delete</button>
                   </td>
                 </tr>
               ))}
@@ -451,8 +451,8 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
 
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => { setShowModal(false); setEditStudentId(null); }}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-[#008080] px-6 py-4 flex items-center justify-between">
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
               <span className="text-white font-bold">{editStudentId ? 'Edit Student' : 'Add Student'}</span>
               <button onClick={() => { setShowModal(false); setEditStudentId(null); }} className="text-white/70 hover:text-white transition-colors">✕</button>
             </div>
@@ -460,62 +460,62 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
             <form onSubmit={editStudentId ? handleEditStudent : handleAddStudent} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-[#555555] mb-1.5">Full Name</label>
+                  <label className="block text-xs font-semibold text-text-muted mb-1.5">Full Name</label>
                   <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-                    className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all"
+                    className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
                     placeholder="Aarav Patel" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#555555] mb-1.5">Roll Number</label>
+                  <label className="block text-xs font-semibold text-text-muted mb-1.5">Roll Number</label>
                   <input type="text" value={rollNumber} onChange={(e) => setRollNumber(e.target.value)} required
-                    className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all"
+                    className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
                     placeholder="2024001" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#555555] mb-1.5">Date of Birth</label>
+                  <label className="block text-xs font-semibold text-text-muted mb-1.5">Date of Birth</label>
                   <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} required
-                    className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all" />
+                    className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#555555] mb-1.5">Course</label>
+                  <label className="block text-xs font-semibold text-text-muted mb-1.5">Course</label>
                   <CustomCombobox 
                     value={course} 
                     onChange={setCourse} 
                     options={uniqueCourses as string[]} 
                     placeholder="e.g. JEE"
-                    className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all" 
+                    className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all" 
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#555555] mb-1.5">Batch</label>
+                  <label className="block text-xs font-semibold text-text-muted mb-1.5">Batch</label>
                   <CustomCombobox 
                     value={batch} 
                     onChange={setBatch} 
                     options={uniqueBatches as string[]} 
                     placeholder="e.g. Main"
-                    className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all" 
+                    className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all" 
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-[#555555] mb-1.5">Session</label>
+                  <label className="block text-xs font-semibold text-text-muted mb-1.5">Session</label>
                   <CustomCombobox 
                     value={sessionVal} 
                     onChange={setSessionVal} 
                     options={uniqueSessions as string[]} 
                     placeholder="e.g. 2024-25"
-                    className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 text-sm font-medium transition-all" 
+                    className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all" 
                   />
                 </div>
               </div>
-              <p className="text-[#8aacac] text-xs">Password will be DOB in DDMMYYYY format</p>
-              {error && <div className="border border-red-400 bg-red-50 p-3 text-red-600 text-sm">⚠ {error}</div>}
+              <p className="text-accent-primary text-xs">Password will be DOB in DDMMYYYY format</p>
+              {error && <div className="border border-red-400 bg-red-50 dark:bg-red-500/10 p-3 text-red-600 text-sm">⚠ {error}</div>}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => { setShowModal(false); setEditStudentId(null); }}
-                  className="px-6 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors">
+                  className="px-6 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors">
                   Cancel
                 </button>
                 <button type="submit" disabled={formLoading}
-                  className="flex-1 py-2.5 bg-[#008080] hover:bg-[#006666] text-white font-bold rounded-xl shadow-lg shadow-[#008080]/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed text-sm">
+                  className="flex-1 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white font-bold rounded-xl shadow-lg shadow-accent-primary/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed text-sm">
                   {formLoading ? (editStudentId ? 'Saving...' : 'Adding...') : (editStudentId ? 'Save Changes' : 'Add Student')}
                 </button>
               </div>
@@ -528,15 +528,15 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
       {/* Import CSV Modal */}
       {showImportModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowImportModal(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-[#008080] px-6 py-4 flex items-center justify-between">
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
               <span className="text-white font-bold">Import Students via CSV</span>
               <button onClick={() => setShowImportModal(false)} className="text-white/70 hover:text-white transition-colors">✕</button>
             </div>
             <div className="p-6">
-            <div className="bg-[#f5f9f9] border border-[#e0f2f2] p-4 rounded-xl mb-4">
-              <p className="text-[#1a2e2e] text-sm font-bold mb-2">CSV Format:</p>
-              <code className="text-xs text-[#008080] bg-white px-3 py-2 block border border-[#e0f2f2] rounded font-mono overflow-auto">
+            <div className="bg-surface-hover border border-border p-4 rounded-xl mb-4">
+              <p className="text-text-main text-sm font-bold mb-2">CSV Format:</p>
+              <code className="text-xs text-accent-primary bg-surface px-3 py-2 block border border-border rounded font-mono overflow-auto">
                 name, roll_number, dob<br />
                 Aarav Patel, 2024001, 15/06/2005<br />
                 Priya Singh, 2024002, 22/03/2005
@@ -544,18 +544,18 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
             </div>
             <form onSubmit={handleCsvImport} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[#555555] mb-1.5">Select CSV File</label>
+                <label className="block text-xs font-semibold text-text-muted mb-1.5">Select CSV File</label>
                 <input type="file" ref={fileInputRef} accept=".csv,.txt" required
-                  className="w-full px-4 py-3 bg-white border border-[#e0f2f2] rounded-xl text-[#1a2e2e] file:mr-4 file:py-1.5 file:px-3 file:border-0 file:rounded-md file:bg-[#008080] file:text-white file:text-sm file:font-semibold focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all text-sm" />
+                  className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main file:mr-4 file:py-1.5 file:px-3 file:border-0 file:rounded-md file:bg-accent-primary file:text-white file:text-sm file:font-semibold focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm" />
               </div>
-              {error && <div className="border border-red-400 bg-red-50 p-3 rounded-xl text-red-600 text-sm flex items-center gap-2">⚠ {error}</div>}
+              {error && <div className="border border-red-400 bg-red-50 dark:bg-red-500/10 p-3 rounded-xl text-red-600 text-sm flex items-center gap-2">⚠ {error}</div>}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowImportModal(false)}
-                  className="px-6 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors">
+                  className="px-6 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors">
                   Cancel
                 </button>
                 <button type="submit" disabled={formLoading}
-                  className="flex-1 py-2.5 bg-[#008080] hover:bg-[#006666] text-white font-bold rounded-xl shadow-lg shadow-[#008080]/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed text-sm">
+                  className="flex-1 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white font-bold rounded-xl shadow-lg shadow-accent-primary/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed text-sm">
                   {formLoading ? 'Importing...' : 'Import'}
                 </button>
               </div>
@@ -568,17 +568,17 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
       {/* Delete Confirmation Modal */}
       {deleteStudentId && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDeleteStudentId(null)}>
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface rounded-2xl shadow-xl p-6 w-full max-w-sm animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="text-center mb-6">
               <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </div>
-              <h3 className="text-lg font-bold text-[#1a2e2e] mb-2">Delete Student?</h3>
-              <p className="text-sm text-[#555555]">This action cannot be undone. Are you sure you want to delete this student?</p>
+              <h3 className="text-lg font-bold text-text-main mb-2">Delete Student?</h3>
+              <p className="text-sm text-text-muted">This action cannot be undone. Are you sure you want to delete this student?</p>
             </div>
             <div className="flex gap-3">
               <button onClick={() => setDeleteStudentId(null)}
-                className="flex-1 px-4 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] transition-colors text-sm">
+                className="flex-1 px-4 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover transition-colors text-sm">
                 Cancel
               </button>
               <button onClick={handleDeleteStudent}

@@ -145,15 +145,15 @@ export default function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#1a2e2e]">Profile & Notifications</h1>
-        <p className="text-[#555555] mt-1">Manage your college profile and stay updated with system notifications.</p>
+        <h1 className="text-2xl font-bold text-text-main">Profile & Notifications</h1>
+        <p className="text-text-muted mt-1">Manage your college profile and stay updated with system notifications.</p>
       </div>
 
       {/* College Details Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-[#e0f2f2] overflow-hidden">
-        <div className="p-5 border-b border-[#e0f2f2] flex items-center gap-3">
-          <Building className="text-[#008080] w-5 h-5" />
-          <h2 className="text-lg font-bold text-[#1a2e2e]">College Details</h2>
+      <div className="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden">
+        <div className="p-5 border-b border-border flex items-center gap-3">
+          <Building className="text-accent-primary w-5 h-5" />
+          <h2 className="text-lg font-bold text-text-main">College Details</h2>
         </div>
         <div className="p-6">
           {loading ? (
@@ -167,14 +167,14 @@ export default function ProfilePage() {
           ) : school ? (
             <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
               <div className="relative group flex-shrink-0 cursor-pointer">
-                <div className="w-28 h-28 bg-[#f5f9f9] border-2 border-[#e0f2f2] rounded-full flex items-center justify-center overflow-hidden shadow-sm relative">
+                <div className="w-28 h-28 bg-bg border-2 border-border rounded-full flex items-center justify-center overflow-hidden shadow-sm relative">
                   {school.logo_url ? (
                     <img src={school.logo_url} alt={school.name} className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" />
                   ) : (
-                    <User className="w-12 h-12 text-[#8ab8b8] group-hover:opacity-50 transition-opacity" />
+                    <User className="w-12 h-12 text-text-muted group-hover:opacity-50 transition-opacity" />
                   )}
                   <label className="absolute inset-0 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                    <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md text-[#008080]">
+                    <div className="w-8 h-8 bg-surface rounded-full flex items-center justify-center shadow-md text-accent-primary">
                       <Plus className="w-5 h-5" />
                     </div>
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
@@ -183,21 +183,21 @@ export default function ProfilePage() {
               </div>
               <div className="flex-1 space-y-4 w-full">
                 <div>
-                  <h3 className="text-xl font-bold text-[#1a2e2e]">{school.name}</h3>
-                  <p className="text-sm text-[#555555]">Click the image to upload your institution's logo.</p>
+                  <h3 className="text-xl font-bold text-text-main">{school.name}</h3>
+                  <p className="text-sm text-text-muted">Click the image to upload your institution's logo.</p>
                 </div>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   {school.logo_url && (
                     <button
                       onClick={handleRemoveImage}
                       disabled={savingImage}
-                      className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+                      className="px-4 py-2 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 text-red-600 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
                     >
                       <Trash2 className="w-4 h-4" /> Remove Logo
                     </button>
                   )}
                   {(savingImage || showImageSaveSuccess) && (
-                    <p className={`text-sm font-medium flex items-center gap-1 ${savingImage ? 'text-[#555555]' : 'text-green-600 animate-in fade-in'}`}>
+                    <p className={`text-sm font-medium flex items-center gap-1 ${savingImage ? 'text-text-muted' : 'text-green-600 animate-in fade-in'}`}>
                       {savingImage ? 'Uploading...' : <><CheckCircle2 className="w-4 h-4" /> Image updated successfully</>}
                     </p>
                   )}
@@ -212,10 +212,10 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-1 gap-6">
         {/* Notifications Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-[#e0f2f2] overflow-hidden">
-          <div className="p-5 border-b border-[#e0f2f2] flex items-center gap-3">
-            <Bell className="text-[#008080] w-5 h-5" />
-            <h2 className="text-lg font-bold text-[#1a2e2e]">Notifications</h2>
+        <div className="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden">
+          <div className="p-5 border-b border-border flex items-center gap-3">
+            <Bell className="text-accent-primary w-5 h-5" />
+            <h2 className="text-lg font-bold text-text-main">Notifications</h2>
           </div>
           <div className="p-0 max-h-[400px] overflow-y-auto">
             {loading ? (
@@ -224,9 +224,9 @@ export default function ProfilePage() {
                 <div className="h-12 bg-gray-200 rounded-xl w-full"></div>
               </div>
             ) : notifications.length > 0 ? (
-              <div className="divide-y divide-[#e0f2f2]">
+              <div className="divide-y divide-border">
                 {notifications.map((notif) => (
-                  <div key={notif.id} className="p-4 hover:bg-[#f5f9f9] transition-colors">
+                  <div key={notif.id} className="p-4 hover:bg-surface-hover transition-colors">
                     <div className="flex gap-3">
                       <div className="flex-shrink-0 mt-1">
                         {notif.type === 'fee_update' ? (
@@ -240,14 +240,14 @@ export default function ProfilePage() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold text-[#1a2e2e]">{notif.title}</h4>
-                        <p className="text-sm text-[#555555] mt-1 whitespace-pre-wrap">{notif.message}</p>
+                        <h4 className="text-sm font-bold text-text-main">{notif.title}</h4>
+                        <p className="text-sm text-text-muted mt-1 whitespace-pre-wrap">{notif.message}</p>
                         {notif.image_url && (
-                          <div className="mt-2.5 rounded-xl overflow-hidden max-w-md border border-[#e0f2f2] shadow-sm">
+                          <div className="mt-2.5 rounded-xl overflow-hidden max-w-md border border-border shadow-sm">
                             <img src={notif.image_url} alt="Announcement media" className="max-h-48 w-full object-cover" />
                           </div>
                         )}
-                        <div className="flex items-center gap-1 mt-2.5 text-xs text-[#8ab8b8] font-semibold">
+                        <div className="flex items-center gap-1 mt-2.5 text-xs text-text-muted font-semibold">
                           <Clock className="w-3 h-3" />
                           <span>{new Date(notif.created_at).toLocaleString()}</span>
                         </div>
@@ -258,9 +258,9 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="text-center py-8 px-4">
-                <Bell className="w-8 h-8 text-[#8ab8b8] mx-auto mb-3 opacity-50" />
-                <h3 className="text-sm font-medium text-[#1a2e2e]">No New Notifications</h3>
-                <p className="text-xs text-[#555555] mt-1">You're all caught up!</p>
+                <Bell className="w-8 h-8 text-text-muted mx-auto mb-3 opacity-50" />
+                <h3 className="text-sm font-medium text-text-main">No New Notifications</h3>
+                <p className="text-xs text-text-muted mt-1">You're all caught up!</p>
               </div>
             )}
           </div>
@@ -269,11 +269,11 @@ export default function ProfilePage() {
 
       {isCropModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-[#e0f2f2] flex justify-between items-center bg-[#f5f9f9]">
-              <h3 className="text-lg font-bold text-[#1a2e2e]">Crop Logo</h3>
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-bg">
+              <h3 className="text-lg font-bold text-text-main">Crop Logo</h3>
             </div>
-            <div className="p-6 overflow-y-auto flex items-center justify-center bg-[#f5f9f9] flex-1">
+            <div className="p-6 overflow-y-auto flex items-center justify-center bg-bg flex-1">
               {imgSrc && (
                 <ReactCrop
                   crop={crop}
@@ -291,19 +291,19 @@ export default function ProfilePage() {
                 </ReactCrop>
               )}
             </div>
-            <div className="p-4 border-t border-[#e0f2f2] flex gap-3">
+            <div className="p-4 border-t border-border flex gap-3">
               <button
                 onClick={() => {
                   setIsCropModalOpen(false);
                   setImgSrc('');
                 }}
-                className="flex-1 px-4 py-2 bg-white text-[#555555] font-semibold border border-[#e0f2f2] rounded-xl hover:bg-[#f5f9f9] transition-colors"
+                className="flex-1 px-4 py-2 bg-surface text-text-muted font-semibold border border-border rounded-xl hover:bg-surface-hover transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveCrop}
-                className="flex-1 px-4 py-2 bg-[#008080] text-white font-semibold rounded-xl hover:bg-[#006666] transition-colors shadow-sm shadow-[#008080]/20"
+                className="flex-1 px-4 py-2 bg-accent-primary text-white font-semibold rounded-xl hover:bg-accent-primary/80 transition-colors shadow-sm shadow-accent-primary/20"
               >
                 Save Crop
               </button>
