@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, FileText, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, Download, X, Clock, Play, AlertCircle, FileText, BarChart, Users, CheckCircle2, Copy, BookOpen, User, Trash2 } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
   draft: 'bg-surface-hover text-text-muted border-border',
@@ -40,6 +40,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
       sliderRef.current.scrollBy({ left: -300, behavior: 'smooth' });
     }
   };
+
 
   const handleCreateExam = async (templateId?: string) => {
     const supabase = createClient();
@@ -256,34 +257,6 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-text-main">
-            {role === 'teacher' ? 'My Assigned Exams' : 'Exams'}
-          </h2>
-          <p className="text-text-muted mt-1 text-sm font-medium">
-            {role === 'teacher' 
-              ? 'Manage and prepare questions for your assigned subjects.' 
-              : 'Create and manage examinations'}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          {role !== 'teacher' && (
-            <>
-              <Link href="/exams/trash"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface border border-border text-text-main text-sm font-semibold rounded-xl hover:border-accent-primary hover:text-accent-primary hover:bg-surface-hover transition-all shadow-sm">
-                <Trash2 size={18} />
-                Trash
-              </Link>
-              <button onClick={() => handleCreateExam()} disabled={creatingId !== null}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-primary text-white text-sm font-semibold rounded-xl hover:bg-accent-primary/80 hover:shadow-lg hover:shadow-accent-primary/30 transition-all active:scale-95 disabled:opacity-50">
-                <Plus size={18} />
-                {creatingId === 'blank' ? 'Creating...' : 'Create Exam'}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
 
       {/* Global Template Presets */}
       {role !== 'teacher' && (loading || templates.length > 0) && (
@@ -306,6 +279,19 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                   className="w-full lg:w-48 h-8 pl-7 pr-3 bg-surface-hover border border-border rounded-lg text-[11px] focus:outline-none focus:border-accent-primary transition-all text-text-main"
                 />
               </div>
+              {role !== 'teacher' && (
+                <>
+                  <Link href="/school-admin/exams/trash"
+                    className="inline-flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-surface-hover text-text-main text-[11px] font-bold hover:bg-border transition-all border border-border shrink-0 cursor-pointer">
+                    <Trash2 size={12} /> Trash
+                  </Link>
+                  <button onClick={() => handleCreateExam()} disabled={creatingId !== null}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-accent-primary/10 text-accent-primary text-[11px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 shrink-0 cursor-pointer disabled:opacity-50">
+                    <Plus size={12} />
+                    {creatingId === 'blank' ? 'Creating...' : 'Create Exam'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
 

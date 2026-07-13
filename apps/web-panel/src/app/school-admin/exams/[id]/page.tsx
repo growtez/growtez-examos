@@ -1173,8 +1173,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       
       {/* Title & Actions */}
       <div className="mb-6 flex flex-col xl:flex-row xl:justify-between xl:items-start gap-4">
-        <div className="flex-1 w-full xl:w-auto pr-0 xl:pr-8">
-          <div className="flex flex-wrap items-center gap-3 mb-2">
+        <div className="flex-1 min-w-0 xl:w-auto pr-0 xl:pr-8">
+          <div className="flex items-center gap-3 mb-2 min-w-0">
             <input 
               type="text"
               value={title}
@@ -1186,9 +1186,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               }}
               onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
               disabled={role === 'teacher' || exam?.status !== 'draft'}
-              className={`text-2xl font-bold text-text-main bg-transparent border-none outline-none rounded-lg px-2 -ml-2 transition-colors ${role !== 'teacher' && exam?.status === 'draft' ? 'hover:bg-surface-hover focus:ring-2 focus:ring-accent-primary/20 cursor-text' : 'cursor-default'}`}
+              className={`text-2xl font-bold text-text-main bg-transparent border-none outline-none rounded-lg px-2 -ml-2 transition-colors flex-1 min-w-0 truncate ${role !== 'teacher' && exam?.status === 'draft' ? 'hover:bg-surface-hover focus:ring-2 focus:ring-accent-primary/20 cursor-text' : 'cursor-default'}`}
               placeholder="Exam Title"
-              style={{ width: `${Math.max(title.length || 0, 10)}ch` }}
             />
             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
               displayStatus === 'draft' && saveStatus === 'saving' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :

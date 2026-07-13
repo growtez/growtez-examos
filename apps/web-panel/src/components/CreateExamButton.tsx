@@ -57,14 +57,14 @@ export default function CreateExamButton() {
     <button
       onClick={handleCreateExam}
       disabled={creating}
-      className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-[#b2d8d8] bg-white hover:bg-[#f5f9f9] hover:border-[#008080] transition-all group cursor-pointer text-center disabled:opacity-60"
+      className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-accent-primary/20 bg-surface hover:bg-surface-hover hover:border-accent-primary transition-all group cursor-pointer text-center disabled:opacity-60 dark:border-accent-primary/30 dark:hover:border-accent-primary"
     >
       {creating ? (
-        <span className="w-3.5 h-3.5 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
+        <span className="w-3.5 h-3.5 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" />
       ) : (
-        <Plus size={14} className="text-[#008080] group-hover:scale-110 transition-transform" />
+        <Plus size={14} className="text-accent-primary group-hover:scale-110 transition-transform" />
       )}
-      <span className="font-semibold text-xs text-[#1a2e2e]">{creating ? 'Creating...' : 'Create Exam'}</span>
+      <span className="font-semibold text-xs text-text-main">{creating ? 'Creating...' : 'Create Exam'}</span>
     </button>
   );
 }

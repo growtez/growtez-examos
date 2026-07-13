@@ -295,13 +295,13 @@ export default function SchoolAdminLayout({
               }
               return true;
             }).map((item) => {
-            const activeClass = "bg-accent-primary/15 text-sidebar-text rounded-xl shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]";
-            const inactiveClass = "text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text rounded-xl transparent";
+            const activeClass = "bg-accent-primary/15 text-sidebar-text rounded-lg shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border-accent-primary font-semibold";
+            const inactiveClass = "text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text rounded-lg border-transparent";
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-3 text-sm font-medium transition-all duration-200 group ${
+                className={`w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg mb-1 border transition-colors group ${
                   isActive(item.href) ? activeClass : inactiveClass
                 }`}
                 onClick={() => {
@@ -310,10 +310,12 @@ export default function SchoolAdminLayout({
                   }
                 }}
               >
-                <div className={`transition-transform duration-200 ${isActive(item.href) ? 'text-accent-secondary' : 'text-sidebar-text-muted group-hover:text-sidebar-text group-hover:scale-110'}`}>
-                  {item.icon}
+                <div className={`flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 ${isActive(item.href) ? 'text-accent-secondary' : 'text-sidebar-text-muted group-hover:text-sidebar-text group-hover:scale-110'}`}>
+                  <div className="scale-90 flex">{item.icon}</div>
                 </div>
-                {sidebarOpen && item.label}
+                <div className={`ml-2.5 h-full flex items-center overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out ${!sidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100'}`}>
+                  <span className="truncate">{item.label}</span>
+                </div>
               </Link>
             );
           }))}
@@ -322,18 +324,26 @@ export default function SchoolAdminLayout({
         <div className="px-3 py-4 border-t border-sidebar-border">
           <button
             onClick={toggleDarkMode}
-            className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-sidebar-text-muted hover:text-sidebar-text hover:bg-sidebar-hover rounded-xl transition-all duration-200 w-full group mb-1"
+            className="w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg mb-1 border border-transparent text-sidebar-text-muted hover:text-sidebar-text hover:bg-sidebar-hover transition-colors group"
             title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           >
-            {isDark ? <Sun className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" /> : <Moon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />}
-            {sidebarOpen && (isDark ? 'Light Mode' : 'Dark Mode')}
+            <div className="flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 group-hover:scale-110">
+              <div className="scale-90 flex">{isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}</div>
+            </div>
+            <div className={`ml-2.5 h-full flex items-center overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out ${!sidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100'}`}>
+              <span className="truncate">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+            </div>
           </button>
           <button
             onClick={() => setShowSignoutConfirm(true)}
-            className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-sidebar-text-muted hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all duration-200 w-full group"
+            className="w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg border border-transparent text-sidebar-text-muted hover:text-red-400 hover:bg-red-400/10 transition-colors group"
           >
-            <LogOut className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
-            {sidebarOpen && 'Sign out'}
+            <div className="flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 group-hover:scale-110">
+              <div className="scale-90 flex"><LogOut className="w-5 h-5" /></div>
+            </div>
+            <div className={`ml-2.5 h-full flex items-center overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out ${!sidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100'}`}>
+              <span className="truncate">Sign out</span>
+            </div>
           </button>
         </div>
       </aside>
