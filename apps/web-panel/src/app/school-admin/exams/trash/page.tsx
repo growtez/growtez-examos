@@ -83,21 +83,21 @@ export default function TrashExamsPage() {
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#1a2e2e]">Trash</h2>
-          <p className="text-[#555555] mt-1 text-sm font-medium">Manage deleted examinations</p>
+          <h2 className="text-2xl font-bold text-text-main">Trash</h2>
+          <p className="text-text-muted mt-1 text-sm font-medium">Manage deleted examinations</p>
         </div>
         <Link href="/exams"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#b2d8d8] text-[#1a2e2e] text-sm font-semibold rounded-xl hover:border-[#008080] hover:text-[#008080] hover:bg-[#f5f9f9] transition-all shadow-sm">
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface border border-border text-text-main text-sm font-semibold rounded-xl hover:border-accent-primary hover:text-accent-primary hover:bg-surface-hover transition-all shadow-sm">
           <ArrowLeft size={18} />
           Back to Exams
         </Link>
       </div>
 
-      <div className="bg-white border border-[#e0f2f2] rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
         {loading ? (
           <table className="w-full animate-pulse">
             <thead>
-              <tr className="bg-[#f5f9f9]">
+              <tr className="bg-bg">
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
@@ -106,49 +106,49 @@ export default function TrashExamsPage() {
             </thead>
             <tbody>
               {[...Array(3)].map((_, i) => (
-                <tr key={i} className="border-b border-[#e0f2f2]">
+                <tr key={i} className="border-b border-border">
                   <td className="px-6 py-4">
-                    <div className="h-4 bg-[#f5f9f9] rounded w-48 mb-1.5"></div>
-                    <div className="h-3 bg-[#f5f9f9] rounded w-64"></div>
+                    <div className="h-4 bg-bg rounded w-48 mb-1.5"></div>
+                    <div className="h-3 bg-bg rounded w-64"></div>
                   </td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-16"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-24"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#f5f9f9] rounded w-32 ml-auto"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-16"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-24"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-32 ml-auto"></div></td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : exams.length === 0 ? (
           <div className="p-16 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center text-red-400 mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center text-red-400 mb-4">
               <Trash size={32} />
             </div>
-            <h3 className="text-[#1a2e2e] font-bold text-lg">Trash is empty</h3>
-            <p className="text-[#555555] mt-1 text-sm font-medium">No deleted exams found</p>
+            <h3 className="text-text-main font-bold text-lg">Trash is empty</h3>
+            <p className="text-text-muted mt-1 text-sm font-medium">No deleted exams found</p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="bg-[#f5f9f9] border-b border-[#e0f2f2]">
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Title</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Duration</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Created On</th>
-                <th className="text-right px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Actions</th>
+              <tr className="bg-bg border-b border-border">
+                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Title</th>
+                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Duration</th>
+                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Created On</th>
+                <th className="text-right px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody>
               {exams.map((exam) => (
-                <tr key={exam.id} className="border-b border-[#e0f2f2] hover:bg-[#f5f9f9]/50 transition-colors">
+                <tr key={exam.id} className="border-b border-border hover:bg-bg/50 transition-colors">
                   <td className="px-6 py-4">
-                    <span className="text-[#1a2e2e] font-semibold">{exam.title}</span>
-                    {exam.description && <p className="text-[#8ab8b8] text-xs mt-1">{exam.description}</p>}
+                    <span className="text-text-main font-semibold">{exam.title}</span>
+                    {exam.description && <p className="text-text-muted text-xs mt-1">{exam.description}</p>}
                   </td>
-                  <td className="px-6 py-4 text-[#555555] text-sm font-medium">{exam.duration_minutes} min</td>
-                  <td className="px-6 py-4 text-[#555555] text-sm">{new Date(exam.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-text-muted text-sm font-medium">{exam.duration_minutes} min</td>
+                  <td className="px-6 py-4 text-text-muted text-sm">{new Date(exam.created_at).toLocaleDateString()}</td>
                   <td className="px-6 py-4 text-right flex items-center justify-end gap-4">
                     <button 
                       onClick={() => handleRestore(exam.id)}
-                      className="text-[#008080] hover:text-[#006666] text-sm font-semibold transition-colors"
+                      className="text-accent-primary hover:text-accent-primary/80 text-sm font-semibold transition-colors"
                     >
                       Restore
                     </button>
@@ -169,17 +169,17 @@ export default function TrashExamsPage() {
       {/* Confirmation Dialog */}
       {confirmDialog.isOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 text-center">
-              <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertCircle size={24} className="text-red-500" />
               </div>
-              <h3 className="text-lg font-bold text-[#1a2e2e] mb-2">{confirmDialog.title}</h3>
-              <p className="text-[#555555] text-sm font-medium mb-6">{confirmDialog.message}</p>
+              <h3 className="text-lg font-bold text-text-main mb-2">{confirmDialog.title}</h3>
+              <p className="text-text-muted text-sm font-medium mb-6">{confirmDialog.message}</p>
               <div className="flex gap-3">
                 <button 
                   onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
-                  className="flex-1 py-3 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors"
+                  className="flex-1 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors"
                 >
                   Cancel
                 </button>

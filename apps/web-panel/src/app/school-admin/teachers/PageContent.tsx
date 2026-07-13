@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, Plus, Users } from 'lucide-react';
 
 export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   const [teachers, setTeachers] = useState<any[]>([]);
@@ -20,6 +20,10 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
   // Search, Edit, Delete
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(8);
+  const [sortBy, setSortBy] = useState('newest');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [editTeacherId, setEditTeacherId] = useState<string | null>(null);
   const [deleteTeacherId, setDeleteTeacherId] = useState<string | null>(null);
 
@@ -137,58 +141,177 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
 
   const uniqueDepartments = Array.from(new Set(teachers.map(t => t.department).filter(Boolean))).sort();
 
+  const toggleSort = (newSort: string) => {
+    if (sortBy === newSort) {
+      setSortBy(newSort === 'newest' ? 'oldest' : newSort === 'name' ? 'newest' : 'newest');
+    } else {
+      setSortBy(newSort);
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortBy === field) return <ArrowUp size={14} />;
+    if (field === 'newest' && sortBy === 'oldest') return <ArrowDown size={14} />;
+    return <ArrowUpDown size={14} className="opacity-30" />;
+  };
+
   const filteredTeachers = teachers.filter(t => 
     (t.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
     (t.email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (t.department || '').toLowerCase().includes(searchQuery.toLowerCase())
-  ).filter(t => selectedDepartment === 'all' || t.department === selectedDepartment);
+  ).filter(t => selectedDepartment === 'all' || t.department === selectedDepartment)
+   .sort((a, b) => {
+      if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (sortBy === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (sortBy === 'name') return (a.full_name || '').localeCompare(b.full_name || '');
+      if (sortBy === 'department') return (a.department || '').localeCompare(b.department || '');
+      return 0;
+   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredTeachers.length / perPage));
+  const safePage = Math.min(page, totalPages);
+  const pagedTeachers = filteredTeachers.slice((safePage - 1) * perPage, safePage * perPage);
+
+  const getPaginationPages = () => {
+    if (totalPages <= 3) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (safePage === totalPages) {
+      return [1, '...', totalPages];
+    }
+    if (safePage === totalPages - 1) {
+      return [safePage - 1, safePage, totalPages];
+    }
+    return [safePage, '...', totalPages];
+  };
+
+  const handleExport = () => {
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "Name,Email,Department,Created At\n"
+      + filteredTeachers.map(r => `${r.full_name},${r.email},${r.department || ''},${new Date(r.created_at).toLocaleDateString()}`).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `teachers_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-[#1a2e2e]">Teachers</h2>
-          <p className="text-[#555555] mt-1 text-sm font-medium">Manage your school&apos;s teaching staff</p>
+      {/* Control Panel */}
+      <div className="flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border mb-4">
+        {/* Search Box */}
+        <div className="relative w-full md:max-w-[260px] shrink-0">
+          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+          <input
+            type="text"
+            placeholder="Search Teachers..."
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+            className="w-full py-2 pl-4 pr-10 bg-surface-hover border border-border rounded-full text-text-main text-[13px] focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all"
+          />
         </div>
-        <div className="flex gap-4 w-full md:w-auto">
-          <div className="relative flex-1 w-full md:w-64 shrink-0">
-            <input 
-              type="text" 
-              placeholder="Search teachers..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all shadow-sm"
-            />
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8ab8b8]">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+
+        {/* Inline Active Filters */}
+        <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0">
+          {(searchQuery || selectedDepartment !== 'all' || sortBy !== 'newest') ? (
+            <>
+              <span className="text-[11px] text-text-muted font-medium uppercase tracking-wider shrink-0 mr-1">Active:</span>
+              {searchQuery && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                  "{searchQuery}"
+                  <button onClick={() => setSearchQuery('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                </span>
+              )}
+              {selectedDepartment !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                  {selectedDepartment}
+                  <button onClick={() => setSelectedDepartment('all')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                </span>
+              )}
+              {sortBy !== 'newest' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                  {sortBy === 'oldest' ? 'Oldest' : sortBy === 'name' ? 'A-Z' : sortBy}
+                  <button onClick={() => setSortBy('newest')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                </span>
+              )}
+              <button 
+                onClick={() => { setSearchQuery(''); setSelectedDepartment('all'); setSortBy('newest'); setPage(1); }}
+                className="text-[11px] text-text-muted hover:text-red-500 transition-colors ml-1 bg-transparent border-none cursor-pointer font-medium shrink-0"
+              >
+                Clear
+              </button>
+            </>
+          ) : (
+            <span className="text-[11px] text-text-muted italic opacity-50">No active filters</span>
+          )}
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between md:justify-start gap-1 shrink-0 md:border-x md:border-border/50 px-3 py-1.5 md:py-0 w-full md:w-auto">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+            <ChevronLeft size={14} />
+          </button>
+          <div className="flex items-center justify-center gap-1 w-[80px]">
+            {getPaginationPages().map((p, i) => p === '...' ? (
+              <div key={`ellipsis-${i}`} className="w-6 h-6 flex items-center justify-center text-[11px] text-text-muted">…</div>
+            ) : (
+              <button key={p} onClick={() => setPage(p as number)} className={`w-6 h-6 flex items-center justify-center rounded text-[11px] font-semibold transition-colors border-none cursor-pointer ${safePage === p ? 'bg-accent-primary text-white' : 'text-text-muted hover:bg-surface-hover bg-transparent'}`}>{p as number}</button>
+            ))}
+          </div>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+            <ChevronRight size={14} />
+          </button>
+        </div>
+
+        {/* Controls and Actions */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0 w-full md:w-auto">
+          <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="py-1.5 px-2 rounded-lg border border-border bg-surface text-text-main text-[12px] focus:outline-none focus:ring-1 focus:ring-accent-primary cursor-pointer flex-1 md:flex-none">
+            {[8, 20, 50, 100].map(n => <option key={n} value={n}>{n} / page</option>)}
+          </select>
+          <div className="relative group flex-1 md:flex-none">
+            <button 
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-medium"
+            >
+              <Filter size={14} className="text-accent-primary" /> Filter
+            </button>
+            <div className={`absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col p-3 space-y-3 ${
+              isFilterOpen ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'
+            }`}>
+              <div>
+                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Department</label>
+                <select value={selectedDepartment} onChange={(e) => { setSelectedDepartment(e.target.value); setPage(1); }} className="w-full p-1.5 bg-surface-hover border border-border rounded-lg text-xs text-text-main focus:outline-none">
+                  <option value="all">All Departments</option>
+                  {uniqueDepartments.map(dep => <option key={dep} value={dep}>{dep}</option>)}
+                </select>
+              </div>
             </div>
           </div>
-          <select
-            value={selectedDepartment}
-            onChange={(e) => setSelectedDepartment(e.target.value)}
-            className="px-4 py-2.5 bg-white border border-[#e0f2f2] rounded-xl text-sm font-semibold text-[#1a2e2e] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all cursor-pointer shadow-sm hover:bg-[#f5f9f9]"
+          
+          <button 
+            onClick={handleExport}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors text-[12px] font-medium cursor-pointer border-none flex-1 md:flex-none"
           >
-            <option value="all">All Departments</option>
-            {uniqueDepartments.map(dep => (
-              <option key={dep} value={dep}>{dep}</option>
-            ))}
-          </select>
+            <Download size={14} /> Export
+          </button>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#008080] text-white text-sm font-semibold rounded-xl hover:bg-[#006666] hover:shadow-lg hover:shadow-[#008080]/30 transition-all active:scale-95 whitespace-nowrap"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white transition-all text-[12px] font-medium border border-accent-primary/20 shrink-0 cursor-pointer flex-1 md:flex-none"
           >
-            <Plus size={18} />
-            Add Teacher
+            <Plus size={14} /> Add Teacher
           </button>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-[#e0f2f2] rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
         {loading ? (
           <table className="w-full animate-pulse">
             <thead>
-              <tr className="bg-[#f5f9f9]">
+              <tr className="bg-bg">
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
                 <th className="px-6 py-4"></th>
@@ -197,59 +320,67 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
             </thead>
             <tbody>
               {[...Array(5)].map((_, i) => (
-                <tr key={i} className="border-b border-[#e0f2f2]">
+                <tr key={i} className="border-b border-border">
                   <td className="px-6 py-4 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#e0f2f2]"></div>
-                    <div className="h-4 bg-[#e0f2f2] rounded w-48"></div>
+                    <div className="w-8 h-8 rounded-full bg-surface-hover"></div>
+                    <div className="h-4 bg-surface-hover rounded w-48"></div>
                   </td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#e0f2f2] rounded w-56"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#e0f2f2] rounded w-32"></div></td>
-                  <td className="px-6 py-4"><div className="h-4 bg-[#e0f2f2] rounded w-24"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-surface-hover rounded w-56"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-surface-hover rounded w-32"></div></td>
+                  <td className="px-6 py-4"><div className="h-4 bg-surface-hover rounded w-24"></div></td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : teachers.length === 0 ? (
           <div className="p-16 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-2xl bg-[#008080]/10 flex items-center justify-center text-[#008080] mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-4">
               <Users size={32} />
             </div>
-            <h3 className="text-[#1a2e2e] font-bold text-lg">No teachers yet</h3>
-            <p className="text-[#555555] mt-1 text-sm font-medium">Add your first teacher to get started</p>
+            <h3 className="text-text-main font-bold text-lg">No teachers yet</h3>
+            <p className="text-text-muted mt-1 text-sm font-medium">Add your first teacher to get started</p>
           </div>
         ) : (
           <div className="overflow-x-auto w-full">
-            <table className="w-full min-w-[800px]">
+            <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
               <thead>
-              <tr className="bg-[#f5f9f9] border-b border-[#e0f2f2]">
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Name</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Email</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Department</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Added</th>
-                <th className="text-center px-6 py-4 text-xs font-bold text-[#555555] uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-border">
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[30%]" onClick={() => toggleSort('name')}>
+                  <div className="flex items-center gap-2">Name {getSortIcon('name')}</div>
+                </th>
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[30%]">Email</th>
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[20%]" onClick={() => toggleSort('department')}>
+                  <div className="flex items-center gap-2">Department {getSortIcon('department')}</div>
+                </th>
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[10%]" onClick={() => toggleSort('newest')}>
+                  <div className="flex items-center gap-2">Added {getSortIcon('newest')}</div>
+                </th>
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredTeachers.map((t) => (
-                <tr key={t.id} className="border-b border-[#e0f2f2] hover:bg-[#f5f9f9]/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <span className="text-[#1a2e2e] font-medium">{t.full_name}</span>
+              {pagedTeachers.map((t) => (
+                <tr key={t.id} className="group even:bg-bg hover:bg-surface-hover border-b border-border/40 last:border-b-0 transition-colors">
+                  <td className="py-2.5 px-4 align-middle">
+                    <span className="text-text-main font-medium text-[13px]">{t.full_name}</span>
                   </td>
-                  <td className="px-6 py-4 text-[#555555] text-sm">{t.email || '—'}</td>
-                  <td className="px-6 py-4 text-[#555555] text-sm">
+                  <td className="py-2.5 px-4 align-middle text-text-muted text-[13px]">{t.email || '—'}</td>
+                  <td className="py-2.5 px-4 align-middle text-text-muted text-[13px]">
                     {t.department ? (
-                      <span className="bg-[#e0f2f2] text-[#008080] px-2 py-1 rounded-md text-xs font-bold uppercase tracking-wider">{t.department}</span>
+                      <span className="bg-surface border border-border text-accent-primary px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">{t.department}</span>
                     ) : '—'}
                   </td>
-                  <td className="px-6 py-4 text-[#555555] text-sm">{new Date(t.created_at).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 text-center flex justify-center gap-2">
-                    <button onClick={() => {
-                      setName(t.full_name);
-                      setEmail(t.email);
-                      setDepartment(t.department || '');
-                      setEditTeacherId(t.id);
-                    }} className="text-[#008080] hover:text-[#006666] text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-[#e0f2f2] transition-colors">Edit</button>
-                    <button onClick={() => setDeleteTeacherId(t.id)} className="text-red-500 hover:text-red-600 text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors">Delete</button>
+                  <td className="py-2.5 px-4 align-middle text-text-muted text-[13px]">{new Date(t.created_at).toLocaleDateString()}</td>
+                  <td className="py-2.5 px-4 align-middle text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button onClick={() => {
+                        setName(t.full_name);
+                        setEmail(t.email);
+                        setDepartment(t.department || '');
+                        setEditTeacherId(t.id);
+                      }} className="text-accent-primary hover:text-accent-primary/80 text-[12px] font-semibold px-2 py-1 rounded-md hover:bg-surface-hover transition-colors border border-transparent hover:border-accent-primary/10">Edit</button>
+                      <button onClick={() => setDeleteTeacherId(t.id)} className="text-red-500 hover:text-red-600 text-[12px] font-semibold px-2 py-1 rounded-md hover:bg-red-500/10 transition-colors border border-transparent">Delete</button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -262,44 +393,44 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
       {/* Add Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-[#008080] px-6 py-4 flex items-center justify-between">
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
               <span className="text-white font-bold">Add Teacher</span>
               <button onClick={() => setShowModal(false)} className="text-white/70 hover:text-white transition-colors">✕</button>
             </div>
             <form onSubmit={handleAddTeacher} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Full Name</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Full Name</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all"
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                   placeholder="e.g. Dr. Sharma" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Email</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Email</label>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all"
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                   placeholder="sharma@school.com" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Department</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Department</label>
                 <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all"
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                   placeholder="e.g. Mathematics" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Password</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Password</label>
                 <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6}
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all"
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                   placeholder="Min 6 characters" />
               </div>
-              {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-medium">{error}</div>}
+              {error && <div className="bg-red-500/10 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-medium">{error}</div>}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowModal(false)}
-                  className="px-6 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors">
+                  className="px-6 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors">
                   Cancel
                 </button>
                 <button type="submit" disabled={formLoading}
-                  className="flex-1 py-2.5 bg-[#008080] text-white font-bold rounded-xl shadow-lg shadow-[#008080]/20 hover:bg-[#006666] transition-all disabled:opacity-70 text-sm">
+                  className="flex-1 py-2.5 bg-accent-primary text-white font-bold rounded-xl shadow-lg shadow-accent-primary/20 hover:bg-accent-primary/80 transition-all disabled:opacity-70 text-sm">
                   {formLoading ? 'Adding...' : 'Add Teacher'}
                 </button>
               </div>
@@ -311,36 +442,36 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
       {/* Edit Modal */}
       {editTeacherId && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setEditTeacherId(null)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-[#008080] px-6 py-4 flex items-center justify-between">
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
               <span className="text-white font-bold">Edit Teacher</span>
               <button onClick={() => setEditTeacherId(null)} className="text-white/70 hover:text-white transition-colors">✕</button>
             </div>
             <form onSubmit={handleEditTeacher} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Full Name</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Full Name</label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all" />
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Email</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Email</label>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all" />
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all" />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-[#1a2e2e] mb-1.5">Department</label>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Department</label>
                 <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} required
-                  className="w-full px-4 py-3 bg-[#f5f9f9] border border-[#e0f2f2] rounded-xl text-[#1a2e2e] placeholder-[#8ab8b8] focus:outline-none focus:border-[#008080] focus:ring-2 focus:ring-[#008080]/20 transition-all"
+                  className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                   placeholder="e.g. Mathematics" />
               </div>
-              {error && <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-medium">{error}</div>}
+              {error && <div className="bg-red-500/10 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-medium">{error}</div>}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setEditTeacherId(null)}
-                  className="px-6 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] text-sm transition-colors">
+                  className="px-6 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors">
                   Cancel
                 </button>
                 <button type="submit" disabled={formLoading}
-                  className="flex-1 py-2.5 bg-[#008080] text-white font-bold rounded-xl shadow-lg shadow-[#008080]/20 hover:bg-[#006666] transition-all disabled:opacity-70 text-sm">
+                  className="flex-1 py-2.5 bg-accent-primary text-white font-bold rounded-xl shadow-lg shadow-accent-primary/20 hover:bg-accent-primary/80 transition-all disabled:opacity-70 text-sm">
                   {formLoading ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
@@ -352,17 +483,17 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
       {/* Delete Confirmation Modal */}
       {deleteTeacherId && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDeleteTeacherId(null)}>
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface rounded-2xl shadow-xl p-6 w-full max-w-sm animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 text-red-600 flex items-center justify-center mx-auto mb-4">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </div>
-              <h3 className="text-lg font-bold text-[#1a2e2e] mb-2">Delete Teacher?</h3>
-              <p className="text-sm text-[#555555]">This action cannot be undone. Are you sure you want to delete this teacher?</p>
+              <h3 className="text-lg font-bold text-text-main mb-2">Delete Teacher?</h3>
+              <p className="text-sm text-text-muted">This action cannot be undone. Are you sure you want to delete this teacher?</p>
             </div>
             <div className="flex gap-3">
               <button onClick={() => setDeleteTeacherId(null)}
-                className="flex-1 px-4 py-2.5 bg-white border border-[#e0f2f2] text-[#555555] font-semibold rounded-xl hover:bg-[#f5f9f9] transition-colors text-sm">
+                className="flex-1 px-4 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover transition-colors text-sm">
                 Cancel
               </button>
               <button onClick={handleDeleteTeacher}

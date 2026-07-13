@@ -16,12 +16,12 @@
     --color-accent-secondary: #10B981;
     --color-accent-secondary-glow: rgba(16, 185, 129, 0.15);
     
-    --color-text-main: #1A202C;
+    --color-text-main: #1A2E2E;
     --color-text-muted: #718096;
     
     --color-border: #E2E8F0;
     
-    --color-sidebar-bg: #343A40;
+    --color-sidebar-bg: #1A2E2E;
     --color-sidebar-text: #FFFFFF;
     --color-sidebar-text-muted: #A0AEC0;
     --color-sidebar-hover: rgba(255, 255, 255, 0.05);

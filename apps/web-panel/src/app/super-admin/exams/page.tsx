@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { FileText, Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
@@ -22,11 +22,26 @@ export default function ExamsDashboard() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(8);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
+  const sliderRef = useRef<HTMLDivElement>(null);
+
+  const scrollRight = () => {
+    if (sliderRef.current) {
+      sliderRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+    }
+  };
+
+  const scrollLeft = () => {
+    if (sliderRef.current) {
+      sliderRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+    }
+  };
 
   // Template Modal State
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -139,6 +154,8 @@ export default function ExamsDashboard() {
     }
   };
 
+  const filteredTemplates = templates.filter(t => (t.title || '').toLowerCase().includes(templateSearchQuery.toLowerCase()) || (t.description || '').toLowerCase().includes(templateSearchQuery.toLowerCase()));
+
   const filteredExams = exams
     .filter(exam => {
       const matchesSearch = exam.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -204,80 +221,110 @@ export default function ExamsDashboard() {
 
       {/* Global Template Presets */}
       <div>
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Exam Templates</span>
-          <div className="flex-1 h-px bg-border" />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">Exam Templates</span>
+            <div className="h-4 w-px bg-border hidden lg:block" />
+          </div>
+          
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+            <div className="relative flex-1 lg:flex-none">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" size={12} />
+              <input 
+                type="text" 
+                placeholder="Search templates..."
+                value={templateSearchQuery}
+                onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                className="w-full lg:w-48 h-8 pl-7 pr-3 bg-surface-hover border border-border rounded-lg text-[11px] focus:outline-none focus:border-accent-primary transition-all text-text-main"
+              />
+            </div>
+            <button
+              onClick={() => openCreateTemplate()}
+              className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-accent-primary/10 text-accent-primary text-[11px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 shrink-0 cursor-pointer"
+            >
+              <Plus size={12} /> Create Template
+            </button>
+            <button
+              onClick={() => openDrawer('exam', {})}
+              className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-surface-hover text-text-main text-[11px] font-bold hover:bg-border transition-all border border-border shrink-0 cursor-pointer"
+            >
+              <Plus size={12} /> Create Exam
+            </button>
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {templates.map(template => (
-            <div key={template.id} className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="text-base font-extrabold text-text-main tracking-tight">{template.title}</h3>
-                  <p className="text-[11px] text-text-muted">{template.description || 'Custom Template'}</p>
-                </div>
-              </div>
-              <div className="space-y-1 mb-4">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-text-muted">Duration</span>
-                  <span className="font-semibold text-text-main">{template.duration_minutes} min</span>
-                </div>
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-text-muted">Subjects</span>
-                  <span className="font-semibold text-text-main">
-                    {template.exam_template_subjects?.map((s: any) => s.subject_name).join(' · ') || 'None'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-text-muted">Marking</span>
-                  <span className="font-semibold text-text-main">
-                    +{template.marking_scheme?.mcq_correct || 0} / {template.marking_scheme?.mcq_wrong || 0}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => openDrawer('exam', {
-                  title: template.title,
-                  description: template.description,
-                  durationMinutes: template.duration_minutes,
-                  mcqCorrect: template.marking_scheme?.mcq_correct,
-                  mcqWrong: template.marking_scheme?.mcq_wrong,
-                  natCorrect: template.marking_scheme?.nat_correct,
-                  natWrong: template.marking_scheme?.nat_wrong,
-                  subjects: template.exam_template_subjects?.map((s: any) => ({
-                    name: s.subject_name,
-                    questionCount: s.question_count
-                  }))
-                })}
-                className="mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
-              >
-                <Plus size={13} /> Use Template
-              </button>
-            </div>
-          ))}
 
-          {/* Custom Setup */}
-          <div className="relative bg-surface border border-dashed border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/40 transition-all group overflow-hidden flex flex-col justify-between">
+        <div className="flex flex-col md:flex-row gap-4 w-full">
+          {/* Templates Slider */}
+          <div className="relative w-full overflow-hidden rounded-2xl group/slider">
             
-            <div className="flex flex-col gap-2 mt-4">
-              <button
-                onClick={() => openCreateTemplate()}
-                className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
-              >
-                <Plus size={13} /> Create Template
-              </button>
-              <button
-                onClick={() => openDrawer('exam', {})}
-                className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-surface-hover text-text-main text-[12px] font-bold hover:bg-border transition-all border border-border cursor-pointer"
-              >
-                <Plus size={13} /> Create Exam
-              </button>
+            {/* Scroll Left Button */}
+            <button 
+              onClick={scrollLeft}
+              className="absolute left-0 top-1/2 -translate-y-1/2 mb-2 w-8 h-8 flex items-center justify-center bg-surface border border-border rounded-full shadow-lg text-accent-primary hover:bg-accent-primary hover:text-white transition-all opacity-0 invisible group-hover/slider:opacity-100 group-hover/slider:visible cursor-pointer z-20"
+            >
+              <ChevronLeft size={18} />
+            </button>
+
+            <div ref={sliderRef} className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth w-full h-full [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border hover:[&::-webkit-scrollbar-thumb]:bg-text-muted/40">
+              {filteredTemplates.map(template => (
+              <div key={template.id} className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col w-[280px] shrink-0 snap-start">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="text-base font-extrabold text-text-main tracking-tight">{template.title}</h3>
+                    <p className="text-[11px] text-text-muted">{template.description || 'Custom Template'}</p>
+                  </div>
+                </div>
+                <div className="space-y-1 mb-4">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-text-muted">Duration</span>
+                    <span className="font-semibold text-text-main">{template.duration_minutes} min</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-text-muted">Subjects</span>
+                    <span className="font-semibold text-text-main truncate max-w-[120px]" title={template.exam_template_subjects?.map((s: any) => s.subject_name).join(' · ')}>
+                      {template.exam_template_subjects?.map((s: any) => s.subject_name).join(' · ') || 'None'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-text-muted">Marking</span>
+                    <span className="font-semibold text-text-main">
+                      +{template.marking_scheme?.mcq_correct || 0} / {template.marking_scheme?.mcq_wrong || 0}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => openDrawer('exam', {
+                    title: template.title,
+                    description: template.description,
+                    durationMinutes: template.duration_minutes,
+                    mcqCorrect: template.marking_scheme?.mcq_correct,
+                    mcqWrong: template.marking_scheme?.mcq_wrong,
+                    natCorrect: template.marking_scheme?.nat_correct,
+                    natWrong: template.marking_scheme?.nat_wrong,
+                    subjects: template.exam_template_subjects?.map((s: any) => ({
+                      name: s.subject_name,
+                      questionCount: s.question_count
+                    }))
+                  })}
+                  className="mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
+                >
+                  <Plus size={13} /> Use Template
+                </button>
+              </div>
+            ))}
             </div>
+            
+            {/* Scroll Right Button */}
+            <button 
+              onClick={scrollRight}
+              className="absolute right-0 top-1/2 -translate-y-1/2 mb-2 w-8 h-8 flex items-center justify-center bg-surface border border-border rounded-full shadow-lg text-accent-primary hover:bg-accent-primary hover:text-white transition-all opacity-0 invisible group-hover/slider:opacity-100 group-hover/slider:visible cursor-pointer z-20"
+            >
+              <ChevronRight size={18} />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Control Panel (next to search field) */}
       <div className="flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border">
         {/* Search Box */}
         <div className="relative w-full md:max-w-[260px] shrink-0">

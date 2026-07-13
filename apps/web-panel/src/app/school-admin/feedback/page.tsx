@@ -73,22 +73,22 @@ export default function FeedbackPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-[#1a2e2e]">Help & Support</h1>
-        <p className="text-[#555555] mt-1">Get in touch with the ParikshaOS team or submit a feature request/bug report.</p>
+        <h1 className="text-2xl font-bold text-text-main">Help & Support</h1>
+        <p className="text-text-muted mt-1">Get in touch with the ParikshaOS team or submit a feature request/bug report.</p>
       </div>
 
       {/* Direct Contact Banner */}
-      <div className="bg-gradient-to-r from-[#008080]/10 to-[#005555]/10 border border-[#008080]/20 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+      <div className="bg-gradient-to-r from-accent-primary/10 to-accent-primary/7 border border-accent-primary/20 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
         <div>
-          <h2 className="text-[#1a2e2e] font-bold text-lg">Need immediate assistance?</h2>
-          <p className="text-[#555555] text-sm mt-1">Reach out to our support team directly via WhatsApp or Email.</p>
+          <h2 className="text-text-main font-bold text-lg">Need immediate assistance?</h2>
+          <p className="text-text-muted text-sm mt-1">Reach out to our support team directly via WhatsApp or Email.</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <a href={`https://wa.me/9101840955?text=${encodeURIComponent(`Hello ParikshaOS Support, this is ${schoolName || 'a school admin'}, we are reaching out regarding...`)}`} target="_blank" rel="noreferrer" className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-xl shadow-sm transition-colors text-sm">
             <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
             WhatsApp
           </a>
-          <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=support@parikshaos.com&su=${encodeURIComponent(`Support Request - ${schoolName || 'School'}`)}&body=${encodeURIComponent(`Hello ParikshaOS Support,\n\nWe are reaching out regarding...`)}`} target="_blank" rel="noreferrer" className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-[#e0f2f2] hover:border-[#008080] text-[#1a2e2e] font-bold rounded-xl shadow-sm transition-colors text-sm">
+          <a href={`https://mail.google.com/mail/?view=cm&fs=1&to=support@parikshaos.com&su=${encodeURIComponent(`Support Request - ${schoolName || 'School'}`)}&body=${encodeURIComponent(`Hello ParikshaOS Support,\n\nWe are reaching out regarding...`)}`} target="_blank" rel="noreferrer" className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-surface border border-border hover:border-accent-primary text-text-main font-bold rounded-xl shadow-sm transition-colors text-sm">
             <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
             Email Us
           </a>
@@ -98,7 +98,7 @@ export default function FeedbackPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Feedback Form */}
         <div className="md:col-span-2">
-          <div className="bg-white rounded-2xl shadow-sm border border-[#e0f2f2] overflow-hidden">
+          <div className="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden">
             <div className="p-6">
               {loading ? (
                 <div className="animate-pulse space-y-4">
@@ -109,13 +109,13 @@ export default function FeedbackPage() {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-[#1a2e2e]">Feedback Type</label>
+                    <label className="text-sm font-bold text-text-main">Feedback Type</label>
                     <div className="flex flex-wrap gap-3">
                       {['feature_request', 'bug_report', 'general'].map((t) => (
                         <label
                           key={t}
                           className={`flex items-center gap-2 px-4 py-2 rounded-xl border cursor-pointer transition-colors ${
-                            type === t ? 'border-[#008080] bg-[#f5f9f9] text-[#008080]' : 'border-[#e0f2f2] text-[#555555] hover:bg-gray-50'
+                            type === t ? 'border-accent-primary bg-bg text-accent-primary' : 'border-border text-text-muted hover:bg-gray-50'
                           }`}
                         >
                           <input
@@ -133,13 +133,13 @@ export default function FeedbackPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-[#1a2e2e]">Message</label>
+                    <label className="text-sm font-bold text-text-main">Message</label>
                     <textarea
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       required
                       placeholder="Describe the feature you need or the issue you're facing..."
-                      className="w-full h-32 p-4 border border-[#e0f2f2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#008080]/20 focus:border-[#008080] resize-none text-sm text-[#1a2e2e]"
+                      className="w-full h-32 p-4 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-primary/20 focus:border-accent-primary resize-none text-sm text-text-main"
                     />
                   </div>
 
@@ -155,7 +155,7 @@ export default function FeedbackPage() {
                     <button
                       type="submit"
                       disabled={submitting || !message.trim()}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-[#008080] hover:bg-[#006666] text-white font-medium rounded-xl transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 px-6 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
                     >
                       <Send className="w-4 h-4" />
                       {submitting ? 'Sending...' : 'Send Feedback'}
@@ -169,10 +169,10 @@ export default function FeedbackPage() {
 
         {/* Previous Feedbacks Sidebar */}
         <div className="md:col-span-1">
-          <div className="bg-white rounded-2xl shadow-sm border border-[#e0f2f2] overflow-hidden flex flex-col h-full max-h-[500px]">
-            <div className="p-4 border-b border-[#e0f2f2] flex items-center gap-2 bg-[#f5f9f9]">
-              <MessageSquare className="text-[#008080] w-4 h-4" />
-              <h2 className="text-sm font-bold text-[#1a2e2e]">Previous Feedback</h2>
+          <div className="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden flex flex-col h-full max-h-[500px]">
+            <div className="p-4 border-b border-border flex items-center gap-2 bg-bg">
+              <MessageSquare className="text-accent-primary w-4 h-4" />
+              <h2 className="text-sm font-bold text-text-main">Previous Feedback</h2>
             </div>
             <div className="p-0 overflow-y-auto flex-1">
               {loading ? (
@@ -181,11 +181,11 @@ export default function FeedbackPage() {
                   <div className="h-16 bg-gray-100 rounded-xl w-full"></div>
                 </div>
               ) : feedbacks.length > 0 ? (
-                <div className="divide-y divide-[#e0f2f2]">
+                <div className="divide-y divide-border">
                   {feedbacks.map((fb) => (
                     <div key={fb.id} className="p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-1 bg-[#e0f2f2] text-[#008080] rounded">
+                        <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-1 bg-surface-hover text-accent-primary rounded">
                           {fb.type.replace('_', ' ')}
                         </span>
                         {/* <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-1 rounded ${
@@ -196,8 +196,8 @@ export default function FeedbackPage() {
                           {fb.status}
                         </span> */}
                       </div>
-                      <p className="text-sm text-[#1a2e2e] line-clamp-3">{fb.message}</p>
-                      <p className="text-xs text-[#8ab8b8] mt-2">
+                      <p className="text-sm text-text-main line-clamp-3">{fb.message}</p>
+                      <p className="text-xs text-text-muted mt-2">
                         {new Date(fb.created_at).toLocaleDateString()}
                       </p>
                     </div>
@@ -205,9 +205,9 @@ export default function FeedbackPage() {
                 </div>
               ) : (
                 <div className="text-center py-8 px-4">
-                  <AlertCircle className="w-8 h-8 text-[#8ab8b8] mx-auto mb-2 opacity-50" />
-                  <h3 className="text-sm font-medium text-[#1a2e2e]">No feedback yet</h3>
-                  <p className="text-xs text-[#555555] mt-1">Your submitted feedback will appear here.</p>
+                  <AlertCircle className="w-8 h-8 text-text-muted mx-auto mb-2 opacity-50" />
+                  <h3 className="text-sm font-medium text-text-main">No feedback yet</h3>
+                  <p className="text-xs text-text-muted mt-1">Your submitted feedback will appear here.</p>
                 </div>
               )}
             </div>
