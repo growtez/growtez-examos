@@ -340,24 +340,24 @@ export default function SchoolAdminLayout({
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 bg-surface/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 shadow-sm sticky top-0 z-30">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-text-muted hover:text-accent-primary hover:bg-surface-hover rounded-lg p-2 transition-colors md:hidden"
+              className="text-text-muted hover:text-accent-primary hover:bg-surface-hover rounded-lg p-2 transition-colors md:hidden shrink-0"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="flex items-center text-sm md:text-base font-medium text-text-main overflow-hidden">
+            <div className="flex items-center text-sm md:text-base font-medium text-text-main overflow-hidden min-w-0 w-full">
               {breadcrumbs.map((crumb, index) => {
                 const isLast = index === breadcrumbs.length - 1;
                 return (
-                  <span key={index} className={`items-center ${isLast ? 'flex' : 'hidden md:inline-flex'}`}>
+                  <span key={index} className={`items-center min-w-0 ${isLast ? 'flex flex-1' : 'hidden md:inline-flex shrink-0'}`}>
                     {crumb.href ? (
-                      <Link href={crumb.href} className="hover:text-accent-primary text-text-muted transition-colors font-semibold whitespace-nowrap">
+                      <Link href={crumb.href} className="hover:text-accent-primary text-text-muted transition-colors font-semibold truncate max-w-xs xl:max-w-md">
                         {crumb.label}
                       </Link>
                     ) : (
-                      <span className="text-accent-primary font-bold whitespace-nowrap">{crumb.label}</span>
+                      <span className="text-accent-primary font-bold truncate">{crumb.label}</span>
                     )}
                     {index < breadcrumbs.length - 1 && <span className="text-border mx-2">/</span>}
                   </span>
@@ -366,7 +366,7 @@ export default function SchoolAdminLayout({
             </div>
           </div>
           
-          <div className="flex items-center gap-4 ml-auto">
+          <div className="flex items-center gap-4 ml-auto shrink-0">
             {schoolName && (
               <span className="text-base font-bold text-text-main hidden sm:block truncate max-w-[50vw]" title={schoolName}>
                 {schoolName}

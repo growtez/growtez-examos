@@ -1190,8 +1190,17 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               placeholder="Exam Title"
               style={{ width: `${Math.max(title.length || 0, 10)}ch` }}
             />
-            <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusColors[displayStatus] || statusColors.draft}`}>
-              {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+              displayStatus === 'draft' && saveStatus === 'saving' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
+              displayStatus === 'draft' && saveStatus === 'saved' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+              statusColors[displayStatus] || statusColors.draft
+            }`}>
+              {displayStatus === 'draft' && saveStatus === 'saving' && <span className="w-2.5 h-2.5 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />}
+              {displayStatus === 'draft' && saveStatus === 'saved' && <Check size={10} />}
+              {displayStatus === 'draft' && saveStatus === 'saving' ? 'Saving...' :
+               displayStatus === 'draft' && saveStatus === 'saved' ? 'Saved' :
+               displayStatus === 'draft' && saveStatus === 'error' ? 'Save Error' :
+               displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
             </span>
           </div>
 
@@ -1668,7 +1677,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 <div className="space-y-2">
                   <div>
                     <label className="block text-xs font-semibold text-text-muted mb-1">Title *</label>
-                    <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)} required
+                    <input type="text" value={title} onChange={(e) => {
+                      const newTitle = e.target.value;
+                      setTitle(newTitle);
+                      setExam((prev: any) => prev ? {...prev, title: newTitle} : null);
+                      window.dispatchEvent(new CustomEvent('breadcrumb-update', { detail: { id: params.id, title: newTitle } }));
+                    }} onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)} required
                       className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
                   </div>
                   <div>
