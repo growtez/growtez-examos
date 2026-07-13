@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { ChevronLeft, ChevronRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, Plus } from 'lucide-react';
 
 function CustomCombobox({ value, onChange, options, placeholder, className }: { value: string, onChange: (v: string) => void, options: string[], placeholder: string, className: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -71,6 +72,10 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
   const [courseFilter, setCourseFilter] = useState('');
   const [batchFilter, setBatchFilter] = useState('');
   const [sessionFilter, setSessionFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(8);
+  const [sortBy, setSortBy] = useState('newest');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
@@ -288,6 +293,20 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
     }
   };
 
+  const toggleSort = (newSort: string) => {
+    if (sortBy === newSort) {
+      setSortBy(newSort === 'newest' ? 'oldest' : newSort === 'name' ? 'newest' : 'newest');
+    } else {
+      setSortBy(newSort);
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortBy === field) return <ArrowUp size={14} />;
+    if (field === 'newest' && sortBy === 'oldest') return <ArrowDown size={14} />;
+    return <ArrowUpDown size={14} className="opacity-30" />;
+  };
+
   const filteredStudents = students.filter(s => {
     const matchesSearch = s.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           s.roll_number?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -295,18 +314,176 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
     const matchesBatch = batchFilter ? s.batch === batchFilter : true;
     const matchesSession = sessionFilter ? s.session === sessionFilter : true;
     return matchesSearch && matchesCourse && matchesBatch && matchesSession;
+  }).sort((a, b) => {
+    if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (sortBy === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    if (sortBy === 'name') return (a.full_name || '').localeCompare(b.full_name || '');
+    if (sortBy === 'roll') return (a.roll_number || '').localeCompare(b.roll_number || '');
+    return 0;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / perPage));
+  const safePage = Math.min(page, totalPages);
+  const pagedStudents = filteredStudents.slice((safePage - 1) * perPage, safePage * perPage);
+
+  const getPaginationPages = () => {
+    if (totalPages <= 3) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    if (safePage === totalPages) {
+      return [1, '...', totalPages];
+    }
+    if (safePage === totalPages - 1) {
+      return [safePage - 1, safePage, totalPages];
+    }
+    return [safePage, '...', totalPages];
+  };
+
+  const handleExport = () => {
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + "Roll No,Name,Course,Batch,Session,DOB\n"
+      + filteredStudents.map(r => `${r.roll_number},${r.full_name},${r.course},${r.batch},${r.session},${r.date_of_birth ? new Date(r.date_of_birth).toLocaleDateString() : ''}`).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `students_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-text-main">Students</h2>
-          <p className="text-text-muted mt-1 text-sm font-medium">Manage your school&apos;s students</p>
+      {success && (
+        <div className="bg-emerald-50 border border-emerald-200 p-4 text-emerald-600 rounded-xl text-sm font-medium mb-6 flex items-center gap-2">{success}</div>
+      )}
+
+      {/* Control Panel */}
+      <div className="flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border mb-4">
+        {/* Search Box */}
+        <div className="relative w-full md:max-w-[260px] shrink-0">
+          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+          <input
+            type="text"
+            placeholder="Search Students..."
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+            className="w-full py-2 pl-4 pr-10 bg-surface-hover border border-border rounded-full text-text-main text-[13px] focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all"
+          />
         </div>
-        <div className="flex flex-wrap gap-3">
+
+        {/* Inline Active Filters */}
+        <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0">
+          {(searchQuery || courseFilter || batchFilter || sessionFilter || sortBy !== 'newest') ? (
+            <>
+              <span className="text-[11px] text-text-muted font-medium uppercase tracking-wider shrink-0 mr-1">Active:</span>
+              {searchQuery && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                  "{searchQuery}"
+                  <button onClick={() => setSearchQuery('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                </span>
+              )}
+              {courseFilter && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                  {courseFilter}
+                  <button onClick={() => setCourseFilter('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                </span>
+              )}
+              {batchFilter && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                  {batchFilter}
+                  <button onClick={() => setBatchFilter('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                </span>
+              )}
+              {sessionFilter && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                  {sessionFilter}
+                  <button onClick={() => setSessionFilter('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                </span>
+              )}
+              {sortBy !== 'newest' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                  {sortBy === 'oldest' ? 'Oldest' : sortBy === 'name' ? 'A-Z' : sortBy}
+                  <button onClick={() => setSortBy('newest')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                </span>
+              )}
+              <button 
+                onClick={() => { setSearchQuery(''); setCourseFilter(''); setBatchFilter(''); setSessionFilter(''); setSortBy('newest'); setPage(1); }}
+                className="text-[11px] text-text-muted hover:text-red-500 transition-colors ml-1 bg-transparent border-none cursor-pointer font-medium shrink-0"
+              >
+                Clear
+              </button>
+            </>
+          ) : (
+            <span className="text-[11px] text-text-muted italic opacity-50">No active filters</span>
+          )}
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between md:justify-start gap-1 shrink-0 md:border-x md:border-border/50 px-3 py-1.5 md:py-0 w-full md:w-auto">
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+            <ChevronLeft size={14} />
+          </button>
+          <div className="flex items-center justify-center gap-1 w-[80px]">
+            {getPaginationPages().map((p, i) => p === '...' ? (
+              <div key={`ellipsis-${i}`} className="w-6 h-6 flex items-center justify-center text-[11px] text-text-muted">…</div>
+            ) : (
+              <button key={p} onClick={() => setPage(p as number)} className={`w-6 h-6 flex items-center justify-center rounded text-[11px] font-semibold transition-colors border-none cursor-pointer ${safePage === p ? 'bg-accent-primary text-white' : 'text-text-muted hover:bg-surface-hover bg-transparent'}`}>{p as number}</button>
+            ))}
+          </div>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+            <ChevronRight size={14} />
+          </button>
+        </div>
+
+        {/* Controls and Actions */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0 w-full md:w-auto">
+          <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="py-1.5 px-2 rounded-lg border border-border bg-surface text-text-main text-[12px] focus:outline-none focus:ring-1 focus:ring-accent-primary cursor-pointer flex-1 md:flex-none">
+            {[8, 20, 50, 100].map(n => <option key={n} value={n}>{n} / page</option>)}
+          </select>
+          <div className="relative group flex-1 md:flex-none">
+            <button 
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-medium"
+            >
+              <Filter size={14} className="text-accent-primary" /> Filter
+            </button>
+            <div className={`absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col p-3 space-y-3 ${
+              isFilterOpen ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'
+            }`}>
+              <div>
+                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Course</label>
+                <select value={courseFilter} onChange={(e) => { setCourseFilter(e.target.value); setPage(1); }} className="w-full p-1.5 bg-surface-hover border border-border rounded-lg text-xs text-text-main focus:outline-none">
+                  <option value="">All Courses</option>
+                  {uniqueCourses.map((c: any) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Batch</label>
+                <select value={batchFilter} onChange={(e) => { setBatchFilter(e.target.value); setPage(1); }} className="w-full p-1.5 bg-surface-hover border border-border rounded-lg text-xs text-text-main focus:outline-none">
+                  <option value="">All Batches</option>
+                  {uniqueBatches.map((b: any) => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Session</label>
+                <select value={sessionFilter} onChange={(e) => { setSessionFilter(e.target.value); setPage(1); }} className="w-full p-1.5 bg-surface-hover border border-border rounded-lg text-xs text-text-main focus:outline-none">
+                  <option value="">All Sessions</option>
+                  {uniqueSessions.map((s: any) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <button 
+            onClick={handleExport}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors text-[12px] font-medium cursor-pointer border-none flex-1 md:flex-none"
+          >
+            <Download size={14} /> Export
+          </button>
+
           <button onClick={() => setShowImportModal(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface border border-border text-text-main text-sm font-semibold rounded-xl hover:border-accent-primary hover:text-accent-primary hover:bg-surface-hover transition-all shadow-sm">
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface hover:bg-surface-hover transition-colors text-[12px] font-medium border border-border shrink-0 cursor-pointer flex-1 md:flex-none">
             Import CSV
           </button>
           <button onClick={() => {
@@ -315,49 +492,9 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
             setCourse(''); setBatch(''); setSessionVal('');
             setShowModal(true);
           }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-primary text-white text-sm font-semibold rounded-xl hover:bg-accent-primary/80 hover:shadow-lg hover:shadow-accent-primary/30 transition-all active:scale-95">
-            Add Student
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white transition-all text-[12px] font-medium border border-accent-primary/20 shrink-0 cursor-pointer flex-1 md:flex-none">
+            <Plus size={14} /> Add Student
           </button>
-        </div>
-      </div>
-
-      {success && (
-        <div className="bg-emerald-50 border border-emerald-200 p-4 text-emerald-600 rounded-xl text-sm font-medium mb-6 flex items-center gap-2">{success}</div>
-      )}
-
-      <div className="mb-6 flex flex-col md:flex-row gap-3 items-center">
-        <input 
-          type="text" 
-          placeholder="Search by name or roll no..." 
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 px-4 py-2.5 bg-surface border border-border text-text-main text-sm font-semibold rounded-xl focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all w-full shadow-sm"
-        />
-        <div className="flex gap-3 w-full md:w-auto overflow-x-auto pb-1 md:pb-0 custom-scrollbar">
-          <select 
-            value={courseFilter} 
-            onChange={(e) => setCourseFilter(e.target.value)}
-            className="px-4 py-2.5 bg-surface border border-border text-text-main text-sm font-semibold rounded-xl focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all shadow-sm cursor-pointer hover:bg-surface-hover"
-          >
-            <option value="">All Courses</option>
-            {uniqueCourses.map((c: any) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select 
-            value={batchFilter} 
-            onChange={(e) => setBatchFilter(e.target.value)}
-            className="px-4 py-2.5 bg-surface border border-border text-text-main text-sm font-semibold rounded-xl focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all shadow-sm cursor-pointer hover:bg-surface-hover"
-          >
-            <option value="">All Batches</option>
-            {uniqueBatches.map((b: any) => <option key={b} value={b}>{b}</option>)}
-          </select>
-          <select 
-            value={sessionFilter} 
-            onChange={(e) => setSessionFilter(e.target.value)}
-            className="px-4 py-2.5 bg-surface border border-border text-text-main text-sm font-semibold rounded-xl focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all shadow-sm cursor-pointer hover:bg-surface-hover"
-          >
-            <option value="">All Sessions</option>
-            {uniqueSessions.map((s: any) => <option key={s} value={s}>{s}</option>)}
-          </select>
         </div>
       </div>
 
@@ -397,49 +534,55 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
           </div>
         ) : (
           <div className="overflow-x-auto w-full">
-            <table className="w-full min-w-[800px]">
+            <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
               <thead>
-              <tr className="bg-surface-hover border-b border-border">
-                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Roll No.</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Name</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Course</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Batch</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Session</th>
-                <th className="text-left px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">DOB</th>
-                <th className="text-center px-6 py-4 text-xs font-bold text-text-muted uppercase tracking-wider">Actions</th>
+              <tr className="border-b border-border">
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[15%]" onClick={() => toggleSort('roll')}>
+                  <div className="flex items-center gap-2">Roll No. {getSortIcon('roll')}</div>
+                </th>
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[30%]" onClick={() => toggleSort('name')}>
+                  <div className="flex items-center gap-2">Name {getSortIcon('name')}</div>
+                </th>
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">Course</th>
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%]">Batch</th>
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%]">Session</th>
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%]">DOB</th>
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%] text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filteredStudents.length === 0 ? (
+              {pagedStudents.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center text-text-muted font-medium">
                     No students match your search criteria.
                   </td>
                 </tr>
-              ) : filteredStudents.map((s) => (
-                <tr key={s.id} className="border-b border-border hover:bg-surface-hover transition-colors">
-                  <td className="px-6 py-4">
-                    <span className="inline-flex px-3 py-1 bg-surface-hover border border-border text-accent-primary text-xs font-mono font-bold rounded-lg">{s.roll_number}</span>
+              ) : pagedStudents.map((s) => (
+                <tr key={s.id} className="group even:bg-bg hover:bg-surface-hover border-b border-border/40 last:border-b-0 transition-colors">
+                  <td className="py-2.5 px-4 align-middle">
+                    <span className="inline-flex px-2 py-0.5 bg-surface border border-border text-accent-primary text-[11px] font-mono font-bold rounded-md">{s.roll_number}</span>
                   </td>
-                  <td className="px-6 py-4 text-text-main font-medium">{s.full_name}</td>
-                  <td className="px-6 py-4 text-text-muted text-sm">
-                    <span className="bg-surface-hover text-accent-primary px-2 py-1 rounded-md text-xs font-bold uppercase tracking-wider">{s.course}</span>
+                  <td className="py-2.5 px-4 align-middle text-text-main font-medium text-[13px]">{s.full_name}</td>
+                  <td className="py-2.5 px-4 align-middle text-text-muted text-[13px]">
+                    <span className="bg-surface border border-border text-accent-primary px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">{s.course}</span>
                   </td>
-                  <td className="px-6 py-4 text-text-muted text-sm">{s.batch}</td>
-                  <td className="px-6 py-4 text-text-muted text-sm">{s.session}</td>
-                  <td className="px-6 py-4 text-text-muted text-sm">{s.date_of_birth ? new Date(s.date_of_birth).toLocaleDateString() : '—'}</td>
-                  <td className="px-6 py-4 text-center flex justify-center gap-2">
-                    <button onClick={() => {
-                      setName(s.full_name || '');
-                      setRollNumber(s.roll_number || '');
-                      setDob(s.date_of_birth || '');
-                      setCourse(s.course || '');
-                      setBatch(s.batch || '');
-                      setSessionVal(s.session || '');
-                      setEditStudentId(s.id);
-                      setShowModal(true);
-                    }} className="text-accent-primary hover:text-accent-primary/80 text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-surface-hover transition-colors">Edit</button>
-                    <button onClick={() => setDeleteStudentId(s.id)} className="text-red-500 hover:text-red-600 text-sm font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">Delete</button>
+                  <td className="py-2.5 px-4 align-middle text-text-muted text-[13px]">{s.batch}</td>
+                  <td className="py-2.5 px-4 align-middle text-text-muted text-[13px]">{s.session}</td>
+                  <td className="py-2.5 px-4 align-middle text-text-muted text-[13px]">{s.date_of_birth ? new Date(s.date_of_birth).toLocaleDateString() : '—'}</td>
+                  <td className="py-2.5 px-4 align-middle text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button onClick={() => {
+                        setName(s.full_name || '');
+                        setRollNumber(s.roll_number || '');
+                        setDob(s.date_of_birth || '');
+                        setCourse(s.course || '');
+                        setBatch(s.batch || '');
+                        setSessionVal(s.session || '');
+                        setEditStudentId(s.id);
+                        setShowModal(true);
+                      }} className="text-accent-primary hover:text-accent-primary/80 text-[12px] font-semibold px-2 py-1 rounded-md hover:bg-surface-hover transition-colors border border-transparent hover:border-accent-primary/10">Edit</button>
+                      <button onClick={() => setDeleteStudentId(s.id)} className="text-red-500 hover:text-red-600 text-[12px] font-semibold px-2 py-1 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors border border-transparent">Delete</button>
+                    </div>
                   </td>
                 </tr>
               ))}
