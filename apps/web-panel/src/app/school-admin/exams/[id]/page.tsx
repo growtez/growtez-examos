@@ -159,6 +159,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [templates, setTemplates] = useState<any[]>([]);
   const [applyingTemplate, setApplyingTemplate] = useState(false);
   const [showAddSubjectModal, setShowAddSubjectModal] = useState(false);
+  const [newSubjectTeacherSearch, setNewSubjectTeacherSearch] = useState('');
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
@@ -1544,7 +1545,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
             <button 
               type="button" 
-              onClick={() => setShowAddSubjectModal(true)}
+              onClick={() => { setShowAddSubjectModal(true); setNewSubjectTeacherSearch(''); }}
               className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-6 text-accent-primary hover:bg-[#f0f7f7] hover:border-accent-primary transition-colors min-h-[140px] h-full"
             >
               <Plus size={24} />
@@ -1947,7 +1948,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </form>
-      ) : currentStep !== 2 ? (
+      ) : (role !== 'teacher' && exam?.status === 'draft' && [2, 3, 4].includes(currentStep)) ? null : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-bg border border-border rounded-2xl p-5 flex items-center gap-4">
             <div className="w-12 h-12 bg-accent-primary/10 rounded-xl flex items-center justify-center text-accent-primary">
@@ -1970,7 +1971,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </div>
-      ) : null}
+      )}
 
         </div>
 
@@ -2614,38 +2615,36 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     className="w-full px-4 py-2.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium" />
                 </div>
               </div>
-              <div className="mb-6 max-h-48 overflow-y-auto custom-scrollbar border border-border rounded-lg p-3 bg-bg">
+              <div className="mb-6">
                 <label className="block text-xs font-semibold text-text-muted mb-2">Assign Teachers</label>
-                {teachers.length === 0 ? (
-                  <p className="text-text-muted text-xs font-medium">No teachers available.</p>
-                ) : (
-                  <div className="space-y-4">
-                    {Object.entries(
-                      teachers.reduce((acc, t) => {
-                        const dep = t.department || 'No Department';
-                        if (!acc[dep]) acc[dep] = [];
-                        acc[dep].push(t);
-                        return acc;
-                      }, {} as Record<string, any[]>)
-                    ).map(([dep, depTeachers]: [string, any]) => (
-                      <div key={dep} className="mb-2">
-                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{dep}</p>
-                        <div className="flex flex-wrap gap-2">
-                          {depTeachers.map((t: any) => (
-                            <button key={t.id} type="button" onClick={() => toggleNewSubjectTeacher(t.id)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                                newSubject.teacherIds.includes(t.id)
-                                  ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
-                                  : 'bg-surface border-border text-text-muted hover:border-border hover:text-text-muted'
-                              }`}>
-                              {t.full_name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <input
+                  type="text"
+                  placeholder="Search teachers..."
+                  value={newSubjectTeacherSearch}
+                  onChange={(e) => setNewSubjectTeacherSearch(e.target.value)}
+                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary mb-3"
+                />
+                <div className="max-h-60 overflow-y-auto border border-border rounded-lg custom-scrollbar">
+                  {teachers.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <p className="text-text-muted text-sm font-medium">No teachers available.</p>
+                    </div>
+                  ) : (
+                    teachers
+                      .filter(t => 
+                        t.full_name.toLowerCase().includes(newSubjectTeacherSearch.toLowerCase()) ||
+                        (t.department || '').toLowerCase().includes(newSubjectTeacherSearch.toLowerCase())
+                      )
+                      .map(t => (
+                      <label key={t.id} className="flex items-center gap-3 p-3 hover:bg-bg cursor-pointer border-b border-border last:border-0 transition-colors">
+                        <input type="checkbox" checked={newSubject.teacherIds.includes(t.id)} 
+                          onChange={() => toggleNewSubjectTeacher(t.id)} 
+                          className="w-4 h-4 text-accent-primary rounded border-border focus:ring-accent-primary cursor-pointer" />
+                        <span className="text-sm font-medium text-text-main">{t.full_name} <span className="text-xs text-text-muted">({t.department || 'No Dept'})</span></span>
+                      </label>
+                    ))
+                  )}
+                </div>
               </div>
               <div className="flex justify-end gap-3">
                 <button type="button" onClick={() => setShowAddSubjectModal(false)}
