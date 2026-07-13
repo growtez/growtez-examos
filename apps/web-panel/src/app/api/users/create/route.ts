@@ -75,6 +75,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to create auth user' }, { status: 400 });
     }
 
+    // For teachers, explicitly create/return the corresponding `teachers` table row.
+    // The frontend needs a full teacher object (id, full_name, department) back
+    // immediately to assign it to a subject — it can't rely on auth.user alone.
+    if (role === 'teacher') {
+      const { data: teacherRow, error: teacherError } = await adminSupabase
+        .from('teachers')
+        .upsert({
+          id: authData.user.id,
+          school_id: school_id || null,
+          full_name,
+          email,
+          department: department || null,
+        })
+        .select()
+        .single();
+
+      if (teacherError) {
+        return NextResponse.json(
+          { error: teacherError.message || 'Teacher account created, but failed to create teacher profile' },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json({ success: true, user: authData.user, teacher: teacherRow });
+    }
+
     return NextResponse.json({ success: true, user: authData.user });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });

@@ -342,7 +342,14 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
   const handleExport = () => {
     const csvContent = "data:text/csv;charset=utf-8," 
       + "Roll No,Name,Course,Batch,Session,DOB\n"
-      + filteredStudents.map(r => `${r.roll_number},${r.full_name},${r.course},${r.batch},${r.session},${r.date_of_birth ? new Date(r.date_of_birth).toLocaleDateString() : ''}`).join("\n");
+      + filteredStudents.map(r => {
+        let dobStr = '';
+        if (r.date_of_birth) {
+          const parts = r.date_of_birth.split('-');
+          dobStr = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : r.date_of_birth;
+        }
+        return `${r.roll_number},${r.full_name},${r.course},${r.batch},${r.session},${dobStr}`;
+      }).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -357,6 +364,29 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
       {success && (
         <div className="bg-emerald-50 border border-emerald-200 p-4 text-emerald-600 rounded-xl text-sm font-medium mb-6 flex items-center gap-2">{success}</div>
       )}
+
+      {/* Actions Row */}
+      <div className="flex justify-end items-center gap-2 mb-3">
+        <button 
+          onClick={handleExport}
+          className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors text-[12px] font-semibold cursor-pointer border-none"
+        >
+          <Download size={14} /> Export CSV
+        </button>
+        <button onClick={() => setShowImportModal(true)}
+          className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface hover:bg-surface-hover transition-colors text-[12px] font-semibold border border-border shrink-0 cursor-pointer">
+          Import CSV
+        </button>
+        <button onClick={() => {
+          setEditStudentId(null);
+          setName(''); setRollNumber(''); setDob('');
+          setCourse(''); setBatch(''); setSessionVal('');
+          setShowModal(true);
+        }}
+          className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white transition-all text-[12px] font-semibold border border-accent-primary/20 shrink-0 cursor-pointer">
+          <Plus size={14} /> Add Student
+        </button>
+      </div>
 
       {/* Control Panel */}
       <div className="flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border mb-4">
@@ -475,26 +505,6 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
             </div>
           </div>
           
-          <button 
-            onClick={handleExport}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors text-[12px] font-medium cursor-pointer border-none flex-1 md:flex-none"
-          >
-            <Download size={14} /> Export
-          </button>
-
-          <button onClick={() => setShowImportModal(true)}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface hover:bg-surface-hover transition-colors text-[12px] font-medium border border-border shrink-0 cursor-pointer flex-1 md:flex-none">
-            Import CSV
-          </button>
-          <button onClick={() => {
-            setEditStudentId(null);
-            setName(''); setRollNumber(''); setDob('');
-            setCourse(''); setBatch(''); setSessionVal('');
-            setShowModal(true);
-          }}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white transition-all text-[12px] font-medium border border-accent-primary/20 shrink-0 cursor-pointer flex-1 md:flex-none">
-            <Plus size={14} /> Add Student
-          </button>
         </div>
       </div>
 
@@ -568,7 +578,10 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
                   </td>
                   <td className="py-2.5 px-4 align-middle text-text-muted text-[13px]">{s.batch}</td>
                   <td className="py-2.5 px-4 align-middle text-text-muted text-[13px]">{s.session}</td>
-                  <td className="py-2.5 px-4 align-middle text-text-muted text-[13px]">{s.date_of_birth ? new Date(s.date_of_birth).toLocaleDateString() : '—'}</td>
+                  <td className="py-2.5 px-4 align-middle text-text-muted text-[13px]">{s.date_of_birth ? (() => {
+                    const parts = s.date_of_birth.split('-');
+                    return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : s.date_of_birth;
+                  })() : '—'}</td>
                   <td className="py-2.5 px-4 align-middle text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <button onClick={() => {

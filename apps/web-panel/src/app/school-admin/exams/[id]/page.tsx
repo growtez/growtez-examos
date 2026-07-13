@@ -87,11 +87,18 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       const step = searchParams.get('step');
-      if (step) {
-        const parsedStep = parseInt(step);
-        if (!isNaN(parsedStep) && parsedStep >= 1 && parsedStep <= 5) {
-          setCurrentStep(parsedStep);
-        }
+      let parsedStep = step ? parseInt(step) : NaN;
+
+      // Fall back to the last step visited for this exam if the URL has no ?step= param
+      // (e.g. navigating back from the home page via a plain link)
+      if (isNaN(parsedStep) || parsedStep < 1 || parsedStep > 5) {
+        const savedStep = window.localStorage.getItem(`exam-step-${params.id}`);
+        parsedStep = savedStep ? parseInt(savedStep) : NaN;
+      }
+
+      if (!isNaN(parsedStep) && parsedStep >= 1 && parsedStep <= 5) {
+        setCurrentStep(parsedStep);
+        window.history.replaceState(null, '', `?step=${parsedStep}`);
       }
     }
   }, []);
@@ -99,6 +106,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const handleSetStep = (step: number) => {
     setCurrentStep(step);
     window.history.replaceState(null, '', `?step=${step}`);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(`exam-step-${params.id}`, String(step));
+    }
   };
 
   const [examFee, setExamFee] = useState<number>(300);
@@ -173,6 +183,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [newTeacherDepartment, setNewTeacherDepartment] = useState('');
   const [addingTeacher, setAddingTeacher] = useState(false);
   const [addTeacherError, setAddTeacherError] = useState('');
+  const [teacherSearchQuery, setTeacherSearchQuery] = useState('');
   
   const [showInstructionPreview, setShowInstructionPreview] = useState(false);
 
@@ -182,7 +193,17 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
   const canProceedToNextStep = (step: number) => {
     if (step === 1) {
-      return title.trim() !== '' && durationMinutes > 0 && subjects.length > 0;
+      return (
+        title.trim() !== '' &&
+        description.trim() !== '' &&
+        durationMinutes > 0 &&
+        String(mcqCorrect).trim() !== '' &&
+        String(mcqWrong).trim() !== '' &&
+        String(natCorrect).trim() !== '' &&
+        String(natWrong).trim() !== '' &&
+        subjects.length > 0 &&
+        subjects.some(s => (s.exam_subject_teachers?.length || 0) > 0)
+      );
     }
     if (step === 2) {
       return subjects.length > 0 && subjects.every(s => (questionCounts[s.id] || 0) >= s.question_count);
@@ -192,6 +213,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     }
     if (step === 4) {
       return startTime !== '' && endTime !== '';
+    }
+    if (step === 5) {
+      return !!exam?.is_paid;
     }
     return true;
   };
@@ -216,6 +240,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       return;
     }
     setSaveStatus('saving');
+    window.dispatchEvent(new CustomEvent('save-status-update', { detail: { status: 'saving' } }));
     try {
       const filteredInstructions = currentInstructions.filter(inst => inst.trim() !== '');
       const { error } = await supabase.from('exams').update({
@@ -234,12 +259,14 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       if (error) throw error;
       setExam((prev: any) => prev ? { ...prev, title: currentTitle, description: currentDesc, duration_minutes: currentDuration, exam_instructions: filteredInstructions } : null);
       setSaveStatus('saved');
+      window.dispatchEvent(new CustomEvent('save-status-update', { detail: { status: 'saved' } }));
       setTimeout(() => {
         setSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
       }, 3000);
     } catch (err: any) {
       console.error(err);
       setSaveStatus('error');
+      window.dispatchEvent(new CustomEvent('save-status-update', { detail: { status: 'error' } }));
     }
   };
 
@@ -312,7 +339,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const addInstructionItem = () => {
     const updated = [...instructionsList, ''];
     setInstructionsList(updated);
-    autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, updated);
   };
 
   const removeInstructionItem = (index: number) => {
@@ -616,6 +642,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       userEmail: user?.email,
       onSuccess: () => {
         alert('Payment successful! You can now publish the exam.');
+        // Update local state instantly for immediate UI feedback
+        setExam(prev => prev ? { ...prev, is_paid: true } : null);
         fetchExamData();
       },
       onError: (err: any) => {
@@ -628,12 +656,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     try {
       setPublishing(true);
       const newStatus = !exam.is_paid;
+      // Update local state instantly for immediate UI feedback
+      setExam(prev => prev ? { ...prev, is_paid: newStatus } : null);
+      // Update database in background
       const { error } = await supabase.from('exams').update({ is_paid: newStatus }).eq('id', exam.id);
       if (error) throw error;
       alert(`Exam payment status set to: ${newStatus ? 'Paid' : 'Unpaid'}`);
-      fetchExamData();
     } catch (err: any) {
       alert('Failed to update status: ' + err.message);
+      // Revert local state on error
+      setExam(prev => prev ? { ...prev, is_paid: !newStatus } : null);
     } finally {
       setPublishing(false);
     }
@@ -646,14 +678,23 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
   const handleSaveDuration = async () => {
     setEditDurationMode(false);
+    // Update local state instantly for immediate UI feedback
+    setDurationMinutes(inlineEditDuration);
+    setExam(prev => prev ? { ...prev, duration_minutes: inlineEditDuration } : null);
+    // Update database in background
     await supabase.from('exams').update({ duration_minutes: inlineEditDuration }).eq('id', params.id);
-    fetchExamData();
   };
 
   const handleSaveSubjectCount = async (subjectId: string) => {
+    if (inlineEditSubjectCount < 1) {
+      alert('Question count must be at least 1');
+      return;
+    }
     setEditSubjectId(null);
+    // Update local state instantly for immediate UI feedback
+    setSubjects(prev => prev.map(s => s.id === subjectId ? { ...s, question_count: inlineEditSubjectCount } : s));
+    // Update database in background
     await supabase.from('exam_subjects').update({ question_count: inlineEditSubjectCount }).eq('id', subjectId);
-    fetchExamData();
   };
 
   const handleDeleteSubject = async (e: React.MouseEvent, subjectId: string, subjectName: string) => {
@@ -666,8 +707,15 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       confirmColor: 'bg-red-500 hover:bg-red-600 shadow-red-500/20',
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        // Update local state instantly for immediate UI feedback
+        setSubjects(prev => prev.filter(s => s.id !== subjectId));
+        setQuestionCounts(prev => {
+          const newCounts = { ...prev };
+          delete newCounts[subjectId];
+          return newCounts;
+        });
+        // Update database in background
         await supabase.from('exam_subjects').delete().eq('id', subjectId);
-        fetchExamData();
       }
     });
   };
@@ -675,10 +723,17 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const handleSaveSubjectTeachers = async () => {
     if (!manageTeachersSubject) return;
     
-    // First remove existing assignments
-    await supabase.from('exam_subject_teachers').delete().eq('exam_subject_id', manageTeachersSubject.id);
+    // Update local state instantly for immediate UI feedback
+    const teacherObjects = teachers.filter(t => selectedTeacherIds.includes(t.id));
+    setSubjects(prev => prev.map(s => 
+      s.id === manageTeachersSubject.id 
+        ? { ...s, exam_subject_teachers: teacherObjects.map(t => ({ teacher_id: t.id, teachers: t })) }
+        : s
+    ));
+    setManageTeachersSubject(null);
     
-    // Add new ones
+    // Update database in background
+    await supabase.from('exam_subject_teachers').delete().eq('exam_subject_id', manageTeachersSubject.id);
     if (selectedTeacherIds.length > 0) {
       const inserts = selectedTeacherIds.map(tId => ({
         exam_subject_id: manageTeachersSubject.id,
@@ -686,9 +741,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       }));
       await supabase.from('exam_subject_teachers').insert(inserts);
     }
-    
-    setManageTeachersSubject(null);
-    fetchExamData();
   };
 
   const handleAddSubject = async (e: React.FormEvent) => {
@@ -719,9 +771,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       await supabase.from('exam_subject_teachers').insert(teacherInserts);
     }
 
+    // Update local state instantly for immediate UI feedback
+    const teacherObjects = teachers.filter(t => newSubject.teacherIds.includes(t.id));
+    setSubjects(prev => [...prev, {
+      ...subjectRow,
+      exam_subject_teachers: teacherObjects.map(t => ({ teacher_id: t.id, teachers: t }))
+    }]);
+    setQuestionCounts(prev => ({ ...prev, [subjectRow.id]: 0 }));
+    
     setShowAddSubjectModal(false);
     setNewSubject({ name: '', questionCount: 10, teacherIds: [] });
-    fetchExamData();
   };
 
   const toggleNewSubjectTeacher = (teacherId: string) => {
@@ -750,7 +809,11 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       }
     } else {
       setAddSuccess('Student assigned successfully!');
-      fetchExamData();
+      // Update local state instantly for immediate UI feedback
+      const student = schoolStudents.find(s => s.id === studentId);
+      if (student) {
+        setAssignedStudents(prev => [...prev, { id: crypto.randomUUID(), exam_id: params.id, student_id: studentId, status: 'assigned', students: student, result: null }]);
+      }
     }
   };
 
@@ -769,8 +832,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       setAddError(error.message);
     } else {
       setAddSuccess(`${selectedStudents.length} students assigned successfully!`);
+      // Update local state instantly for immediate UI feedback
+      const newAssignments = selectedStudents.map(studentId => {
+        const student = schoolStudents.find(s => s.id === studentId);
+        return { id: crypto.randomUUID(), exam_id: params.id, student_id: studentId, status: 'assigned', students: student || null, result: null };
+      });
+      setAssignedStudents(prev => [...prev, ...newAssignments]);
       setSelectedStudents([]);
-      fetchExamData();
     }
     setBulkAssigning(false);
   };
@@ -797,9 +865,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to add student');
       setAddSuccess(`Student "${newName}" added successfully!`);
+      // Update local state instantly for immediate UI feedback
+      if (data.student) {
+        setAssignedStudents(prev => [...prev, { id: crypto.randomUUID(), exam_id: params.id, student_id: data.student.id, status: 'assigned', students: data.student, result: null }]);
+        setSchoolStudents(prev => [...prev, data.student]);
+      }
       setNewName(''); setNewRoll(''); setNewDob('');
       setNewCourse(''); setNewBatch(''); setNewSession('');
-      fetchExamData();
     } catch (err: any) {
       setAddError(err.message);
     } finally {
@@ -822,6 +894,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       }
       let imported = 0;
       const errors: string[] = [];
+      const newStudents: any[] = [];
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(',').map(c => c.trim());
         if (cols.length < 3) continue;
@@ -846,7 +919,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               exam_id: params.id 
             }),
           });
-          if (res.ok) { imported++; } else {
+          if (res.ok) { 
+            const data = await res.json();
+            if (data.student) {
+              newStudents.push(data.student);
+            }
+            imported++; 
+          } else {
             const d = await res.json();
             errors.push(`${studentRoll}: ${d.error || 'Failed'}`);
           }
@@ -854,7 +933,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       }
       setAddSuccess(`Imported ${imported} students${errors.length ? `. ${errors.length} failed.` : '.'}`);
       setCsvFile(null);
-      fetchExamData();
+      // Update local state instantly for immediate UI feedback
+      const newAssignments = newStudents.map(s => ({ id: crypto.randomUUID(), exam_id: params.id, student_id: s.id, status: 'assigned', students: s, result: null }));
+      setAssignedStudents(prev => [...prev, ...newAssignments]);
+      setSchoolStudents(prev => [...prev, ...newStudents]);
     } catch (err: any) {
       setAddError(err.message);
     } finally {
@@ -883,13 +965,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       confirmColor: 'bg-red-600 hover:bg-red-700 border-red-800',
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        // Update local state instantly for immediate UI feedback
+        setAssignedStudents(prev => prev.filter(as => as.student_id !== studentId));
+        setSchoolStudents(prev => prev.filter(s => s.id !== studentId));
+        // Update database in background
         await supabase.from('exam_students').delete().eq('id', examStudentId);
         await fetch('/api/students/delete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ student_id: studentId }),
         });
-        fetchExamData();
       }
     });
   };
@@ -942,26 +1027,51 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to add teacher');
 
-      // Add to teachers list
-      const { data: updatedTeachers } = await supabase
-        .from('teachers')
-        .select('*')
-        .eq('school_id', schoolIdToUse)
-        .order('full_name', { ascending: true });
-        
-      if (updatedTeachers) {
-        setTeachers(updatedTeachers);
-        const added = updatedTeachers.find(t => t.email === newTeacherEmail);
-        if (added) {
-          setSelectedTeacherIds(prev => [...prev, added.id]);
-        }
+      // Update local state instantly for immediate UI feedback
+      if (data.teacher) {
+        setTeachers(prev => [...prev, data.teacher].sort((a, b) => a.full_name.localeCompare(b.full_name)));
+        setSelectedTeacherIds(prev => [...prev, data.teacher.id]);
       }
 
+      // Save the teacher assignment to the database
+      if (data.teacher && manageTeachersSubject) {
+        const { data: insertedAssignment, error: assignError } = await supabase
+          .from('exam_subject_teachers')
+          .insert({
+            exam_subject_id: manageTeachersSubject.id,
+            teacher_id: data.teacher.id
+          })
+          .select()
+          .single();
+
+        if (assignError) throw new Error(assignError.message || 'Teacher was created, but failed to assign to this subject.');
+
+        // Update local state to reflect the assignment (use the real DB row id)
+        setSubjects(prev => prev.map(s => 
+          s.id === manageTeachersSubject.id 
+            ? { ...s, exam_subject_teachers: [...(s.exam_subject_teachers || []), { id: insertedAssignment.id, teacher_id: data.teacher.id, teachers: data.teacher }] }
+            : s
+        ));
+      }
+
+      // Close the entire modal
+      setManageTeachersSubject(null);
       setShowAddTeacherMode(false);
       setNewTeacherName('');
       setNewTeacherEmail('');
       setNewTeacherPassword('');
       setNewTeacherDepartment('');
+      setAddTeacherError('');
+      
+      // Refresh teachers list in background to ensure consistency
+      const { data: updatedTeachers } = await supabase
+        .from('teachers')
+        .select('*')
+        .eq('school_id', schoolIdToUse)
+        .order('full_name', { ascending: true });
+      if (updatedTeachers) {
+        setTeachers(updatedTeachers);
+      }
     } catch (err: any) {
       setAddTeacherError(err.message);
     } finally {
@@ -1047,6 +1157,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const totalQuestionsNeeded = subjects.reduce((acc, s) => acc + s.question_count, 0);
   const totalQuestionsAdded = Object.values(questionCounts).reduce((a, b) => a + b, 0);
   const allQuestionsReady = subjects.every(s => (questionCounts[s.id] || 0) >= s.question_count);
+  // Steps 1-3 must be done before scheduling (step 4 itself is what's being filled in here)
+  const stepsBeforeScheduleComplete = canProceedToNextStep(1) && canProceedToNextStep(2) && canProceedToNextStep(3);
+  // All prior steps must be complete before publishing, even though steps can now be viewed freely
+  const allStepsComplete = canProceedToNextStep(1) && canProceedToNextStep(2) && canProceedToNextStep(3) && canProceedToNextStep(4);
 
   const availableStudents = schoolStudents.filter(s => !assignedStudents.some(as => as.student_id === s.id));
   
@@ -1189,17 +1303,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               className={`text-2xl font-bold text-text-main bg-transparent border-none outline-none rounded-lg px-2 -ml-2 transition-colors flex-1 min-w-0 truncate ${role !== 'teacher' && exam?.status === 'draft' ? 'hover:bg-surface-hover focus:ring-2 focus:ring-accent-primary/20 cursor-text' : 'cursor-default'}`}
               placeholder="Exam Title"
             />
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-              displayStatus === 'draft' && saveStatus === 'saving' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
-              displayStatus === 'draft' && saveStatus === 'saved' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-              statusColors[displayStatus] || statusColors.draft
-            }`}>
-              {displayStatus === 'draft' && saveStatus === 'saving' && <span className="w-2.5 h-2.5 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />}
-              {displayStatus === 'draft' && saveStatus === 'saved' && <Check size={10} />}
-              {displayStatus === 'draft' && saveStatus === 'saving' ? 'Saving...' :
-               displayStatus === 'draft' && saveStatus === 'saved' ? 'Saved' :
-               displayStatus === 'draft' && saveStatus === 'error' ? 'Save Error' :
-               displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusColors[displayStatus] || statusColors.draft}`}>
+              {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
             </span>
           </div>
 
@@ -1305,20 +1410,15 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           ].map((s) => (
             <div key={s.step} className="relative z-10 flex flex-col items-center gap-2">
               <button 
-                onClick={() => {
-                  // Only allow navigating to completed steps or next step
-                  if (s.step < currentStep || (s.step === currentStep + 1 && canProceedToNextStep(currentStep))) {
-                    handleSetStep(s.step);
-                  }
-                }}
+                onClick={() => handleSetStep(s.step)}
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 border-2
                   ${currentStep === s.step ? 'bg-accent-primary text-white border-[#008080] shadow-md shadow-accent-primary/30 scale-110' : 
-                    currentStep > s.step ? 'bg-accent-primary text-white border-[#008080]' : 
+                    canProceedToNextStep(s.step) ? 'bg-accent-primary text-white border-[#008080]' : 
                     'bg-surface text-text-muted border-border'}`}
               >
-                {currentStep > s.step ? <Check size={18} /> : s.step}
+                {currentStep !== s.step && canProceedToNextStep(s.step) ? <Check size={18} /> : s.step}
               </button>
-              <span className={`text-[10px] font-bold uppercase tracking-wider ${currentStep === s.step ? 'text-text-main' : currentStep > s.step ? 'text-accent-primary' : 'text-text-muted'}`}>
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${currentStep === s.step ? 'text-text-main' : canProceedToNextStep(s.step) ? 'text-accent-primary' : 'text-text-muted'}`}>
                 {s.label}
               </span>
             </div>
@@ -1400,7 +1500,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     )}
                     {editSubjectId === s.id && (
                       <div className="flex items-center gap-1 pointer-events-auto" onClick={e => e.preventDefault()}>
-                        <input type="number" value={inlineEditSubjectCount} onChange={(e) => setInlineEditSubjectCount(Math.max(0, parseInt(e.target.value) || 0))} className="w-16 px-2 py-1 text-xs border border-[#008080] rounded outline-none font-bold text-text-main" min="0" />
+                        <input type="number" value={inlineEditSubjectCount} onChange={(e) => setInlineEditSubjectCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 px-2 py-1 text-xs border border-[#008080] rounded outline-none font-bold text-text-main" min="1" />
                         <button onClick={() => handleSaveSubjectCount(s.id)} className="text-white bg-accent-primary hover:bg-accent-primary/80 p-1 rounded transition-colors"><Check size={14}/></button>
                       </div>
                     )}
@@ -1416,6 +1516,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         e.preventDefault();
                         setManageTeachersSubject(s);
                         setSelectedTeacherIds(s.exam_subject_teachers?.map((est: any) => est.teacher_id) || []);
+                        setTeacherSearchQuery('');
                       }} className="text-text-muted hover:text-accent-primary bg-surface border border-dashed border-border p-0.5 px-1.5 rounded-md hover:bg-surface-hover transition-colors pointer-events-auto text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
                         <Plus size={10} /> Assign Teacher
                       </button>
@@ -1608,9 +1709,23 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                                 confirmColor: 'bg-amber-600 hover:bg-amber-700 text-white',
                                 onConfirm: async () => {
                                   setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                                  // Update local state instantly for immediate UI feedback
+                                  setAssignedStudents(prev => prev.map(s => 
+                                    s.student_id === as.student_id 
+                                      ? { ...s, status: 'assigned', result: null }
+                                      : s
+                                  ));
+                                  // Update database in background
                                   const { error } = await supabase.rpc('reset_student_exam', { p_exam_id: params.id, p_student_id: as.student_id });
-                                  if (error) alert('Failed to reset: ' + error.message);
-                                  else fetchExamData();
+                                  if (error) {
+                                    alert('Failed to reset: ' + error.message);
+                                    // Revert local state on error
+                                    setAssignedStudents(prev => prev.map(s => 
+                                      s.student_id === as.student_id 
+                                        ? { ...s, status: as.status, result: as.result }
+                                        : s
+                                    ));
+                                  }
                                 }
                               });
                             }}
@@ -1772,7 +1887,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         )}
                         {editSubjectId === s.id && (
                           <div className="flex items-center gap-1">
-                            <input type="number" value={inlineEditSubjectCount} onChange={(e) => setInlineEditSubjectCount(Math.max(0, parseInt(e.target.value) || 0))} className="w-12 px-1 py-0.5 text-[10px] border border-[#008080] rounded outline-none font-bold" min="0" />
+                            <input type="number" value={inlineEditSubjectCount} onChange={(e) => setInlineEditSubjectCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-12 px-1 py-0.5 text-[10px] border border-[#008080] rounded outline-none font-bold" min="1" />
                             <button type="button" onClick={() => handleSaveSubjectCount(s.id)} className="text-white bg-accent-primary p-0.5 rounded"><Check size={12}/></button>
                           </div>
                         )}
@@ -1786,9 +1901,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         <button type="button" onClick={(e) => { 
                           e.preventDefault(); 
                           setManageTeachersSubject(s); 
-                          setSelectedTeacherIds(s.exam_subject_teachers?.map((est: any) => est.teacher_id) || []); 
+                          setSelectedTeacherIds(s.exam_subject_teachers?.map((est: any) => est.teacher_id) || []);
+                          setTeacherSearchQuery('');
                         }} className="text-text-muted hover:text-accent-primary text-[9px] font-bold uppercase tracking-wider border border-dashed border-border px-1.5 py-0.5 rounded flex items-center">
-                          <Plus size={8} className="mr-0.5"/> Add
+                          <Plus size={8} className="mr-0.5"/> Assign Teacher
                         </button>
                       </div>
                     </div>
@@ -1830,32 +1946,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 </div>
             </div>
           </div>
-          
-          <div className="flex justify-between items-center pt-2">
-            <div className="text-xs font-semibold">
-              {saveStatus === 'saving' && (
-                <span className="text-accent-primary flex items-center gap-1.5 animate-pulse">
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" /> Saving...
-                </span>
-              )}
-              {saveStatus === 'saved' && (
-                <span className="text-emerald-600 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping" /> Saved
-                </span>
-              )}
-              {saveStatus === 'error' && (
-                <span className="text-red-500 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> Error saving
-                </span>
-              )}
-            </div>
-            <button type="submit" disabled={saveStatus === 'saving'}
-              className="px-6 py-2.5 bg-accent-primary text-white font-bold rounded-lg hover:bg-accent-primary/80 transition-all disabled:opacity-50 shadow-md shadow-accent-primary/20 text-xs">
-              Save Details
-            </button>
-          </div>
         </form>
-      ) : (
+      ) : currentStep !== 2 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-bg border border-border rounded-2xl p-5 flex items-center gap-4">
             <div className="w-12 h-12 bg-accent-primary/10 rounded-xl flex items-center justify-center text-accent-primary">
@@ -1878,7 +1970,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
         </div>
 
@@ -1895,9 +1987,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           <p className="text-text-muted text-sm font-medium mb-6">
             {currentStep === 4 
               ? 'Set the start and end times for the exam.' 
-              : allQuestionsReady
-                ? 'All questions are ready. You can now publish the exam.'
-                : 'Some subjects still need more questions. Add all required questions before publishing.'}
+              : allStepsComplete
+                ? 'All steps are complete. You can now publish the exam.'
+                : 'Some steps are still incomplete. Finish all steps before publishing.'}
           </p>
           {(currentStep === 4 || role === 'teacher' || exam.status !== 'draft') && (
           <div className="flex flex-col gap-4 mb-6">
@@ -1911,12 +2003,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   const endString = new Date(end.getTime() - end.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
                   setEndTime(endString);
                 }
-              }} disabled={!allQuestionsReady || publishing}
+              }} disabled={!stepsBeforeScheduleComplete || publishing}
                 className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all disabled:opacity-50 text-sm font-medium" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-text-main mb-1.5">End Time (Auto-end) *</label>
-              <input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} disabled={!allQuestionsReady || publishing}
+              <input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} disabled={!stepsBeforeScheduleComplete || publishing}
                 className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all disabled:opacity-50 text-sm font-medium" />
             </div>
           </div>
@@ -1925,19 +2017,19 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           {(currentStep === 5 || role === 'teacher' || exam.status !== 'draft') && (
           <div className="flex items-center gap-4">
             {exam.is_paid ? (
-              <button onClick={() => handlePublish(false)} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
+              <button onClick={() => handlePublish(false)} disabled={!allStepsComplete || publishing || !startTime || !endTime}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm">
                 <Play size={16} />
                 {publishing ? 'Publishing...' : 'Publish Exam'}
               </button>
             ) : (
               <div className="flex items-center gap-3">
-                <button onClick={handlePayment} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
+                <button onClick={handlePayment} disabled={!allStepsComplete || publishing || !startTime || !endTime}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm">
                   <CreditCard size={16} />
                   Pay ₹{examFee} to Publish
                 </button>
-                <button onClick={() => handlePublish(true)} disabled={!allQuestionsReady || publishing || !startTime || !endTime}
+                <button onClick={() => handlePublish(true)} disabled={!allStepsComplete || publishing || !startTime || !endTime}
                   className="inline-flex items-center gap-1.5 px-4 py-3 bg-gray-800 hover:bg-gray-900 text-white text-sm font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm"
                   title="Dev Tool: Skip payment entirely">
                   <Play size={14} /> Dev Publish
@@ -1975,7 +2067,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           {currentStep < 5 && (
             <button 
               onClick={() => handleSetStep(Math.min(5, currentStep + 1))}
-              disabled={!canProceedToNextStep(currentStep)}
               className="px-6 py-2.5 bg-accent-primary text-white rounded-xl font-semibold hover:bg-accent-primary/80 transition-all disabled:opacity-50 shadow-md shadow-accent-primary/20"
             >
               Next Step
@@ -2024,7 +2115,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 <div className="flex justify-end gap-3 pt-2">
                   <button type="button" onClick={() => { setShowAddTeacherMode(false); setAddTeacherError(''); }} className="px-4 py-2 bg-surface border border-border text-text-muted rounded-xl hover:bg-bg text-sm font-semibold transition-colors">Cancel</button>
                   <button type="submit" disabled={addingTeacher} className="px-4 py-2 bg-accent-primary text-white rounded-xl hover:bg-accent-primary/80 text-sm font-semibold transition-colors shadow-sm disabled:opacity-50">
-                    {addingTeacher ? 'Creating...' : 'Create & Select'}
+                    {addingTeacher ? 'Creating...' : 'Create & Assign'}
                   </button>
                 </div>
               </form>
@@ -2036,6 +2127,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     <Plus size={12} /> Add New Teacher
                   </button>
                 </div>
+                <input
+                  type="text"
+                  placeholder="Search teachers..."
+                  value={teacherSearchQuery}
+                  onChange={(e) => setTeacherSearchQuery(e.target.value)}
+                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary mb-3"
+                />
                 <div className="max-h-60 overflow-y-auto mb-4 border border-border rounded-lg custom-scrollbar">
                   {teachers.length === 0 ? (
                     <div className="p-6 text-center">
@@ -2043,7 +2141,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       <p className="text-text-muted text-xs mt-1">Please add a new teacher above.</p>
                     </div>
                   ) : (
-                    teachers.map(t => (
+                    teachers
+                      .filter(t => 
+                        t.full_name.toLowerCase().includes(teacherSearchQuery.toLowerCase()) ||
+                        (t.department || '').toLowerCase().includes(teacherSearchQuery.toLowerCase())
+                      )
+                      .map(t => (
                       <label key={t.id} className="flex items-center gap-3 p-3 hover:bg-bg cursor-pointer border-b border-border last:border-0 transition-colors">
                         <input type="checkbox" checked={selectedTeacherIds.includes(t.id)} 
                           onChange={(e) => {

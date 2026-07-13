@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 import Link from 'next/link';
-import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight, Layers, Moon, Sun } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight, Layers, Moon, Sun, Check } from 'lucide-react';
 
 const navItems = [
   {
@@ -48,6 +48,7 @@ export default function SchoolAdminLayout({
   const [role, setRole] = useState<string | null>(null);
   const [schoolName, setSchoolName] = useState<string>('');
   const [breadcrumbNames, setBreadcrumbNames] = useState<Record<string, string>>({});
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -139,8 +140,20 @@ export default function SchoolAdminLayout({
     };
     window.addEventListener('breadcrumb-update', handleBreadcrumbUpdate);
 
+    const handleSaveStatusUpdate = (e: any) => {
+      const { status } = e.detail;
+      setSaveStatus(status);
+      if (status === 'saved') {
+        setTimeout(() => {
+          setSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
+        }, 3000);
+      }
+    };
+    window.addEventListener('save-status-update', handleSaveStatusUpdate);
+
     return () => {
       window.removeEventListener('breadcrumb-update', handleBreadcrumbUpdate);
+      window.removeEventListener('save-status-update', handleSaveStatusUpdate);
     };
   }, [pathname]);
 
@@ -374,6 +387,19 @@ export default function SchoolAdminLayout({
                 );
               })}
             </div>
+            {saveStatus !== 'idle' && (
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ml-2 shrink-0 ${
+                saveStatus === 'saving' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
+                saveStatus === 'saved' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                'bg-red-500/10 text-red-500 border-red-500/20'
+              }`}>
+                {saveStatus === 'saving' && <span className="w-2.5 h-2.5 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />}
+                {saveStatus === 'saved' && <Check size={10} />}
+                {saveStatus === 'saving' ? 'Saving...' :
+                 saveStatus === 'saved' ? 'Saved' :
+                 'Error'}
+              </span>
+            )}
           </div>
           
           <div className="flex items-center gap-4 ml-auto shrink-0">
