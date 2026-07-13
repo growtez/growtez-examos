@@ -179,7 +179,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
     const { data: templatesData } = await supabase
       .from('exam_templates')
       .select('*, exam_template_subjects(*)')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true });
 
     if (currentRole === 'teacher' && data) {
       const mappedExams = data.map(exam => ({
@@ -286,7 +286,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
       </div>
 
       {/* Global Template Presets */}
-      {role !== 'teacher' && templates.length > 0 && (
+      {role !== 'teacher' && (loading || templates.length > 0) && (
         <div className="mb-8 mt-2">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
             <div className="flex items-center gap-3">
@@ -322,7 +322,21 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
               </button>
 
               <div ref={sliderRef} className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth w-full h-full [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border hover:[&::-webkit-scrollbar-thumb]:bg-text-muted/40">
-                {filteredTemplates.map(template => (
+                {loading ? (
+                  [...Array(4)].map((_, i) => (
+                    <div key={i} className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm flex flex-col w-[280px] shrink-0 h-[190px] animate-pulse">
+                      <div className="h-5 bg-surface-hover rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-surface-hover rounded w-1/2 mb-6"></div>
+                      <div className="space-y-3 mb-4">
+                        <div className="h-3 bg-surface-hover rounded w-full"></div>
+                        <div className="h-3 bg-surface-hover rounded w-full"></div>
+                        <div className="h-3 bg-surface-hover rounded w-3/4"></div>
+                      </div>
+                      <div className="h-8 bg-surface-hover rounded-xl w-full mt-auto"></div>
+                    </div>
+                  ))
+                ) : (
+                  filteredTemplates.map(template => (
                 <div key={template.id} className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col w-[280px] shrink-0 snap-start">
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -356,7 +370,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                     <Plus size={13} /> {creatingId === template.id ? 'Creating...' : 'Use Template'}
                   </button>
                 </div>
-              ))}
+              )))}
               </div>
               
               {/* Scroll Right Button */}

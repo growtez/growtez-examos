@@ -3,8 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Bell, CreditCard, CheckCircle, Clock, AlertCircle, Building, User, Trash2, CheckCircle2, Plus } from 'lucide-react';
-import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
+import dynamic from 'next/dynamic';
+import type { Crop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+
+const ReactCrop = dynamic(() => import('react-image-crop'), {
+  ssr: false,
+  loading: () => <div className="animate-pulse bg-surface-hover h-64 w-full rounded-lg"></div>
+});
 
 export default function ProfilePage() {
   const [activePlan, setActivePlan] = useState<any>(null);
@@ -70,27 +76,22 @@ export default function ProfilePage() {
         }
       }
 
+      let notifsQuery = supabase.from('system_notifications').select('*');
       if (currentSchoolId) {
-        // Fetch School Details
-        const { data: schoolData } = await supabase.from('schools')
-          .select('*')
-          .eq('id', currentSchoolId)
-          .single();
-        if (schoolData) {
-          setSchool(schoolData);
-        }
-      }
-
-      // Fetch Notifications
-      let query = supabase.from('system_notifications').select('*');
-      if (currentSchoolId) {
-        query = query.or(`target_school_id.eq.${currentSchoolId},target_school_id.is.null`);
+        notifsQuery = notifsQuery.or(`target_school_id.eq.${currentSchoolId},target_school_id.is.null`);
       } else {
-        query = query.is('target_school_id', null);
+        notifsQuery = notifsQuery.is('target_school_id', null);
       }
       
-      const { data: notifs } = await query.order('created_at', { ascending: false });
-      if (notifs) setNotifications(notifs);
+      const promises = [];
+      if (currentSchoolId) {
+        promises.push(supabase.from('schools').select('*').eq('id', currentSchoolId).single().then(res => setSchool(res.data)));
+      }
+      promises.push(notifsQuery.order('created_at', { ascending: false }).then(res => {
+        if (res.data) setNotifications(res.data);
+      }));
+
+      await Promise.all(promises);
 
       setLoading(false);
     }

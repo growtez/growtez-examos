@@ -63,10 +63,10 @@ export default async function SchoolAdminDashboard() {
   }
 
   const stats = [
-    { label: 'Total Students', value: studentCount, icon: GraduationCap, color: 'text-accent-primary', bg: 'bg-surface-hover/50', border: 'border-border', iconBg: 'bg-accent-primary/10' },
-    { label: 'Teachers', value: teacherCount, icon: Users, color: 'text-accent-primary/80', bg: 'bg-surface-hover/40', border: 'border-border', iconBg: 'bg-accent-primary/10' },
-    { label: 'Total Exams', value: examCount, icon: FileText, color: 'text-accent-primary', bg: 'bg-surface-hover/50', border: 'border-border', iconBg: 'bg-accent-primary/10' },
-    { label: 'Active Exams', value: activeExamCount, icon: CheckCircle, color: 'text-white', bg: 'bg-gradient-to-br from-accent-primary to-accent-primary/70', border: 'border-accent-primary/80', iconBg: 'bg-white/20' },
+    { label: 'Total Students', value: studentCount, icon: GraduationCap, color: 'text-accent-primary', bg: 'bg-surface-hover/50', border: 'border-border', iconBg: 'bg-accent-primary/10', labelColor: 'text-text-muted', iconColor: 'text-accent-primary' },
+    { label: 'Teachers', value: teacherCount, icon: Users, color: 'text-accent-primary', bg: 'bg-surface-hover/50', border: 'border-border', iconBg: 'bg-accent-primary/10', labelColor: 'text-text-muted', iconColor: 'text-accent-primary' },
+    { label: 'Total Exams', value: examCount, icon: FileText, color: 'text-accent-primary', bg: 'bg-surface-hover/50', border: 'border-border', iconBg: 'bg-accent-primary/10', labelColor: 'text-text-muted', iconColor: 'text-accent-primary' },
+    { label: 'Active Exams', value: activeExamCount, icon: CheckCircle, color: 'text-white', bg: 'bg-accent-primary', border: 'border-accent-primary', iconBg: 'bg-white/20', labelColor: 'text-white/80', iconColor: 'text-white' },
   ];
 
   if (role === 'teacher') {
@@ -133,7 +133,7 @@ export default async function SchoolAdminDashboard() {
             {recentExamsTeacher.length > 0 ? (
               <div className="space-y-3">
                 {recentExamsTeacher.map((exam) => (
-                  <Link href={`/exams/${exam.id}`} key={exam.id} className="block p-3 rounded-xl border border-border hover:border-accent-primary hover:bg-surface-hover transition-all group">
+                  <Link href={`/exams/${exam.id}`} prefetch={true} key={exam.id} className="block p-3 rounded-xl border border-border hover:border-accent-primary hover:bg-surface-hover transition-all group">
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="font-bold text-sm text-text-main group-hover:text-accent-primary transition-colors line-clamp-1">{exam.title}</h4>
@@ -176,16 +176,15 @@ export default async function SchoolAdminDashboard() {
       <div className="flex overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
-          const isDark = i === 3;
           return (
             <div key={stat.label} className={`min-w-[220px] sm:min-w-0 snap-center relative overflow-hidden rounded-xl sm:rounded-2xl border ${stat.border} ${stat.bg} p-3 sm:p-4 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300 group`}>
               <div className="flex justify-between items-start relative z-10">
                 <div>
-                  <span className={`text-[10px] sm:text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-white/80' : 'text-text-muted'}`}>{stat.label}</span>
+                  <span className={`text-[10px] sm:text-xs font-semibold uppercase tracking-wider ${stat.labelColor}`}>{stat.label}</span>
                   <p className={`text-xl sm:text-2xl font-extrabold mt-0.5 sm:mt-1 ${stat.color}`}>{stat.value}</p>
                 </div>
                 <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center ${stat.iconBg} transition-transform group-hover:scale-110 duration-300`}>
-                  <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isDark ? 'text-white' : stat.color}`} />
+                  <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.iconColor}`} />
                 </div>
               </div>
               <div className={`absolute -bottom-4 -right-4 w-20 h-20 sm:w-24 sm:h-24 rounded-full ${stat.iconBg} blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-300`} />

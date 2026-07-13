@@ -149,6 +149,19 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [templates, setTemplates] = useState<any[]>([]);
   const [applyingTemplate, setApplyingTemplate] = useState(false);
   const [showAddSubjectModal, setShowAddSubjectModal] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close more menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setShowMoreMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Manage Subject Teachers State
   const [manageTeachersSubject, setManageTeachersSubject] = useState<any | null>(null);
@@ -257,32 +270,38 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       setNatWrong(newNatWrong);
       setInstructionsList(newInstructions);
 
-      // Save exam details
-      await autoSaveExamDetails(newTitle, newDesc, newDuration, newMcqCorrect, newMcqWrong, newNatCorrect, newNatWrong, newInstructions);
+      const savePromise = autoSaveExamDetails(newTitle, newDesc, newDuration, newMcqCorrect, newMcqWrong, newNatCorrect, newNatWrong, newInstructions);
+
+      let subjectsPromise = Promise.resolve();
 
       // Apply subjects if template has them (replace existing)
       if (template.exam_template_subjects?.length > 0) {
-        // Delete existing subjects first
-        await supabase.from('exam_subjects').delete().eq('exam_id', params.id);
-        // Insert template subjects
-        for (let i = 0; i < template.exam_template_subjects.length; i++) {
-          const s = template.exam_template_subjects[i];
-          await supabase.from('exam_subjects').insert({
+        subjectsPromise = (async () => {
+          // Delete existing subjects first
+          await supabase.from('exam_subjects').delete().eq('exam_id', params.id);
+          
+          // Bulk insert template subjects
+          const subjectsToInsert = template.exam_template_subjects.map((s: any, i: number) => ({
             exam_id: params.id,
             subject_name: s.subject_name,
             question_count: s.question_count,
             sort_order: i,
-          });
-        }
-        // Refresh subjects state
-        const { data: subjectsData } = await supabase
-          .from('exam_subjects')
-          .select('*, exam_subject_teachers(*, teachers:teacher_id(full_name))')
-          .eq('exam_id', params.id)
-          .order('sort_order');
-        setSubjects(subjectsData || []);
-        setQuestionCounts({});
+          }));
+          await supabase.from('exam_subjects').insert(subjectsToInsert);
+
+          // Refresh subjects state
+          const { data: subjectsData } = await supabase
+            .from('exam_subjects')
+            .select('*, exam_subject_teachers(*, teachers:teacher_id(full_name))')
+            .eq('exam_id', params.id)
+            .order('sort_order');
+          
+          setSubjects(subjectsData || []);
+          setQuestionCounts({});
+        })();
       }
+
+      await Promise.all([savePromise, subjectsPromise]);
     } catch (err: any) {
       console.error('Failed to apply template:', err);
     } finally {
@@ -1156,7 +1175,21 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       <div className="mb-6 flex flex-col xl:flex-row xl:justify-between xl:items-start gap-4">
         <div className="flex-1 w-full xl:w-auto pr-0 xl:pr-8">
           <div className="flex flex-wrap items-center gap-3 mb-2">
-            <h2 className="text-2xl font-bold text-text-main">{exam.title}</h2>
+            <input 
+              type="text"
+              value={title}
+              onChange={(e) => {
+                const newTitle = e.target.value;
+                setTitle(newTitle);
+                setExam((prev: any) => prev ? {...prev, title: newTitle} : null);
+                window.dispatchEvent(new CustomEvent('breadcrumb-update', { detail: { id: params.id, title: newTitle } }));
+              }}
+              onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
+              disabled={role === 'teacher' || exam?.status !== 'draft'}
+              className={`text-2xl font-bold text-text-main bg-transparent border-none outline-none rounded-lg px-2 -ml-2 transition-colors ${role !== 'teacher' && exam?.status === 'draft' ? 'hover:bg-surface-hover focus:ring-2 focus:ring-accent-primary/20 cursor-text' : 'cursor-default'}`}
+              placeholder="Exam Title"
+              style={{ width: `${Math.max(title.length || 0, 10)}ch` }}
+            />
             <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusColors[displayStatus] || statusColors.draft}`}>
               {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
             </span>
@@ -1188,20 +1221,62 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     Unpublish
                   </button>
                 )}
-                <button 
-                  onClick={handleDuplicate}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
-                >
-                  <Copy size={14} />
-                  Duplicate
-                </button>
-                <button 
-                  onClick={handleTrash}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-red-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 transition-all shadow-sm"
-                >
-                  <Trash2 size={14} />
-                  Trash
-                </button>
+                {templates.length > 0 && exam?.status === 'draft' && (
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      onChange={(e) => {
+                        const selected = templates.find(t => t.id === e.target.value);
+                        if (selected) handleTemplateApply(selected);
+                        e.target.value = '';
+                      }}
+                      defaultValue=""
+                      disabled={applyingTemplate}
+                      className="px-2 py-1.5 bg-bg border border-border rounded-lg text-text-main text-xs font-semibold focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all disabled:opacity-50"
+                    >
+                      <option value="" disabled>Template...</option>
+                      {templates.map(t => (
+                        <option key={t.id} value={t.id}>{t.title}</option>
+                      ))}
+                    </select>
+                    {applyingTemplate && (
+                      <span className="text-[10px] text-accent-primary flex items-center gap-1 font-semibold animate-pulse">
+                        <span className="w-2 h-2 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div className="relative" ref={moreMenuRef}>
+                  <button
+                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
+                  >
+                    <MoreVertical size={14} />
+                  </button>
+                  {showMoreMenu && (
+                    <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+                      <button
+                        onClick={() => {
+                          handleDuplicate();
+                          setShowMoreMenu(false);
+                        }}
+                        className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
+                      >
+                        <Copy size={12} />
+                        Duplicate
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleTrash();
+                          setShowMoreMenu(false);
+                        }}
+                        className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                      >
+                        <Trash2 size={12} />
+                        Trash
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             )}
         </div>
@@ -1210,7 +1285,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       {/* Stepper Header */}
       {role !== 'teacher' && exam?.status === 'draft' && (
         <div className="mb-8 flex items-center justify-between relative max-w-3xl mx-auto">
-          <div className="absolute left-0 top-5 -translate-y-1/2 w-full h-1 bg-surface-hover z-0 rounded-full"></div>
+          <div className="absolute left-0 top-5 -translate-y-1/2 w-full h-1 bg-border z-0 rounded-full"></div>
           <div className="absolute left-0 top-5 -translate-y-1/2 h-1 bg-accent-primary z-0 rounded-full transition-all duration-300" style={{ width: `${((currentStep - 1) / 4) * 100}%` }}></div>
           
           {[
@@ -1585,61 +1660,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       {role !== 'teacher' && !isExamOver && exam?.status === 'draft' && currentStep === 1 ? (
         <form onSubmit={handleSaveExamDetails} className="space-y-4 mb-6">
 
-          {/* Template Picker */}
-          {templates.length > 0 && (
-            <div className="bg-surface border border-border rounded-xl p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-3 border-b border-[#f0f7f7] pb-2">
-                <h3 className="text-sm font-bold text-text-main flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-md bg-accent-primary/10 flex items-center justify-center">
-                    <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 5h16M4 10h16M4 15h10" /></svg>
-                  </span>
-                  Load from Template
-                </h3>
-                {applyingTemplate && (
-                  <span className="text-[11px] text-accent-primary flex items-center gap-1.5 font-semibold animate-pulse">
-                    <span className="w-3 h-3 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
-                    Applying...
-                  </span>
-                )}
-              </div>
-              {/* Dropdown */}
-              <div className="mb-3">
-                <select
-                  onChange={(e) => {
-                    const selected = templates.find(t => t.id === e.target.value);
-                    if (selected) handleTemplateApply(selected);
-                    e.target.value = '';
-                  }}
-                  defaultValue=""
-                  disabled={applyingTemplate}
-                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main text-xs font-semibold focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all disabled:opacity-50"
-                >
-                  <option value="" disabled>— Choose a template to auto-fill fields —</option>
-                  {templates.map(t => (
-                    <option key={t.id} value={t.id}>{t.title} ({t.duration_minutes} min, {t.exam_template_subjects?.length || 0} subjects)</option>
-                  ))}
-                </select>
-              </div>
-              {/* Template Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
-                {templates.map(t => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => handleTemplateApply(t)}
-                    disabled={applyingTemplate}
-                    className="text-left p-3 bg-bg border border-border rounded-xl hover:border-accent-primary hover:bg-surface-hover/30 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <p className="text-xs font-bold text-text-main truncate group-hover:text-accent-primary transition-colors">{t.title}</p>
-                    <p className="text-[10px] text-text-muted mt-0.5">{t.duration_minutes} min · {t.exam_template_subjects?.length || 0} subjects</p>
-                    {t.exam_template_subjects?.length > 0 && (
-                      <p className="text-[10px] text-text-muted mt-1 truncate">{t.exam_template_subjects.map((s: any) => s.subject_name).join(' · ')}</p>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Exam Details */}

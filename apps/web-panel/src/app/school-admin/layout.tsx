@@ -132,6 +132,16 @@ export default function SchoolAdminLayout({
       }
     };
     fetchBreadcrumbName();
+
+    const handleBreadcrumbUpdate = (e: any) => {
+      const { id, title } = e.detail;
+      setBreadcrumbNames(prev => ({...prev, [id]: title}));
+    };
+    window.addEventListener('breadcrumb-update', handleBreadcrumbUpdate);
+
+    return () => {
+      window.removeEventListener('breadcrumb-update', handleBreadcrumbUpdate);
+    };
   }, [pathname]);
 
   useEffect(() => {

@@ -23,21 +23,24 @@ export default function NotificationsPage() {
     setLoading(true);
     const supabase = createClient();
     try {
-      // 1. Fetch schools for dropdown
-      const { data: schoolsData, error: schoolsError } = await supabase
-        .from('schools')
-        .select('id, name')
-        .eq('is_active', true)
-        .order('name');
+      // Fetch schools and notifications in parallel
+      const [
+        { data: schoolsData, error: schoolsError },
+        { data: notifs, error: notifsError }
+      ] = await Promise.all([
+        supabase
+          .from('schools')
+          .select('id, name')
+          .eq('is_active', true)
+          .order('name'),
+        supabase
+          .from('system_notifications')
+          .select('*, schools(name)')
+          .order('created_at', { ascending: false })
+      ]);
 
       if (schoolsError) throw schoolsError;
       setSchools(schoolsData || []);
-
-      // 2. Fetch all system notifications
-      const { data: notifs, error: notifsError } = await supabase
-        .from('system_notifications')
-        .select('*, schools(name)')
-        .order('created_at', { ascending: false });
 
       if (notifsError) throw notifsError;
       setNotifications(notifs || []);
