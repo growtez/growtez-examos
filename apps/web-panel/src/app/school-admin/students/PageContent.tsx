@@ -84,6 +84,9 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
   const [schoolId, setSchoolId] = useState<string | null>(schoolIdProp || null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [shareCourse, setShareCourse] = useState('');
+  const [shareBatch, setShareBatch] = useState('');
+  const [shareSession, setShareSession] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentYear = new Date().getFullYear();
@@ -376,7 +379,7 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
   };
 
   const registrationLink = typeof window !== 'undefined' && schoolId
-    ? `${window.location.origin}/register/${schoolId}`
+    ? `${window.location.origin}/register/school/${schoolId}${shareCourse || shareBatch || shareSession ? `?p=${btoa(JSON.stringify({ c: shareCourse || undefined, b: shareBatch || undefined, s: shareSession || undefined }))}` : ''}`
     : '';
 
   const handleCopyShareLink = async () => {
@@ -592,7 +595,7 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
                 <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%]">Batch</th>
                 <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%]">Session</th>
                 <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%]">DOB</th>
-                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%] text-right">Actions</th>
+                <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%] text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -617,8 +620,8 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
                     const parts = s.date_of_birth.split('-');
                     return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : s.date_of_birth;
                   })() : '—'}</td>
-                  <td className="py-2.5 px-4 align-middle text-right">
-                    <div className="flex items-center justify-end gap-1.5">
+                  <td className="py-2.5 px-4 align-middle text-center">
+                    <div className="flex justify-center gap-1.5">
                       <button onClick={() => {
                         setName(s.full_name || '');
                         setRollNumber(s.roll_number || '');
@@ -628,8 +631,8 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
                         setSessionVal(s.session || '');
                         setEditStudentId(s.id);
                         setShowModal(true);
-                      }} className="text-accent-primary hover:text-accent-primary/80 text-[12px] font-semibold px-2 py-1 rounded-md hover:bg-surface-hover transition-colors border border-transparent hover:border-accent-primary/10">Edit</button>
-                      <button onClick={() => setDeleteStudentId(s.id)} className="text-red-500 hover:text-red-600 text-[12px] font-semibold px-2 py-1 rounded-md hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors border border-transparent">Delete</button>
+                      }} className="text-accent-primary hover:text-accent-primary text-[12px] font-semibold px-2 py-1 rounded-md hover:bg-accent-primary/10 hover:scale-105 active:scale-95 transition-all border border-transparent">Edit</button>
+                      <button onClick={() => setDeleteStudentId(s.id)} className="text-red-500 hover:text-red-600 text-[12px] font-semibold px-2 py-1 rounded-md hover:bg-red-500/10 hover:scale-105 active:scale-95 transition-all border border-transparent">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -772,6 +775,43 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
               <p className="text-text-muted text-sm mb-4">
                 Share this link with students so they can register themselves. New registrations will appear in your students list.
               </p>
+
+              <div className="bg-bg border border-border p-4 rounded-xl mb-5 space-y-3">
+                <p className="text-xs font-bold text-accent-primary uppercase tracking-wider mb-2">Optional: Pre-fill Student Details</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Course</label>
+                    <CustomCombobox 
+                      value={shareCourse} 
+                      onChange={setShareCourse} 
+                      options={uniqueCourses as string[]} 
+                      placeholder="e.g. NEET"
+                      className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Batch</label>
+                    <CustomCombobox 
+                      value={shareBatch} 
+                      onChange={setShareBatch} 
+                      options={uniqueBatches as string[]} 
+                      placeholder="e.g. Morning"
+                      className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Session</label>
+                    <CustomCombobox 
+                      value={shareSession} 
+                      onChange={setShareSession} 
+                      options={uniqueSessions as string[]} 
+                      placeholder="e.g. 2024-25"
+                      className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary" 
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center gap-2 bg-surface-hover border border-border p-3 rounded-xl mb-4">
                 <input
                   type="text"

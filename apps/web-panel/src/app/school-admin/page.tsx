@@ -173,7 +173,7 @@ export default async function SchoolAdminDashboard() {
     <div className="max-w-6xl mx-auto space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
       {/* Stats Grid */}
-      <div className="flex overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="flex overflow-x-auto pt-2 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (
@@ -195,43 +195,61 @@ export default async function SchoolAdminDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Quick Actions */}
-        <div className="bg-surface rounded-2xl p-4 shadow-sm border border-border flex flex-col">
-          <h3 className="text-sm sm:text-base font-bold text-text-main mb-3 flex items-center gap-2">
-            <svg className="w-4 h-4 text-accent-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            Quick Actions
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 flex-grow">
+        <div className="bg-surface rounded-2xl p-5 shadow-sm border border-border flex flex-col h-full">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center border border-transparent shadow-sm">
+              <svg className="w-4 h-4 text-accent-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-text-main leading-tight">Quick Actions</h3>
+              <p className="text-[10px] font-medium text-text-muted mt-0.5">Common administrative tasks</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 flex-grow">
           <CreateExamButton />
-          <Link href="/teachers" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-border bg-surface hover:bg-surface-hover hover:border-accent-primary transition-all group cursor-pointer text-center">
-            <Users size={14} className="text-accent-primary group-hover:scale-110 transition-transform" />
-            <span className="font-semibold text-xs text-text-main">Manage Teachers</span>
+          <Link href="/teachers" className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border border-border bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-md hover:shadow-accent-primary/5 transition-all group text-center">
+            <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary group-hover:scale-110 group-hover:bg-accent-primary/20 transition-all duration-300">
+              <Users size={18} />
+            </div>
+            <span className="font-bold text-xs text-text-main group-hover:text-accent-primary transition-colors">Manage Teachers</span>
           </Link>
-          <Link href="/students" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-border bg-surface hover:bg-surface-hover hover:border-accent-primary transition-all group cursor-pointer text-center">
-            <Users2 size={14} className="text-accent-primary group-hover:scale-110 transition-transform" />
-            <span className="font-semibold text-xs text-text-main">Manage Students</span>
+          <Link href="/students" className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border border-border bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-md hover:shadow-accent-primary/5 transition-all group text-center">
+            <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary group-hover:scale-110 group-hover:bg-accent-primary/20 transition-all duration-300">
+              <Users2 size={18} />
+            </div>
+            <span className="font-bold text-xs text-text-main group-hover:text-accent-primary transition-colors">Manage Students</span>
           </Link>
-          <Link href="/results" className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-border bg-surface hover:bg-surface-hover hover:border-accent-primary transition-all group cursor-pointer col-span-2 sm:col-span-1 text-center">
-            <CheckCircle size={14} className="text-accent-primary group-hover:scale-110 transition-transform" />
-            <span className="font-semibold text-xs text-text-main">Manage Results</span>
+          <Link href="/results" className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border border-border bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-md hover:shadow-accent-primary/5 transition-all group text-center">
+            <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary group-hover:scale-110 group-hover:bg-accent-primary/20 transition-all duration-300">
+              <CheckCircle size={18} />
+            </div>
+            <span className="font-bold text-xs text-text-main group-hover:text-accent-primary transition-colors">Manage Results</span>
           </Link>
         </div>
         </div>
 
         {/* Recent Exams */}
         <Card className="shadow-sm border-border flex flex-col w-full p-4">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/40 mb-3">
-            <CardTitle className="text-sm font-bold flex items-center gap-2 text-text-main">
-              <FileText size={16} className="text-accent-primary" />
-              Recent Exams
-            </CardTitle>
-            <Link href="/exams" className="text-[11px] font-bold text-accent-primary flex items-center gap-0.5 hover:underline">
-              View all <ArrowRight size={12} />
+          <CardHeader className="flex flex-row items-center justify-between pb-4 pt-3 border-b border-border mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center border border-transparent shadow-sm">
+                <FileText size={16} className="text-accent-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-extrabold text-text-main leading-tight">
+                  Recent Exams
+                </CardTitle>
+                <p className="text-[10px] font-medium text-text-muted mt-0.5">Latest assessments</p>
+              </div>
+            </div>
+            <Link href="/exams" className="group flex items-center gap-1.5 text-[10px] font-bold text-text-main hover:text-accent-primary bg-surface-hover hover:bg-accent-primary/10 border border-border hover:border-accent-primary px-3 py-1.5 rounded-full transition-all duration-300 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)] hover:shadow-accent-primary/20">
+              View all <ArrowRight size={12} className="text-text-muted group-hover:text-accent-primary group-hover:translate-x-0.5 transition-all duration-300" />
             </Link>
           </CardHeader>
           <CardContent className="flex-grow flex flex-col justify-start">
-            <div className="divide-y divide-border/40 w-full">
+            <div className="space-y-3 w-full">
               {recentExams.length === 0 ? (
                 <p className="text-xs text-text-muted py-6 text-center">No exams scheduled.</p>
               ) : (
@@ -239,17 +257,21 @@ export default async function SchoolAdminDashboard() {
                   <Link 
                     key={exam.id} 
                     href={`/exams/${exam.id}`}
-                    className="flex items-center justify-between py-2 px-1 hover:bg-surface-hover rounded transition-colors"
+                    className="block p-3 rounded-xl border border-border bg-surface hover:border-accent-primary hover:bg-accent-primary/5 hover:shadow-md hover:shadow-accent-primary/5 transition-all duration-300 group relative overflow-hidden"
                   >
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-text-main truncate">{exam.title}</p>
-                      <p className="text-[10px] text-text-muted truncate">
-                        {exam.duration_minutes}m • <span className="capitalize">{exam.status}</span>
-                      </p>
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent-primary scale-y-0 group-hover:scale-y-100 transition-transform origin-center duration-300 rounded-l-xl"></div>
+                    <div className="flex justify-between items-start pl-1">
+                      <div className="min-w-0 flex-1 pr-2">
+                        <h4 className="text-xs font-bold text-text-main group-hover:text-accent-primary transition-colors truncate">{exam.title}</h4>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[10px] text-text-muted group-hover:text-accent-primary/70 font-medium transition-colors">{exam.duration_minutes}m</span>
+                          <span className="text-[9px] font-semibold text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded capitalize">{exam.status}</span>
+                        </div>
+                      </div>
+                      <span className="text-[9px] font-medium text-text-muted group-hover:text-accent-primary shrink-0 bg-surface-hover/50 group-hover:bg-accent-primary/10 border border-border group-hover:border-accent-primary transition-all px-1.5 py-0.5 rounded">
+                        {new Date(exam.created_at).toLocaleDateString()}
+                      </span>
                     </div>
-                    <span className="text-[9px] text-text-muted shrink-0 ml-2">
-                      {new Date(exam.created_at).toLocaleDateString()}
-                    </span>
                   </Link>
                 ))
               )}

@@ -57,14 +57,16 @@ export default function CreateExamButton() {
     <button
       onClick={handleCreateExam}
       disabled={creating}
-      className="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-accent-primary/20 bg-surface hover:bg-surface-hover hover:border-accent-primary transition-all group cursor-pointer text-center disabled:opacity-60 dark:border-accent-primary/30 dark:hover:border-accent-primary"
+      className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border border-border bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-md hover:shadow-accent-primary/5 transition-all group cursor-pointer text-center disabled:opacity-60"
     >
-      {creating ? (
-        <span className="w-3.5 h-3.5 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" />
-      ) : (
-        <Plus size={14} className="text-accent-primary group-hover:scale-110 transition-transform" />
-      )}
-      <span className="font-semibold text-xs text-text-main">{creating ? 'Creating...' : 'Create Exam'}</span>
+      <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary group-hover:scale-110 group-hover:bg-accent-primary/20 transition-all duration-300">
+        {creating ? (
+          <span className="w-5 h-5 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" />
+        ) : (
+          <Plus size={18} />
+        )}
+      </div>
+      <span className="font-bold text-xs text-text-main group-hover:text-accent-primary transition-colors">{creating ? 'Creating...' : 'Create Exam'}</span>
     </button>
   );
 }

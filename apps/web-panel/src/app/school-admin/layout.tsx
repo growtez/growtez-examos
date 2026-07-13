@@ -121,7 +121,7 @@ export default function SchoolAdminLayout({
          const type = segments[segments.length - 2];
          const supabase = createClient();
          
-         if (type === 'exams') {
+         if (type === 'exams' || type === 'results') {
             const { data } = await supabase.from('exams').select('title').eq('id', lastSegment).single();
             if (data?.title) setBreadcrumbNames(prev => ({...prev, [lastSegment]: data.title}));
          } else if (type === 'teachers') {
