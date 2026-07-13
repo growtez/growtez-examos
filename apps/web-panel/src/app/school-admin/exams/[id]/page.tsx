@@ -1495,7 +1495,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     <div className="max-w-[1400px] animate-in fade-in slide-in-from-bottom-4 duration-500 mx-auto px-4 lg:px-8">
       
       {/* Title & Actions */}
-      <div className="mb-6 flex flex-col xl:flex-row xl:justify-between xl:items-start gap-4">
+      <div className="mb-3 flex flex-col xl:flex-row xl:justify-between xl:items-start gap-4">
         <div className="flex-1 min-w-0 xl:w-auto pr-0 xl:pr-8">
           <div className="flex items-center gap-3 mb-2 min-w-0">
             <input 
@@ -1606,7 +1606,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Stepper Header */}
       {role !== 'teacher' && exam?.status === 'draft' && (
-        <div className="mb-8 flex items-center justify-between relative max-w-3xl mx-auto">
+        <div className="mb-4 flex items-center justify-between relative max-w-3xl mx-auto">
           <div className="absolute left-0 top-5 -translate-y-1/2 w-full h-1 bg-border z-0 rounded-full"></div>
           <div className="absolute left-0 top-5 -translate-y-1/2 h-1 bg-accent-primary z-0 rounded-full transition-all duration-300" style={{ width: `${((currentStep - 1) / 4) * 100}%` }}></div>
           
@@ -1617,7 +1617,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             { step: 4, label: 'Schedule' },
             { step: 5, label: 'Publish' }
           ].map((s) => (
-            <div key={s.step} className="relative z-10 flex flex-col items-center gap-2">
+            <div key={s.step} className="relative z-10 flex flex-col items-center gap-1.5">
               <button 
                 onClick={() => handleSetStep(s.step)}
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 border-2
@@ -1660,7 +1660,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       {(!exam || exam.status !== 'draft' || role === 'teacher' || currentStep === 3) && (
       <div className="flex flex-col md:flex-row gap-6 mb-6">
         {/* Left Side: Subjects List */}
-        <div className="w-full md:w-[320px] shrink-0 bg-surface border border-border rounded-2xl p-5 shadow-sm h-fit">
+        <div className="w-full md:w-[240px] shrink-0 bg-surface border border-border rounded-2xl p-5 shadow-sm h-fit">
           <div className="mb-4 border-b border-[#f0f7f7] pb-1.5 flex justify-between items-center">
             <h3 className="text-lg font-bold text-text-main">Subjects</h3>
             {!isExamOver && exam?.status === 'draft' && role !== 'teacher' && (
