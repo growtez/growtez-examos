@@ -355,6 +355,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     handleCropAndSave,
     canProceedToNextStep,
     autoSaveExamDetails,
+    autoSaveSchedule,
     handleSaveExamDetails,
     handleTemplateApply,
     addInstructionItem,
@@ -1038,6 +1039,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 setStartTime={setStartTime}
                 endTime={endTime}
                 setEndTime={setEndTime}
+                autoSaveSchedule={autoSaveSchedule}
                 durationMinutes={durationMinutes}
                 stepsBeforeScheduleComplete={stepsBeforeScheduleComplete}
                 publishing={publishing}
@@ -1055,7 +1057,18 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 publishing={publishing}
                 startTime={startTime}
                 endTime={endTime}
+                title={title}
+                description={description}
+                durationMinutes={durationMinutes}
+                mcqCorrect={mcqCorrect}
+                mcqWrong={mcqWrong}
+                natCorrect={natCorrect}
+                natWrong={natWrong}
+                subjects={subjects}
+                questionCounts={questionCounts}
+                assignedStudentsCount={assignedStudents.length}
                 examFee={examFee}
+                onNavigateToStep={handleSetStep}
                 handlePublish={handlePublish}
                 handlePayment={handlePayment}
               />

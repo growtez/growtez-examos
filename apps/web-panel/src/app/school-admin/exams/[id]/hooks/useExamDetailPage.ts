@@ -16,7 +16,7 @@ export function useExamDetailPage(paramsId: string) {
   const [savingExam, setSavingExam] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [currentStep, setCurrentStep] = useState(1);
-  const [examFee, setExamFee] = useState<number>(300);
+  const [examFee, setExamFee] = useState<number | null>(null);
 
   // Exam Form States
   const [title, setTitle] = useState('');
@@ -548,6 +548,35 @@ export function useExamDetailPage(paramsId: string) {
     await autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList);
   };
 
+  const autoSaveSchedule = async (
+    currentStartTime = startTime,
+    currentEndTime = endTime
+  ) => {
+    setSaveStatus('saving');
+    window.dispatchEvent(new CustomEvent('save-status-update', { detail: { status: 'saving' } }));
+
+    try {
+      const updates = {
+        start_time: currentStartTime ? new Date(currentStartTime).toISOString() : null,
+        end_time: currentEndTime ? new Date(currentEndTime).toISOString() : null,
+      };
+
+      const { error } = await supabase.from('exams').update(updates).eq('id', paramsId);
+      if (error) throw error;
+
+      setExam((prev: any) => prev ? { ...prev, ...updates } : null);
+      setSaveStatus('saved');
+      window.dispatchEvent(new CustomEvent('save-status-update', { detail: { status: 'saved' } }));
+      setTimeout(() => {
+        setSaveStatus(prev => prev === 'saved' ? 'idle' : prev);
+      }, 3000);
+    } catch (err: any) {
+      console.error(err);
+      setSaveStatus('error');
+      window.dispatchEvent(new CustomEvent('save-status-update', { detail: { status: 'error' } }));
+    }
+  };
+
   const handleTemplateApply = async (template: any) => {
     if (!template) return;
     setApplyingTemplate(true);
@@ -893,7 +922,7 @@ export function useExamDetailPage(paramsId: string) {
   };
 
   const handlePayment = async () => {
-    if (!exam.school_id) return;
+    if (!exam.school_id || examFee == null) return;
     
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -1686,6 +1715,7 @@ export function useExamDetailPage(paramsId: string) {
     handleCropAndSave,
     canProceedToNextStep,
     autoSaveExamDetails,
+    autoSaveSchedule,
     handleSaveExamDetails,
     handleTemplateApply,
     addInstructionItem,
