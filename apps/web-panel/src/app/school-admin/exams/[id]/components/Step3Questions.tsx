@@ -185,8 +185,9 @@ export default function Step3Questions({
                 </div>
               ) : (
                 (() => {
-                  const filtered = drawerQuestions.filter(q => {
-                    const matchesSearch = q.question_text?.toLowerCase().includes(searchQuery.toLowerCase());
+                  const filtered = drawerQuestions.filter((q, originalIdx) => {
+                    const qNumber = (originalIdx + 1).toString();
+                    const matchesSearch = q.question_text?.toLowerCase().includes(searchQuery.toLowerCase()) || qNumber.includes(searchQuery.trim());
                     const matchesType = typeFilter === 'all' || q.question_type === typeFilter;
                     return matchesSearch && matchesType;
                   });
@@ -198,11 +199,13 @@ export default function Step3Questions({
                       </div>
                     );
                   }
-                  return filtered.map((q, idx) => (
+                  return filtered.map((q) => {
+                    const originalNumber = drawerQuestions.indexOf(q) + 1;
+                    return (
                     <div key={q.id} className="mx-4 p-4 bg-surface border border-border rounded-xl shadow-sm group relative">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded bg-surface border border-border flex items-center justify-center text-[10px] text-text-main font-bold">{idx + 1}</span>
+                          <span className="w-5 h-5 rounded bg-surface border border-border flex items-center justify-center text-[10px] text-text-main font-bold">{originalNumber}</span>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${q.question_type === 'mcq' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
                             {q.question_type}
                           </span>
@@ -234,7 +237,7 @@ export default function Step3Questions({
                         <div className="inline-flex px-3 py-1.5 bg-accent-primary/5 border border-accent-primary rounded-lg text-xs text-accent-primary font-bold mt-2">Answer: {q.correct_option}</div>
                       )}
                     </div>
-                  ));
+                  )});
                 })()
               )}
             </div>
