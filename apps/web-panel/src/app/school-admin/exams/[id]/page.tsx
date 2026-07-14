@@ -252,6 +252,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setTeachers,
     templates,
     setTemplates,
+    templatesLoading,
     applyingTemplate,
     setApplyingTemplate,
     showAddSubjectModal,
@@ -447,7 +448,52 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     ? new Date(exam.end_time) < new Date()
     : false;
   const displayStatus = isExamOver ? "completed" : exam?.status || "draft";
-  const isDraftStepperMode = role !== "teacher" && exam?.status === "draft";
+  const isDraftStepperMode = loading || (role !== "teacher" && exam?.status === "draft");
+
+  if (loading) {
+    return (
+      <div className="w-full animate-in fade-in duration-300">
+        <div className="border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-3">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4 mb-2 w-full max-w-5xl mx-auto">
+            <div className="flex justify-start sm:justify-end">
+              <button disabled className="inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full opacity-50 cursor-not-allowed sm:min-w-24">
+                <ChevronLeft size={14} />
+                <span className="hidden sm:inline">Prev</span>
+              </button>
+            </div>
+            <div className="min-w-0 overflow-x-auto bg-surface border border-border rounded-full py-2 px-3 sm:px-6 shadow-sm">
+              <div className="flex min-w-max items-center justify-center gap-4">
+                {STEPPER_STEPS.map((s) => (
+                  <div
+                    key={s.step}
+                    className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] border-2 bg-surface text-text-muted border-border"
+                  >
+                    {s.step}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end sm:justify-start">
+              <button disabled className="inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full opacity-50 cursor-not-allowed sm:min-w-24">
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+          <h2 className="text-base sm:text-lg font-bold text-text-main">
+            Step 1 · Setup
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6 animate-pulse p-4 sm:p-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-32 bg-surface border border-border rounded-2xl"></div>
+          ))}
+        </div>
+        <div className="h-[400px] bg-surface border border-border rounded-2xl mt-6 mx-4 sm:mx-6 animate-pulse"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -461,36 +507,43 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
           {isDraftStepperMode && (
             <div
-              className="sticky top-0 z-20 -mx-6 -mt-6 mb-4 border-b border-border bg-bg px-6 pb-3 flex flex-col gap-3 relative isolate overflow-visible before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-0 before:bg-bg"
+              className="sticky top-0 z-20 -mx-6 -mt-6 mb-4 border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-3 relative isolate overflow-visible before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-0 before:bg-bg"
             >
               {/* Horizontal Stepper (Top) */}
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 mb-2 relative z-50 w-full max-w-5xl mx-auto">
+              <div className="grid grid-cols-[auto_1fr_auto] items-center sm:gap-4 mb-2 relative z-50 w-full max-w-5xl mx-auto">
                 {/* Prev Button */}
-                <div className="flex justify-end">
+                <div className="flex justify-start sm:justify-end">
                   <button
                     onClick={() => currentStep > 1 && handleSetStep(currentStep - 1)}
                     disabled={currentStep <= 1}
-                    className={`inline-flex items-center justify-center gap-1.5 px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full transition-all shadow-sm w-24 ${currentStep > 1
+                    className={`inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full transition-all shadow-sm sm:min-w-24 ${currentStep > 1
                       ? "hover:border-accent-primary hover:text-accent-primary active:scale-95"
                       : "opacity-50 cursor-not-allowed"
                       }`}
                   >
                     <ChevronLeft size={14} />
-                    Prev
+                    <span className="hidden sm:inline">Prev</span>
                   </button>
                 </div>
 
                 {/* Stepper Pill */}
-                <div className="bg-surface border border-border rounded-full py-2 px-6 shadow-sm">
-                  <div className="flex items-center justify-center">
+                <div className="min-w-0 overflow-x-auto custom-scrollbar bg-surface border border-border rounded-full py-2 px-3 sm:px-6 shadow-sm">
+                  <div className="flex min-w-max items-center justify-start sm:justify-center">
                     {STEPPER_STEPS.map((s, idx) => {
                       const isActive = currentStep === s.step;
                       const isDone = !isActive && canProceedToNextStep(s.step);
                       const isSegmentFilled = currentStep > s.step;
+                      const totalSteps = STEPPER_STEPS.length;
+                      let windowStart = currentStep - 1;
+                      if (windowStart < 1) windowStart = 1;
+                      if (windowStart > totalSteps - 2) windowStart = totalSteps - 2;
+                      const windowEnd = windowStart + 2;
+                      const isVisibleOnMobile = s.step >= windowStart && s.step <= windowEnd;
+                      const mobilePrevStep = windowStart;
                       return (
                         <div
                           key={s.step}
-                          className="flex items-center"
+                          className={`${isVisibleOnMobile ? "flex" : "hidden"} sm:flex items-center`}
                         >
                           <div className="flex items-center gap-1.5">
                             <button
@@ -507,13 +560,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             </button>
                             <button
                               onClick={() => handleSetStep(s.step)}
-                              className={`text-[9px] font-bold uppercase tracking-tight whitespace-nowrap hidden sm:inline-block hover:opacity-80 transition-opacity ${isActive ? "text-text-main" : isDone ? "text-accent-primary" : "text-text-muted"}`}
+                              className={`text-[9px] font-bold uppercase tracking-tight whitespace-nowrap hover:opacity-80 transition-opacity ${isActive ? "inline-block" : "hidden"} sm:inline-block ${isActive ? "text-text-main" : isDone ? "text-accent-primary" : "text-text-muted"}`}
                             >
                               {s.label}
                             </button>
                           </div>
                           {idx < STEPPER_STEPS.length - 1 && (
-                            <div className="w-6 h-0.5 mx-2 rounded-full bg-border overflow-hidden shrink-0">
+                            <div className={`${(isVisibleOnMobile && s.step < windowEnd) ? "block" : "hidden"} sm:block w-6 h-0.5 mx-2 rounded-full bg-border overflow-hidden shrink-0`}>
                               <div
                                 className={`h-full transition-all duration-300 ${isSegmentFilled ? "w-full bg-accent-primary" : "w-0 bg-accent-primary"}`}
                               />
@@ -526,35 +579,175 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 </div>
 
                 {/* Next Button */}
-                <div className="flex justify-start">
+                <div className="flex justify-end sm:justify-start">
                   <button
                     onClick={() => currentStep < 5 && handleSetStep(currentStep + 1)}
                     disabled={currentStep >= 5}
-                    className={`inline-flex items-center justify-center gap-1.5 px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full transition-all shadow-sm w-24 ${currentStep < 5
+                    className={`inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full transition-all shadow-sm sm:min-w-24 ${currentStep < 5
                       ? "hover:border-accent-primary hover:text-accent-primary active:scale-95"
                       : "opacity-50 cursor-not-allowed"
                       }`}
                   >
-                    Next
+                    <span className="hidden sm:inline">Next</span>
                     <ChevronRight size={14} />
                   </button>
                 </div>
               </div>
 
               {/* Row 1: Title, Pills, Actions */}
-              <div className="relative z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4 w-full">
+              <div className="relative z-10 flex flex-col gap-3 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-4 w-full">
                 {/* Title */}
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-text-main whitespace-nowrap">
+                <div className="flex min-w-0 items-center justify-between gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-text-main">
                     Step {currentStep} ·{" "}
                     {STEPPER_STEPS.find((s) => s.step === currentStep)?.label}
                   </h2>
+                  {currentStep === 1 && (
+                    <div className="flex min-w-0 shrink-0 items-center gap-1.5">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <select
+                          onChange={(e) => {
+                            const selected = templates.find(
+                              (t) => t.id === e.target.value
+                            );
+                            if (selected) handleTemplateApply(selected);
+                            e.target.value = "";
+                          }}
+                          defaultValue=""
+                          disabled={applyingTemplate || templatesLoading || templates.length === 0}
+                          className="max-w-[8.5rem] sm:max-w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main text-xs font-semibold focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all disabled:opacity-50"
+                        >
+                          <option value="" disabled>
+                            {templatesLoading ? "Loading..." : templates.length === 0 ? "No templates" : "Template..."}
+                          </option>
+                          {templates.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.title}
+                            </option>
+                          ))}
+                        </select>
+                        {applyingTemplate && (
+                          <span className="text-[10px] text-accent-primary flex items-center gap-1 font-semibold animate-pulse">
+                            <span className="w-2 h-2 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="relative" ref={moreMenuRef}>
+                        <button
+                          onClick={() => setShowMoreMenu(!showMoreMenu)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
+                        >
+                          <MoreVertical size={14} />
+                        </button>
+                        {showMoreMenu && (
+                          <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+                            <button
+                              onClick={() => {
+                                handleDuplicate();
+                                setShowMoreMenu(false);
+                              }}
+                              className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
+                            >
+                              <Copy size={12} />
+                              Duplicate
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleTrash();
+                                setShowMoreMenu(false);
+                              }}
+                              className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                            >
+                              <Trash2 size={12} />
+                              Trash
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {currentStep === 2 && (
+                    <div className="flex min-w-0 shrink-0 items-center gap-1.5">
+                      {!isExamOver && role !== "teacher" && (
+                        <button
+                          onClick={() => { setShowAddStudentModal(true); setAddMode('search'); setAddError(''); setAddSuccess(''); }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary text-white text-xs font-semibold rounded-lg hover:bg-accent-primary/90 transition-all active:scale-95 shadow-sm"
+                        >
+                          <Plus size={14} />
+                          Add Students
+                        </button>
+                      )}
+
+                      <div className="relative" ref={moreMenuRef}>
+                        <button
+                          onClick={() => setShowMoreMenu(!showMoreMenu)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
+                        >
+                          <MoreVertical size={14} />
+                        </button>
+                        {showMoreMenu && (
+                          <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+                            <button
+                              onClick={() => {
+                                handleDuplicate();
+                                setShowMoreMenu(false);
+                              }}
+                              className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
+                            >
+                              <Copy size={12} />
+                              Duplicate
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleTrash();
+                                setShowMoreMenu(false);
+                              }}
+                              className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                            >
+                              <Trash2 size={12} />
+                              Trash
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {/* Mobile-only: show the 3-dot menu next to the title for steps 3+ instead of leaving it in its own isolated row below */}
+                  {currentStep !== 1 && currentStep !== 2 && (
+                    <div className="relative shrink-0 md:hidden" ref={moreMenuRef}>
+                      <button
+                        onClick={() => setShowMoreMenu(!showMoreMenu)}
+                        className="w-8 h-8 flex items-center justify-center bg-surface border border-border rounded-lg text-text-main"
+                      >
+                        <MoreVertical size={14} />
+                      </button>
+                      {showMoreMenu && (
+                        <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+                          <button
+                            onClick={() => { handleDuplicate(); setShowMoreMenu(false); }}
+                            className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
+                          >
+                            <Copy size={12} />
+                            Duplicate
+                          </button>
+                          <button
+                            onClick={() => { handleTrash(); setShowMoreMenu(false); }}
+                            className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                          >
+                            <Trash2 size={12} />
+                            Trash
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Centered Pills */}
-                <div className="flex items-center justify-center min-w-0">
+                <div className="relative flex items-center justify-start md:justify-center min-w-0 -mx-4 px-4 md:mx-0 md:px-0">
                   {currentStep === 3 && (
-                    <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar px-1 max-w-full">
+                    <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar px-1 max-w-full snap-x snap-mandatory md:snap-none">
                       {subjects.map((s) => {
                         const added = questionCounts[s.id] || 0;
                         const needed = s.question_count;
@@ -565,7 +758,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             key={s.id}
                             type="button"
                             onClick={() => openManageQuestions(s.id)}
-                            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${isSelected
+                            className={`snap-start shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${isSelected
                               ? "bg-accent-primary text-white border-accent-primary shadow-sm"
                               : "bg-surface border-border text-text-main hover:border-accent-primary/50"
                               }`}
@@ -579,156 +772,123 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       })}
                     </div>
                   )}
+                  {/* mobile-only scroll hint, hidden on desktop */}
+                  {currentStep === 3 && (
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg to-transparent md:hidden" />
+                  )}
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-2">
-                  {currentStep === 2 && !isExamOver && role !== "teacher" && (
-                    <button
-                      onClick={() => { setShowAddStudentModal(true); setAddMode('search'); setAddError(''); setAddSuccess(''); }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary text-white text-xs font-semibold rounded-lg hover:bg-accent-primary/90 transition-all active:scale-95 shadow-sm"
-                    >
-                      <Plus size={14} />
-                      Add Students
-                    </button>
-                  )}
-
-
-                  {templates.length > 0 && currentStep === 1 && (
-                    <div className="flex items-center gap-1.5">
-                      <select
-                        onChange={(e) => {
-                          const selected = templates.find(
-                            (t) => t.id === e.target.value
-                          );
-                          if (selected) handleTemplateApply(selected);
-                          e.target.value = "";
-                        }}
-                        defaultValue=""
-                        disabled={applyingTemplate}
-                        className="px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main text-xs font-semibold focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all disabled:opacity-50"
+                {/* Actions (desktop only — mobile shows this next to the title instead) */}
+                <div className="hidden md:flex flex-wrap items-center justify-start md:justify-end gap-2">
+                  {currentStep !== 1 && currentStep !== 2 && (
+                    <div className="relative" ref={moreMenuRef}>
+                      <button
+                        onClick={() => setShowMoreMenu(!showMoreMenu)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
                       >
-                        <option value="" disabled>
-                          Template...
-                        </option>
-                        {templates.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.title}
-                          </option>
-                        ))}
-                      </select>
-                      {applyingTemplate && (
-                        <span className="text-[10px] text-accent-primary flex items-center gap-1 font-semibold animate-pulse">
-                          <span className="w-2 h-2 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
-                        </span>
+                        <MoreVertical size={14} />
+                      </button>
+                      {showMoreMenu && (
+                        <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+                          <button
+                            onClick={() => {
+                              handleDuplicate();
+                              setShowMoreMenu(false);
+                            }}
+                            className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
+                          >
+                            <Copy size={12} />
+                            Duplicate
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleTrash();
+                              setShowMoreMenu(false);
+                            }}
+                            className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                          >
+                            <Trash2 size={12} />
+                            Trash
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
-
-                  <div className="relative" ref={moreMenuRef}>
-                    <button
-                      onClick={() => setShowMoreMenu(!showMoreMenu)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
-                    >
-                      <MoreVertical size={14} />
-                    </button>
-                    {showMoreMenu && (
-                      <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
-                        <button
-                          onClick={() => {
-                            handleDuplicate();
-                            setShowMoreMenu(false);
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
-                        >
-                          <Copy size={12} />
-                          Duplicate
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleTrash();
-                            setShowMoreMenu(false);
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
-                        >
-                          <Trash2 size={12} />
-                          Trash
-                        </button>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
 
               {/* Row 2: Search Filter Row (only for Step 3) */}
               {currentStep === 3 && drawerSubjectId && (
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border">
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-2 md:gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border">
                   {/* Search Box */}
                   <div className="relative w-full md:max-w-[260px] shrink-0">
-                    <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+                    <Search className="absolute left-4 md:left-auto md:right-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                     <input
                       type="text"
                       placeholder="Search questions..."
                       value={questionSearchQuery}
                       onChange={(e) => setQuestionSearchQuery(e.target.value)}
-                      className="w-full py-2 pl-4 pr-10 bg-surface-hover border border-border rounded-full text-text-main text-[13px] focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all font-medium"
+                      className="w-full py-2 pl-10 md:pl-4 pr-4 md:pr-10 bg-surface-hover border border-border rounded-full text-text-main text-[13px] focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all font-medium"
                     />
                   </div>
 
-                  {/* Filter Dropdown */}
-                  <div className="relative shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setIsTypeFilterOpen(!isTypeFilterOpen)}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-semibold cursor-pointer"
-                    >
-                      <Filter size={14} className="text-accent-primary" />
-                      {typeFilter === 'all' ? 'All Types' : typeFilter.toUpperCase()}
-                    </button>
-                    {isTypeFilterOpen && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setIsTypeFilterOpen(false)} />
-                        <div className="absolute left-0 mt-2 w-40 bg-surface border border-border rounded-xl shadow-lg py-1 z-50 flex flex-col">
-                          <button type="button" onClick={() => { setTypeFilter('all'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'all' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>All Types</button>
-                          <button type="button" onClick={() => { setTypeFilter('mcq'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'mcq' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>MCQ</button>
-                          <button type="button" onClick={() => { setTypeFilter('nat'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'nat' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>NAT</button>
-                        </div>
-                      </>
+                  {/* Filter + Add share one row on mobile, spread out on desktop */}
+                  <div className="flex items-center gap-2 md:contents">
+                    {/* Filter Dropdown */}
+                    <div className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setIsTypeFilterOpen(!isTypeFilterOpen)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-semibold cursor-pointer whitespace-nowrap"
+                      >
+                        <Filter size={14} className="text-accent-primary" />
+                        {typeFilter === 'all' ? 'All Types' : typeFilter.toUpperCase()}
+                      </button>
+                      {isTypeFilterOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setIsTypeFilterOpen(false)} />
+                          <div className="absolute left-0 mt-2 w-40 bg-surface border border-border rounded-xl shadow-lg py-1 z-50 flex flex-col">
+                            <button type="button" onClick={() => { setTypeFilter('all'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'all' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>All Types</button>
+                            <button type="button" onClick={() => { setTypeFilter('mcq'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'mcq' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>MCQ</button>
+                            <button type="button" onClick={() => { setTypeFilter('nat'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'nat' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>NAT</button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="hidden md:block flex-1" />
+
+                    {/* Add Question Button / All questions added message */}
+                    {drawerSubjectId && (
+                      (() => {
+                        const needed = subjects.find(s => s.id === drawerSubjectId)?.question_count ?? 0;
+                        const added = drawerQuestions.length;
+                        const isComplete = added >= needed;
+
+                        if (isComplete) {
+                          return (
+                            <span className="flex-1 md:flex-none text-center text-[12px] font-semibold text-emerald-600 flex items-center justify-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-2 md:py-1.5 rounded-lg select-none whitespace-nowrap">
+                              <ShieldCheck size={14} /> <span className="md:hidden">All added</span><span className="hidden md:inline">All questions added</span>
+                            </span>
+                          );
+                        }
+
+                        if (!isExamOver && role !== "teacher") {
+                          return (
+                            <button
+                              type="button"
+                              onClick={handleDrawerNewQuestion}
+                              className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 md:py-1.5 rounded-lg bg-accent-primary text-white hover:bg-accent-primary/95 transition-all text-[12px] font-semibold shadow-sm cursor-pointer border-none active:scale-95 whitespace-nowrap"
+                            >
+                              <Plus size={14} /> Add Question
+                            </button>
+                          );
+                        }
+
+                        return null;
+                      })()
                     )}
                   </div>
-
-                  <div className="flex-1" />
-
-                  {/* Add Question Button / All questions added message */}
-                  {drawerSubjectId && (
-                    (() => {
-                      const needed = subjects.find(s => s.id === drawerSubjectId)?.question_count ?? 0;
-                      const added = drawerQuestions.length;
-                      const isComplete = added >= needed;
-
-                      if (isComplete) {
-                        return (
-                          <span className="text-[12px] font-semibold text-emerald-600 flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg select-none">
-                            <ShieldCheck size={14} /> All questions added
-                          </span>
-                        );
-                      }
-
-                      if (!isExamOver && role !== "teacher") {
-                        return (
-                          <button
-                            type="button"
-                            onClick={handleDrawerNewQuestion}
-                            className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent-primary text-white hover:bg-accent-primary/95 transition-all text-[12px] font-semibold shadow-sm cursor-pointer border-none active:scale-95"
-                          >
-                            <Plus size={14} /> Add Question
-                          </button>
-                        );
-                      }
-
-                      return null;
-                    })()
-                  )}
                 </div>
               )}
             </div>
@@ -903,10 +1063,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 setAssignedCourseFilter={setAssignedCourseFilter}
                 assignedBatchFilter={assignedBatchFilter}
                 setAssignedBatchFilter={setAssignedBatchFilter}
-                setShowAddStudentModal={setShowAddStudentModal}
-                setAddMode={setAddMode}
-                setAddError={setAddError}
-                setAddSuccess={setAddSuccess}
                 addSuccess={addSuccess}
                 downloadResultsPDF={downloadResultsPDF}
                 generatingPDF={generatingPDF}
@@ -1366,22 +1522,30 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   </li>
 
                   {/* Custom Exam-Specific Instructions */}
-                  {instructionsList
-                    .filter((i) => i.trim() !== "")
-                    .map((inst, idx) => (
-                      <li
-                        key={idx}
-                        className="flex gap-3 text-sm text-[#667085] font-medium bg-emerald-50/50 p-2 -mx-2 rounded border border-dashed border-emerald-100"
-                      >
-                        <span className="text-accent-primary font-bold mt-0.5">
-                          ▸
+                  {instructionsList.filter((i) => i.trim() !== "").length > 0 && (
+                    <>
+                      <li className="flex items-center gap-2 pt-2">
+                        <span className="h-px flex-1 bg-emerald-100" />
+                        <span className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded tracking-wider shrink-0">
+                          Your Additions
                         </span>
-                        {inst}
-                        <span className="ml-auto text-[10px] uppercase font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded tracking-wider self-start shrink-0">
-                          Your Addition
-                        </span>
+                        <span className="h-px flex-1 bg-emerald-100" />
                       </li>
-                    ))}
+                      {instructionsList
+                        .filter((i) => i.trim() !== "")
+                        .map((inst, idx) => (
+                          <li
+                            key={idx}
+                            className="flex gap-3 text-sm text-[#667085] font-medium bg-emerald-50/50 p-2 -mx-2 rounded border border-dashed border-emerald-100"
+                          >
+                            <span className="text-accent-primary font-bold mt-0.5 shrink-0">
+                              ▸
+                            </span>
+                            <span>{inst}</span>
+                          </li>
+                        ))}
+                    </>
+                  )}
                 </ul>
               </div>
             </div>

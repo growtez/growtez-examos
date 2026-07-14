@@ -150,13 +150,12 @@ export default function Step3Questions({
                 type="button"
                 disabled={!isAssignedTeacher}
                 onClick={() => isAssignedTeacher && openManageQuestions(s.id)}
-                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${
-                  !isAssignedTeacher
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${!isAssignedTeacher
                     ? 'bg-gray-50 border-gray-200 text-gray-400 opacity-60 cursor-not-allowed'
                     : isSelected
                       ? 'bg-accent-primary text-white border-accent-primary shadow-sm'
                       : 'bg-surface border-border text-text-main hover:border-accent-primary/50'
-                }`}
+                  }`}
               >
                 {s.subject_name}
                 <span className={isSelected ? 'text-white/80' : complete ? 'text-emerald-600' : 'text-amber-600'}>
@@ -179,7 +178,7 @@ export default function Step3Questions({
               {drawerLoading ? (
                 <div className="flex justify-center p-8"><span className="w-6 h-6 rounded-full border-2 border-accent-primary border-t-transparent animate-spin" /></div>
               ) : drawerQuestions.length === 0 ? (
-                <div className="text-center py-12">
+                <div className="text-center py-12 mx-4 md:mx-0 bg-surface md:bg-transparent border md:border-0 border-border rounded-xl md:rounded-none shadow-sm md:shadow-none">
                   <BookOpen size={32} className="mx-auto mb-3 text-border" />
                   <p className="text-text-muted font-medium">No questions added yet.</p>
                 </div>
@@ -202,42 +201,43 @@ export default function Step3Questions({
                   return filtered.map((q) => {
                     const originalNumber = drawerQuestions.indexOf(q) + 1;
                     return (
-                    <div key={q.id} className="mx-4 p-4 bg-surface border border-border rounded-xl shadow-sm group relative">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded bg-surface border border-border flex items-center justify-center text-[10px] text-text-main font-bold">{originalNumber}</span>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${q.question_type === 'mcq' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
-                            {q.question_type}
-                          </span>
-                          <span className="text-[10px] font-bold text-text-muted">+{q.positive_marks} / {q.negative_marks}</span>
-                        </div>
-                        {exam?.status === 'draft' && (
+                      <div key={q.id} className="mx-4 p-4 bg-surface border border-border rounded-xl shadow-sm group relative">
+                        <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <button onClick={() => handleDrawerEditQuestion(q)} className="text-accent-primary hover:bg-accent-primary/10 p-1 rounded transition-colors"><Edit2 size={13} /></button>
-                            <button onClick={() => handleDrawerDeleteQuestion(q.id)} className="text-red-500 hover:bg-red-50 p-1 rounded transition-colors"><Trash2 size={13} /></button>
+                            <span className="w-5 h-5 rounded bg-surface border border-border flex items-center justify-center text-[10px] text-text-main font-bold">{originalNumber}</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${q.question_type === 'mcq' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
+                              {q.question_type}
+                            </span>
+                            <span className="text-[10px] font-bold text-text-muted">+{q.positive_marks} / {q.negative_marks}</span>
+                          </div>
+                          {exam?.status === 'draft' && (
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => handleDrawerEditQuestion(q)} className="text-accent-primary hover:bg-accent-primary/10 p-1 rounded transition-colors"><Edit2 size={13} /></button>
+                              <button onClick={() => handleDrawerDeleteQuestion(q.id)} className="text-red-500 hover:bg-red-50 p-1 rounded transition-colors"><Trash2 size={13} /></button>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-text-main text-xs font-semibold whitespace-pre-wrap mb-1.5">{q.question_text}</p>
+                        {q.image_url && <img src={q.image_url} alt="Question" className="max-w-full max-h-[150px] object-contain rounded-lg border border-border mb-3" />}
+                        {q.question_type === 'mcq' && q.options && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                            {['A', 'B', 'C', 'D'].map(opt => (
+                              <div key={opt} className={`p-2 rounded text-[11px] border transition-colors flex items-start ${q.correct_option === opt ? 'bg-accent-primary/5 border-accent-primary text-accent-primary font-bold' : 'bg-surface text-text-muted border-border font-medium'}`}>
+                                <span className="mr-1.5">{opt}.</span>
+                                <div className="flex flex-col gap-1.5">
+                                  {q.options[opt] && <span>{q.options[opt]}</span>}
+                                  {q.options[`${opt}_image`] && <img src={q.options[`${opt}_image`]} alt={opt} className="max-w-[100px] max-h-[80px] object-contain rounded border border-border" />}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         )}
+                        {q.question_type === 'nat' && (
+                          <div className="inline-flex px-3 py-1.5 bg-accent-primary/5 border border-accent-primary rounded-lg text-xs text-accent-primary font-bold mt-2">Answer: {q.correct_option}</div>
+                        )}
                       </div>
-                      <p className="text-text-main text-xs font-semibold whitespace-pre-wrap mb-1.5">{q.question_text}</p>
-                      {q.image_url && <img src={q.image_url} alt="Question" className="max-w-full max-h-[150px] object-contain rounded-lg border border-border mb-3" />}
-                      {q.question_type === 'mcq' && q.options && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
-                          {['A', 'B', 'C', 'D'].map(opt => (
-                            <div key={opt} className={`p-2 rounded text-[11px] border transition-colors flex items-start ${q.correct_option === opt ? 'bg-accent-primary/5 border-accent-primary text-accent-primary font-bold' : 'bg-surface text-text-muted border-border font-medium'}`}>
-                              <span className="mr-1.5">{opt}.</span>
-                              <div className="flex flex-col gap-1.5">
-                                {q.options[opt] && <span>{q.options[opt]}</span>}
-                                {q.options[`${opt}_image`] && <img src={q.options[`${opt}_image`]} alt={opt} className="max-w-[100px] max-h-[80px] object-contain rounded border border-border" />}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {q.question_type === 'nat' && (
-                        <div className="inline-flex px-3 py-1.5 bg-accent-primary/5 border border-accent-primary rounded-lg text-xs text-accent-primary font-bold mt-2">Answer: {q.correct_option}</div>
-                      )}
-                    </div>
-                  )});
+                    )
+                  });
                 })()
               )}
             </div>

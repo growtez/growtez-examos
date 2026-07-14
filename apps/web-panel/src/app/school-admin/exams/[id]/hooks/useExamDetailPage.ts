@@ -63,6 +63,7 @@ export function useExamDetailPage(paramsId: string) {
 
   const [teachers, setTeachers] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
   const [applyingTemplate, setApplyingTemplate] = useState(false);
   const [showAddSubjectModal, setShowAddSubjectModal] = useState(false);
   const [newSubjectTeacherSearch, setNewSubjectTeacherSearch] = useState('');
@@ -126,7 +127,7 @@ export function useExamDetailPage(paramsId: string) {
     message: '',
     confirmText: 'Confirm',
     confirmColor: 'bg-accent-primary hover:bg-accent-primary/80 border-[#004d4d]',
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 
   useEffect(() => {
@@ -169,7 +170,7 @@ export function useExamDetailPage(paramsId: string) {
     setDrawerSubjectId(subjectId);
     setDrawerView('list');
     setEditingQuestionId(null);
-    
+
     // Load draft from localStorage if one exists
     if (typeof window !== 'undefined') {
       const key = `exam-question-draft-${paramsId}-${subjectId}`;
@@ -201,7 +202,7 @@ export function useExamDetailPage(paramsId: string) {
     } else {
       clearDraft();
     }
-    
+
     setDrawerLoading(true);
     const { data } = await supabase
       .from('questions')
@@ -238,7 +239,7 @@ export function useExamDetailPage(paramsId: string) {
   const handleDrawerNewQuestion = () => {
     setEditingQuestionId(null);
     setDrawerView('editor');
-    
+
     // Load draft if one exists
     if (typeof window !== 'undefined' && drawerSubjectId) {
       const key = `exam-question-draft-${paramsId}-${drawerSubjectId}`;
@@ -272,7 +273,7 @@ export function useExamDetailPage(paramsId: string) {
   // Auto-save draft to localStorage whenever fields change
   useEffect(() => {
     if (typeof window === 'undefined' || !paramsId || !drawerSubjectId) return;
-    
+
     // Only save draft if we are adding a question (not editing an existing one)
     if (editingQuestionId === null) {
       const draftData = {
@@ -292,9 +293,9 @@ export function useExamDetailPage(paramsId: string) {
       };
 
       const isDefault = qType === 'mcq' && qText === '' && qImage === null &&
-                        optA === '' && optAImg === null && optB === '' && optBImg === null &&
-                        optC === '' && optCImg === null && optD === '' && optDImg === null &&
-                        correctAnswer === 'A' && natAnswer === '';
+        optA === '' && optAImg === null && optB === '' && optBImg === null &&
+        optC === '' && optCImg === null && optD === '' && optDImg === null &&
+        correctAnswer === 'A' && natAnswer === '';
 
       const key = `exam-question-draft-${paramsId}-${drawerSubjectId}`;
       if (isDefault) {
@@ -328,7 +329,7 @@ export function useExamDetailPage(paramsId: string) {
     setDrawerFormLoading(true);
     try {
       if (!qText.trim() && !qImage) throw new Error('Please provide question text or an image.');
-      
+
       const subjectDef = subjects.find(s => s.id === drawerSubjectId);
       if (!editingQuestionId && subjectDef && drawerQuestions.length >= subjectDef.question_count) {
         throw new Error(`Maximum question limit (${subjectDef.question_count}) reached.`);
@@ -366,7 +367,7 @@ export function useExamDetailPage(paramsId: string) {
 
       await fetchDrawerQuestions();
       clearDraft();
-      
+
       if (addAnother) {
         setDrawerView('editor');
       } else {
@@ -520,15 +521,15 @@ export function useExamDetailPage(paramsId: string) {
         title: currentTitle,
         description: currentDesc,
         duration_minutes: currentDuration,
-        marking_scheme: { 
-          mcq_correct: parseFloat(String(currentMcqCorrect)) || 0, 
-          mcq_wrong: parseFloat(String(currentMcqWrong)) || 0, 
-          nat_correct: parseFloat(String(currentNatCorrect)) || 0, 
-          nat_wrong: parseFloat(String(currentNatWrong)) || 0 
+        marking_scheme: {
+          mcq_correct: parseFloat(String(currentMcqCorrect)) || 0,
+          mcq_wrong: parseFloat(String(currentMcqWrong)) || 0,
+          nat_correct: parseFloat(String(currentNatCorrect)) || 0,
+          nat_wrong: parseFloat(String(currentNatWrong)) || 0
         },
         exam_instructions: filteredInstructions,
       }).eq('id', paramsId);
-      
+
       if (error) throw error;
       setExam((prev: any) => prev ? { ...prev, title: currentTitle, description: currentDesc, duration_minutes: currentDuration, exam_instructions: filteredInstructions } : null);
       setSaveStatus('saved');
@@ -606,7 +607,7 @@ export function useExamDetailPage(paramsId: string) {
       if (template.exam_template_subjects?.length > 0) {
         subjectsPromise = (async () => {
           await supabase.from('exam_subjects').delete().eq('exam_id', paramsId);
-          
+
           const subjectsToInsert = template.exam_template_subjects.map((s: any, i: number) => ({
             exam_id: paramsId,
             subject_name: s.subject_name,
@@ -620,7 +621,7 @@ export function useExamDetailPage(paramsId: string) {
             .select('*, exam_subject_teachers(*, teachers:teacher_id(full_name))')
             .eq('exam_id', paramsId)
             .order('sort_order');
-          
+
           setSubjects(subjectsData || []);
           setQuestionCounts({});
         })();
@@ -654,16 +655,16 @@ export function useExamDetailPage(paramsId: string) {
   const downloadQuestionPaper = async () => {
     try {
       setGeneratingPDF(true);
-      
+
       const { data: questionsData, error } = await supabase
         .from('questions')
         .select('*, exam_subjects(subject_name)')
         .in('exam_subject_id', subjects.map(s => s.id))
         .order('exam_subject_id')
         .order('created_at');
-        
+
       if (error) throw error;
-      
+
       const formattedDate = exam.start_time ? new Date(exam.start_time).toLocaleDateString() : 'N/A';
       const formattedStartTime = exam.start_time ? new Date(exam.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       const formattedEndTime = exam.end_time ? new Date(exam.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
@@ -676,28 +677,28 @@ export function useExamDetailPage(paramsId: string) {
             <strong>Date:</strong> ${formattedDate} ${formattedStartTime ? ` | <strong>Time:</strong> ${formattedStartTime} - ${formattedEndTime}` : ''}
           </div>
       `;
-      
+
       let currentSubject = '';
       let qIndex = 1;
-      
+
       (questionsData || []).forEach((q: any) => {
         if (q.exam_subjects?.subject_name !== currentSubject) {
           currentSubject = q.exam_subjects?.subject_name;
           html += `<h2 style="color: #008080; border-bottom: 2px solid #e0f2f2; padding-bottom: 8px; margin-top: 30px;">${currentSubject}</h2>`;
           qIndex = 1;
         }
-        
+
         html += `
           <div class="question-block" style="margin-bottom: 25px; page-break-inside: avoid; break-inside: avoid;">
             <div style="font-weight: bold; margin-bottom: 10px; font-size: 16px;">Q${qIndex}. ${q.question_text || 'Image Question'}</div>
         `;
-        
+
         if (q.image_url) {
           html += `<img src="${q.image_url}" style="max-width: 400px; max-height: 300px; display: block; margin-bottom: 15px; border-radius: 8px; border: 1px solid #e0f2f2;" />`;
         }
-        
+
         html += `<div style="padding-left: 15px; display: flex; flex-direction: column; gap: 8px;">`;
-        
+
         if (q.question_type === 'nat') {
           html += `
             <div style="padding: 12px 15px; border-radius: 8px; border: 2px solid #22c55e; background-color: #f0fdf4; font-size: 14px;">
@@ -709,13 +710,13 @@ export function useExamDetailPage(paramsId: string) {
           ['A', 'B', 'C', 'D'].forEach(key => {
             const val = q.options[key];
             const imgVal = q.options[`${key}_image`];
-            
+
             if (!val && !imgVal) return;
-            
+
             const isCorrect = String(q.correct_option).trim().toUpperCase() === key;
             let borderStyle = isCorrect ? '2px solid #22c55e' : '1px solid #e0f2f2';
             let bgStyle = isCorrect ? '#f0fdf4' : 'transparent';
-            
+
             html += `
               <div style="padding: 12px 15px; border-radius: 8px; border: ${borderStyle}; background-color: ${bgStyle}; font-size: 14px; display: flex; flex-direction: column; gap: 8px;">
                 <div>
@@ -730,9 +731,9 @@ export function useExamDetailPage(paramsId: string) {
         html += `</div></div>`;
         qIndex++;
       });
-      
+
       html += `</div>`;
-      
+
       const html2pdf = (await import('html2pdf.js')).default;
       const opt: any = {
         margin: 10,
@@ -742,7 +743,7 @@ export function useExamDetailPage(paramsId: string) {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: 'css', avoid: '.question-block' }
       };
-      
+
       await html2pdf().set(opt).from(html).save();
     } catch (err: any) {
       alert('Failed to generate question paper: ' + err.message);
@@ -765,16 +766,26 @@ export function useExamDetailPage(paramsId: string) {
       setRole(user.user_metadata?.role || 'school_admin');
     }
 
+    // Fetch templates independently so it doesn't block the rest of the page
+    supabase
+      .from('exam_templates')
+      .select('*, exam_template_subjects(*)')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setTemplates(data || []);
+        setTemplatesLoading(false);
+      });
+
     const { data: examData } = await supabase.from('exams').select('*').eq('id', paramsId).single();
     setExam(examData);
     if (examData) {
       window.dispatchEvent(new CustomEvent('exam-status-update', { detail: { status: examData.status } }));
     }
     if (!examData) { setLoading(false); return; }
-    
+
     if (examData.start_time) setStartTime(formatForInput(examData.start_time));
     if (examData.end_time) setEndTime(formatForInput(examData.end_time));
-    
+
     setTitle(examData.title || '');
     setDescription(examData.description || '');
     setDurationMinutes(examData.duration_minutes || 180);
@@ -820,7 +831,7 @@ export function useExamDetailPage(paramsId: string) {
         .from('students')
         .select('id, full_name, roll_number, date_of_birth, course, batch, session')
         .in('id', studentIds);
-        
+
       assignedWithStudents = examStudents.map((es: any) => ({
         ...es,
         students: studentsData?.find((s: any) => s.id === es.student_id) || null,
@@ -853,12 +864,6 @@ export function useExamDetailPage(paramsId: string) {
       setExamFee(Number(feePlan.price));
     }
 
-    const { data: allTemplates } = await supabase
-      .from('exam_templates')
-      .select('*, exam_template_subjects(*)')
-      .order('created_at', { ascending: false });
-    setTemplates(allTemplates || []);
-
     setLoading(false);
   };
 
@@ -870,8 +875,8 @@ export function useExamDetailPage(paramsId: string) {
     if (currentStep === 3 && !loading && subjects.length > 0) {
       const isCurrentSubjectValid = subjects.some(s => s.id === drawerSubjectId);
       if (!isCurrentSubjectValid) {
-        const allowedSubject = subjects.find(s => 
-          role !== 'teacher' || 
+        const allowedSubject = subjects.find(s =>
+          role !== 'teacher' ||
           s.exam_subject_teachers?.some((est: any) => est.teacher_id === userId)
         );
         if (allowedSubject) {
@@ -892,14 +897,14 @@ export function useExamDetailPage(paramsId: string) {
     }
 
     setPublishing(true);
-    
+
     try {
       if (!exam.is_paid && !bypassPayment) {
         alert('You must pay the exam conduction fee before publishing this exam.');
         setPublishing(false);
         return;
       }
-      
+
       const updates: any = {
         status: 'published',
         start_time: new Date(startTime).toISOString(),
@@ -909,7 +914,7 @@ export function useExamDetailPage(paramsId: string) {
       if (bypassPayment && !exam.is_paid) {
         updates.is_paid = true;
       }
-      
+
       await supabase.from('exams').update(updates).eq('id', paramsId);
       setExam({ ...exam, ...updates });
       window.dispatchEvent(new CustomEvent('exam-status-update', { detail: { status: 'published' } }));
@@ -923,9 +928,9 @@ export function useExamDetailPage(paramsId: string) {
 
   const handlePayment = async () => {
     if (!exam.school_id || examFee == null) return;
-    
+
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     openRazorpayCheckout({
       amount: examFee,
       examId: exam.id,
@@ -1004,15 +1009,15 @@ export function useExamDetailPage(paramsId: string) {
 
   const handleSaveSubjectTeachers = async () => {
     if (!manageTeachersSubject) return;
-    
+
     const teacherObjects = teachers.filter(t => selectedTeacherIds.includes(t.id));
-    setSubjects(prev => prev.map(s => 
-      s.id === manageTeachersSubject.id 
+    setSubjects(prev => prev.map(s =>
+      s.id === manageTeachersSubject.id
         ? { ...s, exam_subject_teachers: teacherObjects.map(t => ({ teacher_id: t.id, teachers: t })) }
         : s
     ));
     setManageTeachersSubject(null);
-    
+
     await supabase.from('exam_subject_teachers').delete().eq('exam_subject_id', manageTeachersSubject.id);
     if (selectedTeacherIds.length > 0) {
       const inserts = selectedTeacherIds.map(tId => ({
@@ -1029,7 +1034,7 @@ export function useExamDetailPage(paramsId: string) {
       alert('Subject name is required');
       return;
     }
-    
+
     const sortOrder = subjects.length;
     const { data: subjectRow, error: subjectError } = await supabase.from('exam_subjects').insert({
       exam_id: paramsId,
@@ -1057,7 +1062,7 @@ export function useExamDetailPage(paramsId: string) {
       exam_subject_teachers: teacherObjects.map(t => ({ teacher_id: t.id, teachers: t }))
     }]);
     setQuestionCounts(prev => ({ ...prev, [subjectRow.id]: 0 }));
-    
+
     setShowAddSubjectModal(false);
     setNewSubject({ name: '', questionCount: 10, teacherIds: [] });
   };
@@ -1100,7 +1105,7 @@ export function useExamDetailPage(paramsId: string) {
     setAddError('');
     setAddSuccess('');
     setBulkAssigning(true);
-    
+
     const { error } = await supabase.rpc('assign_students', {
       p_exam_id: paramsId,
       p_student_ids: selectedStudents
@@ -1178,28 +1183,28 @@ export function useExamDetailPage(paramsId: string) {
         let formattedDob = studentDob;
         if (studentDob.includes('/')) {
           const [d, m, y] = studentDob.split('/');
-          formattedDob = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+          formattedDob = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
         }
         try {
           const res = await fetch('/api/students/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              full_name: studentName, 
-              roll_number: studentRoll, 
-              date_of_birth: formattedDob, 
+            body: JSON.stringify({
+              full_name: studentName,
+              roll_number: studentRoll,
+              date_of_birth: formattedDob,
               course: csvCourse,
               batch: csvBatch,
               session: csvSession,
-              exam_id: paramsId 
+              exam_id: paramsId
             }),
           });
-          if (res.ok) { 
+          if (res.ok) {
             const data = await res.json();
             if (data.student) {
               newStudents.push(data.student);
             }
-            imported++; 
+            imported++;
           } else {
             const d = await res.json();
             errors.push(`${studentRoll}: ${d.error || 'Failed'}`);
@@ -1254,7 +1259,7 @@ export function useExamDetailPage(paramsId: string) {
   const handleDuplicate = async () => {
     const newTitle = prompt('Enter a title for the duplicated exam:', `${exam.title} (Copy)`);
     if (!newTitle) return;
-    
+
     setLoading(true);
     const { data: newExamId, error } = await supabase.rpc('duplicate_exam', {
       p_exam_id: paramsId,
@@ -1314,8 +1319,8 @@ export function useExamDetailPage(paramsId: string) {
 
         if (assignError) throw new Error(assignError.message || 'Teacher was created, but failed to assign to this subject.');
 
-        setSubjects(prev => prev.map(s => 
-          s.id === manageTeachersSubject.id 
+        setSubjects(prev => prev.map(s =>
+          s.id === manageTeachersSubject.id
             ? { ...s, exam_subject_teachers: [...(s.exam_subject_teachers || []), { id: insertedAssignment.id, teacher_id: data.teacher.id, teachers: data.teacher }] }
             : s
         ));
@@ -1328,7 +1333,7 @@ export function useExamDetailPage(paramsId: string) {
       setNewTeacherPassword('');
       setNewTeacherDepartment('');
       setAddTeacherError('');
-      
+
       const { data: updatedTeachers } = await supabase
         .from('teachers')
         .select('*')
@@ -1388,14 +1393,14 @@ export function useExamDetailPage(paramsId: string) {
   const stepsBeforeScheduleComplete = canProceedToNextStep(1) && canProceedToNextStep(2) && canProceedToNextStep(3);
   const allStepsComplete = canProceedToNextStep(1) && canProceedToNextStep(2) && canProceedToNextStep(3) && canProceedToNextStep(4);
   const availableStudents = schoolStudents.filter(s => !assignedStudents.some(as => as.student_id === s.id));
-  
+
   const uniqueCourses = Array.from(new Set(schoolStudents.map(s => s.course).filter(Boolean)));
   const uniqueBatches = Array.from(new Set(schoolStudents.map(s => s.batch).filter(Boolean)));
   const uniqueSessions = Array.from(new Set(schoolStudents.map(s => s.session).filter(Boolean)));
 
   const filteredStudents = availableStudents.filter(s => {
-    const matchesSearch = s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          s.roll_number.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.roll_number.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCourse = filterCourse ? s.course === filterCourse : true;
     const matchesBatch = filterBatch ? s.batch === filterBatch : true;
     const matchesSession = filterSession ? s.session === filterSession : true;
@@ -1406,8 +1411,8 @@ export function useExamDetailPage(paramsId: string) {
   const uniqueAssignedCourses = Array.from(new Set(assignedStudents.map((s: any) => s.students?.course).filter(Boolean)));
 
   const filteredAssignedStudents = assignedStudents.filter((as: any) => {
-    const matchesSearch = as.students?.full_name?.toLowerCase().includes(assignedSearchQuery.toLowerCase()) || 
-                          as.students?.roll_number?.toLowerCase().includes(assignedSearchQuery.toLowerCase());
+    const matchesSearch = as.students?.full_name?.toLowerCase().includes(assignedSearchQuery.toLowerCase()) ||
+      as.students?.roll_number?.toLowerCase().includes(assignedSearchQuery.toLowerCase());
     const matchesBatch = assignedBatchFilter ? as.students?.batch === assignedBatchFilter : true;
     const matchesCourse = assignedCourseFilter ? as.students?.course === assignedCourseFilter : true;
     return matchesSearch && matchesBatch && matchesCourse;
@@ -1421,13 +1426,13 @@ export function useExamDetailPage(paramsId: string) {
 
     try {
       setGeneratingPDF(true);
-      
+
       const { data: qs } = await supabase.from('questions').select('positive_marks').eq('exam_id', paramsId);
       let calculatedTotal = 0;
       if (qs && qs.length > 0) {
         calculatedTotal = qs.reduce((sum, q) => sum + (q.positive_marks || 0), 0);
       }
-      
+
       const formattedDate = exam.start_time ? new Date(exam.start_time).toLocaleDateString() : 'N/A';
       const totalExamMarks = calculatedTotal > 0 ? calculatedTotal : (exam.total_marks || 'N/A');
       const batchText = assignedBatchFilter ? `Batch: ${assignedBatchFilter}` : 'All Batches';
@@ -1495,7 +1500,7 @@ export function useExamDetailPage(paramsId: string) {
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
-      
+
       await html2pdf().set(opt).from(html).save();
     } catch (err: any) {
       alert('Failed to generate results PDF: ' + err.message);
@@ -1612,6 +1617,8 @@ export function useExamDetailPage(paramsId: string) {
     setTeachers,
     templates,
     setTemplates,
+    templatesLoading,
+    setTemplatesLoading,
     applyingTemplate,
     setApplyingTemplate,
     showAddSubjectModal,
