@@ -510,7 +510,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               className="sticky top-0 z-20 -mx-6 -mt-6 mb-4 border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-3 relative isolate overflow-visible before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-0 before:bg-bg"
             >
               {/* Horizontal Stepper (Top) */}
-              <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4 mb-2 relative z-50 w-full max-w-5xl mx-auto">
+              <div className="grid grid-cols-[auto_1fr_auto] items-center sm:gap-4 mb-2 relative z-50 w-full max-w-5xl mx-auto">
                 {/* Prev Button */}
                 <div className="flex justify-start sm:justify-end">
                   <button
@@ -566,8 +566,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             </button>
                           </div>
                           {idx < STEPPER_STEPS.length - 1 && (
-                            <div className={`${(isVisibleOnMobile && s.step < windowEnd) ? "block" : "hidden"} sm:block w-6 h-0.5 mx-2 rounded-full bg-border overflow-hidden shrink-0`}>                              className={`h-full transition-all duration-300 ${isSegmentFilled ? "w-full bg-accent-primary" : "w-0 bg-accent-primary"}`}
-                            />
+                            <div className={`${(isVisibleOnMobile && s.step < windowEnd) ? "block" : "hidden"} sm:block w-6 h-0.5 mx-2 rounded-full bg-border overflow-hidden shrink-0`}>
+                              <div
+                                className={`h-full transition-all duration-300 ${isSegmentFilled ? "w-full bg-accent-primary" : "w-0 bg-accent-primary"}`}
+                              />
                             </div>
                           )}
                         </div>
@@ -665,12 +667,87 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     </div>
                   )}
+                  {currentStep === 2 && (
+                    <div className="flex min-w-0 shrink-0 items-center gap-1.5">
+                      {!isExamOver && role !== "teacher" && (
+                        <button
+                          onClick={() => { setShowAddStudentModal(true); setAddMode('search'); setAddError(''); setAddSuccess(''); }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary text-white text-xs font-semibold rounded-lg hover:bg-accent-primary/90 transition-all active:scale-95 shadow-sm"
+                        >
+                          <Plus size={14} />
+                          Add Students
+                        </button>
+                      )}
+
+                      <div className="relative" ref={moreMenuRef}>
+                        <button
+                          onClick={() => setShowMoreMenu(!showMoreMenu)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
+                        >
+                          <MoreVertical size={14} />
+                        </button>
+                        {showMoreMenu && (
+                          <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+                            <button
+                              onClick={() => {
+                                handleDuplicate();
+                                setShowMoreMenu(false);
+                              }}
+                              className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
+                            >
+                              <Copy size={12} />
+                              Duplicate
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleTrash();
+                                setShowMoreMenu(false);
+                              }}
+                              className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                            >
+                              <Trash2 size={12} />
+                              Trash
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {/* Mobile-only: show the 3-dot menu next to the title for steps 3+ instead of leaving it in its own isolated row below */}
+                  {currentStep !== 1 && currentStep !== 2 && (
+                    <div className="relative shrink-0 md:hidden" ref={moreMenuRef}>
+                      <button
+                        onClick={() => setShowMoreMenu(!showMoreMenu)}
+                        className="w-8 h-8 flex items-center justify-center bg-surface border border-border rounded-lg text-text-main"
+                      >
+                        <MoreVertical size={14} />
+                      </button>
+                      {showMoreMenu && (
+                        <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+                          <button
+                            onClick={() => { handleDuplicate(); setShowMoreMenu(false); }}
+                            className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
+                          >
+                            <Copy size={12} />
+                            Duplicate
+                          </button>
+                          <button
+                            onClick={() => { handleTrash(); setShowMoreMenu(false); }}
+                            className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                          >
+                            <Trash2 size={12} />
+                            Trash
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Centered Pills */}
-                <div className="flex items-center justify-start md:justify-center min-w-0">
+                <div className="relative flex items-center justify-start md:justify-center min-w-0 -mx-4 px-4 md:mx-0 md:px-0">
                   {currentStep === 3 && (
-                    <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar px-1 max-w-full">
+                    <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar px-1 max-w-full snap-x snap-mandatory md:snap-none">
                       {subjects.map((s) => {
                         const added = questionCounts[s.id] || 0;
                         const needed = s.question_count;
@@ -681,7 +758,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             key={s.id}
                             type="button"
                             onClick={() => openManageQuestions(s.id)}
-                            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${isSelected
+                            className={`snap-start shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${isSelected
                               ? "bg-accent-primary text-white border-accent-primary shadow-sm"
                               : "bg-surface border-border text-text-main hover:border-accent-primary/50"
                               }`}
@@ -695,22 +772,15 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       })}
                     </div>
                   )}
+                  {/* mobile-only scroll hint, hidden on desktop */}
+                  {currentStep === 3 && (
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg to-transparent md:hidden" />
+                  )}
                 </div>
 
-                {/* Actions */}
-                <div className="flex flex-wrap items-center justify-start md:justify-end gap-2">
-                  {currentStep === 2 && !isExamOver && role !== "teacher" && (
-                    <button
-                      onClick={() => { setShowAddStudentModal(true); setAddMode('search'); setAddError(''); setAddSuccess(''); }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary text-white text-xs font-semibold rounded-lg hover:bg-accent-primary/90 transition-all active:scale-95 shadow-sm"
-                    >
-                      <Plus size={14} />
-                      Add Students
-                    </button>
-                  )}
-
-
-                  {currentStep !== 1 && (
+                {/* Actions (desktop only — mobile shows this next to the title instead) */}
+                <div className="hidden md:flex flex-wrap items-center justify-start md:justify-end gap-2">
+                  {currentStep !== 1 && currentStep !== 2 && (
                     <div className="relative" ref={moreMenuRef}>
                       <button
                         onClick={() => setShowMoreMenu(!showMoreMenu)}
@@ -749,73 +819,76 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
               {/* Row 2: Search Filter Row (only for Step 3) */}
               {currentStep === 3 && drawerSubjectId && (
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border">
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-2 md:gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border">
                   {/* Search Box */}
                   <div className="relative w-full md:max-w-[260px] shrink-0">
-                    <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+                    <Search className="absolute left-4 md:left-auto md:right-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
                     <input
                       type="text"
                       placeholder="Search questions..."
                       value={questionSearchQuery}
                       onChange={(e) => setQuestionSearchQuery(e.target.value)}
-                      className="w-full py-2 pl-4 pr-10 bg-surface-hover border border-border rounded-full text-text-main text-[13px] focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all font-medium"
+                      className="w-full py-2 pl-10 md:pl-4 pr-4 md:pr-10 bg-surface-hover border border-border rounded-full text-text-main text-[13px] focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all font-medium"
                     />
                   </div>
 
-                  {/* Filter Dropdown */}
-                  <div className="relative shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setIsTypeFilterOpen(!isTypeFilterOpen)}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-semibold cursor-pointer"
-                    >
-                      <Filter size={14} className="text-accent-primary" />
-                      {typeFilter === 'all' ? 'All Types' : typeFilter.toUpperCase()}
-                    </button>
-                    {isTypeFilterOpen && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setIsTypeFilterOpen(false)} />
-                        <div className="absolute left-0 mt-2 w-40 bg-surface border border-border rounded-xl shadow-lg py-1 z-50 flex flex-col">
-                          <button type="button" onClick={() => { setTypeFilter('all'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'all' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>All Types</button>
-                          <button type="button" onClick={() => { setTypeFilter('mcq'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'mcq' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>MCQ</button>
-                          <button type="button" onClick={() => { setTypeFilter('nat'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'nat' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>NAT</button>
-                        </div>
-                      </>
+                  {/* Filter + Add share one row on mobile, spread out on desktop */}
+                  <div className="flex items-center gap-2 md:contents">
+                    {/* Filter Dropdown */}
+                    <div className="relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setIsTypeFilterOpen(!isTypeFilterOpen)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-semibold cursor-pointer whitespace-nowrap"
+                      >
+                        <Filter size={14} className="text-accent-primary" />
+                        {typeFilter === 'all' ? 'All Types' : typeFilter.toUpperCase()}
+                      </button>
+                      {isTypeFilterOpen && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setIsTypeFilterOpen(false)} />
+                          <div className="absolute left-0 mt-2 w-40 bg-surface border border-border rounded-xl shadow-lg py-1 z-50 flex flex-col">
+                            <button type="button" onClick={() => { setTypeFilter('all'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'all' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>All Types</button>
+                            <button type="button" onClick={() => { setTypeFilter('mcq'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'mcq' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>MCQ</button>
+                            <button type="button" onClick={() => { setTypeFilter('nat'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'nat' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>NAT</button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="hidden md:block flex-1" />
+
+                    {/* Add Question Button / All questions added message */}
+                    {drawerSubjectId && (
+                      (() => {
+                        const needed = subjects.find(s => s.id === drawerSubjectId)?.question_count ?? 0;
+                        const added = drawerQuestions.length;
+                        const isComplete = added >= needed;
+
+                        if (isComplete) {
+                          return (
+                            <span className="flex-1 md:flex-none text-center text-[12px] font-semibold text-emerald-600 flex items-center justify-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-2 md:py-1.5 rounded-lg select-none whitespace-nowrap">
+                              <ShieldCheck size={14} /> <span className="md:hidden">All added</span><span className="hidden md:inline">All questions added</span>
+                            </span>
+                          );
+                        }
+
+                        if (!isExamOver && role !== "teacher") {
+                          return (
+                            <button
+                              type="button"
+                              onClick={handleDrawerNewQuestion}
+                              className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 md:py-1.5 rounded-lg bg-accent-primary text-white hover:bg-accent-primary/95 transition-all text-[12px] font-semibold shadow-sm cursor-pointer border-none active:scale-95 whitespace-nowrap"
+                            >
+                              <Plus size={14} /> Add Question
+                            </button>
+                          );
+                        }
+
+                        return null;
+                      })()
                     )}
                   </div>
-
-                  <div className="flex-1" />
-
-                  {/* Add Question Button / All questions added message */}
-                  {drawerSubjectId && (
-                    (() => {
-                      const needed = subjects.find(s => s.id === drawerSubjectId)?.question_count ?? 0;
-                      const added = drawerQuestions.length;
-                      const isComplete = added >= needed;
-
-                      if (isComplete) {
-                        return (
-                          <span className="text-[12px] font-semibold text-emerald-600 flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg select-none">
-                            <ShieldCheck size={14} /> All questions added
-                          </span>
-                        );
-                      }
-
-                      if (!isExamOver && role !== "teacher") {
-                        return (
-                          <button
-                            type="button"
-                            onClick={handleDrawerNewQuestion}
-                            className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent-primary text-white hover:bg-accent-primary/95 transition-all text-[12px] font-semibold shadow-sm cursor-pointer border-none active:scale-95"
-                          >
-                            <Plus size={14} /> Add Question
-                          </button>
-                        );
-                      }
-
-                      return null;
-                    })()
-                  )}
                 </div>
               )}
             </div>
@@ -990,10 +1063,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 setAssignedCourseFilter={setAssignedCourseFilter}
                 assignedBatchFilter={assignedBatchFilter}
                 setAssignedBatchFilter={setAssignedBatchFilter}
-                setShowAddStudentModal={setShowAddStudentModal}
-                setAddMode={setAddMode}
-                setAddError={setAddError}
-                setAddSuccess={setAddSuccess}
                 addSuccess={addSuccess}
                 downloadResultsPDF={downloadResultsPDF}
                 generatingPDF={generatingPDF}

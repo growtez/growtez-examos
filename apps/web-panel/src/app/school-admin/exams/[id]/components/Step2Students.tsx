@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Link2, Plus, Users, Download } from 'lucide-react';
+import { Users, Download } from 'lucide-react';
 
 interface Step2StudentsProps {
   role: string;
@@ -15,10 +15,6 @@ interface Step2StudentsProps {
   setAssignedCourseFilter: (val: string) => void;
   assignedBatchFilter: string;
   setAssignedBatchFilter: (val: string) => void;
-  setShowAddStudentModal: (val: boolean) => void;
-  setAddMode: (val: 'link' | 'search' | 'create' | 'csv') => void;
-  setAddError: (val: string) => void;
-  setAddSuccess: (val: string) => void;
   addSuccess: string;
   downloadResultsPDF: () => void;
   generatingPDF: boolean;
@@ -40,10 +36,6 @@ export default function Step2Students({
   setAssignedCourseFilter,
   assignedBatchFilter,
   setAssignedBatchFilter,
-  setShowAddStudentModal,
-  setAddMode,
-  setAddError,
-  setAddSuccess,
   addSuccess,
   downloadResultsPDF,
   generatingPDF,
@@ -57,8 +49,8 @@ export default function Step2Students({
   const uniqueAssignedCourses = Array.from(new Set(assignedStudents.map((s: any) => s.students?.course).filter(Boolean)));
 
   const filteredAssignedStudents = assignedStudents.filter((as: any) => {
-    const matchesSearch = as.students?.full_name?.toLowerCase().includes(assignedSearchQuery.toLowerCase()) || 
-                          as.students?.roll_number?.toLowerCase().includes(assignedSearchQuery.toLowerCase());
+    const matchesSearch = as.students?.full_name?.toLowerCase().includes(assignedSearchQuery.toLowerCase()) ||
+      as.students?.roll_number?.toLowerCase().includes(assignedSearchQuery.toLowerCase());
     const matchesBatch = assignedBatchFilter ? as.students?.batch === assignedBatchFilter : true;
     const matchesCourse = assignedCourseFilter ? as.students?.course === assignedCourseFilter : true;
     return matchesSearch && matchesBatch && matchesCourse;
@@ -81,9 +73,9 @@ export default function Step2Students({
           onChange={(e) => setAssignedSearchQuery(e.target.value)}
           className="w-full sm:w-80 px-4 py-2 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all text-sm font-medium"
         />
-          
-        <select 
-          value={assignedCourseFilter} 
+
+        <select
+          value={assignedCourseFilter}
           onChange={(e) => setAssignedCourseFilter(e.target.value)}
           className="px-4 py-2 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all text-sm font-medium w-full sm:w-40 appearance-none"
         >
@@ -93,8 +85,8 @@ export default function Step2Students({
           ))}
         </select>
 
-        <select 
-          value={assignedBatchFilter} 
+        <select
+          value={assignedBatchFilter}
           onChange={(e) => setAssignedBatchFilter(e.target.value)}
           className="px-4 py-2 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all text-sm font-medium w-full sm:w-40 appearance-none"
         >
@@ -105,7 +97,7 @@ export default function Step2Students({
         </select>
 
         {isExamOver && (
-          <button 
+          <button
             onClick={downloadResultsPDF}
             disabled={generatingPDF}
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-surface text-text-main text-sm font-semibold border border-border rounded-xl hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm w-full sm:w-auto disabled:opacity-50 whitespace-nowrap"
@@ -199,16 +191,16 @@ export default function Step2Students({
                                 confirmColor: 'bg-amber-600 hover:bg-amber-700 text-white',
                                 onConfirm: async () => {
                                   setConfirmDialog((prev: any) => ({ ...prev, isOpen: false }));
-                                  setAssignedStudents(prev => prev.map(s => 
-                                    s.student_id === as.student_id 
+                                  setAssignedStudents(prev => prev.map(s =>
+                                    s.student_id === as.student_id
                                       ? { ...s, status: 'assigned', result: null }
                                       : s
                                   ));
                                   const { error } = await supabase.rpc('reset_student_exam', { p_exam_id: paramsId, p_student_id: as.student_id });
                                   if (error) {
                                     alert('Failed to reset: ' + error.message);
-                                    setAssignedStudents(prev => prev.map(s => 
-                                      s.student_id === as.student_id 
+                                    setAssignedStudents(prev => prev.map(s =>
+                                      s.student_id === as.student_id
                                         ? { ...s, status: as.status, result: as.result }
                                         : s
                                     ));
