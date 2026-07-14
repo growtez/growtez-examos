@@ -252,6 +252,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setTeachers,
     templates,
     setTemplates,
+    templatesLoading,
     applyingTemplate,
     setApplyingTemplate,
     showAddSubjectModal,
@@ -447,7 +448,52 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     ? new Date(exam.end_time) < new Date()
     : false;
   const displayStatus = isExamOver ? "completed" : exam?.status || "draft";
-  const isDraftStepperMode = role !== "teacher" && exam?.status === "draft";
+  const isDraftStepperMode = loading || (role !== "teacher" && exam?.status === "draft");
+
+  if (loading) {
+    return (
+      <div className="w-full animate-in fade-in duration-300">
+        <div className="border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-3">
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4 mb-2 w-full max-w-5xl mx-auto">
+            <div className="flex justify-start sm:justify-end">
+              <button disabled className="inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full opacity-50 cursor-not-allowed sm:min-w-24">
+                <ChevronLeft size={14} />
+                <span className="hidden sm:inline">Prev</span>
+              </button>
+            </div>
+            <div className="min-w-0 overflow-x-auto bg-surface border border-border rounded-full py-2 px-3 sm:px-6 shadow-sm">
+              <div className="flex min-w-max items-center justify-center gap-4">
+                {STEPPER_STEPS.map((s) => (
+                  <div
+                    key={s.step}
+                    className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] border-2 bg-surface text-text-muted border-border"
+                  >
+                    {s.step}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end sm:justify-start">
+              <button disabled className="inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full opacity-50 cursor-not-allowed sm:min-w-24">
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+          <h2 className="text-base sm:text-lg font-bold text-text-main">
+            Step 1 · Setup
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6 animate-pulse p-4 sm:p-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-32 bg-surface border border-border rounded-2xl"></div>
+          ))}
+        </div>
+        <div className="h-[400px] bg-surface border border-border rounded-2xl mt-6 mx-4 sm:mx-6 animate-pulse"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -461,36 +507,43 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
           {isDraftStepperMode && (
             <div
-              className="sticky top-0 z-20 -mx-6 -mt-6 mb-4 border-b border-border bg-bg px-6 pb-3 flex flex-col gap-3 relative isolate overflow-visible before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-0 before:bg-bg"
+              className="sticky top-0 z-20 -mx-6 -mt-6 mb-4 border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-3 relative isolate overflow-visible before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-0 before:bg-bg"
             >
               {/* Horizontal Stepper (Top) */}
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 mb-2 relative z-50 w-full max-w-5xl mx-auto">
+              <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4 mb-2 relative z-50 w-full max-w-5xl mx-auto">
                 {/* Prev Button */}
-                <div className="flex justify-end">
+                <div className="flex justify-start sm:justify-end">
                   <button
                     onClick={() => currentStep > 1 && handleSetStep(currentStep - 1)}
                     disabled={currentStep <= 1}
-                    className={`inline-flex items-center justify-center gap-1.5 px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full transition-all shadow-sm w-24 ${currentStep > 1
+                    className={`inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full transition-all shadow-sm sm:min-w-24 ${currentStep > 1
                       ? "hover:border-accent-primary hover:text-accent-primary active:scale-95"
                       : "opacity-50 cursor-not-allowed"
                       }`}
                   >
                     <ChevronLeft size={14} />
-                    Prev
+                    <span className="hidden sm:inline">Prev</span>
                   </button>
                 </div>
 
                 {/* Stepper Pill */}
-                <div className="bg-surface border border-border rounded-full py-2 px-6 shadow-sm">
-                  <div className="flex items-center justify-center">
+                <div className="min-w-0 overflow-x-auto custom-scrollbar bg-surface border border-border rounded-full py-2 px-3 sm:px-6 shadow-sm">
+                  <div className="flex min-w-max items-center justify-start sm:justify-center">
                     {STEPPER_STEPS.map((s, idx) => {
                       const isActive = currentStep === s.step;
                       const isDone = !isActive && canProceedToNextStep(s.step);
                       const isSegmentFilled = currentStep > s.step;
+                      const totalSteps = STEPPER_STEPS.length;
+                      let windowStart = currentStep - 1;
+                      if (windowStart < 1) windowStart = 1;
+                      if (windowStart > totalSteps - 2) windowStart = totalSteps - 2;
+                      const windowEnd = windowStart + 2;
+                      const isVisibleOnMobile = s.step >= windowStart && s.step <= windowEnd;
+                      const mobilePrevStep = windowStart;
                       return (
                         <div
                           key={s.step}
-                          className="flex items-center"
+                          className={`${isVisibleOnMobile ? "flex" : "hidden"} sm:flex items-center`}
                         >
                           <div className="flex items-center gap-1.5">
                             <button
@@ -507,16 +560,14 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             </button>
                             <button
                               onClick={() => handleSetStep(s.step)}
-                              className={`text-[9px] font-bold uppercase tracking-tight whitespace-nowrap hidden sm:inline-block hover:opacity-80 transition-opacity ${isActive ? "text-text-main" : isDone ? "text-accent-primary" : "text-text-muted"}`}
+                              className={`text-[9px] font-bold uppercase tracking-tight whitespace-nowrap hover:opacity-80 transition-opacity ${isActive ? "inline-block" : "hidden"} sm:inline-block ${isActive ? "text-text-main" : isDone ? "text-accent-primary" : "text-text-muted"}`}
                             >
                               {s.label}
                             </button>
                           </div>
                           {idx < STEPPER_STEPS.length - 1 && (
-                            <div className="w-6 h-0.5 mx-2 rounded-full bg-border overflow-hidden shrink-0">
-                              <div
-                                className={`h-full transition-all duration-300 ${isSegmentFilled ? "w-full bg-accent-primary" : "w-0 bg-accent-primary"}`}
-                              />
+                            <div className={`${(isVisibleOnMobile && s.step < windowEnd) ? "block" : "hidden"} sm:block w-6 h-0.5 mx-2 rounded-full bg-border overflow-hidden shrink-0`}>                              className={`h-full transition-all duration-300 ${isSegmentFilled ? "w-full bg-accent-primary" : "w-0 bg-accent-primary"}`}
+                            />
                             </div>
                           )}
                         </div>
@@ -526,33 +577,98 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 </div>
 
                 {/* Next Button */}
-                <div className="flex justify-start">
+                <div className="flex justify-end sm:justify-start">
                   <button
                     onClick={() => currentStep < 5 && handleSetStep(currentStep + 1)}
                     disabled={currentStep >= 5}
-                    className={`inline-flex items-center justify-center gap-1.5 px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full transition-all shadow-sm w-24 ${currentStep < 5
+                    className={`inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full transition-all shadow-sm sm:min-w-24 ${currentStep < 5
                       ? "hover:border-accent-primary hover:text-accent-primary active:scale-95"
                       : "opacity-50 cursor-not-allowed"
                       }`}
                   >
-                    Next
+                    <span className="hidden sm:inline">Next</span>
                     <ChevronRight size={14} />
                   </button>
                 </div>
               </div>
 
               {/* Row 1: Title, Pills, Actions */}
-              <div className="relative z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4 w-full">
+              <div className="relative z-10 flex flex-col gap-3 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-4 w-full">
                 {/* Title */}
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-text-main whitespace-nowrap">
+                <div className="flex min-w-0 items-center justify-between gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-text-main">
                     Step {currentStep} ·{" "}
                     {STEPPER_STEPS.find((s) => s.step === currentStep)?.label}
                   </h2>
+                  {currentStep === 1 && (
+                    <div className="flex min-w-0 shrink-0 items-center gap-1.5">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <select
+                          onChange={(e) => {
+                            const selected = templates.find(
+                              (t) => t.id === e.target.value
+                            );
+                            if (selected) handleTemplateApply(selected);
+                            e.target.value = "";
+                          }}
+                          defaultValue=""
+                          disabled={applyingTemplate || templatesLoading || templates.length === 0}
+                          className="max-w-[8.5rem] sm:max-w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main text-xs font-semibold focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all disabled:opacity-50"
+                        >
+                          <option value="" disabled>
+                            {templatesLoading ? "Loading..." : templates.length === 0 ? "No templates" : "Template..."}
+                          </option>
+                          {templates.map((t) => (
+                            <option key={t.id} value={t.id}>
+                              {t.title}
+                            </option>
+                          ))}
+                        </select>
+                        {applyingTemplate && (
+                          <span className="text-[10px] text-accent-primary flex items-center gap-1 font-semibold animate-pulse">
+                            <span className="w-2 h-2 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="relative" ref={moreMenuRef}>
+                        <button
+                          onClick={() => setShowMoreMenu(!showMoreMenu)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
+                        >
+                          <MoreVertical size={14} />
+                        </button>
+                        {showMoreMenu && (
+                          <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+                            <button
+                              onClick={() => {
+                                handleDuplicate();
+                                setShowMoreMenu(false);
+                              }}
+                              className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
+                            >
+                              <Copy size={12} />
+                              Duplicate
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleTrash();
+                                setShowMoreMenu(false);
+                              }}
+                              className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                            >
+                              <Trash2 size={12} />
+                              Trash
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Centered Pills */}
-                <div className="flex items-center justify-center min-w-0">
+                <div className="flex items-center justify-start md:justify-center min-w-0">
                   {currentStep === 3 && (
                     <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar px-1 max-w-full">
                       {subjects.map((s) => {
@@ -582,7 +698,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex flex-wrap items-center justify-start md:justify-end gap-2">
                   {currentStep === 2 && !isExamOver && role !== "teacher" && (
                     <button
                       onClick={() => { setShowAddStudentModal(true); setAddMode('search'); setAddError(''); setAddSuccess(''); }}
@@ -594,69 +710,40 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   )}
 
 
-                  {templates.length > 0 && currentStep === 1 && (
-                    <div className="flex items-center gap-1.5">
-                      <select
-                        onChange={(e) => {
-                          const selected = templates.find(
-                            (t) => t.id === e.target.value
-                          );
-                          if (selected) handleTemplateApply(selected);
-                          e.target.value = "";
-                        }}
-                        defaultValue=""
-                        disabled={applyingTemplate}
-                        className="px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main text-xs font-semibold focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all disabled:opacity-50"
+                  {currentStep !== 1 && (
+                    <div className="relative" ref={moreMenuRef}>
+                      <button
+                        onClick={() => setShowMoreMenu(!showMoreMenu)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
                       >
-                        <option value="" disabled>
-                          Template...
-                        </option>
-                        {templates.map((t) => (
-                          <option key={t.id} value={t.id}>
-                            {t.title}
-                          </option>
-                        ))}
-                      </select>
-                      {applyingTemplate && (
-                        <span className="text-[10px] text-accent-primary flex items-center gap-1 font-semibold animate-pulse">
-                          <span className="w-2 h-2 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
-                        </span>
+                        <MoreVertical size={14} />
+                      </button>
+                      {showMoreMenu && (
+                        <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
+                          <button
+                            onClick={() => {
+                              handleDuplicate();
+                              setShowMoreMenu(false);
+                            }}
+                            className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
+                          >
+                            <Copy size={12} />
+                            Duplicate
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleTrash();
+                              setShowMoreMenu(false);
+                            }}
+                            className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
+                          >
+                            <Trash2 size={12} />
+                            Trash
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
-
-                  <div className="relative" ref={moreMenuRef}>
-                    <button
-                      onClick={() => setShowMoreMenu(!showMoreMenu)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
-                    >
-                      <MoreVertical size={14} />
-                    </button>
-                    {showMoreMenu && (
-                      <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
-                        <button
-                          onClick={() => {
-                            handleDuplicate();
-                            setShowMoreMenu(false);
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
-                        >
-                          <Copy size={12} />
-                          Duplicate
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleTrash();
-                            setShowMoreMenu(false);
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
-                        >
-                          <Trash2 size={12} />
-                          Trash
-                        </button>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
 

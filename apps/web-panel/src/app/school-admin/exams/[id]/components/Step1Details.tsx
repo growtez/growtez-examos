@@ -117,7 +117,7 @@ export default function Step1Details({
                 }}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                 required
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium"
+                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
               />
             </div>
             <div>
@@ -127,7 +127,7 @@ export default function Step1Details({
                 onChange={(e) => setDescription(e.target.value)}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                 rows={2}
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all resize-none text-xs font-medium"
+                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all resize-none text-xs font-medium leading-relaxed whitespace-normal break-words sm:leading-normal"
               />
             </div>
             <div>
@@ -147,7 +147,7 @@ export default function Step1Details({
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                 min={1}
                 required
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium"
+                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
               />
             </div>
           </div>
@@ -156,7 +156,7 @@ export default function Step1Details({
         {/* Marking Scheme */}
         <div className="bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm order-2 h-full">
           <h3 className="text-sm font-bold text-text-main mb-3 border-b border-[#f0f7f7] pb-1.5">Marking Scheme</h3>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
             <div>
               <label className="block text-[11px] font-semibold text-text-muted mb-1">MCQ Correct</label>
               <input
@@ -165,7 +165,7 @@ export default function Step1Details({
                 value={mcqCorrect}
                 onChange={(e) => setMcqCorrect(e.target.value)}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium"
+                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
               />
             </div>
             <div>
@@ -176,7 +176,7 @@ export default function Step1Details({
                 value={mcqWrong}
                 onChange={(e) => setMcqWrong(e.target.value)}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium"
+                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
               />
             </div>
             <div>
@@ -187,7 +187,7 @@ export default function Step1Details({
                 value={natCorrect}
                 onChange={(e) => setNatCorrect(e.target.value)}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium"
+                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
               />
             </div>
             <div>
@@ -198,7 +198,7 @@ export default function Step1Details({
                 value={natWrong}
                 onChange={(e) => setNatWrong(e.target.value)}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium"
+                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
               />
             </div>
           </div>
@@ -227,7 +227,7 @@ export default function Step1Details({
               return (
                 <div key={s.id} className="bg-bg border border-border rounded-xl p-3 flex flex-col justify-between">
                   <div className="flex justify-between items-start mb-2">
-                    <span className="text-text-main font-bold text-xs">{s.subject_name}</span>
+                    <span className="text-text-main font-bold text-xs leading-relaxed break-words sm:leading-normal">{s.subject_name}</span>
                     <button
                       type="button"
                       onClick={(e) => handleDeleteSubject(e, s.id, s.subject_name)}
@@ -237,7 +237,7 @@ export default function Step1Details({
                     </button>
                   </div>
                   <div className="flex items-center gap-1.5 mb-2">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider leading-relaxed sm:leading-normal ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                       {added}/{needed} q&apos;s
                     </span>
                     {editSubjectId !== s.id && (
@@ -274,7 +274,7 @@ export default function Step1Details({
                   </div>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {s.exam_subject_teachers?.map((est: any) => (
-                      <span key={est.id} className="text-[9px] font-bold uppercase tracking-wider text-accent-primary bg-surface border border-border px-1.5 py-0.5 rounded">
+                      <span key={est.id} className="text-[9px] font-bold uppercase tracking-wider text-accent-primary bg-surface border border-border px-1.5 py-0.5 rounded leading-relaxed break-words whitespace-normal sm:leading-normal">
                         {est.teachers?.full_name || 'Teacher'}
                       </span>
                     ))}
@@ -328,7 +328,7 @@ export default function Step1Details({
                   onChange={(e) => updateInstructionItem(index, e.target.value)}
                   onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                   placeholder="e.g. Do not close browser..."
-                  className="flex-1 min-w-0 px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium"
+                  className="flex-1 min-w-0 px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
                 />
                 {instructionsList.length > 1 && (
                   <button

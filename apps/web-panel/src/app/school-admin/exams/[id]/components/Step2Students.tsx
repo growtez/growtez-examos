@@ -127,9 +127,9 @@ export default function Step2Students({
           <p className="text-text-muted text-sm font-medium mt-1">No students found matching your search.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-border">
+        <div className="overflow-x-auto rounded-xl border border-border">
           <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
-            <table className="w-full">
+            <table className="w-full min-w-[640px]">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-bg border-b border-border">
                   <th className="text-left px-4 py-3 text-xs font-bold text-text-muted uppercase tracking-wider">Roll No.</th>

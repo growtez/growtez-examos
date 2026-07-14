@@ -403,7 +403,7 @@ export default function SchoolAdminLayout({
                  'Error'}
               </span>
             )}
-            {examStatus && (
+            {examStatus && examStatus !== 'draft' && (
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ml-2 shrink-0 ${
                 examStatus === 'draft' ? 'bg-gray-100 text-gray-600 border-gray-200' :
                 examStatus === 'published' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
@@ -424,7 +424,7 @@ export default function SchoolAdminLayout({
             <div className="relative" ref={dropdownRef}>
               <div 
                 onClick={() => role !== 'teacher' && setProfileDropdownOpen(!profileDropdownOpen)}
-                className={`w-9 h-9 bg-gradient-to-br from-accent-primary to-accent-primary/70 rounded-full flex items-center justify-center shadow-sm transition-shadow ${role !== 'teacher' ? 'cursor-pointer hover:shadow-md' : ''}`}
+                className={`w-9 h-9 bg-accent-primary rounded-full flex items-center justify-center shadow-sm transition-shadow ${role !== 'teacher' ? 'cursor-pointer hover:shadow-md' : ''}`}
               >
                 <User className="text-white w-5 h-5" />
               </div>
