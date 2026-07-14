@@ -1,7 +1,93 @@
 'use client';
 
-import React from 'react';
-import { Plus, Trash2, Edit2, Check, BookOpen } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { Plus, Trash2, Edit2, Check, BookOpen, ChevronDown } from 'lucide-react';
+
+/**
+ * A single-line-looking field that wraps text and grows its height
+ * as content increases, instead of overflowing/scrolling horizontally
+ * like a normal <input>.
+ */
+function AutoGrowInput({
+  value,
+  onChange,
+  onBlur,
+  placeholder,
+  required,
+  className,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  onBlur?: () => void;
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
+      placeholder={placeholder}
+      required={required}
+      rows={1}
+      className={`${className} resize-none overflow-hidden whitespace-pre-wrap break-words`}
+    />
+  );
+}
+
+/**
+ * A card that becomes a collapsible accordion on mobile (tap the header
+ * to expand/collapse) but stays always-expanded, non-collapsible on
+ * sm screens and up.
+ */
+function CollapsibleCard({
+  title,
+  headerExtra,
+  expanded,
+  onToggle,
+  className,
+  children,
+}: {
+  title: string;
+  headerExtra?: React.ReactNode;
+  expanded: boolean;
+  onToggle: () => void;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm h-full ${className || ''}`}>
+      <div
+        onClick={onToggle}
+        className="w-full flex items-center justify-between gap-2 mb-3 border-b border-[#f0f7f7] pb-1.5 cursor-pointer sm:cursor-default"
+      >
+        <span className="flex items-center gap-1.5">
+          <h3 className="text-sm font-bold text-text-main">{title}</h3>
+          <ChevronDown
+            size={14}
+            className={`text-text-muted transition-transform sm:hidden ${expanded ? 'rotate-180' : ''}`}
+          />
+        </span>
+        {headerExtra && (
+          <span onClick={(e) => e.stopPropagation()}>{headerExtra}</span>
+        )}
+      </div>
+      <div className={`${expanded ? 'block' : 'hidden'} sm:block`}>{children}</div>
+    </div>
+  );
+}
+
 
 interface Step1DetailsProps {
   role: string;
@@ -55,6 +141,13 @@ interface Step1DetailsProps {
   paramsId: string;
 }
 
+const GENERAL_INSTRUCTIONS = [
+  'Do not refresh the page or close the application once the exam has started.',
+  'The timer will run continuously. If you get disconnected, your time will keep running on the server.',
+  'Your answers are automatically saved as you select them.',
+  'Once the exam end time is reached, it will be automatically submitted regardless of your progress.',
+];
+
 export default function Step1Details({
   role,
   isExamOver,
@@ -97,20 +190,46 @@ export default function Step1Details({
   handleSaveExamDetails,
   paramsId,
 }: Step1DetailsProps) {
+  const [expandedCards, setExpandedCards] = useState({
+    details: true,
+    marking: true,
+    subjects: true,
+    instructions: true,
+  });
+  const allExpanded = Object.values(expandedCards).every(Boolean);
+  const toggleCard = (key: keyof typeof expandedCards) =>
+    setExpandedCards((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleAll = () => {
+    const next = !allExpanded;
+    setExpandedCards({ details: next, marking: next, subjects: next, instructions: next });
+  };
+
   return (
     <form onSubmit={handleSaveExamDetails} className="space-y-4 mb-6">
+      <div className="sm:hidden flex justify-end">
+        <button
+          type="button"
+          onClick={toggleAll}
+          className="text-[11px] font-bold text-accent-primary hover:underline flex items-center gap-1"
+        >
+          <ChevronDown size={12} className={`transition-transform ${allExpanded ? 'rotate-180' : ''}`} />
+          {allExpanded ? 'Collapse All' : 'Expand All'}
+        </button>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Exam Details */}
-        <div className="bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm order-1 h-full">
-          <h3 className="text-sm font-bold text-text-main mb-3 border-b border-[#f0f7f7] pb-1.5">Exam Details</h3>
+        <CollapsibleCard
+          title="Exam Details"
+          expanded={expandedCards.details}
+          onToggle={() => toggleCard('details')}
+          className="order-1"
+        >
           <div className="space-y-2">
             <div>
               <label className="block text-xs font-semibold text-text-muted mb-1">Title *</label>
-              <input
-                type="text"
+              <AutoGrowInput
                 value={title}
-                onChange={(e) => {
-                  const newTitle = e.target.value;
+                onChange={(newTitle) => {
                   setTitle(newTitle);
                   setExam((prev: any) => (prev ? { ...prev, title: newTitle } : null));
                   window.dispatchEvent(new CustomEvent('breadcrumb-update', { detail: { id: paramsId, title: newTitle } }));
@@ -122,12 +241,11 @@ export default function Step1Details({
             </div>
             <div>
               <label className="block text-xs font-semibold text-text-muted mb-1">Description</label>
-              <textarea
+              <AutoGrowInput
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={setDescription}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                rows={2}
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all resize-none text-xs font-medium leading-relaxed whitespace-normal break-words sm:leading-normal"
+                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal min-h-[3.5rem]"
               />
             </div>
             <div>
@@ -151,12 +269,16 @@ export default function Step1Details({
               />
             </div>
           </div>
-        </div>
+        </CollapsibleCard>
 
         {/* Marking Scheme */}
-        <div className="bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm order-2 h-full">
-          <h3 className="text-sm font-bold text-text-main mb-3 border-b border-[#f0f7f7] pb-1.5">Marking Scheme</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+        <CollapsibleCard
+          title="Marking Scheme"
+          expanded={expandedCards.marking}
+          onToggle={() => toggleCard('marking')}
+          className="order-2"
+        >
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
             <div>
               <label className="block text-[11px] font-semibold text-text-muted mb-1">MCQ Correct</label>
               <input
@@ -202,12 +324,15 @@ export default function Step1Details({
               />
             </div>
           </div>
-        </div>
+        </CollapsibleCard>
 
         {/* Subjects (Step 1 Position) */}
-        <div className="bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm lg:col-span-2 order-3 h-full mb-4">
-          <div className="mb-4 border-b border-[#f0f7f7] pb-1.5 flex justify-between items-center">
-            <h3 className="text-sm font-bold text-text-main">Subjects</h3>
+        <CollapsibleCard
+          title="Subjects"
+          expanded={expandedCards.subjects}
+          onToggle={() => toggleCard('subjects')}
+          className="lg:col-span-2 order-3 mb-4"
+          headerExtra={
             <button
               type="button"
               onClick={(e) => {
@@ -218,7 +343,8 @@ export default function Step1Details({
             >
               <Plus size={12} /> Add Subject
             </button>
-          </div>
+          }
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {subjects.map((s) => {
               const added = questionCounts[s.id] || 0;
@@ -295,12 +421,15 @@ export default function Step1Details({
               );
             })}
           </div>
-        </div>
+        </CollapsibleCard>
 
         {/* Exam Instructions */}
-        <div className="bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm order-3 lg:col-span-2">
-          <div className="flex items-center justify-between mb-3 border-b border-[#f0f7f7] pb-1.5">
-            <h3 className="text-sm font-bold text-text-main">Exam Instructions</h3>
+        <CollapsibleCard
+          title="Exam Instructions"
+          expanded={expandedCards.instructions}
+          onToggle={() => toggleCard('instructions')}
+          className="order-3 lg:col-span-2"
+          headerExtra={
             <div className="flex items-center gap-4">
               <button
                 type="button"
@@ -317,15 +446,27 @@ export default function Step1Details({
                 <Plus size={12} /> Add
               </button>
             </div>
+          }
+        >
+          <div className="mb-3">
+            <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">General Instructions (always shown)</span>
+            <div className="space-y-1.5">
+              {GENERAL_INSTRUCTIONS.map((inst, index) => (
+                <div key={index} className="flex items-start gap-2 w-full text-xs text-text-muted font-medium leading-relaxed bg-bg border border-border rounded-lg px-3 py-1.5">
+                  <span className="font-bold flex-shrink-0">{index + 1}.</span>
+                  <span>{inst}</span>
+                </div>
+              ))}
+            </div>
           </div>
+          <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Your Additions</span>
           <div className="space-y-1.5">
             {instructionsList.map((inst, index) => (
-              <div key={index} className="flex items-center gap-2 w-full">
-                <span className="text-text-muted font-bold text-[11px] w-4 text-right flex-shrink-0">{index + 1}.</span>
-                <input
-                  type="text"
+              <div key={index} className="flex items-start gap-2 w-full">
+                <span className="text-text-muted font-bold text-[11px] w-4 text-right flex-shrink-0 mt-1.5">{index + 1}.</span>
+                <AutoGrowInput
                   value={inst}
-                  onChange={(e) => updateInstructionItem(index, e.target.value)}
+                  onChange={(val) => updateInstructionItem(index, val)}
                   onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                   placeholder="e.g. Do not close browser..."
                   className="flex-1 min-w-0 px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
@@ -334,7 +475,7 @@ export default function Step1Details({
                   <button
                     type="button"
                     onClick={() => removeInstructionItem(index)}
-                    className="text-red-400 hover:text-red-600 transition-colors p-1"
+                    className="text-red-400 hover:text-red-600 transition-colors p-1 mt-0.5"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -342,7 +483,7 @@ export default function Step1Details({
               </div>
             ))}
           </div>
-        </div>
+        </CollapsibleCard>
       </div>
     </form>
   );

@@ -1453,22 +1453,30 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   </li>
 
                   {/* Custom Exam-Specific Instructions */}
-                  {instructionsList
-                    .filter((i) => i.trim() !== "")
-                    .map((inst, idx) => (
-                      <li
-                        key={idx}
-                        className="flex gap-3 text-sm text-[#667085] font-medium bg-emerald-50/50 p-2 -mx-2 rounded border border-dashed border-emerald-100"
-                      >
-                        <span className="text-accent-primary font-bold mt-0.5">
-                          ▸
+                  {instructionsList.filter((i) => i.trim() !== "").length > 0 && (
+                    <>
+                      <li className="flex items-center gap-2 pt-2">
+                        <span className="h-px flex-1 bg-emerald-100" />
+                        <span className="text-[10px] uppercase font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded tracking-wider shrink-0">
+                          Your Additions
                         </span>
-                        {inst}
-                        <span className="ml-auto text-[10px] uppercase font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded tracking-wider self-start shrink-0">
-                          Your Addition
-                        </span>
+                        <span className="h-px flex-1 bg-emerald-100" />
                       </li>
-                    ))}
+                      {instructionsList
+                        .filter((i) => i.trim() !== "")
+                        .map((inst, idx) => (
+                          <li
+                            key={idx}
+                            className="flex gap-3 text-sm text-[#667085] font-medium bg-emerald-50/50 p-2 -mx-2 rounded border border-dashed border-emerald-100"
+                          >
+                            <span className="text-accent-primary font-bold mt-0.5 shrink-0">
+                              ▸
+                            </span>
+                            <span>{inst}</span>
+                          </li>
+                        ))}
+                    </>
+                  )}
                 </ul>
               </div>
             </div>
