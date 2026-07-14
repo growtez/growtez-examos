@@ -365,7 +365,7 @@ export default function SchoolAdminLayout({
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-surface/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 shadow-sm sticky top-0 z-30">
+        <header className="h-12 bg-surface/80 backdrop-blur-md border-b border-border flex items-center justify-between px-4 shadow-sm sticky top-0 z-30">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}

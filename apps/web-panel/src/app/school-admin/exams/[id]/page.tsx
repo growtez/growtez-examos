@@ -30,6 +30,7 @@ import {
   Search,
   Link as LinkIcon,
   ChevronLeft,
+  ChevronRight,
   Filter,
 } from "lucide-react";
 import ReactCrop, { type Crop } from "react-image-crop";
@@ -404,9 +405,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const handleExportQuestions = () => {
     if (!drawerSubjectId) return;
     const activeSubjectName = subjects.find(s => s.id === drawerSubjectId)?.subject_name || 'Subject';
-    
+
     const headers = ["No.", "Type", "Positive Marks", "Negative Marks", "Question Text", "Option A", "Option B", "Option C", "Option D", "Correct Option/Value"];
-    
+
     const filtered = drawerQuestions.filter(q => {
       const matchesSearch = q.question_text?.toLowerCase().includes(questionSearchQuery.toLowerCase());
       const matchesType = typeFilter === 'all' || q.question_type === typeFilter;
@@ -428,10 +429,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         q.correct_option || ''
       ];
     });
-    
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF"
       + [headers.join(","), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
-      
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -450,64 +451,97 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   return (
     <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div
-        className={`grid grid-cols-1 ${isDraftStepperMode ? "grid-cols-[auto_1fr]" : "xl:grid-cols-3 gap-6 lg:gap-8"} mb-10`}
+        className={`grid grid-cols-1 ${!isDraftStepperMode ? "xl:grid-cols-3 gap-6 lg:gap-8" : ""} mb-10`}
       >
-        {/* Vertical Stepper (Left Column) — fixed size, top-aligned, never shifts */}
-        {isDraftStepperMode && (
-          <div className="shrink-0 w-16 self-start sticky top-6 mr-2">
-            <div className="flex flex-col items-center">
-              {STEPPER_STEPS.map((s, idx) => {
-                const isActive = currentStep === s.step;
-                const isDone = !isActive && canProceedToNextStep(s.step);
-                const isSegmentFilled = currentStep > s.step;
-                return (
-                  <div
-                    key={s.step}
-                    className="flex flex-col items-center w-full"
-                  >
-                    <div className="flex flex-col items-center gap-1">
-                      <button
-                        onClick={() => handleSetStep(s.step)}
-                        className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] leading-none transition-colors duration-200 border-2 shrink-0
-                          ${
-                            isActive
-                              ? "bg-accent-primary text-white border-[#008080]"
-                              : isDone
-                                ? "bg-accent-primary text-white border-[#008080]"
-                                : "bg-surface text-text-muted border-border"
-                          }`}
-                      >
-                        {isDone ? <Check size={10} /> : s.step}
-                      </button>
-                      <span
-                        className={`text-[9px] font-bold uppercase tracking-tight leading-none whitespace-nowrap ${isActive ? "text-text-main" : isDone ? "text-accent-primary" : "text-text-muted"}`}
-                      >
-                        {s.label}
-                      </span>
-                    </div>
-                    {idx < STEPPER_STEPS.length - 1 && (
-                      <div className="w-0.5 h-6 my-1 rounded-full bg-border overflow-hidden shrink-0">
-                        <div
-                          className={`w-full rounded-full transition-all duration-300 ${isSegmentFilled ? "h-full bg-accent-primary" : "h-0 bg-accent-primary"}`}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Main Content Column */}
         <div
           className={`${isDraftStepperMode ? "" : "xl:col-span-2"} space-y-6`}
         >
-          
+
           {isDraftStepperMode && (
-            <div className="sticky -top-6 z-40 bg-bg pt-6 pb-3 mb-4 border-b border-border flex flex-col gap-3">
+            <div
+              className="sticky top-0 z-20 -mx-6 -mt-6 mb-4 border-b border-border bg-bg px-6 pb-3 flex flex-col gap-3 relative isolate overflow-visible before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-0 before:bg-bg"
+            >
+              {/* Horizontal Stepper (Top) */}
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 mb-2 relative z-50 w-full max-w-5xl mx-auto">
+                {/* Prev Button */}
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => currentStep > 1 && handleSetStep(currentStep - 1)}
+                    disabled={currentStep <= 1}
+                    className={`inline-flex items-center justify-center gap-1.5 px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full transition-all shadow-sm w-24 ${currentStep > 1
+                      ? "hover:border-accent-primary hover:text-accent-primary active:scale-95"
+                      : "opacity-50 cursor-not-allowed"
+                      }`}
+                  >
+                    <ChevronLeft size={14} />
+                    Prev
+                  </button>
+                </div>
+
+                {/* Stepper Pill */}
+                <div className="bg-surface border border-border rounded-full py-2 px-6 shadow-sm">
+                  <div className="flex items-center justify-center">
+                    {STEPPER_STEPS.map((s, idx) => {
+                      const isActive = currentStep === s.step;
+                      const isDone = !isActive && canProceedToNextStep(s.step);
+                      const isSegmentFilled = currentStep > s.step;
+                      return (
+                        <div
+                          key={s.step}
+                          className="flex items-center"
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleSetStep(s.step)}
+                              className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] leading-none transition-colors duration-200 border-2 shrink-0
+                                ${isActive
+                                  ? "bg-accent-primary text-white border-[#008080]"
+                                  : isDone
+                                    ? "bg-accent-primary text-white border-[#008080]"
+                                    : "bg-surface text-text-muted border-border"
+                                }`}
+                            >
+                              {isDone ? <Check size={10} /> : s.step}
+                            </button>
+                            <button
+                              onClick={() => handleSetStep(s.step)}
+                              className={`text-[9px] font-bold uppercase tracking-tight whitespace-nowrap hidden sm:inline-block hover:opacity-80 transition-opacity ${isActive ? "text-text-main" : isDone ? "text-accent-primary" : "text-text-muted"}`}
+                            >
+                              {s.label}
+                            </button>
+                          </div>
+                          {idx < STEPPER_STEPS.length - 1 && (
+                            <div className="w-6 h-0.5 mx-2 rounded-full bg-border overflow-hidden shrink-0">
+                              <div
+                                className={`h-full transition-all duration-300 ${isSegmentFilled ? "w-full bg-accent-primary" : "w-0 bg-accent-primary"}`}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Next Button */}
+                <div className="flex justify-start">
+                  <button
+                    onClick={() => currentStep < 5 && handleSetStep(currentStep + 1)}
+                    disabled={currentStep >= 5}
+                    className={`inline-flex items-center justify-center gap-1.5 px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full transition-all shadow-sm w-24 ${currentStep < 5
+                      ? "hover:border-accent-primary hover:text-accent-primary active:scale-95"
+                      : "opacity-50 cursor-not-allowed"
+                      }`}
+                  >
+                    Next
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+
               {/* Row 1: Title, Pills, Actions */}
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 w-full">
+              <div className="relative z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4 w-full">
                 {/* Title */}
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-bold text-text-main whitespace-nowrap">
@@ -530,11 +564,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             key={s.id}
                             type="button"
                             onClick={() => openManageQuestions(s.id)}
-                            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${
-                              isSelected
-                                ? "bg-accent-primary text-white border-accent-primary shadow-sm"
-                                : "bg-surface border-border text-text-main hover:border-accent-primary/50"
-                            }`}
+                            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${isSelected
+                              ? "bg-accent-primary text-white border-accent-primary shadow-sm"
+                              : "bg-surface border-border text-text-main hover:border-accent-primary/50"
+                              }`}
                           >
                             {s.subject_name}
                             <span className={isSelected ? "text-white/80" : complete ? "text-emerald-600" : "text-amber-600"}>
@@ -559,14 +592,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     </button>
                   )}
 
-                  {currentStep === 3 && drawerSubjectId && !isExamOver && role !== "teacher" && drawerQuestions.length < (subjects.find(s => s.id === drawerSubjectId)?.question_count ?? 0) && (
-                    <button
-                      onClick={handleDrawerNewQuestion}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary text-white font-semibold rounded-lg text-xs hover:bg-accent-primary/80 transition-all shadow-sm active:scale-95"
-                    >
-                      <Plus size={14} /> Add Question
-                    </button>
-                  )}
 
                   {templates.length > 0 && currentStep === 1 && (
                     <div className="flex items-center gap-1.5">
@@ -636,7 +661,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
               {/* Row 2: Search Filter Row (only for Step 3) */}
               {currentStep === 3 && drawerSubjectId && (
-                <div className="flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border">
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border">
                   {/* Search Box */}
                   <div className="relative w-full md:max-w-[260px] shrink-0">
                     <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
@@ -651,12 +676,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Filter Dropdown */}
                   <div className="relative shrink-0">
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setIsTypeFilterOpen(!isTypeFilterOpen)}
                       className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-semibold cursor-pointer"
                     >
-                      <Filter size={14} className="text-accent-primary" /> 
+                      <Filter size={14} className="text-accent-primary" />
                       {typeFilter === 'all' ? 'All Types' : typeFilter.toUpperCase()}
                     </button>
                     {isTypeFilterOpen && (
@@ -670,16 +695,39 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       </>
                     )}
                   </div>
-                  
+
                   <div className="flex-1" />
 
-                  {/* Export Button */}
-                  <button 
-                    onClick={handleExportQuestions}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary text-white hover:bg-accent-hover transition-colors text-[12px] font-semibold shadow-sm cursor-pointer border-none"
-                  >
-                    <Download size={14} /> Export
-                  </button>
+                  {/* Add Question Button / All questions added message */}
+                  {drawerSubjectId && (
+                    (() => {
+                      const needed = subjects.find(s => s.id === drawerSubjectId)?.question_count ?? 0;
+                      const added = drawerQuestions.length;
+                      const isComplete = added >= needed;
+
+                      if (isComplete) {
+                        return (
+                          <span className="text-[12px] font-semibold text-emerald-600 flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg select-none">
+                            <ShieldCheck size={14} /> All questions added
+                          </span>
+                        );
+                      }
+
+                      if (!isExamOver && role !== "teacher") {
+                        return (
+                          <button
+                            type="button"
+                            onClick={handleDrawerNewQuestion}
+                            className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent-primary text-white hover:bg-accent-primary/95 transition-all text-[12px] font-semibold shadow-sm cursor-pointer border-none active:scale-95"
+                          >
+                            <Plus size={14} /> Add Question
+                          </button>
+                        );
+                      }
+
+                      return null;
+                    })()
+                  )}
                 </div>
               )}
             </div>
@@ -773,100 +821,100 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             exam.status !== "draft" ||
             role === "teacher" ||
             currentStep === 3) && (
-            <Step3Questions
-              role={role}
-              userId={userId}
-              isExamOver={isExamOver}
-              exam={exam}
-              subjects={subjects}
-              questionCounts={questionCounts}
-              drawerSubjectId={drawerSubjectId}
-              drawerView={drawerView}
-              setDrawerView={setDrawerView}
-              drawerQuestions={drawerQuestions}
-              drawerLoading={drawerLoading}
-              drawerFormLoading={drawerFormLoading}
-              drawerError={drawerError}
-              editingQuestionId={editingQuestionId}
-              qType={qType}
-              setQType={setQType}
-              qText={qText}
-              setQText={setQText}
-              qImage={qImage}
-              setQImage={setQImage}
-              optA={optA}
-              setOptA={setOptA}
-              optAImg={optAImg}
-              setOptAImg={setOptAImg}
-              optB={optB}
-              setOptB={setOptB}
-              optBImg={optBImg}
-              setOptBImg={setOptBImg}
-              optC={optC}
-              setOptC={setOptC}
-              optCImg={optCImg}
-              setOptCImg={setOptCImg}
-              optD={optD}
-              setOptD={setOptD}
-              optDImg={optDImg}
-              setOptDImg={setOptDImg}
-              correctAnswer={correctAnswer}
-              setCorrectAnswer={setCorrectAnswer}
-              natAnswer={natAnswer}
-              setNatAnswer={setNatAnswer}
-              openManageQuestions={openManageQuestions}
-              handleDrawerNewQuestion={handleDrawerNewQuestion}
-              handleDrawerCancel={handleDrawerCancel}
-              doSaveQuestion={doSaveQuestion}
-              handleDrawerEditQuestion={handleDrawerEditQuestion}
-              handleDrawerDeleteQuestion={handleDrawerDeleteQuestion}
-              handleDrawerImageUpload={handleDrawerImageUpload}
-              setShowAddSubjectModal={setShowAddSubjectModal}
-              setNewSubjectTeacherSearch={setNewSubjectTeacherSearch}
-              editSubjectId={editSubjectId}
-              setEditSubjectId={setEditSubjectId}
-              inlineEditSubjectCount={inlineEditSubjectCount}
-              setInlineEditSubjectCount={setInlineEditSubjectCount}
-              handleSaveSubjectCount={handleSaveSubjectCount}
-              handleDeleteSubject={handleDeleteSubject}
-              setManageTeachersSubject={setManageTeachersSubject}
-              setSelectedTeacherIds={setSelectedTeacherIds}
-              setTeacherSearchQuery={setTeacherSearchQuery}
-              searchQuery={questionSearchQuery}
-              typeFilter={typeFilter}
-            />
-          )}
+              <Step3Questions
+                role={role}
+                userId={userId}
+                isExamOver={isExamOver}
+                exam={exam}
+                subjects={subjects}
+                questionCounts={questionCounts}
+                drawerSubjectId={drawerSubjectId}
+                drawerView={drawerView}
+                setDrawerView={setDrawerView}
+                drawerQuestions={drawerQuestions}
+                drawerLoading={drawerLoading}
+                drawerFormLoading={drawerFormLoading}
+                drawerError={drawerError}
+                editingQuestionId={editingQuestionId}
+                qType={qType}
+                setQType={setQType}
+                qText={qText}
+                setQText={setQText}
+                qImage={qImage}
+                setQImage={setQImage}
+                optA={optA}
+                setOptA={setOptA}
+                optAImg={optAImg}
+                setOptAImg={setOptAImg}
+                optB={optB}
+                setOptB={setOptB}
+                optBImg={optBImg}
+                setOptBImg={setOptBImg}
+                optC={optC}
+                setOptC={setOptC}
+                optCImg={optCImg}
+                setOptCImg={setOptCImg}
+                optD={optD}
+                setOptD={setOptD}
+                optDImg={optDImg}
+                setOptDImg={setOptDImg}
+                correctAnswer={correctAnswer}
+                setCorrectAnswer={setCorrectAnswer}
+                natAnswer={natAnswer}
+                setNatAnswer={setNatAnswer}
+                openManageQuestions={openManageQuestions}
+                handleDrawerNewQuestion={handleDrawerNewQuestion}
+                handleDrawerCancel={handleDrawerCancel}
+                doSaveQuestion={doSaveQuestion}
+                handleDrawerEditQuestion={handleDrawerEditQuestion}
+                handleDrawerDeleteQuestion={handleDrawerDeleteQuestion}
+                handleDrawerImageUpload={handleDrawerImageUpload}
+                setShowAddSubjectModal={setShowAddSubjectModal}
+                setNewSubjectTeacherSearch={setNewSubjectTeacherSearch}
+                editSubjectId={editSubjectId}
+                setEditSubjectId={setEditSubjectId}
+                inlineEditSubjectCount={inlineEditSubjectCount}
+                setInlineEditSubjectCount={setInlineEditSubjectCount}
+                handleSaveSubjectCount={handleSaveSubjectCount}
+                handleDeleteSubject={handleDeleteSubject}
+                setManageTeachersSubject={setManageTeachersSubject}
+                setSelectedTeacherIds={setSelectedTeacherIds}
+                setTeacherSearchQuery={setTeacherSearchQuery}
+                searchQuery={questionSearchQuery}
+                typeFilter={typeFilter}
+              />
+            )}
 
           {/* Assigned Students (Students Step) */}
           {(!exam ||
             exam.status !== "draft" ||
             role === "teacher" ||
             currentStep === 2) && (
-            <Step2Students
-              role={role}
-              isExamOver={isExamOver}
-              exam={exam}
-              assignedStudents={assignedStudents}
-              setAssignedStudents={setAssignedStudents}
-              assignedSearchQuery={assignedSearchQuery}
-              setAssignedSearchQuery={setAssignedSearchQuery}
-              assignedCourseFilter={assignedCourseFilter}
-              setAssignedCourseFilter={setAssignedCourseFilter}
-              assignedBatchFilter={assignedBatchFilter}
-              setAssignedBatchFilter={setAssignedBatchFilter}
-              setShowAddStudentModal={setShowAddStudentModal}
-              setAddMode={setAddMode}
-              setAddError={setAddError}
-              setAddSuccess={setAddSuccess}
-              addSuccess={addSuccess}
-              downloadResultsPDF={downloadResultsPDF}
-              generatingPDF={generatingPDF}
-              setConfirmDialog={setConfirmDialog}
-              handleRemoveStudent={handleRemoveStudent}
-              supabase={supabase}
-              paramsId={params.id}
-            />
-          )}
+              <Step2Students
+                role={role}
+                isExamOver={isExamOver}
+                exam={exam}
+                assignedStudents={assignedStudents}
+                setAssignedStudents={setAssignedStudents}
+                assignedSearchQuery={assignedSearchQuery}
+                setAssignedSearchQuery={setAssignedSearchQuery}
+                assignedCourseFilter={assignedCourseFilter}
+                setAssignedCourseFilter={setAssignedCourseFilter}
+                assignedBatchFilter={assignedBatchFilter}
+                setAssignedBatchFilter={setAssignedBatchFilter}
+                setShowAddStudentModal={setShowAddStudentModal}
+                setAddMode={setAddMode}
+                setAddError={setAddError}
+                setAddSuccess={setAddSuccess}
+                addSuccess={addSuccess}
+                downloadResultsPDF={downloadResultsPDF}
+                generatingPDF={generatingPDF}
+                setConfirmDialog={setConfirmDialog}
+                handleRemoveStudent={handleRemoveStudent}
+                supabase={supabase}
+                paramsId={params.id}
+              />
+            )}
 
           {/* Super Admin Payment Override */}
           {role === "super_admin" && (
@@ -884,11 +932,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 onClick={handleTogglePaid}
                 disabled={publishing}
                 className={`inline-flex items-center gap-2 px-6 py-3 font-semibold rounded-xl transition-colors shadow-sm
-              ${
-                exam.is_paid
-                  ? "bg-amber-500/10 text-amber-600 border border-amber-500/30 hover:bg-amber-500/20"
-                  : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 hover:bg-emerald-500/20"
-              }
+              ${exam.is_paid
+                    ? "bg-amber-500/10 text-amber-600 border border-amber-500/30 hover:bg-amber-500/20"
+                    : "bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 hover:bg-emerald-500/20"
+                  }
               ${publishing ? "opacity-50 cursor-not-allowed" : ""}
             `}
               >
@@ -904,9 +951,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
           {/* Editable Exam Details Form */}
           {role !== "teacher" &&
-          !isExamOver &&
-          exam?.status === "draft" &&
-          currentStep === 1 ? (
+            !isExamOver &&
+            exam?.status === "draft" &&
+            currentStep === 1 ? (
             <Step1Details
               role={role}
               isExamOver={isExamOver}
@@ -981,43 +1028,39 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </div>
             </div>
           )}
-        </div>
+          {/* Schedule Step */}
+          {(!exam ||
+            exam.status !== "draft" ||
+            role === "teacher" ||
+            currentStep === 4) && (
+              <Step4Schedule
+                startTime={startTime}
+                setStartTime={setStartTime}
+                endTime={endTime}
+                setEndTime={setEndTime}
+                durationMinutes={durationMinutes}
+                stepsBeforeScheduleComplete={stepsBeforeScheduleComplete}
+                publishing={publishing}
+              />
+            )}
 
-        {/* Right Column (Sidebar) */}
-        {!isDraftStepperMode && (
-          <div className="xl:col-span-1">
-            <div className="sticky top-6 flex flex-col gap-5">
-              {/* Publish Button */}
-              {exam?.status === "draft" && role !== "teacher" && (
-                <>
-                  {currentStep === 4 && (
-                    <Step4Schedule
-                      startTime={startTime}
-                      setStartTime={setStartTime}
-                      endTime={endTime}
-                      setEndTime={setEndTime}
-                      durationMinutes={durationMinutes}
-                      stepsBeforeScheduleComplete={stepsBeforeScheduleComplete}
-                      publishing={publishing}
-                    />
-                  )}
-                  {currentStep === 5 && (
-                    <Step5Publish
-                      exam={exam}
-                      allStepsComplete={allStepsComplete}
-                      publishing={publishing}
-                      startTime={startTime}
-                      endTime={endTime}
-                      examFee={examFee}
-                      handlePublish={handlePublish}
-                      handlePayment={handlePayment}
-                    />
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        )}
+          {/* Publish Step */}
+          {(!exam ||
+            exam.status !== "draft" ||
+            role === "teacher" ||
+            currentStep === 5) && (
+              <Step5Publish
+                exam={exam}
+                allStepsComplete={allStepsComplete}
+                publishing={publishing}
+                startTime={startTime}
+                endTime={endTime}
+                examFee={examFee}
+                handlePublish={handlePublish}
+                handlePayment={handlePayment}
+              />
+            )}
+        </div>
       </div>
 
       {/* Manage Teachers Modal */}
@@ -1612,7 +1655,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           <input
                             type="checkbox"
                             checked={selectedStudents.includes(student.id)}
-                            onChange={() => {}}
+                            onChange={() => { }}
                             className="w-4 h-4 text-accent-primary border-border rounded focus:ring-accent-primary cursor-pointer"
                           />
                           <div>
@@ -1886,15 +1929,14 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 </button>
                 <button
                   onClick={confirmDialog.onConfirm}
-                  className={`flex-1 py-3 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm ${
-                    confirmDialog.confirmColor.includes("red")
-                      ? "bg-red-500 hover:bg-red-600 shadow-red-500/20"
-                      : confirmDialog.confirmColor.includes("orange")
-                        ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
-                        : confirmDialog.confirmColor.includes("amber")
-                          ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
-                          : "bg-accent-primary hover:bg-accent-primary/80 shadow-accent-primary/20"
-                  }`}
+                  className={`flex-1 py-3 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm ${confirmDialog.confirmColor.includes("red")
+                    ? "bg-red-500 hover:bg-red-600 shadow-red-500/20"
+                    : confirmDialog.confirmColor.includes("orange")
+                      ? "bg-orange-500 hover:bg-orange-600 shadow-orange-500/20"
+                      : confirmDialog.confirmColor.includes("amber")
+                        ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
+                        : "bg-accent-primary hover:bg-accent-primary/80 shadow-accent-primary/20"
+                    }`}
                 >
                   {confirmDialog.confirmText}
                 </button>

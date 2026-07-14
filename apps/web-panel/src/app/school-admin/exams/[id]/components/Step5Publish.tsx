@@ -24,6 +24,8 @@ export default function Step5Publish({
   handlePublish,
   handlePayment,
 }: Step5PublishProps) {
+  if (!exam) return null;
+
   return (
     <div className="bg-bg border border-border rounded-2xl p-6 shadow-sm">
       <h3 className="text-lg font-bold text-text-main mb-2">Publish Exam</h3>
