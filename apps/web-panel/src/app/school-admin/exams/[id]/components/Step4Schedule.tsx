@@ -12,6 +12,7 @@ interface Step4ScheduleProps {
   durationMinutes: number;
   stepsBeforeScheduleComplete: boolean;
   publishing: boolean;
+  isReadOnly?: boolean;
 }
 
 export default function Step4Schedule({
@@ -21,6 +22,7 @@ export default function Step4Schedule({
   setEndTime,
   autoSaveSchedule,
   durationMinutes,
+  isReadOnly = false,
 }: Step4ScheduleProps) {
   const startInputRef = useRef<HTMLInputElement>(null);
   const endInputRef = useRef<HTMLInputElement>(null);
@@ -33,6 +35,11 @@ export default function Step4Schedule({
 
   return (
     <div className="bg-bg border border-border rounded-2xl p-6 shadow-sm">
+      {isReadOnly && (
+        <div className="mb-4 rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-semibold text-text-muted">
+          This exam is published — schedule is read-only.
+        </div>
+      )}
       <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm font-medium text-text-muted">
           Choose when the exam opens and when submissions close.
@@ -43,7 +50,7 @@ export default function Step4Schedule({
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className={`grid gap-4 lg:grid-cols-2 ${isReadOnly ? 'pointer-events-none select-none opacity-75' : ''}`}>
         <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm transition-all focus-within:border-accent-primary focus-within:ring-2 focus-within:ring-accent-primary/15">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
@@ -57,6 +64,7 @@ export default function Step4Schedule({
             <button
               type="button"
               onClick={() => openPicker(startInputRef.current)}
+              disabled={isReadOnly}
               aria-label="Open start date and time picker"
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-bg text-accent-primary transition-all hover:border-accent-primary hover:bg-accent-primary/5"
             >
@@ -67,6 +75,7 @@ export default function Step4Schedule({
             ref={startInputRef}
             type="datetime-local"
             value={startTime}
+            disabled={isReadOnly}
             onClick={(e) => openPicker(e.currentTarget)}
             onChange={(e) => {
               const newStart = e.target.value;
@@ -97,6 +106,7 @@ export default function Step4Schedule({
             <button
               type="button"
               onClick={() => openPicker(endInputRef.current)}
+              disabled={isReadOnly}
               aria-label="Open end date and time picker"
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-bg text-accent-primary transition-all hover:border-accent-primary hover:bg-accent-primary/5"
             >
@@ -107,6 +117,7 @@ export default function Step4Schedule({
             ref={endInputRef}
             type="datetime-local"
             value={endTime}
+            disabled={isReadOnly}
             onClick={(e) => openPicker(e.currentTarget)}
             onChange={(e) => {
               const newEnd = e.target.value;

@@ -232,7 +232,44 @@ export function useExamDetailPage(paramsId: string) {
   };
 
   const handleDrawerCancel = () => {
-    clearDraft();
+    // Closing/cancelling should NOT delete the autosaved draft.
+    // If we were editing an existing question, the form fields currently hold
+    // that question's data (not the "new question" draft), so restore whatever
+    // the real new-question draft was before leaving editingQuestionId mode —
+    // otherwise the autosave effect below would overwrite the draft with the
+    // edited question's data.
+    if (editingQuestionId) {
+      let restored = false;
+      if (typeof window !== 'undefined' && drawerSubjectId) {
+        const key = `exam-question-draft-${paramsId}-${drawerSubjectId}`;
+        const saved = window.localStorage.getItem(key);
+        if (saved) {
+          try {
+            const draft = JSON.parse(saved);
+            setQType(draft.qType || 'mcq');
+            setQText(draft.qText || '');
+            setQImage(draft.qImage || null);
+            setOptA(draft.optA || ''); setOptAImg(draft.optAImg || null);
+            setOptB(draft.optB || ''); setOptBImg(draft.optBImg || null);
+            setOptC(draft.optC || ''); setOptCImg(draft.optCImg || null);
+            setOptD(draft.optD || ''); setOptDImg(draft.optDImg || null);
+            setCorrectAnswer(draft.correctAnswer || 'A');
+            setNatAnswer(draft.natAnswer || '');
+            restored = true;
+          } catch (e) {
+            console.error('Failed to parse draft on cancel', e);
+          }
+        }
+      }
+      if (!restored) {
+        setQType('mcq'); setQText(''); setQImage(null);
+        setOptA(''); setOptAImg(null); setOptB(''); setOptBImg(null);
+        setOptC(''); setOptCImg(null); setOptD(''); setOptDImg(null);
+        setCorrectAnswer('A'); setNatAnswer('');
+      }
+      setEditingQuestionId(null);
+    }
+    setDrawerError('');
     setDrawerView('list');
   };
 
@@ -329,6 +366,20 @@ export function useExamDetailPage(paramsId: string) {
     setDrawerFormLoading(true);
     try {
       if (!qText.trim() && !qImage) throw new Error('Please provide question text or an image.');
+
+      const missingFields: string[] = [];
+      if (qType === 'mcq') {
+        if (!optA.trim() && !optAImg) missingFields.push('Option A');
+        if (!optB.trim() && !optBImg) missingFields.push('Option B');
+        if (!optC.trim() && !optCImg) missingFields.push('Option C');
+        if (!optD.trim() && !optDImg) missingFields.push('Option D');
+        if (!correctAnswer) missingFields.push('Correct answer');
+      } else {
+        if (!natAnswer.trim()) missingFields.push('Correct numerical answer');
+      }
+      if (missingFields.length > 0) {
+        throw new Error(`Please fill in the missing field${missingFields.length > 1 ? 's' : ''}: ${missingFields.join(', ')}`);
+      }
 
       const subjectDef = subjects.find(s => s.id === drawerSubjectId);
       if (!editingQuestionId && subjectDef && drawerQuestions.length >= subjectDef.question_count) {
