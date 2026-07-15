@@ -6,13 +6,11 @@ import Link from "next/link";
 import {
   ArrowLeft,
   BookOpen,
-  Clock,
   Copy,
   Globe,
   Link2,
   MoreVertical,
   Plus,
-  Settings2,
   Trash2,
   Users,
   AlertCircle,
@@ -448,7 +446,11 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     ? new Date(exam.end_time) < new Date()
     : false;
   const displayStatus = isExamOver ? "completed" : exam?.status || "draft";
-  const isDraftStepperMode = loading || (role !== "teacher" && exam?.status === "draft");
+  // Controls the stepper-pill layout (vs. the old single-column/summary layout).
+  // The pills should stay visible for non-teachers regardless of draft/published status.
+  const isDraftStepperMode = loading || role !== "teacher";
+  // True once the exam is no longer editable: published (any non-draft status) or its window has passed.
+  const isReadOnly = !loading && (exam?.status !== "draft" || isExamOver);
 
   if (loading) {
     return (
@@ -873,7 +875,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           );
                         }
 
-                        if (!isExamOver && role !== "teacher") {
+                        if (!isReadOnly && role !== "teacher") {
                           return (
                             <button
                               type="button"
@@ -910,16 +912,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 )}
                 {role !== "teacher" && (
                   <>
-                    {!isExamOver && exam?.status !== "draft" && (
-                      <button
-                        onClick={handleUnpublish}
-                        disabled={publishing}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-all shadow-sm disabled:opacity-50"
-                      >
-                        <Settings2 size={14} />
-                        Unpublish
-                      </button>
-                    )}
                     <div className="relative" ref={moreMenuRef}>
                       <button
                         onClick={() => setShowMoreMenu(!showMoreMenu)}
@@ -977,101 +969,96 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
-          {/* Subjects Split View (Questions Step) */}
-          {(!exam ||
-            exam.status !== "draft" ||
-            role === "teacher" ||
-            currentStep === 3) && (
-              <Step3Questions
-                role={role}
-                userId={userId}
-                isExamOver={isExamOver}
-                exam={exam}
-                subjects={subjects}
-                questionCounts={questionCounts}
-                drawerSubjectId={drawerSubjectId}
-                drawerView={drawerView}
-                setDrawerView={setDrawerView}
-                drawerQuestions={drawerQuestions}
-                drawerLoading={drawerLoading}
-                drawerFormLoading={drawerFormLoading}
-                drawerError={drawerError}
-                editingQuestionId={editingQuestionId}
-                qType={qType}
-                setQType={setQType}
-                qText={qText}
-                setQText={setQText}
-                qImage={qImage}
-                setQImage={setQImage}
-                optA={optA}
-                setOptA={setOptA}
-                optAImg={optAImg}
-                setOptAImg={setOptAImg}
-                optB={optB}
-                setOptB={setOptB}
-                optBImg={optBImg}
-                setOptBImg={setOptBImg}
-                optC={optC}
-                setOptC={setOptC}
-                optCImg={optCImg}
-                setOptCImg={setOptCImg}
-                optD={optD}
-                setOptD={setOptD}
-                optDImg={optDImg}
-                setOptDImg={setOptDImg}
-                correctAnswer={correctAnswer}
-                setCorrectAnswer={setCorrectAnswer}
-                natAnswer={natAnswer}
-                setNatAnswer={setNatAnswer}
-                openManageQuestions={openManageQuestions}
-                handleDrawerNewQuestion={handleDrawerNewQuestion}
-                handleDrawerCancel={handleDrawerCancel}
-                doSaveQuestion={doSaveQuestion}
-                handleDrawerEditQuestion={handleDrawerEditQuestion}
-                handleDrawerDeleteQuestion={handleDrawerDeleteQuestion}
-                handleDrawerImageUpload={handleDrawerImageUpload}
-                setShowAddSubjectModal={setShowAddSubjectModal}
-                setNewSubjectTeacherSearch={setNewSubjectTeacherSearch}
-                editSubjectId={editSubjectId}
-                setEditSubjectId={setEditSubjectId}
-                inlineEditSubjectCount={inlineEditSubjectCount}
-                setInlineEditSubjectCount={setInlineEditSubjectCount}
-                handleSaveSubjectCount={handleSaveSubjectCount}
-                handleDeleteSubject={handleDeleteSubject}
-                setManageTeachersSubject={setManageTeachersSubject}
-                setSelectedTeacherIds={setSelectedTeacherIds}
-                setTeacherSearchQuery={setTeacherSearchQuery}
-                searchQuery={questionSearchQuery}
-                typeFilter={typeFilter}
-              />
-            )}
+          {/* Subjects Split View (Questions Step) — visible for viewing on any status; edit controls self-gate on exam.status === 'draft' */}
+          {(role === "teacher" || currentStep === 3) && (
+            <Step3Questions
+              role={role}
+              userId={userId}
+              isExamOver={isExamOver}
+              exam={exam}
+              subjects={subjects}
+              questionCounts={questionCounts}
+              drawerSubjectId={drawerSubjectId}
+              drawerView={drawerView}
+              setDrawerView={setDrawerView}
+              drawerQuestions={drawerQuestions}
+              drawerLoading={drawerLoading}
+              drawerFormLoading={drawerFormLoading}
+              drawerError={drawerError}
+              editingQuestionId={editingQuestionId}
+              qType={qType}
+              setQType={setQType}
+              qText={qText}
+              setQText={setQText}
+              qImage={qImage}
+              setQImage={setQImage}
+              optA={optA}
+              setOptA={setOptA}
+              optAImg={optAImg}
+              setOptAImg={setOptAImg}
+              optB={optB}
+              setOptB={setOptB}
+              optBImg={optBImg}
+              setOptBImg={setOptBImg}
+              optC={optC}
+              setOptC={setOptC}
+              optCImg={optCImg}
+              setOptCImg={setOptCImg}
+              optD={optD}
+              setOptD={setOptD}
+              optDImg={optDImg}
+              setOptDImg={setOptDImg}
+              correctAnswer={correctAnswer}
+              setCorrectAnswer={setCorrectAnswer}
+              natAnswer={natAnswer}
+              setNatAnswer={setNatAnswer}
+              openManageQuestions={openManageQuestions}
+              handleDrawerNewQuestion={handleDrawerNewQuestion}
+              handleDrawerCancel={handleDrawerCancel}
+              doSaveQuestion={doSaveQuestion}
+              handleDrawerEditQuestion={handleDrawerEditQuestion}
+              handleDrawerDeleteQuestion={handleDrawerDeleteQuestion}
+              handleDrawerImageUpload={handleDrawerImageUpload}
+              setShowAddSubjectModal={setShowAddSubjectModal}
+              setNewSubjectTeacherSearch={setNewSubjectTeacherSearch}
+              editSubjectId={editSubjectId}
+              setEditSubjectId={setEditSubjectId}
+              inlineEditSubjectCount={inlineEditSubjectCount}
+              setInlineEditSubjectCount={setInlineEditSubjectCount}
+              handleSaveSubjectCount={handleSaveSubjectCount}
+              handleDeleteSubject={handleDeleteSubject}
+              setManageTeachersSubject={setManageTeachersSubject}
+              setSelectedTeacherIds={setSelectedTeacherIds}
+              setTeacherSearchQuery={setTeacherSearchQuery}
+              searchQuery={questionSearchQuery}
+              typeFilter={typeFilter}
+            />
+          )}
 
           {/* Assigned Students (Students Step) */}
-          {(!exam ||
-            exam.status !== "draft" ||
-            role === "teacher" ||
-            currentStep === 2) && (
-              <Step2Students
-                role={role}
-                isExamOver={isExamOver}
-                exam={exam}
-                assignedStudents={assignedStudents}
-                setAssignedStudents={setAssignedStudents}
-                assignedSearchQuery={assignedSearchQuery}
-                setAssignedSearchQuery={setAssignedSearchQuery}
-                assignedCourseFilter={assignedCourseFilter}
-                setAssignedCourseFilter={setAssignedCourseFilter}
-                assignedBatchFilter={assignedBatchFilter}
-                setAssignedBatchFilter={setAssignedBatchFilter}
-                addSuccess={addSuccess}
-                downloadResultsPDF={downloadResultsPDF}
-                generatingPDF={generatingPDF}
-                setConfirmDialog={setConfirmDialog}
-                handleRemoveStudent={handleRemoveStudent}
-                supabase={supabase}
-                paramsId={params.id}
-              />
-            )}
+          {(role === "teacher" || currentStep === 2) && (
+            <Step2Students
+              role={role}
+              isExamOver={isExamOver}
+              exam={exam}
+              assignedStudents={assignedStudents}
+              setAssignedStudents={setAssignedStudents}
+              assignedSearchQuery={assignedSearchQuery}
+              setAssignedSearchQuery={setAssignedSearchQuery}
+              assignedCourseFilter={assignedCourseFilter}
+              setAssignedCourseFilter={setAssignedCourseFilter}
+              assignedBatchFilter={assignedBatchFilter}
+              setAssignedBatchFilter={setAssignedBatchFilter}
+              addSuccess={addSuccess}
+              downloadResultsPDF={downloadResultsPDF}
+              generatingPDF={generatingPDF}
+              setConfirmDialog={setConfirmDialog}
+              handleRemoveStudent={handleRemoveStudent}
+              supabase={supabase}
+              paramsId={params.id}
+              isReadOnly={isReadOnly}
+            />
+          )}
 
           {/* Super Admin Payment Override */}
           {role === "super_admin" && (
@@ -1106,11 +1093,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
-          {/* Editable Exam Details Form */}
-          {role !== "teacher" &&
-            !isExamOver &&
-            exam?.status === "draft" &&
-            currentStep === 1 ? (
+          {/* Exam Details Form — visible on step 1 for any status; read-only once published or over */}
+          {role !== "teacher" && currentStep === 1 && (
             <Step1Details
               role={role}
               isExamOver={isExamOver}
@@ -1152,83 +1136,49 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setTeacherSearchQuery={setTeacherSearchQuery}
               handleSaveExamDetails={handleSaveExamDetails}
               paramsId={params.id}
+              isReadOnly={isReadOnly}
             />
-          ) : role !== "teacher" &&
-            exam?.status === "draft" &&
-            [2, 3, 4, 5].includes(currentStep) ? null : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="bg-bg border border-border rounded-2xl p-5 flex items-center gap-4">
-                <div className="w-12 h-12 bg-accent-primary/10 rounded-xl flex items-center justify-center text-accent-primary">
-                  <Clock size={24} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-text-muted text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-                    Duration
-                  </p>
-                  <p className="text-xl font-bold text-text-main mt-0.5">
-                    {exam?.duration_minutes || 0} min
-                  </p>
-                </div>
-              </div>
-              <div className="bg-bg border border-border rounded-2xl p-5 flex items-center gap-4">
-                <div className="w-12 h-12 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
-                  <BookOpen size={24} />
-                </div>
-                <div>
-                  <p className="text-text-muted text-xs font-bold uppercase tracking-wider">
-                    Questions
-                  </p>
-                  <p className="text-xl font-bold text-text-main mt-0.5">
-                    {totalQuestionsAdded} / {totalQuestionsNeeded}
-                  </p>
-                </div>
-              </div>
-            </div>
           )}
-          {/* Schedule Step */}
-          {(!exam ||
-            exam.status !== "draft" ||
-            role === "teacher" ||
-            currentStep === 4) && (
-              <Step4Schedule
-                startTime={startTime}
-                setStartTime={setStartTime}
-                endTime={endTime}
-                setEndTime={setEndTime}
-                autoSaveSchedule={autoSaveSchedule}
-                durationMinutes={durationMinutes}
-                stepsBeforeScheduleComplete={stepsBeforeScheduleComplete}
-                publishing={publishing}
-              />
-            )}
+          {/* Schedule Step — shown on step 4 for any status; read-only once published or over */}
+          {(role === "teacher" || currentStep === 4) && (
+            <Step4Schedule
+              startTime={startTime}
+              setStartTime={setStartTime}
+              endTime={endTime}
+              setEndTime={setEndTime}
+              autoSaveSchedule={autoSaveSchedule}
+              durationMinutes={durationMinutes}
+              stepsBeforeScheduleComplete={stepsBeforeScheduleComplete}
+              publishing={publishing}
+              isReadOnly={isReadOnly}
+            />
+          )}
 
-          {/* Publish Step */}
-          {(!exam ||
-            exam.status !== "draft" ||
-            role === "teacher" ||
-            currentStep === 5) && (
-              <Step5Publish
-                exam={exam}
-                allStepsComplete={allStepsComplete}
-                publishing={publishing}
-                startTime={startTime}
-                endTime={endTime}
-                title={title}
-                description={description}
-                durationMinutes={durationMinutes}
-                mcqCorrect={mcqCorrect}
-                mcqWrong={mcqWrong}
-                natCorrect={natCorrect}
-                natWrong={natWrong}
-                subjects={subjects}
-                questionCounts={questionCounts}
-                assignedStudentsCount={assignedStudents.length}
-                examFee={examFee}
-                onNavigateToStep={handleSetStep}
-                handlePublish={handlePublish}
-                handlePayment={handlePayment}
-              />
-            )}
+          {/* Publish Step — shown on step 5 for any status; Step5Publish renders its own read-only summary once published */}
+          {(role === "teacher" || currentStep === 5) && (
+            <Step5Publish
+              exam={exam}
+              allStepsComplete={allStepsComplete}
+              publishing={publishing}
+              startTime={startTime}
+              endTime={endTime}
+              title={title}
+              description={description}
+              durationMinutes={durationMinutes}
+              mcqCorrect={mcqCorrect}
+              mcqWrong={mcqWrong}
+              natCorrect={natCorrect}
+              natWrong={natWrong}
+              subjects={subjects}
+              questionCounts={questionCounts}
+              assignedStudentsCount={assignedStudents.length}
+              examFee={examFee}
+              onNavigateToStep={handleSetStep}
+              handlePublish={handlePublish}
+              handlePayment={handlePayment}
+              supabase={supabase}
+            />
+          )}
         </div>
       </div>
 

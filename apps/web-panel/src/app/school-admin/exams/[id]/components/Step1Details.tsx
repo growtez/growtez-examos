@@ -139,6 +139,7 @@ interface Step1DetailsProps {
   setTeacherSearchQuery: (query: string) => void;
   handleSaveExamDetails: (e: React.FormEvent) => void;
   paramsId: string;
+  isReadOnly?: boolean;
 }
 
 const GENERAL_INSTRUCTIONS = [
@@ -189,6 +190,7 @@ export default function Step1Details({
   setTeacherSearchQuery,
   handleSaveExamDetails,
   paramsId,
+  isReadOnly = false,
 }: Step1DetailsProps) {
   const [expandedCards, setExpandedCards] = useState({
     details: true,
@@ -205,7 +207,18 @@ export default function Step1Details({
   };
 
   return (
-    <form onSubmit={handleSaveExamDetails} className="space-y-4 mb-6">
+    <form
+      onSubmit={(e) => {
+        if (isReadOnly) { e.preventDefault(); return; }
+        handleSaveExamDetails(e);
+      }}
+      className={`space-y-4 mb-6 ${isReadOnly ? 'pointer-events-none select-none opacity-75' : ''}`}
+    >
+      {isReadOnly && (
+        <div className="rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-semibold text-text-muted">
+          This exam is published — details are read-only.
+        </div>
+      )}
       <div className="sm:hidden flex justify-end">
         <button
           type="button"
