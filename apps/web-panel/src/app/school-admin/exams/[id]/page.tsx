@@ -1449,9 +1449,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </button>
             </div>
 
-            <div className="p-6 h-[550px] flex flex-col">
+            <div className="p-4 h-[500px] flex flex-col">
               {/* Tabs */}
-              <div className="flex bg-bg rounded-xl p-1 mb-6 border border-border shrink-0">
+              <div className="flex bg-bg rounded-xl p-1 mb-4 border border-border shrink-0">
                 <button
                   onClick={() => {
                     setAddMode("link");
@@ -1672,7 +1672,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     {filteredStudents.map((student) => (
                       <div
                         key={student.id}
-                        className="p-3 flex justify-between items-center hover:bg-bg transition-colors cursor-pointer"
+                        className="p-2 flex justify-between items-center hover:bg-bg transition-colors cursor-pointer"
                         onClick={() => {
                           setSelectedStudents((prev) =>
                             prev.includes(student.id)
@@ -1681,18 +1681,18 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           );
                         }}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2.5">
                           <input
                             type="checkbox"
                             checked={selectedStudents.includes(student.id)}
                             onChange={() => { }}
-                            className="w-4 h-4 text-accent-primary border-border rounded focus:ring-accent-primary cursor-pointer"
+                            className="w-3.5 h-3.5 text-accent-primary border-border rounded focus:ring-accent-primary cursor-pointer"
                           />
                           <div>
-                            <p className="font-semibold text-text-main text-sm">
+                            <p className="font-semibold text-text-main text-[13px] leading-tight">
                               {student.full_name}
                             </p>
-                            <p className="text-xs font-mono text-accent-primary mt-0.5">
+                            <p className="text-[11px] font-mono text-accent-primary mt-0.5 leading-tight">
                               Roll: {student.roll_number}{" "}
                               <span className="text-text-muted px-1">•</span>{" "}
                               <span className="text-gray-500 font-sans">
@@ -1706,7 +1706,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             e.stopPropagation();
                             handleAssignExisting(student.id);
                           }}
-                          className="px-4 py-2 bg-surface-hover text-accent-primary hover:bg-accent-primary hover:text-white rounded-lg text-xs font-bold uppercase tracking-wide transition-colors"
+                          className="px-3 py-1.5 bg-surface-hover text-accent-primary hover:bg-accent-primary hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors shrink-0"
                         >
                           Assign
                         </button>

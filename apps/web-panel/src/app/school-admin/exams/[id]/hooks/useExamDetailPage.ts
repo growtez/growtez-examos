@@ -526,8 +526,7 @@ export function useExamDetailPage(paramsId: string) {
         String(mcqWrong).trim() !== '' &&
         String(natCorrect).trim() !== '' &&
         String(natWrong).trim() !== '' &&
-        subjects.length > 0 &&
-        subjects.some(s => (s.exam_subject_teachers?.length || 0) > 0)
+        subjects.length > 0
       );
     }
     if (step === 2) {
