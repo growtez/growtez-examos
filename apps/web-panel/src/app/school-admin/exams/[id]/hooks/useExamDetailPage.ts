@@ -1513,7 +1513,7 @@ export function useExamDetailPage(paramsId: string) {
 
       for (const row of filteredAssignedStudents) {
         let statusText = 'Assigned';
-        const isExamOver = exam?.end_time ? new Date(exam.end_time) < new Date() : false;
+        const isExamOver = exam?.end_time && exam?.status !== 'draft' ? new Date(exam.end_time) < new Date() : false;
         if (isExamOver) {
           statusText = row.status === 'assigned' ? 'Absent' : 'Completed';
         } else {
