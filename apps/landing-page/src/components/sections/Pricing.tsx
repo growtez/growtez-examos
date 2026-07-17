@@ -6,16 +6,16 @@ import { Check, Info } from 'lucide-react';
 
 export default function Pricing() {
   return (
-    <section id="pricing" className="py-20 md:py-28 relative">
-      <div className="absolute top-10 left-1/2 -z-10 h-[400px] w-[500px] -translate-x-1/2 rounded-full bg-indigo-600/10 blur-[120px]" />
+    <section id="pricing" className="py-20 md:py-28 relative bg-bg">
+      <div className="absolute top-10 left-1/2 -z-10 h-[400px] w-[500px] -translate-x-1/2 bg-primary/5 blur-[120px]" />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-3xl font-extrabold tracking-tight text-text-main sm:text-4xl">
             Flexible Plans for Every Institute
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-slate-400">
-            Scale seamlessly from local weekly mock tests to full-scale state-level entrance examination cycles.
+          <p className="mx-auto mt-4 max-w-2xl text-text-muted font-medium">
+            Scale seamlessly from weekly coaching mock tests to full-school terminal examination cycles.
           </p>
         </div>
 
@@ -27,57 +27,59 @@ export default function Pricing() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="relative flex flex-col justify-between rounded-2xl border border-indigo-500/50 bg-slate-900/40 p-8 backdrop-blur-sm shadow-[0_0_30px_-5px_rgba(99,102,241,0.25)] hover:border-indigo-400 transition-all"
+            className="relative flex flex-col justify-between border-2 border-primary bg-surface p-8 shadow-xl"
           >
             {/* "Most Popular" badge */}
-            <div className="absolute top-0 right-6 -translate-y-1/2 rounded-full bg-indigo-600 px-3 py-1 text-xs font-semibold tracking-wider text-white uppercase">
+            <div className="absolute top-0 right-6 -translate-y-1/2 bg-primary px-4 py-1.5 text-xs font-bold tracking-widest text-white uppercase shadow-sm">
               Most Popular
             </div>
 
             <div>
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-xl font-bold text-white">Pay-per-Exam</h3>
-                  <p className="mt-2 text-sm text-slate-400">Pay a flat rate per exam created. Perfect for coaching classes and mock series.</p>
+                  <h3 className="text-xl font-extrabold text-text-main">Weekly Mock Test Plan</h3>
+                  <p className="mt-2 text-sm text-text-muted font-medium">Pay a flat rate per mock test created. Perfect for coaching classes running weekend tests.</p>
                 </div>
               </div>
 
               <div className="mt-6 flex items-baseline">
-                <span className="text-5xl font-extrabold tracking-tight text-white">₹300</span>
-                <span className="ml-1 text-sm font-semibold text-slate-400">/ exam</span>
+                <span className="text-5xl font-extrabold tracking-tight text-text-main">₹300</span>
+                <span className="ml-1 text-sm font-bold text-text-muted uppercase">/ test</span>
               </div>
 
-              <div className="mt-4 flex items-center gap-1.5 rounded-lg bg-indigo-950/40 p-2 text-xs text-indigo-300 border border-indigo-900/50">
-                <Info className="h-4 w-4 text-indigo-400 shrink-0" />
-                <span>Unlimited students per exam. Credits never expire.</span>
+              <div className="mt-4 flex items-center gap-1.5 bg-primary/5 p-3 text-xs font-bold text-primary border border-primary/20">
+                <Info className="h-4 w-4 text-primary shrink-0" />
+                <span>Unlimited students per test. Credits never expire.</span>
               </div>
 
               <ul className="mt-8 space-y-4">
                 <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-indigo-400 shrink-0" />
-                  <span className="text-sm text-slate-300">All features unlocked: Kiosk, Sync, JEE UI</span>
+                  <Check className="h-5 w-5 text-primary shrink-0" />
+                  <span className="text-sm font-medium text-text-main">School Admin Panel & Desktop App</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-indigo-400 shrink-0" />
-                  <span className="text-sm text-slate-300">Custom branding & subdomains</span>
+                  <Check className="h-5 w-5 text-primary shrink-0" />
+                  <span className="text-sm font-medium text-text-main">Authentic JEE/NEET UI for students</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-indigo-400 shrink-0" />
-                  <span className="text-sm text-slate-300">Unlimited questions & question bank access</span>
+                  <Check className="h-5 w-5 text-primary shrink-0" />
+                  <span className="text-sm font-medium text-text-main">Create unlimited questions & batches</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-indigo-400 shrink-0" />
-                  <span className="text-sm text-slate-300">Detailed analytics & scorecard exports</span>
+                  <Check className="h-5 w-5 text-primary shrink-0" />
+                  <span className="text-sm font-medium text-text-main">Instant report cards for parents</span>
                 </li>
               </ul>
             </div>
 
             <div className="mt-8">
               <a
-                href="https://school.parikshaos.com/login"
-                className="block w-full text-center rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-all duration-200"
+                href="https://wa.me/916026056362?text=Hi%2C%20I%20am%20interested%20in%20ParikshaOS%20for%20my%20institute"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center bg-primary hover:bg-primary/90 py-4 text-sm font-bold text-white uppercase tracking-widest transition-colors duration-200"
               >
-                Get Started
+                Contact Sales
               </a>
             </div>
           </motion.div>
@@ -88,52 +90,54 @@ export default function Pricing() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="flex flex-col justify-between rounded-2xl border border-slate-800 bg-slate-900/30 p-8 backdrop-blur-sm hover:border-slate-700 transition-all"
+            className="flex flex-col justify-between border border-border bg-surface p-8 hover:border-primary transition-all duration-300"
           >
             <div>
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-xl font-bold text-white">Annual Pro</h3>
-                  <p className="mt-2 text-sm text-slate-400">Unlimited examination runs for high-scale academies and institutional groups.</p>
+                  <h3 className="text-xl font-extrabold text-text-main">Complete School License</h3>
+                  <p className="mt-2 text-sm text-text-muted font-medium">Unlimited examination runs for K-12 schools managing daily practice and terminal exams.</p>
                 </div>
               </div>
 
               <div className="mt-6 flex items-baseline">
-                <span className="text-5xl font-extrabold tracking-tight text-white">Custom</span>
-                <span className="ml-1 text-sm font-semibold text-slate-400">/ flat yearly fee</span>
+                <span className="text-5xl font-extrabold tracking-tight text-text-main">Custom</span>
+                <span className="ml-1 text-sm font-bold text-text-muted uppercase">/ yearly</span>
               </div>
 
-              <div className="mt-4 flex items-center gap-1.5 rounded-lg bg-slate-900/60 p-2 text-xs text-slate-400 border border-slate-800">
-                <Info className="h-4 w-4 text-cyan-400 shrink-0" />
-                <span>Dedicated DB servers + SLA protection.</span>
+              <div className="mt-4 flex items-center gap-1.5 bg-surface-hover p-3 text-xs font-bold text-text-muted border border-border">
+                <Info className="h-4 w-4 text-primary shrink-0" />
+                <span>Custom installation for your computer labs.</span>
               </div>
 
               <ul className="mt-8 space-y-4">
                 <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-cyan-400 shrink-0" />
-                  <span className="text-sm text-slate-300">Unlimited examinations & students</span>
+                  <Check className="h-5 w-5 text-primary shrink-0" />
+                  <span className="text-sm font-medium text-text-main">Unlimited tests & student accounts</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-cyan-400 shrink-0" />
-                  <span className="text-sm text-slate-300">Dedicated high-availability database cluster</span>
+                  <Check className="h-5 w-5 text-primary shrink-0" />
+                  <span className="text-sm font-medium text-text-main">Local server sync for patchy internet</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-cyan-400 shrink-0" />
-                  <span className="text-sm text-slate-300">Custom parent & student portal mobile apps</span>
+                  <Check className="h-5 w-5 text-primary shrink-0" />
+                  <span className="text-sm font-medium text-text-main">Student Portal & Teacher Dashboard</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-cyan-400 shrink-0" />
-                  <span className="text-sm text-slate-300">Premium 24/7 technical deployment support</span>
+                  <Check className="h-5 w-5 text-primary shrink-0" />
+                  <span className="text-sm font-medium text-text-main">On-boarding & 24/7 technical support</span>
                 </li>
               </ul>
             </div>
 
             <div className="mt-8">
               <a
-                href="https://school.parikshaos.com/login"
-                className="block w-full text-center rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 py-3 text-sm font-semibold text-white transition-all duration-200"
+                href="https://wa.me/916026056362?text=Hi%2C%20I%20am%20interested%20in%20ParikshaOS%20for%20my%20school"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center bg-surface-hover hover:bg-bg border border-border py-4 text-sm font-bold text-text-main uppercase tracking-widest transition-colors duration-200"
               >
-                Get Started
+                Contact Sales
               </a>
             </div>
           </motion.div>

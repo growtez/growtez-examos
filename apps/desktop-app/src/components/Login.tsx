@@ -228,7 +228,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         <div>
           <button
             onClick={handleCloseApp}
-            className="flex items-center gap-2 px-4 py-2 bg-[#F04438] hover:bg-[#d13b30] active:bg-[#b83029] text-white font-bold rounded-lg transition-all text-xs uppercase tracking-wider shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-[#F04438] hover:bg-[#d13b30] active:bg-[#b83029] text-white font-bold rounded-none transition-all text-xs uppercase tracking-wider shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -356,7 +356,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
                 {error && (
                   <div className="border border-[#F04438]/20 bg-[#F04438]/10 p-3 rounded-none text-[#F04438] text-sm font-semibold flex items-center gap-2">
-                    <span>⚠</span> {error}
+                    {error}
                   </div>
                 )}
 

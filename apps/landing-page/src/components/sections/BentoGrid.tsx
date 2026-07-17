@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MonitorX, Database, LayoutGrid, Users } from 'lucide-react';
+import { MonitorX, BarChart3, LayoutGrid, Users } from 'lucide-react';
 
 interface BentoItemProps {
   title: string;
@@ -19,38 +19,38 @@ function BentoItem({ title, description, icon, className = '', badge }: BentoIte
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-100px' }}
       transition={{ duration: 0.5 }}
-      className={`group relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/30 p-6 sm:p-8 backdrop-blur-sm transition-all duration-300 hover:border-slate-700 hover:bg-slate-900/50 ${className}`}
+      className={`group relative overflow-hidden border border-border bg-surface p-6 sm:p-8 transition-all duration-300 hover:border-primary hover:shadow-lg ${className}`}
     >
       {/* Glow Effect on Hover */}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-cyan-500/10 to-indigo-500/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <div className="absolute inset-0 -z-10 bg-primary/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       
       <div className="flex h-full flex-col justify-between">
         <div>
           {/* Header row with Icon and Badge */}
           <div className="flex items-center justify-between">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-950 border border-slate-800 text-cyan-400 group-hover:text-indigo-400 transition-colors duration-300">
+            <div className="flex h-12 w-12 items-center justify-center bg-bg border border-border text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-300">
               {icon}
             </div>
             {badge && (
-              <span className="rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-xs font-semibold text-cyan-400">
+              <span className="bg-primary/5 border border-primary/20 px-3 py-1 text-xs font-bold text-primary uppercase tracking-wider">
                 {badge}
               </span>
             )}
           </div>
 
-          <h3 className="mt-6 text-xl font-bold text-white group-hover:text-cyan-400 transition-colors duration-200">
+          <h3 className="mt-8 text-xl font-extrabold text-text-main group-hover:text-primary transition-colors duration-200">
             {title}
           </h3>
-          <p className="mt-3 text-sm text-slate-400 leading-relaxed">
+          <p className="mt-3 text-sm text-text-muted font-medium leading-relaxed">
             {description}
           </p>
         </div>
 
         {/* Decorative Grid Pattern for visual premium look */}
-        <div className="mt-8 opacity-20 group-hover:opacity-30 transition-opacity">
+        <div className="mt-8 opacity-40 group-hover:opacity-100 transition-opacity">
           <div className="grid grid-cols-6 gap-2">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-1 rounded bg-slate-800" />
+              <div key={i} className="h-1 bg-border group-hover:bg-primary/20 transition-colors duration-300" />
             ))}
           </div>
         </div>
@@ -62,47 +62,47 @@ function BentoItem({ title, description, icon, className = '', badge }: BentoIte
 export default function BentoGrid() {
   const features = [
     {
-      title: 'Ironclad Kiosk Mode',
-      description: 'Total browser-lock environment. Restricts Alt+Tab, Windows Key, copy-paste, print-screen, and automatically flags AnyDesk, TeamViewer, or unauthorized virtual displays.',
+      title: 'Secure Desktop App for Labs',
+      description: 'Lock down your computer labs with our dedicated desktop app. Prevents Alt+Tab, disables copy-paste, and creates a strict, distraction-free examination environment for authentic testing.',
       icon: <MonitorX className="h-6 w-6" />,
-      badge: 'Anti-Cheat',
+      badge: 'Anti-Cheat App',
       className: 'md:col-span-2',
     },
     {
-      title: 'Zero-Data-Loss Offline Tolerance',
-      description: 'Power cuts and internet outages are no longer an issue. Our local dual-save engine continuously updates SQLite database locally and auto-syncs with the cloud whenever connection resumes.',
-      icon: <Database className="h-6 w-6" />,
-      badge: 'Fault Tolerant',
+      title: 'Download Results & PDF Answersheets',
+      description: 'Students and parents can see their results online instantly. Download detailed scorecards and complete PDF answersheets for comprehensive performance review.',
+      icon: <BarChart3 className="h-6 w-6" />,
+      badge: 'Instant Results',
       className: 'md:col-span-1',
     },
     {
-      title: 'JEE-Simulated Interface',
-      description: 'Prepare students for the real deal. Native NTA JEE Mains/Advanced layout including section-switching, question palettes, status flags, and calculator panel.',
+      title: 'Authentic Examination Interface',
+      description: 'Give students the exact JEE/NEET UI experience. Reduce exam anxiety by letting them practice on the same layout they will face on the final day.',
       icon: <LayoutGrid className="h-6 w-6" />,
       badge: 'Exam Simulation',
       className: 'md:col-span-1',
     },
     {
-      title: 'Multi-Tenant RLS Security',
-      description: 'Complete data isolation powered by PostgreSQL Row-Level Security. Every institute’s questions, student records, and report generation processes are strictly isolated and encrypted.',
+      title: 'Comprehensive School Admin Panel',
+      description: 'Manage everything from a single dashboard. Create tests, organize batches, monitor real-time exam progress, and generate detailed report cards instantly for parents and teachers.',
       icon: <Users className="h-6 w-6" />,
-      badge: 'Military Grade',
+      badge: 'Smart Management',
       className: 'md:col-span-2',
     },
   ];
 
   return (
-    <section id="features" className="py-20 md:py-28 relative">
-      <div className="absolute top-1/2 left-10 -z-10 h-[300px] w-[300px] rounded-full bg-cyan-500/5 blur-[100px]" />
-      <div className="absolute bottom-10 right-10 -z-10 h-[350px] w-[350px] rounded-full bg-indigo-500/5 blur-[120px]" />
+    <section id="features" className="py-20 md:py-28 relative bg-surface border-y border-border">
+      <div className="absolute top-1/2 left-10 -z-10 h-[300px] w-[300px] bg-primary/5 blur-[100px]" />
+      <div className="absolute bottom-10 right-10 -z-10 h-[350px] w-[350px] bg-primary/5 blur-[120px]" />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-            Engineered for High-Stakes Assessments
+          <h2 className="text-3xl font-extrabold tracking-tight text-text-main sm:text-4xl">
+            Built for Indian Schools and Coaching Institutes
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-slate-400">
-            ParikshaOS provides the ultimate environment for secure, robust, and familiar online tests.
+          <p className="mx-auto mt-4 max-w-2xl text-text-muted font-medium">
+            ParikshaOS provides the ultimate environment to conduct secure, robust, and familiar online tests right in your school labs.
           </p>
         </div>
 
