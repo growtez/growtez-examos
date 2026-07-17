@@ -443,7 +443,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     document.body.removeChild(link);
   };
 
-  const isExamOver = exam?.end_time
+  const isExamOver = exam?.end_time && exam?.status !== "draft"
     ? new Date(exam.end_time) < new Date()
     : false;
   const displayStatus = isExamOver ? "completed" : exam?.status || "draft";
