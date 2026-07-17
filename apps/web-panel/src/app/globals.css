@@ -7,9 +7,9 @@
 
 @layer base {
   :root {
-    --color-bg: #f7f8fa;
+    --color-bg: #EEF2F6;
     --color-surface: #FFFFFF;
-    --color-surface-hover: #F7FAFC;
+    --color-surface-hover: #F8FAFC;
     
     --color-accent-primary: #0D9488;
     --color-accent-primary-glow: rgba(13, 148, 136, 0.15);
@@ -33,9 +33,9 @@
   }
 
   .dark {
-    --color-bg: #0a0a0a;
-    --color-surface: #121212;
-    --color-surface-hover: #1e1e1e;
+    --color-bg: #09090B;
+    --color-surface: #18181B;
+    --color-surface-hover: #27272A;
     
     --color-accent-primary: #0D9488;
     --color-accent-primary-glow: rgba(13, 148, 136, 0.15);

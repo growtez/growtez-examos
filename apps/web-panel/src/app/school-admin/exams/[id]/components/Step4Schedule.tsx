@@ -36,7 +36,7 @@ export default function Step4Schedule({
   return (
     <div className="bg-bg border border-border rounded-2xl p-6 shadow-sm">
       {isReadOnly && (
-        <div className="mb-4 rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-semibold text-text-muted">
+        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-600">
           This exam is published — schedule is read-only.
         </div>
       )}

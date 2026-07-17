@@ -57,7 +57,7 @@ export default function CreateExamButton() {
     <button
       onClick={handleCreateExam}
       disabled={creating}
-      className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border border-border bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-md hover:shadow-accent-primary/5 transition-all group cursor-pointer text-center disabled:opacity-60"
+      className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border-2 border-border/60 bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-lg hover:shadow-accent-primary/10 hover:-translate-y-0.5 transition-all group cursor-pointer text-center disabled:opacity-60"
     >
       <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary group-hover:scale-110 group-hover:bg-accent-primary/20 transition-all duration-300">
         {creating ? (

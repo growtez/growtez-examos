@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { getDeviceId } from '../lib/deviceId';
 import Calculator from './Calculator';
 import Numpad from './Numpad';
+import parikshaLogo from '../../public/ParikshaOS_logo.png';
 
 interface ExamInterfaceProps {
   studentProfile: any;
@@ -41,8 +42,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   useEffect(() => {
     const fetchSchoolData = async () => {
       const schoolId = exam?.school_id || studentProfile?.school_id;
-      if (!schoolId || (typeof schoolId === 'string' && schoolId.startsWith('dev-'))) {
-        setSchool({ name: 'Dev School', logo_url: null });
+      if (!schoolId) {
         return;
       }
       try {
@@ -56,8 +56,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           setSchool({ name: data.name, logo_url: data.logo_url });
         }
       } catch (err) {
-        console.warn('Failed to fetch school details, using fallback:', err);
-        setSchool({ name: 'ParikshaOS School', logo_url: null });
+        console.error('Failed to fetch school details:', err);
       }
     };
     fetchSchoolData();
@@ -65,12 +64,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
   useEffect(() => {
     const fetchExamData = async () => {
-      try {
-        if (exam.id && exam.id.startsWith('dev-')) {
-          throw new Error('Load mock data for dev mode');
-        }
-
-        const { data: subjectsData, error: subErr } = await supabase
+      try {        const { data: subjectsData, error: subErr } = await supabase
           .from('exam_subjects')
           .select('*')
           .eq('exam_id', exam.id)
@@ -88,85 +82,14 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         const loadedQuestions = questionsData || [];
 
         if (loadedSubjects.length === 0 || loadedQuestions.length === 0) {
-          throw new Error('Empty database response, loading fallback mock data');
+          console.warn('No subjects or questions found for this exam.');
         }
 
         setSubjects(loadedSubjects);
         setQuestions(loadedQuestions);
         initializeAnswers(loadedQuestions);
       } catch (err) {
-        console.warn('Using fallback mock data for testing/offline support:', err);
-        // Fallback mock data
-        const mockSubjects = [
-          { id: 'sub-math', subject_name: 'Mathematics', sort_order: 1 },
-          { id: 'sub-physics', subject_name: 'Physics', sort_order: 2 },
-          { id: 'sub-chemistry', subject_name: 'Chemistry', sort_order: 3 },
-        ];
-        const mockQuestions = [
-          {
-            id: 'q1',
-            exam_id: exam.id,
-            exam_subject_id: 'sub-math',
-            question_number: 1,
-            question_text: 'What is the value of the limit as x approaches 0 of (sin x) / x?',
-            question_type: 'mcq',
-            options: { A: '0', B: '1', C: 'Infinity', D: 'Undefined' },
-            correct_option: 'B',
-            positive_marks: 4,
-            negative_marks: -1
-          },
-          {
-            id: 'q2',
-            exam_id: exam.id,
-            exam_subject_id: 'sub-math',
-            question_number: 2,
-            question_text: 'Solve the equation: 5x - 3 = 12. Enter the numeric value of x.',
-            question_type: 'nat',
-            options: null,
-            correct_option: '3',
-            positive_marks: 4,
-            negative_marks: 0
-          },
-          {
-            id: 'q3',
-            exam_id: exam.id,
-            exam_subject_id: 'sub-physics',
-            question_number: 3,
-            question_text: 'Which of the following is the unit of electric current?',
-            question_type: 'mcq',
-            options: { A: 'Volt', B: 'Ohm', C: 'Ampere', D: 'Watt' },
-            correct_option: 'C',
-            positive_marks: 4,
-            negative_marks: -1
-          },
-          {
-            id: 'q4',
-            exam_id: exam.id,
-            exam_subject_id: 'sub-physics',
-            question_number: 4,
-            question_text: 'What is the acceleration due to gravity on Earth (approximate value in m/s²)?',
-            question_type: 'nat',
-            options: null,
-            correct_option: '9.8',
-            positive_marks: 4,
-            negative_marks: 0
-          },
-          {
-            id: 'q5',
-            exam_id: exam.id,
-            exam_subject_id: 'sub-chemistry',
-            question_number: 5,
-            question_text: 'Which gas is most abundant in the Earth\'s atmosphere?',
-            question_type: 'mcq',
-            options: { A: 'Oxygen', B: 'Carbon Dioxide', C: 'Nitrogen', D: 'Hydrogen' },
-            correct_option: 'C',
-            positive_marks: 4,
-            negative_marks: -1
-          }
-        ];
-        setSubjects(mockSubjects);
-        setQuestions(mockQuestions);
-        initializeAnswers(mockQuestions);
+        console.error('Failed to fetch exam data:', err);
       } finally {
         setLoading(false);
       }
@@ -351,7 +274,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         formattedAnswers[qId] = { question_id: qId, answer: answers[qId].answer, marked_for_review: answers[qId].marked, time_spent_seconds: 0 };
       });
 
-      if (exam.id && !exam.id.startsWith('dev-')) {
+      if (exam.id) {
         await supabase.rpc('submit_exam', {
           p_exam_id: exam.id,
           p_school_id: exam.school_id,
@@ -429,7 +352,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         };
       });
 
-      if (exam.id && !exam.id.startsWith('dev-')) {
+      if (exam.id) {
         const { error } = await supabase.rpc('submit_exam', {
           p_exam_id: exam.id,
           p_school_id: exam.school_id,
@@ -487,10 +410,10 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         {headerOpen ? (
           <>
             <div className="flex items-center gap-3">
-              <img src={school?.logo_url || "/logo.png"} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-14 h-14 rounded-full object-cover" />
+              <img src={school?.logo_url || parikshaLogo} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-14 h-14 rounded-full object-cover" />
               <div>
                 <h1 className="text-[#008080] text-[20px] font-extrabold tracking-widest m-0 leading-tight uppercase">{school?.name || 'ParikshaOS'}</h1>
-                {/* <p className="text-[9px] text-[#667085] uppercase tracking-wider font-semibold">Powered by Growtez</p> */}
+                <p className="text-[9px] text-[#667085] uppercase tracking-wider font-semibold">ParikshaOS by Growtez</p>
               </div>
             </div>
 
@@ -518,7 +441,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         ) : (
           <>
             <div className="flex items-center gap-2">
-              <img src={school?.logo_url || "/logo.png"} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-6 h-6 rounded-full object-cover" />
+              <img src={school?.logo_url || parikshaLogo} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-6 h-6 rounded-full object-cover" />
               <h1 className="text-[#008080] text-[15px] font-extrabold tracking-wider m-0 uppercase">{school?.name || 'ParikshaOS'}</h1>
             </div>
 
@@ -672,10 +595,16 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           <div className="border-t border-[#E4E7EC] py-2 px-4 bg-white">
             <div className="flex items-center gap-1.5">
               <button
-                onClick={handleSaveAndNext}
-                className="bg-[#008080] hover:bg-[#006666] text-white px-4 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
+                onClick={handleClearResponse}
+                className="bg-[#F0F0F0] hover:bg-[#F9FAFB] text-[#667085] px-4 py-1.5 font-bold text-sm border border-[#008080] rounded-none transition-colors uppercase shadow-sm"
               >
-                SAVE &amp; NEXT
+                CLEAR RESPONSE
+              </button>
+              <button
+                onClick={handleMarkForReviewAndNext}
+                className="bg-[#F59E0B] hover:bg-[#D97706] text-white px-4 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
+              >
+                MARK FOR REVIEW &amp; NEXT
               </button>
               <button
                 onClick={handleSaveAndMarkForReview}
@@ -684,16 +613,10 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                 SAVE &amp; MARK FOR REVIEW
               </button>
               <button
-                onClick={handleClearResponse}
-                className="bg-[#F0F0F0] hover:bg-[#F9FAFB] text-[#667085] px-4 py-1.5 font-bold text-sm border border-[#E4E7EC] rounded-none transition-colors uppercase shadow-sm"
+                onClick={handleSaveAndNext}
+                className="bg-[#008080] hover:bg-[#006666] text-white px-4 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
               >
-                CLEAR RESPONSE
-              </button>
-              <button
-                onClick={handleMarkForReviewAndNext}
-                className="bg-[#004D4D] hover:bg-[#003333] text-white px-4 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
-              >
-                MARK FOR REVIEW &amp; NEXT
+                SAVE &amp; NEXT
               </button>
             </div>
           </div>
@@ -745,20 +668,20 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                   <span className="text-[#667085]">Not Answered</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-8 h-7 bg-[#008080] text-white flex items-center justify-center rounded-none font-bold shadow-sm">
+                  <div className="w-8 h-7 bg-[#22C55E] text-white flex items-center justify-center rounded-none font-bold shadow-sm">
                     {summary.answered}
                   </div>
                   <span className="text-[#667085]">Answered</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-8 h-7 bg-[#004D4D] text-white flex items-center justify-center rounded-none font-bold shadow-sm">
+                  <div className="w-8 h-7 bg-[#F59E0B] text-white flex items-center justify-center rounded-none font-bold shadow-sm">
                     {summary.review}
                   </div>
                   <span className="text-[#667085]">Marked for Review</span>
                 </div>
                 <div className="flex items-start gap-1.5 col-span-2 mt-1">
-                  <div className="w-8 h-7 bg-[#4A4A4A] text-white flex items-center justify-center rounded-none font-bold shadow-sm relative shrink-0">
-                    <div className="absolute bottom-0.5 right-0.5 w-2 h-2 bg-[#008080] rounded-none border border-white"></div>
+                  <div className="w-8 h-7 bg-[#F59E0B] text-white flex items-center justify-center rounded-none font-bold shadow-sm relative shrink-0">
+                    <div className="absolute bottom-0.5 right-0.5 w-2 h-2 bg-[#22C55E] rounded-none border border-white"></div>
                     {summary.answered_review}
                   </div>
                   <span className="leading-tight text-[#667085] mt-0.5">Answered &amp; Marked for Review</span>
@@ -787,11 +710,11 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                   let hasDot = false;
 
                   if (status === 'answered') {
-                    btnClass = "bg-[#008080] text-white border border-[#006666]";
+                    btnClass = "bg-[#22C55E] text-white border border-[#16A34A]";
                   } else if (status === 'review') {
-                    btnClass = "bg-[#004D4D] text-white border border-[#3A3A3A]";
+                    btnClass = "bg-[#F59E0B] text-white border border-[#D97706]";
                   } else if (status === 'answered_review') {
-                    btnClass = "bg-[#4A4A4A] text-white border border-[#3A3A3A]";
+                    btnClass = "bg-[#F59E0B] text-white border border-[#D97706]";
                     hasDot = true;
                   } else if (status === 'not_answered') {
                     btnClass = "bg-[#F04438] text-white border border-[#d9382e]";
@@ -809,7 +732,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                     >
                       {String(idx + 1).padStart(2, '0')}
                       {hasDot && (
-                        <span className="absolute bottom-0.5 right-0.5 w-2 h-2 bg-[#008080] rounded-none border border-white"></span>
+                        <span className="absolute bottom-0.5 right-0.5 w-2 h-2 bg-[#22C55E] rounded-none border border-white"></span>
                       )}
                     </button>
                   );

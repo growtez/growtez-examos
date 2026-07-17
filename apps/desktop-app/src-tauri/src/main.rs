@@ -55,17 +55,27 @@ mod kiosk {
 
     /// Low-level keyboard hook callback.
     /// Called by Windows for EVERY key event system-wide.
-    /// When kiosk is active, blocks ALL keys by returning LRESULT(1).
+    /// Always blocks Win key. When kiosk is active, blocks ALL keys.
     unsafe extern "system" fn keyboard_hook_callback(
         n_code: i32,
         w_param: WPARAM,
         l_param: LPARAM,
     ) -> LRESULT {
-        if n_code >= 0 && KIOSK_ACTIVE.load(Ordering::SeqCst) {
+        if n_code >= 0 {
             let msg = w_param.0 as u32;
             if msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN {
-                // Block ALL keys when kiosk is active
-                return LRESULT(1);
+                let kb = &*(l_param.0 as *const KBDLLHOOKSTRUCT);
+                let vk = kb.vkCode;
+
+                // VK_LWIN = 0x5B, VK_RWIN = 0x5C — always block Windows key
+                if vk == 0x5B || vk == 0x5C {
+                    return LRESULT(1);
+                }
+
+                if KIOSK_ACTIVE.load(Ordering::SeqCst) {
+                    // Block ALL keys when kiosk is active
+                    return LRESULT(1);
+                }
             }
         }
 

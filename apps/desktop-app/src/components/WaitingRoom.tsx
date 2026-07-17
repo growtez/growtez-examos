@@ -75,7 +75,7 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
       {/* Top Header - White */}
       <header className="border-b border-[#008080] flex items-center justify-between bg-white px-6 h-[90px] shrink-0">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="ParikshaOS Logo" className="w-12 h-12 object-contain" />
+          <img src="/ParikshaOS_logo.png" alt="ParikshaOS Logo" className="w-12 h-12 object-contain" />
           <div>
             <h1 className="text-[#008080] text-[20px] font-extrabold tracking-widest m-0 leading-tight uppercase">ParikshaOS</h1>
             <p className="text-[9px] text-[#667085] uppercase tracking-wider font-semibold">Powered by Growtez</p>

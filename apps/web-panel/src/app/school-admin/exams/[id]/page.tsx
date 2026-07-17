@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getSchoolBaseUrl } from "@/lib/utils";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -458,17 +459,17 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         <div className="border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-3">
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4 mb-2 w-full max-w-5xl mx-auto">
             <div className="flex justify-start sm:justify-end">
-              <button disabled className="inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full opacity-50 cursor-not-allowed sm:min-w-24">
+              <button disabled className="inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-xl opacity-50 cursor-not-allowed sm:min-w-24">
                 <ChevronLeft size={14} />
                 <span className="hidden sm:inline">Prev</span>
               </button>
             </div>
-            <div className="min-w-0 overflow-x-auto bg-surface border border-border rounded-full py-2 px-3 sm:px-6 shadow-sm">
+            <div className="min-w-0 overflow-x-auto bg-accent-primary/5 border border-accent-primary/20 rounded-2xl py-2 px-3 sm:px-6 shadow-sm shadow-accent-primary/5">
               <div className="flex min-w-max items-center justify-center gap-4">
                 {STEPPER_STEPS.map((s) => (
                   <div
                     key={s.step}
-                    className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] border-2 bg-surface text-text-muted border-border"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center font-bold text-[10px] sm:text-[11px] border-2 bg-transparent text-text-muted border-border"
                   >
                     {s.step}
                   </div>
@@ -476,7 +477,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </div>
             </div>
             <div className="flex justify-end sm:justify-start">
-              <button disabled className="inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full opacity-50 cursor-not-allowed sm:min-w-24">
+              <button disabled className="inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-xl opacity-50 cursor-not-allowed sm:min-w-24">
                 <span className="hidden sm:inline">Next</span>
                 <ChevronRight size={14} />
               </button>
@@ -508,124 +509,124 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         >
 
           {isDraftStepperMode && (
-            <div
-              className="sticky top-0 z-20 -mx-6 -mt-6 mb-4 border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-3 relative isolate overflow-visible before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-0 before:bg-bg"
-            >
-              {/* Horizontal Stepper (Top) */}
-              <div className="grid grid-cols-[auto_1fr_auto] items-center sm:gap-4 mb-2 relative z-50 w-full max-w-5xl mx-auto">
-                {/* Prev Button */}
-                <div className="flex justify-start sm:justify-end">
-                  <button
-                    onClick={() => currentStep > 1 && handleSetStep(currentStep - 1)}
-                    disabled={currentStep <= 1}
-                    className={`inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full transition-all shadow-sm sm:min-w-24 ${currentStep > 1
-                      ? "hover:border-accent-primary hover:text-accent-primary active:scale-95"
-                      : "opacity-50 cursor-not-allowed"
-                      }`}
-                  >
-                    <ChevronLeft size={14} />
-                    <span className="hidden sm:inline">Prev</span>
-                  </button>
-                </div>
-
-                {/* Stepper Pill */}
-                <div className="min-w-0 overflow-x-auto custom-scrollbar bg-surface border border-border rounded-full py-2 px-3 sm:px-6 shadow-sm">
-                  <div className="flex min-w-max items-center justify-start sm:justify-center">
-                    {STEPPER_STEPS.map((s, idx) => {
-                      const isActive = currentStep === s.step;
-                      const isDone = !isActive && canProceedToNextStep(s.step);
-                      const isSegmentFilled = currentStep > s.step;
-                      const totalSteps = STEPPER_STEPS.length;
-                      let windowStart = currentStep - 1;
-                      if (windowStart < 1) windowStart = 1;
-                      if (windowStart > totalSteps - 2) windowStart = totalSteps - 2;
-                      const windowEnd = windowStart + 2;
-                      const isVisibleOnMobile = s.step >= windowStart && s.step <= windowEnd;
-                      const mobilePrevStep = windowStart;
-                      return (
-                        <div
-                          key={s.step}
-                          className={`${isVisibleOnMobile ? "flex" : "hidden"} sm:flex items-center`}
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleSetStep(s.step)}
-                              className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] leading-none transition-colors duration-200 border-2 shrink-0
-                                ${isActive
-                                  ? "bg-accent-primary text-white border-[#008080]"
-                                  : isDone
-                                    ? "bg-accent-primary text-white border-[#008080]"
-                                    : "bg-surface text-text-muted border-border"
-                                }`}
-                            >
-                              {isDone ? <Check size={10} /> : s.step}
-                            </button>
-                            <button
-                              onClick={() => handleSetStep(s.step)}
-                              className={`text-[9px] font-bold uppercase tracking-tight whitespace-nowrap hover:opacity-80 transition-opacity ${isActive ? "inline-block" : "hidden"} sm:inline-block ${isActive ? "text-text-main" : isDone ? "text-accent-primary" : "text-text-muted"}`}
-                            >
-                              {s.label}
-                            </button>
-                          </div>
-                          {idx < STEPPER_STEPS.length - 1 && (
-                            <div className={`${(isVisibleOnMobile && s.step < windowEnd) ? "block" : "hidden"} sm:block w-6 h-0.5 mx-2 rounded-full bg-border overflow-hidden shrink-0`}>
-                              <div
-                                className={`h-full transition-all duration-300 ${isSegmentFilled ? "w-full bg-accent-primary" : "w-0 bg-accent-primary"}`}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+            <>
+              <div className="sticky top-0 z-30 -mx-6 -mt-6 pt-6 px-4 sm:px-6 pb-2 bg-bg relative isolate before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-[-1] before:bg-bg">
+                {/* Horizontal Stepper (Top) */}
+                <div className="grid grid-cols-[auto_1fr_auto] items-center sm:gap-4 w-full max-w-5xl mx-auto">
+                  {/* Prev Button */}
+                  <div className="flex justify-start sm:justify-end">
+                    <button
+                      onClick={() => currentStep > 1 && handleSetStep(currentStep - 1)}
+                      disabled={currentStep <= 1}
+                      className={`inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-accent-primary border border-accent-primary text-white text-[11px] font-semibold rounded-xl transition-all shadow-sm sm:min-w-24 ${currentStep > 1
+                        ? "hover:opacity-90 active:scale-95"
+                        : "opacity-50 cursor-not-allowed"
+                        }`}
+                    >
+                      <ChevronLeft size={14} />
+                      <span className="hidden sm:inline">Prev</span>
+                    </button>
                   </div>
-                </div>
 
-                {/* Next Button */}
-                <div className="flex justify-end sm:justify-start">
-                  <button
-                    onClick={() => currentStep < 5 && handleSetStep(currentStep + 1)}
-                    disabled={currentStep >= 5}
-                    className={`inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-full transition-all shadow-sm sm:min-w-24 ${currentStep < 5
-                      ? "hover:border-accent-primary hover:text-accent-primary active:scale-95"
-                      : "opacity-50 cursor-not-allowed"
-                      }`}
-                  >
-                    <span className="hidden sm:inline">Next</span>
-                    <ChevronRight size={14} />
-                  </button>
+                  {/* Stepper Box */}
+                  <div className="min-w-0 w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-accent-primary/5 border border-accent-primary rounded-2xl py-2.5 px-3 sm:px-4 shadow-sm shadow-accent-primary/5">
+                    <div className="flex min-w-max items-center justify-start sm:justify-center">
+                      {STEPPER_STEPS.map((s, idx) => {
+                        const isActive = currentStep === s.step;
+                        const isDone = !isActive && canProceedToNextStep(s.step);
+                        const isSegmentFilled = currentStep > s.step;
+                        const totalSteps = STEPPER_STEPS.length;
+                        let windowStart = currentStep - 1;
+                        if (windowStart < 1) windowStart = 1;
+                        if (windowStart > totalSteps - 2) windowStart = totalSteps - 2;
+                        const windowEnd = windowStart + 2;
+                        const isVisibleOnMobile = s.step >= windowStart && s.step <= windowEnd;
+                        return (
+                          <div
+                            key={s.step}
+                            className={`${isVisibleOnMobile ? "flex" : "hidden"} sm:flex items-center`}
+                          >
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              <button
+                                onClick={() => handleSetStep(s.step)}
+                                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center font-bold text-[11px] sm:text-xs leading-none transition-all duration-300 border-2 shrink-0 shadow-sm
+                                  ${isActive
+                                    ? "bg-accent-primary text-white border-accent-primary scale-110 shadow-md shadow-accent-primary/20"
+                                    : isDone
+                                      ? "bg-accent-primary/10 text-accent-primary border-accent-primary/30 hover:bg-accent-primary/20"
+                                      : "bg-transparent text-text-muted border-accent-primary/30 hover:border-accent-primary/50"
+                                  }`}
+                              >
+                                {isDone ? <Check size={14} strokeWidth={3} /> : s.step}
+                              </button>
+                              <button
+                                onClick={() => handleSetStep(s.step)}
+                                className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-300 ${isActive ? "inline-block" : "hidden"} sm:inline-block ${isActive ? "text-accent-primary scale-105 origin-left" : isDone ? "text-accent-primary/80" : "text-text-muted hover:text-text-main"}`}
+                              >
+                                {s.label}
+                              </button>
+                            </div>
+                            {idx < STEPPER_STEPS.length - 1 && (
+                              <div className={`${(isVisibleOnMobile && s.step < windowEnd) ? "block" : "hidden"} sm:block w-4 sm:w-8 h-1 mx-1.5 sm:mx-2 rounded-full bg-accent-primary/20 overflow-hidden shrink-0`}>
+                                <div
+                                  className={`h-full transition-all duration-500 ease-out ${isSegmentFilled ? "w-full bg-accent-primary shadow-[0_0_8px_rgba(0,128,128,0.4)]" : "w-0 bg-accent-primary"}`}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Next Button */}
+                  <div className="flex justify-end sm:justify-start">
+                    <button
+                      onClick={() => currentStep < 5 && handleSetStep(currentStep + 1)}
+                      disabled={currentStep >= 5}
+                      className={`inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-accent-primary border border-accent-primary text-white text-[11px] font-semibold rounded-xl transition-all shadow-sm sm:min-w-24 ${currentStep < 5
+                        ? "hover:opacity-90 active:scale-95"
+                        : "opacity-50 cursor-not-allowed"
+                        }`}
+                    >
+                      <span className="hidden sm:inline">Next</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Row 1: Title, Pills, Actions */}
-              <div className="relative z-10 flex flex-col gap-3 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-4 w-full">
-                {/* Title */}
-                <div className="flex min-w-0 items-center justify-between gap-2">
-                  <h2 className="text-base sm:text-lg font-bold text-text-main">
-                    Step {currentStep} ·{" "}
-                    {STEPPER_STEPS.find((s) => s.step === currentStep)?.label}
-                  </h2>
-                  {currentStep === 1 && (
-                    <div className="flex min-w-0 shrink-0 items-center gap-1.5">
+              {/* Scrolling Header Container */}
+              <div className="-mx-6 mb-4 border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-4 relative z-10">
+                {/* Row 1: Title (Full Width) */}
+                <h2 className="text-base sm:text-lg font-bold text-text-main flex items-center gap-1.5 whitespace-nowrap">
+                  <span className="text-accent-primary">Step {currentStep}</span>
+                  <span className="text-text-muted">·</span>
+                  <span>{STEPPER_STEPS.find((s) => s.step === currentStep)?.label}</span>
+                </h2>
+
+                {/* Row 2: Controls and Actions */}
+                <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+                  {/* Left Side: Step-specific Controls or Pills */}
+                  <div className="flex flex-wrap items-center gap-2 md:gap-3 min-w-0 flex-1">
+                    {/* Step 1: Template */}
+                    {currentStep === 1 && (
                       <div className="flex min-w-0 items-center gap-1.5">
                         <select
                           onChange={(e) => {
-                            const selected = templates.find(
-                              (t) => t.id === e.target.value
-                            );
+                            const selected = templates.find((t) => t.id === e.target.value);
                             if (selected) handleTemplateApply(selected);
                             e.target.value = "";
                           }}
                           defaultValue=""
                           disabled={applyingTemplate || templatesLoading || templates.length === 0}
-                          className="max-w-[8.5rem] sm:max-w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main text-xs font-semibold focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all disabled:opacity-50"
+                          className="max-w-[8.5rem] sm:max-w-full px-3 py-1.5 bg-accent-primary/5 border border-accent-primary/30 rounded-lg text-accent-primary text-xs font-bold focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all disabled:opacity-50 cursor-pointer shadow-sm hover:bg-accent-primary hover:text-white"
                         >
                           <option value="" disabled>
-                            {templatesLoading ? "Loading..." : templates.length === 0 ? "No templates" : "Template..."}
+                            {templatesLoading ? "Loading..." : templates.length === 0 ? "No templates" : "Use Template..."}
                           </option>
                           {templates.map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {t.title}
-                            </option>
+                            <option key={t.id} value={t.id}>{t.title}</option>
                           ))}
                         </select>
                         {applyingTemplate && (
@@ -634,188 +635,60 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           </span>
                         )}
                       </div>
-
-                      <div className="relative" ref={moreMenuRef}>
-                        <button
-                          onClick={() => setShowMoreMenu(!showMoreMenu)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
-                        >
-                          <MoreVertical size={14} />
-                        </button>
-                        {showMoreMenu && (
-                          <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
-                            <button
-                              onClick={() => {
-                                handleDuplicate();
-                                setShowMoreMenu(false);
-                              }}
-                              className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
-                            >
-                              <Copy size={12} />
-                              Duplicate
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleTrash();
-                                setShowMoreMenu(false);
-                              }}
-                              className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
-                            >
-                              <Trash2 size={12} />
-                              Trash
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {currentStep === 2 && (
-                    <div className="flex min-w-0 shrink-0 items-center gap-1.5">
-                      {!isExamOver && role !== "teacher" && (
-                        <button
-                          onClick={() => { setShowAddStudentModal(true); setAddMode('search'); setAddError(''); setAddSuccess(''); }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary text-white text-xs font-semibold rounded-lg hover:bg-accent-primary/90 transition-all active:scale-95 shadow-sm"
-                        >
-                          <Plus size={14} />
-                          Add Students
-                        </button>
-                      )}
-
-                      <div className="relative" ref={moreMenuRef}>
-                        <button
-                          onClick={() => setShowMoreMenu(!showMoreMenu)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
-                        >
-                          <MoreVertical size={14} />
-                        </button>
-                        {showMoreMenu && (
-                          <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
-                            <button
-                              onClick={() => {
-                                handleDuplicate();
-                                setShowMoreMenu(false);
-                              }}
-                              className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
-                            >
-                              <Copy size={12} />
-                              Duplicate
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleTrash();
-                                setShowMoreMenu(false);
-                              }}
-                              className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
-                            >
-                              <Trash2 size={12} />
-                              Trash
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {/* Mobile-only: show the 3-dot menu next to the title for steps 3+ instead of leaving it in its own isolated row below */}
-                  {currentStep !== 1 && currentStep !== 2 && (
-                    <div className="relative shrink-0 md:hidden" ref={moreMenuRef}>
-                      <button
-                        onClick={() => setShowMoreMenu(!showMoreMenu)}
-                        className="w-8 h-8 flex items-center justify-center bg-surface border border-border rounded-lg text-text-main"
-                      >
-                        <MoreVertical size={14} />
-                      </button>
-                      {showMoreMenu && (
-                        <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
-                          <button
-                            onClick={() => { handleDuplicate(); setShowMoreMenu(false); }}
-                            className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
-                          >
-                            <Copy size={12} />
-                            Duplicate
-                          </button>
-                          <button
-                            onClick={() => { handleTrash(); setShowMoreMenu(false); }}
-                            className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
-                          >
-                            <Trash2 size={12} />
-                            Trash
-                          </button>
+                    )}
+                    {/* Step 2: Add Students button was moved to Step2Students component */}
+                    {/* Step 3: Centered Pills */}
+                    {currentStep === 3 && (
+                      <div className="relative flex items-center justify-start min-w-0 -mx-4 px-4 md:mx-0 md:px-0">
+                        <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar px-1 max-w-full snap-x snap-mandatory md:snap-none">
+                          {subjects.map((s) => {
+                            const added = questionCounts[s.id] || 0;
+                            const needed = s.question_count;
+                            const complete = added >= needed;
+                            const isSelected = drawerSubjectId === s.id;
+                            return (
+                              <button
+                                key={s.id}
+                                type="button"
+                                onClick={() => openManageQuestions(s.id)}
+                                className={`snap-start shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${isSelected
+                                  ? "bg-accent-primary text-white border-accent-primary shadow-sm"
+                                  : "bg-surface border-border text-text-main hover:border-accent-primary/50"
+                                  }`}
+                              >
+                                {s.subject_name}
+                                <span className={isSelected ? "text-white/80" : complete ? "text-emerald-600" : "text-amber-600"}>
+                                  {added}/{needed}
+                                </span>
+                              </button>
+                            );
+                          })}
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                        {/* mobile-only scroll hint, hidden on desktop */}
+                        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg to-transparent md:hidden" />
+                      </div>
+                    )}
+                  </div>
 
-                {/* Centered Pills */}
-                <div className="relative flex items-center justify-start md:justify-center min-w-0 -mx-4 px-4 md:mx-0 md:px-0">
-                  {currentStep === 3 && (
-                    <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar px-1 max-w-full snap-x snap-mandatory md:snap-none">
-                      {subjects.map((s) => {
-                        const added = questionCounts[s.id] || 0;
-                        const needed = s.question_count;
-                        const complete = added >= needed;
-                        const isSelected = drawerSubjectId === s.id;
-                        return (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => openManageQuestions(s.id)}
-                            className={`snap-start shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${isSelected
-                              ? "bg-accent-primary text-white border-accent-primary shadow-sm"
-                              : "bg-surface border-border text-text-main hover:border-accent-primary/50"
-                              }`}
-                          >
-                            {s.subject_name}
-                            <span className={isSelected ? "text-white/80" : complete ? "text-emerald-600" : "text-amber-600"}>
-                              {added}/{needed}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {/* mobile-only scroll hint, hidden on desktop */}
-                  {currentStep === 3 && (
-                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg to-transparent md:hidden" />
-                  )}
-                </div>
-
-                {/* Actions (desktop only — mobile shows this next to the title instead) */}
-                <div className="hidden md:flex flex-wrap items-center justify-start md:justify-end gap-2">
-                  {currentStep !== 1 && currentStep !== 2 && (
-                    <div className="relative" ref={moreMenuRef}>
-                      <button
-                        onClick={() => setShowMoreMenu(!showMoreMenu)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border rounded-lg text-xs font-semibold text-text-main hover:border-accent-primary hover:text-accent-primary hover:bg-bg transition-all shadow-sm"
-                      >
-                        <MoreVertical size={14} />
-                      </button>
-                      {showMoreMenu && (
-                        <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
-                          <button
-                            onClick={() => {
-                              handleDuplicate();
-                              setShowMoreMenu(false);
-                            }}
-                            className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
-                          >
-                            <Copy size={12} />
-                            Duplicate
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleTrash();
-                              setShowMoreMenu(false);
-                            }}
-                            className="w-full px-3 py-2 text-left text-xs font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-2"
-                          >
-                            <Trash2 size={12} />
-                            Trash
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {/* Right Side: Duplicate & Trash */}
+                  <div className="flex shrink-0 items-center gap-1.5 justify-end">
+                    <button
+                      onClick={handleDuplicate}
+                      title="Duplicate Exam"
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-lg text-xs font-bold text-accent-primary hover:bg-accent-primary hover:text-white transition-all shadow-sm whitespace-nowrap"
+                    >
+                      <Copy size={14} />
+                      <span className="hidden sm:inline">Duplicate</span>
+                    </button>
+                    <button
+                      onClick={handleTrash}
+                      title="Trash Exam"
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm whitespace-nowrap"
+                    >
+                      <Trash2 size={14} />
+                      <span className="hidden sm:inline">Delete</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -880,7 +753,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             <button
                               type="button"
                               onClick={handleDrawerNewQuestion}
-                              className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 md:py-1.5 rounded-lg bg-accent-primary text-white hover:bg-accent-primary/95 transition-all text-[12px] font-semibold shadow-sm cursor-pointer border-none active:scale-95 whitespace-nowrap"
+                              className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent-primary/5 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary hover:text-white transition-all text-xs font-bold shadow-sm cursor-pointer active:scale-95 whitespace-nowrap"
                             >
                               <Plus size={14} /> Add Question
                             </button>
@@ -893,7 +766,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </div>
               )}
-            </div>
+            </>
           )}
 
           {/* Action Buttons (Non-Draft Mode) */}
@@ -1057,6 +930,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               supabase={supabase}
               paramsId={params.id}
               isReadOnly={isReadOnly}
+              onAddStudentsClick={() => { setShowAddStudentModal(true); setAddMode('search'); setAddError(''); setAddSuccess(''); }}
             />
           )}
 
@@ -1178,6 +1052,35 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               handlePayment={handlePayment}
               supabase={supabase}
             />
+          )}
+          
+          {/* Bottom Navigation */}
+          {isDraftStepperMode && (
+            <div className="flex justify-between items-center mt-6 pt-5 border-t border-border pb-6">
+              <button
+                onClick={() => currentStep > 1 && handleSetStep(currentStep - 1)}
+                disabled={currentStep <= 1}
+                className={`inline-flex min-w-20 items-center justify-center gap-1.5 px-4 py-2 bg-surface border border-border text-text-main text-sm font-semibold rounded-lg transition-all shadow-sm ${currentStep > 1
+                  ? "hover:bg-bg active:scale-95"
+                  : "opacity-50 cursor-not-allowed"
+                  }`}
+              >
+                <ChevronLeft size={14} />
+                Prev
+              </button>
+              
+              {currentStep < 5 ? (
+                <button
+                  onClick={() => handleSetStep(currentStep + 1)}
+                  className="inline-flex min-w-20 items-center justify-center gap-1.5 px-4 py-2 bg-accent-primary border border-accent-primary text-white text-sm font-semibold rounded-lg transition-all shadow-sm hover:opacity-90 active:scale-95 shadow-accent-primary/20"
+                >
+                  Next
+                  <ChevronRight size={14} />
+                </button>
+              ) : (
+                <div />
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -1655,12 +1558,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       <input
                         type="text"
                         readOnly
-                        value={`${typeof window !== "undefined" ? window.location.origin : ""}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`}
+                        value={`${getSchoolBaseUrl()}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`}
                         className="flex-1 px-4 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-muted font-mono focus:outline-none truncate"
                       />
                       <button
                         onClick={() => {
-                          const url = `${window.location.origin}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`;
+                          const url = `${getSchoolBaseUrl()}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`;
                           navigator.clipboard.writeText(url);
                           setLinkCopied(true);
                           setTimeout(() => setLinkCopied(false), 2000);

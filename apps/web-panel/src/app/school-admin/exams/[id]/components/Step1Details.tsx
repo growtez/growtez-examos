@@ -67,7 +67,7 @@ function CollapsibleCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm h-full ${className || ''}`}>
+    <div className={`bg-surface border-2 border-border/50 rounded-xl p-3.5 sm:p-4 shadow-sm h-full hover:border-accent-primary/30 hover:shadow-md transition-all group ${className || ''}`}>
       <div
         onClick={onToggle}
         className="w-full flex items-center justify-between gap-2 mb-3 border-b border-[#f0f7f7] pb-1.5 cursor-pointer sm:cursor-default"
@@ -215,7 +215,7 @@ export default function Step1Details({
       className={`space-y-4 mb-6 ${isReadOnly ? 'pointer-events-none select-none opacity-75' : ''}`}
     >
       {isReadOnly && (
-        <div className="rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-semibold text-text-muted">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-600">
           This exam is published — details are read-only.
         </div>
       )}
@@ -249,7 +249,7 @@ export default function Step1Details({
                 }}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                 required
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
+                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow"
               />
             </div>
             <div>
@@ -258,7 +258,7 @@ export default function Step1Details({
                 value={description}
                 onChange={setDescription}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal min-h-[3.5rem]"
+                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal min-h-[3.5rem] shadow-sm hover:shadow"
               />
             </div>
             <div>
@@ -278,7 +278,7 @@ export default function Step1Details({
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                 min={1}
                 required
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
+                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow"
               />
             </div>
           </div>
@@ -300,7 +300,7 @@ export default function Step1Details({
                 value={mcqCorrect}
                 onChange={(e) => setMcqCorrect(e.target.value)}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
+                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow"
               />
             </div>
             <div>
@@ -311,7 +311,7 @@ export default function Step1Details({
                 value={mcqWrong}
                 onChange={(e) => setMcqWrong(e.target.value)}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
+                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow"
               />
             </div>
             <div>
@@ -322,7 +322,7 @@ export default function Step1Details({
                 value={natCorrect}
                 onChange={(e) => setNatCorrect(e.target.value)}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
+                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow"
               />
             </div>
             <div>
@@ -333,7 +333,7 @@ export default function Step1Details({
                 value={natWrong}
                 onChange={(e) => setNatWrong(e.target.value)}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
+                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow"
               />
             </div>
           </div>
@@ -364,9 +364,9 @@ export default function Step1Details({
               const needed = s.question_count;
               const complete = added >= needed;
               return (
-                <div key={s.id} className="bg-bg border border-border rounded-xl p-3 flex flex-col justify-between">
+                <div key={s.id} className="bg-bg border border-border rounded-xl p-3 flex flex-col justify-between hover:border-accent-primary/40 hover:shadow-sm transition-all group cursor-default">
                   <div className="flex justify-between items-start mb-2">
-                    <span className="text-text-main font-bold text-xs leading-relaxed break-words sm:leading-normal">{s.subject_name}</span>
+                    <span className="text-text-main font-bold text-xs leading-relaxed break-words sm:leading-normal group-hover:text-accent-primary transition-colors">{s.subject_name}</span>
                     <button
                       type="button"
                       onClick={(e) => handleDeleteSubject(e, s.id, s.subject_name)}

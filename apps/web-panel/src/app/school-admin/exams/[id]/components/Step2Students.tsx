@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Users, Download } from 'lucide-react';
+import { Users, Download, Plus } from 'lucide-react';
 
 interface Step2StudentsProps {
   role: string;
@@ -23,6 +23,7 @@ interface Step2StudentsProps {
   supabase: any;
   paramsId: string;
   isReadOnly?: boolean;
+  onAddStudentsClick: () => void;
 }
 
 export default function Step2Students({
@@ -45,6 +46,7 @@ export default function Step2Students({
   supabase,
   paramsId,
   isReadOnly = false,
+  onAddStudentsClick
 }: Step2StudentsProps) {
   // Derived state calculations
   const uniqueAssignedBatches = Array.from(new Set(assignedStudents.map((s: any) => s.students?.batch).filter(Boolean)));
@@ -60,13 +62,24 @@ export default function Step2Students({
 
   return (
     <div className="bg-surface border border-border rounded-2xl p-6 mb-6 shadow-sm">
-      <div className="mb-6">
-        <h3 className="text-lg font-bold text-text-main">Students ({assignedStudents.length})</h3>
-        <p className="text-text-muted text-sm font-medium mt-1">Students are specific to this exam</p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-text-main">Students ({assignedStudents.length})</h3>
+          <p className="text-text-muted text-sm font-medium mt-1">Students are specific to this exam</p>
+        </div>
+        {!isExamOver && role !== "teacher" && !isReadOnly && (
+          <button
+            onClick={onAddStudentsClick}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary text-white rounded-lg text-xs font-bold hover:opacity-90 transition-all active:scale-95 shadow-sm whitespace-nowrap"
+          >
+            <Plus size={14} />
+            Add Students
+          </button>
+        )}
       </div>
 
       {isReadOnly && (
-        <div className="mb-4 rounded-xl border border-border bg-bg px-4 py-2.5 text-xs font-semibold text-text-muted">
+        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-600">
           This exam is published — student assignments are read-only.
         </div>
       )}

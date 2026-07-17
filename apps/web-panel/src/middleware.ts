@@ -76,6 +76,11 @@ export async function middleware(req: NextRequest) {
       { headers: response.headers }
     );
   } else if (subdomain === 'school') {
+    // Public routes that should bypass auth and point to their actual paths
+    if (url.pathname.startsWith('/result/')) {
+      return response;
+    }
+
     // Login page is always accessible
     if (url.pathname === '/login' || url.pathname.startsWith('/api/auth')) {
       return NextResponse.rewrite(new URL(`/login`, req.url), { headers: response.headers });
