@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { getSchoolBaseUrl } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, Plus, Share2, Copy, Check, FileDown } from 'lucide-react';
 
 function CustomCombobox({ value, onChange, options, placeholder, className }: { value: string, onChange: (v: string) => void, options: string[], placeholder: string, className: string }) {
@@ -378,11 +379,13 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
     document.body.removeChild(link);
   };
 
-  const registrationLink = typeof window !== 'undefined' && schoolId
-    ? `${window.location.origin}/register/school/${schoolId}${shareCourse || shareBatch || shareSession ? `?p=${btoa(JSON.stringify({ c: shareCourse || undefined, b: shareBatch || undefined, s: shareSession || undefined }))}` : ''}`
+  const getShareLink = () => {
+    return schoolId
+    ? `${getSchoolBaseUrl()}/register/school/${schoolId}${shareCourse || shareBatch || shareSession ? `?p=${btoa(JSON.stringify({ c: shareCourse || undefined, b: shareBatch || undefined, s: shareSession || undefined }))}` : ''}`
     : '';
-
+  };
   const handleCopyShareLink = async () => {
+    const registrationLink = getShareLink();
     if (!registrationLink) return;
     try {
       await navigator.clipboard.writeText(registrationLink);
@@ -816,7 +819,7 @@ export function StudentsListContent({ schoolIdProp }: { schoolIdProp?: string })
                 <input
                   type="text"
                   readOnly
-                  value={registrationLink}
+                  value={getShareLink()}
                   className="flex-1 bg-transparent text-text-main text-xs font-mono outline-none truncate"
                   onFocus={(e) => e.target.select()}
                 />

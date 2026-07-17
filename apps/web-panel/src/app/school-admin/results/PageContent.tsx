@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { FileBarChart2, Download, FileText, Loader2, Search, ChevronLeft, ChevronRight, Filter, ArrowUpDown, ArrowUp, ArrowDown, X, Calendar, Clock, Users, CalendarDays } from 'lucide-react';
+import { getSchoolBaseUrl } from '@/lib/utils';
+import { FileBarChart2, Download, FileText, Loader2, Search, ChevronLeft, ChevronRight, Filter, ArrowUpDown, ArrowUp, ArrowDown, X, Calendar, Clock, Users, CalendarDays, Share2, Check } from 'lucide-react';
 
 const CustomCalendar = ({ exams, selectedDate, onSelectDate }: { exams: any[], selectedDate: Date | null, onSelectDate: (d: Date | null) => void }) => {
   const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
@@ -82,6 +83,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
   
   // Results view filters
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const [generatingStudentId, setGeneratingStudentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
@@ -316,6 +318,15 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleCopyLink = () => {
+    if (!selectedExamId) return;
+    const url = `${getSchoolBaseUrl()}/result/${selectedExamId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    });
   };
 
   const formatTime = (seconds: number | null) => {
@@ -566,15 +577,25 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
             </div>
             
             {results.length > 0 && exams.find(e => e.id === selectedExamId)?.status === 'completed' && (
-              <button 
-                type="button"
-                onClick={handleDownloadAllResults}
-                disabled={isGeneratingPdf}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary hover:bg-accent-primary/80 text-white transition-all text-[12px] font-medium disabled:opacity-75 cursor-pointer border-none flex-1 md:flex-none shadow-sm"
-              >
-                {isGeneratingPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                PDF Results
-              </button>
+              <>
+                <button 
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface border border-border hover:bg-surface-hover text-text-main transition-all text-[12px] font-medium cursor-pointer flex-1 md:flex-none shadow-sm"
+                >
+                  {isCopied ? <Check size={14} className="text-emerald-500" /> : <Share2 size={14} className="text-accent-primary" />}
+                  {isCopied ? 'Copied!' : 'Share Result Link'}
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleDownloadAllResults}
+                  disabled={isGeneratingPdf}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary hover:bg-accent-primary/80 text-white transition-all text-[12px] font-medium disabled:opacity-75 cursor-pointer border-none flex-1 md:flex-none shadow-sm"
+                >
+                  {isGeneratingPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  PDF Results
+                </button>
+              </>
             )}
           </div>
         </div>

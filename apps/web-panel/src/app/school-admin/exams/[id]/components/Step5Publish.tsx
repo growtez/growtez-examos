@@ -222,8 +222,7 @@ export default function Step5Publish({
     String(mcqWrong).trim() !== '' &&
     String(natCorrect).trim() !== '' &&
     String(natWrong).trim() !== '' &&
-    subjects.length > 0 &&
-    subjects.some((subject) => (subject.exam_subject_teachers?.length || 0) > 0);
+    subjects.length > 0;
   const isStudentsComplete = assignedStudentsCount > 0;
   const isQuestionsComplete =
     subjects.length > 0 &&
@@ -239,9 +238,6 @@ export default function Step5Publish({
     String(natCorrect).trim() === '' ? 'Set NAT correct marks' : null,
     String(natWrong).trim() === '' ? 'Set NAT wrong marks' : null,
     subjects.length === 0 ? 'Add at least one subject' : null,
-    subjects.length > 0 && !subjects.some((subject) => (subject.exam_subject_teachers?.length || 0) > 0)
-      ? 'Assign at least one teacher to a subject'
-      : null,
   ].filter(Boolean) as string[];
 
   const incompleteSubjects = subjects
@@ -698,14 +694,7 @@ export default function Step5Publish({
                   <CreditCard size={16} />
                   Pay & Publish
                 </button>
-                <button
-                  onClick={() => handlePublish(true)}
-                  disabled={!canPublish || publishing}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 py-3 bg-gray-800 hover:bg-gray-900 text-white text-sm font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm"
-                  title="Dev Tool: Skip payment entirely"
-                >
-                  <Play size={14} /> Dev Publish
-                </button>
+
               </>
             )}
           </div>

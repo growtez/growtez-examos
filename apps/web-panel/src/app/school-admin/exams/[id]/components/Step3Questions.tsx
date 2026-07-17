@@ -287,7 +287,7 @@ export default function Step3Questions({
             </div>
           </div>
         ) : subjects.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-text-muted p-4">
+          <div className="flex-1 flex flex-col items-center justify-start pt-16 text-text-muted p-4">
             <BookOpen size={36} className="mb-3 text-border" />
             <p className="text-sm font-bold text-text-main mb-1">No Subjects Yet</p>
             <p className="text-xs text-center max-w-sm mb-4">
@@ -304,7 +304,7 @@ export default function Step3Questions({
             )}
           </div>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-text-muted p-4">
+          <div className="flex-1 flex flex-col items-center justify-start pt-16 text-text-muted p-4">
             <BookOpen size={36} className="mb-3 text-border" />
             <p className="text-sm font-bold text-text-main mb-1">Manage Questions</p>
             <p className="text-xs text-center max-w-sm">

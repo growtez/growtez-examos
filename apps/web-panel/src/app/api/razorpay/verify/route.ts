@@ -64,6 +64,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
+    // Verify the amount paid matches what we expected (prevents underpayment attacks)
+    const { amount: clientAmount } = body;
+    if (clientAmount && Math.round(Number(clientAmount)) !== Math.round(calculatedAmount)) {
+      console.error(`Amount mismatch: expected ${calculatedAmount}, got ${clientAmount}`);
+      return NextResponse.json({ error: 'Payment amount mismatch' }, { status: 400 });
+    }
+
     // Step 12: Prevent Double Verification
     const { data: existingPayment } = await supabase
       .from('payment_history')

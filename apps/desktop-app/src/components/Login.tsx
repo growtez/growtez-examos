@@ -6,6 +6,7 @@ type Step = 'login' | 'waiting_room' | 'exam' | 'submitted';
 
 interface LoginProps {
   onLoginSuccess: (studentData: any, selectedExam: any, initialStep?: Step) => void;
+  serverTimeOffset: number;
 }
 
 export default function Login({ onLoginSuccess }: LoginProps) {
@@ -92,12 +93,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         if (!error && data && data.length > 0) {
           setSchools(data);
         } else {
-          // Fallback if no schools found or query fails
-          setSchools([{ id: 'dev-school', name: 'Dev School (Offline Fallback)' }]);
+          console.warn('No schools found or query failed');
         }
       } catch (err) {
-        console.warn('Failed to fetch schools, using offline fallback', err);
-        setSchools([{ id: 'dev-school', name: 'Dev School (Offline Fallback)' }]);
+        console.warn('Failed to fetch schools', err);
       }
     };
     fetchSchools();
@@ -220,7 +219,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       {/* Top Header - White */}
       <header className="border-b border-[#008080] flex items-center justify-between bg-white px-6 h-[90px] shrink-0">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="ParikshaOS Logo" className="w-12 h-12 object-contain" />
+          <img src="/ParikshaOS_logo.png" alt="ParikshaOS Logo" className="w-12 h-12 object-contain" />
           <div>
             <h1 className="text-[#008080] text-[20px] font-extrabold tracking-widest m-0 leading-tight">ParikshaOS</h1>
             <p className="text-[9px] text-[#667085] uppercase tracking-wider font-semibold">Powered by Growtez</p>
@@ -229,7 +228,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         <div>
           <button
             onClick={handleCloseApp}
-            className="flex items-center gap-2 px-4 py-2 bg-[#F04438] hover:bg-[#d13b30] active:bg-[#b83029] text-white font-bold rounded-lg transition-all text-xs uppercase tracking-wider shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-[#F04438] hover:bg-[#d13b30] active:bg-[#b83029] text-white font-bold rounded-none transition-all text-xs uppercase tracking-wider shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -249,7 +248,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       >
         <div className="shrink-0 h-[3vh] md:h-[5vh] min-h-[20px]"></div>
 
-        <div className="bg-white w-full max-w-md mx-auto border border-[#E4E7EC] rounded-none shadow-xl overflow-hidden shrink-0">
+        <div className="bg-white w-full max-w-2xl mx-auto border border-[#E4E7EC] rounded-none shadow-xl overflow-hidden shrink-0">
           {/* Card header bar */}
           <div className="bg-[#008080] py-4 px-6 text-center">
             <span className="text-white font-extrabold text-sm uppercase tracking-widest">CANDIDATE LOGIN</span>
@@ -330,32 +329,34 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-[#667085] mb-2 uppercase tracking-wider">Roll Number / Application No</label>
-                  <input
-                    type="text"
-                    value={rollNumber}
-                    onChange={(e) => setRollNumber(e.target.value)}
-                    required
-                    placeholder="Enter your roll number"
-                    className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] placeholder-[#98A2B3] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
-                  />
-                </div>
+                <div className="grid grid-cols-1 gap-5">
+                  <div>
+                    <label className="block text-xs font-bold text-[#667085] mb-2 uppercase tracking-wider">Roll Number / Application No</label>
+                    <input
+                      type="text"
+                      value={rollNumber}
+                      onChange={(e) => setRollNumber(e.target.value)}
+                      required
+                      placeholder="Enter your roll number"
+                      className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] placeholder-[#98A2B3] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-[#667085] mb-2 uppercase tracking-wider">Date of Birth</label>
-                  <input
-                    type="date"
-                    value={dob}
-                    onChange={(e) => setDob(e.target.value)}
-                    required
-                    className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
-                  />
+                  <div>
+                    <label className="block text-xs font-bold text-[#667085] mb-2 uppercase tracking-wider">Date of Birth</label>
+                    <input
+                      type="date"
+                      value={dob}
+                      onChange={(e) => setDob(e.target.value)}
+                      required
+                      className="w-full px-4 py-2.5 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
+                    />
+                  </div>
                 </div>
 
                 {error && (
                   <div className="border border-[#F04438]/20 bg-[#F04438]/10 p-3 rounded-none text-[#F04438] text-sm font-semibold flex items-center gap-2">
-                    <span>⚠</span> {error}
+                    {error}
                   </div>
                 )}
 
@@ -369,21 +370,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   </button>
                 </div>
 
-                {/* DEV BYPASS BUTTON FOR TESTING */}
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    disabled={loading}
-                    onClick={() => {
-                      const mockStudent = { id: 'dev-student', full_name: 'Dev Student' };
-                      const mockExam = { id: 'dev-exam', title: 'Dev Exam', duration_minutes: 60 };
-                      onLoginSuccess(mockStudent, mockExam, 'exam');
-                    }}
-                    className="w-full py-2 bg-[#7A5AF8]/10 hover:bg-[#7A5AF8]/20 text-[#7A5AF8] font-bold border border-[#7A5AF8]/20 rounded-none transition-colors text-xs uppercase tracking-wider"
-                  >
-                    DEV: SKIP LOGIN
-                  </button>
-                </div>
+
               </form>
           </div>
         </div>

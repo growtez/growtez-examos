@@ -59,7 +59,7 @@ export const openRazorpayCheckout = async (params: RazorpayCheckoutParams) => {
       currency: orderData.currency,
       name: 'ParikshaOS',
       description: `Purchase ${planName}`,
-      image: '/logo_nobg.png', // Assuming we have a logo
+      image: '/ParikshaOS_logo.png',
       order_id: orderData.orderId,
       prefill: {
         email: userEmail || '',
@@ -70,7 +70,7 @@ export const openRazorpayCheckout = async (params: RazorpayCheckoutParams) => {
         school_id: schoolId,
       },
       theme: {
-        color: '#4F46E5', // Indigo-600
+        color: '#008080',
       },
       handler: async function (response: any) {
         try {

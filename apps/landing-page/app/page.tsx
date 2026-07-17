@@ -9,7 +9,7 @@ import Footer from '../src/components/sections/Footer';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-50 relative">
+    <main className="min-h-screen bg-bg text-text-main relative">
       <Navbar />
       <Hero />
       <BentoGrid />

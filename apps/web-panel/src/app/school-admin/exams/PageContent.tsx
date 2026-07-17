@@ -25,10 +25,13 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   const [sortBy, setSortBy] = useState('newest');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(8);
+  const [isPerPageOpen, setIsPerPageOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
 
   const scrollRight = () => {
@@ -302,317 +305,203 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
 
-      {/* Global Template Presets */}
-      {role !== 'teacher' && (loading || templates.length > 0) && (
-        <div className="mb-8 mt-2">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider inline-flex items-center gap-1.5">
-                Exam Templates
-                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent-primary/10 text-accent-primary text-[10px] font-bold normal-case tracking-normal">
-                  {templates.length}
-                </span>
-              </span>
-              <div className="h-4 w-px bg-border hidden lg:block" />
 
-            </div>
-
-            <div className="flex items-center gap-2 w-full lg:w-auto">
-              <div className="relative flex-1 lg:flex-none">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" size={12} />
-                <input
-                  type="text"
-                  placeholder="Search templates..."
-                  value={templateSearchQuery}
-                  onChange={(e) => setTemplateSearchQuery(e.target.value)}
-                  className="w-full lg:w-48 h-8 pl-7 pr-7 bg-surface-hover border border-border rounded-lg text-[11px] focus:outline-none focus:border-accent-primary transition-all text-text-main"
-                />
-                {templateSearchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setTemplateSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-red-500 flex items-center justify-center bg-transparent border-none cursor-pointer p-0.5"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-              {role !== 'teacher' && (
-                <Link href="/school-admin/exams/trash"
-                  className="inline-flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-surface-hover text-text-main text-[11px] font-bold hover:bg-border transition-all border border-border shrink-0 cursor-pointer ml-auto lg:ml-0">
-                  <Trash2 size={12} /> Trash
-                </Link>
-              )}
-            </div>
-          </div>
-
-          <div className="flex flex-col md:flex-row gap-4 w-full">
-            {/* Templates Slider */}
-            <div className="relative w-full overflow-hidden rounded-2xl group/slider">
-
-              {/* Scroll Left Button */}
-              {filteredTemplates.length > 0 && (
-                <button
-                  onClick={scrollLeft}
-                  className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 mb-2 w-8 h-8 items-center justify-center bg-surface border border-border rounded-full shadow-lg text-accent-primary hover:bg-accent-primary hover:text-white transition-all opacity-0 invisible group-hover/slider:opacity-100 group-hover/slider:visible cursor-pointer z-20"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-              )}
-
-              <div ref={sliderRef} className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scroll-smooth w-full h-full [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border hover:[&::-webkit-scrollbar-thumb]:bg-text-muted/40">
-                {loading ? (
-                  [...Array(4)].map((_, i) => (
-                    <div key={i} className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm flex flex-col w-[280px] shrink-0 h-[190px] animate-pulse">
-                      <div className="h-5 bg-surface-hover rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-surface-hover rounded w-1/2 mb-6"></div>
-                      <div className="space-y-3 mb-4">
-                        <div className="h-3 bg-surface-hover rounded w-full"></div>
-                        <div className="h-3 bg-surface-hover rounded w-full"></div>
-                        <div className="h-3 bg-surface-hover rounded w-3/4"></div>
-                      </div>
-                      <div className="h-8 bg-surface-hover rounded-xl w-full mt-auto"></div>
-                    </div>
-                  ))
-                ) : filteredTemplates.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center w-full py-8 text-center">
-                    <div className="w-10 h-10 rounded-xl bg-surface-hover flex items-center justify-center text-text-muted mb-2">
-                      <Search size={18} />
-                    </div>
-                    <p className="text-[12px] font-semibold text-text-main">No templates found</p>
-                    <p className="text-[11px] text-text-muted mt-0.5">Try a different search term</p>
-                  </div>
-                ) : (
-                  filteredTemplates.map(template => (
-                    <div key={template.id} className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all group overflow-hidden flex flex-col w-[280px] shrink-0 snap-start">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="text-base font-extrabold text-text-main tracking-tight">{template.title}</h3>
-                          <p className="text-[11px] text-text-muted">{template.description || 'Custom Template'}</p>
-                        </div>
-                      </div>
-                      <div className="space-y-1 mb-4">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-text-muted">Duration</span>
-                          <span className="font-semibold text-text-main">{template.duration_minutes} min</span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] gap-2">
-                          <span className="text-text-muted shrink-0">Subjects</span>
-                          <span className="font-semibold text-text-main truncate max-w-[120px]" title={template.exam_template_subjects?.map((s: any) => s.subject_name).join(' · ')}>
-                            {template.exam_template_subjects?.map((s: any) => s.subject_name).join(' · ') || 'None'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-text-muted">Marking</span>
-                          <span className="font-semibold text-text-main">
-                            +{template.marking_scheme?.mcq_correct || 0} / {template.marking_scheme?.mcq_wrong || 0}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleCreateExam(template.id)}
-                        disabled={creatingId !== null}
-                        className="mt-auto flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer disabled:opacity-50"
-                      >
-                        <Plus size={13} /> {creatingId === template.id ? 'Creating...' : 'Use Template'}
-                      </button>
-                    </div>
-                  )))}
-              </div>
-
-              {/* Scroll Right Button */}
-              {filteredTemplates.length > 0 && (
-                <button
-                  onClick={scrollRight}
-                  className="hidden lg:flex absolute right-0 top-1/2 -translate-y-1/2 mb-2 w-8 h-8 items-center justify-center bg-surface border border-border rounded-full shadow-lg text-accent-primary hover:bg-accent-primary hover:text-white transition-all opacity-0 invisible group-hover/slider:opacity-100 group-hover/slider:visible cursor-pointer z-20"
-                >
-                  <ChevronRight size={18} />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Your Exams Heading */}
-      <div className="flex w-full items-center justify-between gap-3 mb-3 mt-2">
-        <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider inline-flex items-center gap-1.5">
+      {/* Toolbar: heading + search + filters + create */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        {/* Title */}
+        <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider inline-flex items-center gap-1.5 shrink-0">
           {role === 'teacher' ? 'Assigned Exams' : 'Your Exams'}
           <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent-primary/10 text-accent-primary text-[10px] font-bold normal-case tracking-normal">
             {filteredExams.length}
           </span>
         </span>
-        {role !== 'teacher' && (
-          <>
-            <button onClick={() => handleCreateExam()} disabled={creatingId !== null}
-              className="inline-flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-accent-primary/10 text-accent-primary text-[11px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 shrink-0 cursor-pointer disabled:opacity-50">
-              <Plus size={12} />
-              {creatingId === 'blank' ? 'Creating...' : 'Create Exam'}
-            </button>
-          </>
-        )}
-      </div>
 
-      {/* Control Panel */}
-      <div className="flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border mb-4">
-        {/* Search Box */}
-        <div className="relative w-full md:max-w-[260px] shrink-0">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted md:hidden" size={12} />
-          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hidden md:block" size={16} />
+        <div className="h-4 w-px bg-border mx-1" />
+
+        {/* Search */}
+        <div className="relative flex-1 min-w-[140px] max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" size={12} />
           <input
             type="text"
-            placeholder="Search Exams..."
+            placeholder="Search exams..."
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-            className="w-full h-8 md:h-auto pl-7 md:pl-4 pr-7 md:pr-10 bg-surface-hover border border-border rounded-lg md:rounded-full text-text-main text-[11px] md:text-[13px] md:py-2 focus:outline-none focus:border-accent-primary md:focus:border-border focus:ring-0 md:focus:ring-1 md:focus:ring-accent-primary transition-all"
+            className="w-full h-8 pl-7 pr-6 bg-surface border border-border rounded-lg text-text-main text-[12px] focus:outline-none focus:border-accent-primary transition-all"
           />
           {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-red-500 flex items-center justify-center bg-transparent border-none cursor-pointer p-0.5"
-            >
-              <X size={12} />
+            <button type="button" onClick={() => setSearchQuery('')}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-red-500 bg-transparent border-none cursor-pointer flex items-center p-0.5">
+              <X size={10} />
             </button>
           )}
         </div>
 
-        {/* Inline Active Filters */}
-        <div className="hidden md:flex flex-1 items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0">
-          {(searchQuery || filterStatus !== 'all' || sortBy !== 'newest') ? (
-            <>
-              <span className="text-[11px] text-text-muted font-medium uppercase tracking-wider shrink-0 mr-1">Active:</span>
-              {searchQuery && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
-                  "{searchQuery}"
-                  <button onClick={() => setSearchQuery('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
-                </span>
-              )}
-              {filterStatus !== 'all' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
-                  {filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1)}
-                  <button onClick={() => setFilterStatus('all')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
-                </span>
-              )}
-              {sortBy !== 'newest' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
-                  {sortBy === 'oldest' ? 'Oldest' : sortBy === 'title' ? 'A-Z (Title)' : sortBy}
-                  <button onClick={() => setSortBy('newest')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
-                </span>
-              )}
-              <button
-                onClick={() => { setSearchQuery(''); setFilterStatus('all'); setSortBy('newest'); setPage(1); }}
-                className="text-[11px] text-text-muted hover:text-red-500 transition-colors ml-1 bg-transparent border-none cursor-pointer font-medium shrink-0"
-              >
-                Clear
-              </button>
-            </>
-          ) : (
-            <span className="text-[11px] text-text-muted italic opacity-50">No active filters</span>
-          )}
-        </div>
-
-        {/* Pagination Controls */}
-        <div className="hidden md:flex items-center justify-between md:justify-start gap-1 shrink-0 md:border-x md:border-border/50 px-3 py-1.5 md:py-0 w-full md:w-auto">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
-            <ChevronLeft size={14} />
+        {/* Filter dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className={`inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border text-[12px] font-medium transition-all cursor-pointer ${
+              filterStatus !== 'all'
+                ? 'bg-accent-primary text-white border-accent-primary'
+                : 'bg-surface border-border text-text-main hover:bg-surface-hover'
+            }`}
+          >
+            <Filter size={12} />
+            {filterStatus === 'all' ? 'Filter' : filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1)}
           </button>
-          <div className="flex items-center justify-center gap-1 w-[80px]">
-            {getPaginationPages().map((p, i) => p === '...' ? (
-              <div key={`ellipsis-${i}`} className="w-6 h-6 flex items-center justify-center text-[11px] text-text-muted">…</div>
-            ) : (
-              <button key={p} onClick={() => setPage(p as number)} className={`w-6 h-6 flex items-center justify-center rounded text-[11px] font-semibold transition-colors border-none cursor-pointer ${safePage === p ? 'bg-accent-primary text-white' : 'text-text-muted hover:bg-surface-hover bg-transparent'}`}>{p as number}</button>
-            ))}
-          </div>
-          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
-            <ChevronRight size={14} />
-          </button>
-        </div>
-
-        {/* Per-page & Actions */}
-        <div className="hidden md:flex flex-wrap items-center gap-2 shrink-0 w-full md:w-auto">
-          <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="py-1.5 px-2 rounded-lg border border-border bg-surface text-text-main text-[12px] focus:outline-none focus:ring-1 focus:ring-accent-primary cursor-pointer flex-1 md:flex-none">
-            {[8, 20, 50, 100].map(n => <option key={n} value={n}>{n} / page</option>)}
-          </select>
-          <div className="relative group flex-1 md:flex-none">
-            <button
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-medium"
-            >
-              <Filter size={14} className="text-accent-primary" /> Filter
-            </button>
-            <div className={`absolute right-0 top-full mt-2 w-32 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col overflow-hidden py-1 ${isFilterOpen ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'
-              }`}>
+          {isFilterOpen && (
+            <div className="absolute left-0 top-full mt-1 w-32 bg-surface border border-border rounded-xl shadow-lg z-50 flex flex-col overflow-hidden py-1">
               {['all', 'draft', 'published', 'active', 'completed'].map(status => (
-                <button key={status} onClick={() => { setFilterStatus(status); setPage(1); setIsFilterOpen(false); }} className={`px-4 py-2 text-left text-[13px] hover:bg-surface-hover transition-colors ${filterStatus === status ? 'text-accent-primary font-medium bg-blue-500/5' : 'text-text-main'}`}>
+                <button key={status}
+                  onClick={() => { setFilterStatus(status); setPage(1); setIsFilterOpen(false); }}
+                  className={`px-3 py-1.5 text-left text-[12px] hover:bg-surface-hover transition-colors ${
+                    filterStatus === status ? 'text-accent-primary font-semibold' : 'text-text-main'
+                  }`}>
                   {status.charAt(0).toUpperCase() + status.slice(1)}
                 </button>
               ))}
             </div>
+          )}
+        </div>
+
+        {/* Sort */}
+        <button
+          onClick={() => toggleSort('newest')}
+          className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover text-[12px] font-medium transition-all cursor-pointer"
+        >
+          {getSortIcon('newest')}
+          {sortBy === 'oldest' ? 'Oldest' : sortBy === 'title' ? 'A-Z' : 'Newest'}
+        </button>
+
+
+        {/* Trash */}
+        {role !== 'teacher' && (
+          <Link href="/exams/trash"
+            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border border-border bg-surface text-text-muted hover:bg-surface-hover text-[12px] font-medium transition-all cursor-pointer">
+            <Trash2 size={12} /> Trash
+          </Link>
+        )}
+
+        {/* Active filter chips */}
+        {(searchQuery || filterStatus !== 'all' || sortBy !== 'newest') && (
+          <button
+            onClick={() => { setSearchQuery(''); setFilterStatus('all'); setSortBy('newest'); setPage(1); }}
+            className="inline-flex items-center gap-1 px-2 h-8 rounded-lg text-[11px] text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer bg-transparent border-none"
+          >
+            <X size={10} /> Clear
+          </button>
+        )}
+
+        <div className="ml-auto flex items-center gap-1.5">
+          {/* Pagination */}
+          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
+            className="w-7 h-7 flex items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
+            <ChevronLeft size={13} />
+          </button>
+          <span className="text-[11px] font-medium text-text-muted whitespace-nowrap px-1">
+            {safePage} / {totalPages}
+          </span>
+          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
+            className="w-7 h-7 flex items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
+            <ChevronRight size={13} />
+          </button>
+
+          {/* Per page */}
+          <div className="relative">
+            <button
+              onClick={() => setIsPerPageOpen(!isPerPageOpen)}
+              className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-border bg-surface text-text-main text-[11px] font-medium hover:bg-surface-hover transition-all cursor-pointer"
+            >
+              {perPage}/pg
+              <ChevronRight size={12} className={`text-text-muted transition-transform duration-200 ${isPerPageOpen ? '-rotate-90' : 'rotate-90'}`} />
+            </button>
+            {isPerPageOpen && (
+              <div className="absolute right-0 top-full mt-1 w-20 bg-surface border border-border rounded-xl shadow-lg z-50 flex flex-col overflow-hidden py-1">
+                {[8, 20, 50, 100].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => { setPerPage(n); setPage(1); setIsPerPageOpen(false); }}
+                    className={`px-3 py-1.5 text-left text-[11px] hover:bg-surface-hover transition-colors ${
+                      perPage === n ? 'text-accent-primary font-bold' : 'text-text-main font-medium'
+                    }`}
+                  >
+                    {n}/pg
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <button
-            onClick={handleExport}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors text-[12px] font-medium cursor-pointer border-none flex-1 md:flex-none"
-          >
-            <Download size={14} /> Export
-          </button>
+          {/* Templates button */}
+          {role !== 'teacher' && (
+            <button
+              onClick={() => setIsTemplatesOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover text-[12px] font-medium transition-all cursor-pointer"
+            >
+              <FileText size={12} className="text-accent-primary" />
+              Templates
+              {templates.length > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-accent-primary/10 text-accent-primary text-[10px] font-bold">
+                  {templates.length}
+                </span>
+              )}
+            </button>
+          )}
+
+          {/* Create button */}
+          {role !== 'teacher' && (
+            <button onClick={() => handleCreateExam()} disabled={creatingId !== null}
+              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-accent-primary text-white text-[12px] font-bold hover:bg-accent-primary/80 transition-all shrink-0 cursor-pointer disabled:opacity-50">
+              <Plus size={12} />
+              {creatingId === 'blank' ? 'Creating...' : 'New Exam'}
+            </button>
+          )}
         </div>
       </div>
 
       {loading ? (
-        <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
           <table className="w-full animate-pulse">
-            <thead>
-              <tr className="bg-bg">
-                <th className="px-6 py-4"></th>
-                <th className="px-6 py-4"></th>
-                <th className="px-6 py-4"></th>
-                <th className="px-6 py-4"></th>
-                <th className="px-6 py-4"></th>
-                <th className="px-6 py-4"></th>
-              </tr>
-            </thead>
             <tbody>
               {[...Array(5)].map((_, i) => (
                 <tr key={i} className="border-b border-border">
-                  <td className="px-6 py-5"><div className="h-4 bg-bg rounded w-3/4 mb-2"></div><div className="h-3 bg-bg rounded w-1/2"></div></td>
-                  <td className="px-6 py-5"><div className="h-4 bg-bg rounded w-1/2"></div></td>
-                  <td className="px-6 py-5"><div className="h-4 bg-bg rounded w-1/3"></div></td>
-                  <td className="px-6 py-5"><div className="h-6 bg-bg rounded w-20"></div></td>
-                  <td className="px-6 py-5"><div className="h-4 bg-bg rounded w-2/3"></div></td>
-                  <td className="px-6 py-5"><div className="h-4 bg-bg rounded w-12 ml-auto"></div></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-bg rounded w-3/4"></div></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-bg rounded w-1/2"></div></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-bg rounded w-1/3"></div></td>
+                  <td className="px-4 py-3"><div className="h-5 bg-bg rounded w-16"></div></td>
+                  <td className="px-4 py-3"><div className="h-3 bg-bg rounded w-2/3"></div></td>
+                  <td className="px-4 py-3"><div className="h-5 bg-bg rounded w-12 ml-auto"></div></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       ) : exams.length === 0 ? (
-        <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm p-16 flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 rounded-2xl bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-4">
-            <FileText size={32} />
+        <div className="bg-surface border border-border rounded-xl shadow-sm p-8 flex flex-col items-center justify-center text-center">
+          <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-3">
+            <FileText size={20} />
           </div>
-          <h3 className="text-text-main font-bold text-lg">No exams yet</h3>
-          <p className="text-text-muted mt-1 text-sm font-medium">
+          <h3 className="text-text-main font-bold text-sm">No exams yet</h3>
+          <p className="text-text-muted mt-0.5 text-xs">
             {role === 'teacher' ? "You haven't been assigned any exams yet." : "Create your first exam to get started"}
           </p>
         </div>
       ) : filteredExams.length === 0 ? (
-        <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm p-16 flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 rounded-2xl bg-surface-hover flex items-center justify-center text-text-muted mb-4">
-            <Search size={28} />
+        <div className="bg-surface border border-border rounded-xl shadow-sm p-8 flex flex-col items-center justify-center text-center">
+          <div className="w-10 h-10 rounded-xl bg-surface-hover flex items-center justify-center text-text-muted mb-3">
+            <Search size={18} />
           </div>
-          <h3 className="text-text-main font-bold text-lg">No matching exams</h3>
-          <p className="text-text-muted mt-1 text-sm font-medium">
-            {searchQuery ? `No exams found for "${searchQuery}"` : "Try adjusting your filters"}
+          <h3 className="text-text-main font-bold text-sm">No matching exams</h3>
+          <p className="text-text-muted mt-0.5 text-xs">
+            {searchQuery ? `No results for "${searchQuery}"` : 'Try adjusting your filters'}
           </p>
           <button
             onClick={() => { setSearchQuery(''); setFilterStatus('all'); setSortBy('newest'); setPage(1); }}
-            className="mt-4 inline-flex items-center justify-center gap-1.5 px-4 h-9 rounded-lg bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
+            className="mt-3 inline-flex items-center gap-1.5 px-3 h-7 rounded-lg bg-accent-primary/10 text-accent-primary text-[11px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
           >
-            Clear search & filters
+            Clear filters
           </button>
         </div>
       ) : (
@@ -671,46 +560,43 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
           <div className="hidden md:block">
             {role === 'teacher' ? (
               /* Teacher Card View */
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {pagedExams.map((exam) => (
-                  <div key={exam.id} className="bg-surface rounded-2xl border border-border hover:border-accent-primary/30 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group">
-                    <div className="p-5 flex-1">
-                      <div className="flex justify-between items-start mb-3">
-                        <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${statusColors[exam.status] || statusColors.draft}`}>
+                  <div key={exam.id} className="bg-surface rounded-xl border border-border hover:border-accent-primary/30 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group">
+                    <div className="p-4 flex-1">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className={`inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border ${statusColors[exam.status] || statusColors.draft}`}>
                           {exam.status}
                         </span>
-                        <span className="text-xs text-text-muted font-medium">{formatDate(exam.created_at)}</span>
+                        <span className="text-[11px] text-text-muted">{formatDate(exam.created_at)}</span>
                       </div>
-                      <h3 className="text-lg font-bold text-text-main mb-1 group-hover:text-accent-primary transition-colors line-clamp-1" title={exam.title}>{exam.title}</h3>
-                      <p className="text-xs text-text-muted font-medium flex items-center gap-1.5 mb-4">
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent-primary/40"></span>
-                        Duration: {exam.duration_minutes} mins
+                      <h3 className="text-sm font-bold text-text-main mb-1 group-hover:text-accent-primary transition-colors line-clamp-1" title={exam.title}>{exam.title}</h3>
+                      <p className="text-[11px] text-text-muted flex items-center gap-1 mb-3">
+                        <span className="w-1 h-1 rounded-full bg-accent-primary/40"></span>
+                        {exam.duration_minutes} mins
                       </p>
-
-                      <div className="bg-bg rounded-xl p-3 border border-border">
-                        <p className="text-[10px] uppercase font-bold tracking-wider text-text-muted mb-1.5">Your Assigned Subjects</p>
-                        <div className="flex flex-wrap gap-1.5">
+                      <div className="bg-bg rounded-lg p-2 border border-border">
+                        <p className="text-[10px] uppercase font-bold tracking-wider text-text-muted mb-1">Assigned Subjects</p>
+                        <div className="flex flex-wrap gap-1">
                           {exam.teacherSubjects && exam.teacherSubjects.length > 0 ? (
                             exam.teacherSubjects.map((ts: any) => (
-                              <span key={ts.id} className="inline-flex px-2 py-1 bg-surface text-accent-primary border border-border text-[11px] font-bold rounded-lg shadow-sm">
+                              <span key={ts.id} className="inline-flex px-1.5 py-0.5 bg-surface text-accent-primary border border-border text-[10px] font-bold rounded">
                                 {ts.subject_name}
                               </span>
                             ))
                           ) : (
-                            <span className="text-xs text-text-muted">No specific subjects</span>
+                            <span className="text-[11px] text-text-muted">No specific subjects</span>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="p-4 border-t border-border bg-gray-50/50">
+                    <div className="px-4 pb-3">
                       <button
                         onClick={() => router.push(`/exams/${exam.id}`)}
-                        className="w-full py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white text-sm font-bold rounded-xl transition-all shadow-sm flex justify-center items-center gap-2 group-hover:shadow-md active:scale-[0.98]"
+                        className="w-full py-2 bg-accent-primary hover:bg-accent-primary/80 text-white text-[12px] font-bold rounded-lg transition-all flex justify-center items-center gap-2 active:scale-[0.98]"
                       >
-                        {exam.status === 'completed' ? 'View Exam Details' : 'Prepare Questions'}
-                        <svg className="w-4 h-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
+                        {exam.status === 'completed' ? 'View Details' : 'Prepare Questions'}
+                        <ChevronRight size={13} />
                       </button>
                     </div>
                   </div>
@@ -718,56 +604,56 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
               </div>
             ) : (
               /* Standard Admin Table View */
-              <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
+              <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto w-full">
-                  <table className="w-full text-left border-collapse whitespace-nowrap min-w-[900px]">
+                  <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
                     <thead>
-                      <tr className="border-b border-border">
-                        <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[35%]" onClick={() => toggleSort('title')}>
-                          <div className="flex items-center gap-2">Title {getSortIcon('title')}</div>
+                      <tr className="border-b border-border bg-surface-hover/50">
+                        <th className="py-2 px-3 text-[11px] font-bold text-text-muted uppercase tracking-wide cursor-pointer hover:text-text-main transition-colors w-[38%]" onClick={() => toggleSort('title')}>
+                          <div className="flex items-center gap-1.5">Title {getSortIcon('title')}</div>
                         </th>
-                        <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">Duration</th>
-                        <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%]">Students</th>
-                        <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">Status</th>
-                        <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[15%]" onClick={() => toggleSort('newest')}>
-                          <div className="flex items-center gap-2">Created {getSortIcon('newest')}</div>
+                        <th className="py-2 px-3 text-[11px] font-bold text-text-muted uppercase tracking-wide w-[12%]">Duration</th>
+                        <th className="py-2 px-3 text-[11px] font-bold text-text-muted uppercase tracking-wide w-[10%]">Students</th>
+                        <th className="py-2 px-3 text-[11px] font-bold text-text-muted uppercase tracking-wide w-[13%]">Status</th>
+                        <th className="py-2 px-3 text-[11px] font-bold text-text-muted uppercase tracking-wide cursor-pointer hover:text-text-main transition-colors w-[15%]" onClick={() => toggleSort('newest')}>
+                          <div className="flex items-center gap-1.5">Created {getSortIcon('newest')}</div>
                         </th>
-                        <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%] text-right">Actions</th>
+                        <th className="py-2 px-3 text-[11px] font-bold text-text-muted uppercase tracking-wide w-[12%] text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {pagedExams.map((exam) => (
                         <tr key={exam.id} onClick={() => router.push(`/exams/${exam.id}`)} className="group even:bg-bg hover:bg-surface-hover border-b border-border/40 last:border-b-0 transition-colors cursor-pointer">
-                          <td className="py-2.5 px-4 align-middle">
+                          <td className="py-2 px-3 align-middle">
                             <div className="flex flex-col min-w-0">
-                              <span className="font-semibold text-text-main text-[13px] truncate group-hover:text-accent-primary transition-colors max-w-[250px]" title={exam.title}>{exam.title}</span>
-                              {exam.description && <span className="text-[11px] text-text-muted truncate max-w-[250px]" title={exam.description}>{exam.description}</span>}
+                              <span className="font-semibold text-text-main text-[12px] truncate group-hover:text-accent-primary transition-colors max-w-[240px]" title={exam.title}>{exam.title}</span>
+                              {exam.description && <span className="text-[10px] text-text-muted truncate max-w-[240px]" title={exam.description}>{exam.description}</span>}
                             </div>
                           </td>
-                          <td className="py-2.5 px-4 align-middle text-[13px] text-text-muted">{exam.duration_minutes} min</td>
-                          <td className="py-2.5 px-4 align-middle text-[13px] text-text-muted">{exam.exam_students?.[0]?.count || 0}</td>
-                          <td className="py-2.5 px-4 align-middle">
-                            <span className={`inline-flex px-2 py-1 text-[10px] font-bold uppercase rounded-lg border ${statusColors[exam.status] || statusColors.draft}`}>
+                          <td className="py-2 px-3 align-middle text-[12px] text-text-muted">{exam.duration_minutes} min</td>
+                          <td className="py-2 px-3 align-middle text-[12px] text-text-muted">{exam.exam_students?.[0]?.count || 0}</td>
+                          <td className="py-2 px-3 align-middle">
+                            <span className={`inline-flex px-1.5 py-0.5 text-[10px] font-bold uppercase rounded border ${statusColors[exam.status] || statusColors.draft}`}>
                               {exam.status}
                             </span>
                           </td>
-                          <td className="py-2.5 px-4 align-middle text-[13px] text-text-muted whitespace-nowrap">{formatDate(exam.created_at)}</td>
-                          <td className="py-2.5 px-4 align-middle text-right">
-                            <div className="flex items-center justify-end gap-1.5">
+                          <td className="py-2 px-3 align-middle text-[12px] text-text-muted whitespace-nowrap">{formatDate(exam.created_at)}</td>
+                          <td className="py-2 px-3 align-middle text-right">
+                            <div className="flex items-center justify-end gap-1">
                               <button
                                 onClick={(e) => { e.stopPropagation(); router.push(`/exams/${exam.id}`); }}
                                 aria-label="Edit exam"
-                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
+                                className="w-7 h-7 flex items-center justify-center rounded-lg bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer"
                               >
-                                <Pencil size={14} />
+                                <Pencil size={12} />
                               </button>
                               {role !== 'teacher' && (
                                 <button
                                   onClick={(e) => handleDeleteExam(exam, e)}
                                   aria-label="Delete exam"
-                                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 cursor-pointer"
+                                  className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 cursor-pointer"
                                 >
-                                  <Trash2 size={14} />
+                                  <Trash2 size={12} />
                                 </button>
                               )}
                             </div>
@@ -781,6 +667,137 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
             )}
           </div>
         </>
+      )}
+
+      {/* Templates Popup Modal */}
+      {isTemplatesOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6 sm:p-8"
+          onClick={() => { setIsTemplatesOpen(false); setExpandedTemplateId(null); setTemplateSearchQuery(''); }}
+        >
+          <div
+            className="bg-surface border border-border rounded-2xl shadow-2xl w-full flex flex-col animate-in fade-in zoom-in-95 duration-200"
+            style={{ maxHeight: 'calc(100vh - 64px)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+          {/* Top Bar */}
+          <div className="flex items-center gap-4 px-6 py-4 border-b border-border shrink-0">
+            <button
+              onClick={() => { setIsTemplatesOpen(false); setExpandedTemplateId(null); setTemplateSearchQuery(''); }}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:bg-surface-hover hover:text-text-main transition-all cursor-pointer bg-transparent border-none shrink-0"
+            >
+              <X size={16} />
+            </button>
+            <div>
+              <h2 className="text-[15px] font-bold text-text-main leading-tight">Choose a Template</h2>
+              <p className="text-[11px] text-text-muted">{templates.length} templates available — click a card to start</p>
+            </div>
+            <div className="ml-auto flex items-center gap-3">
+              {/* Search */}
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={13} />
+                <input
+                  type="text"
+                  placeholder="Search templates..."
+                  value={templateSearchQuery}
+                  onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                  autoFocus
+                  className="w-full h-9 pl-9 pr-8 bg-surface border border-border rounded-xl text-[13px] focus:outline-none focus:border-accent-primary transition-all text-text-main"
+                />
+                {templateSearchQuery && (
+                  <button type="button" onClick={() => setTemplateSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-red-500 bg-transparent border-none cursor-pointer flex items-center p-0.5">
+                    <X size={11} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Template Grid */}
+          <div className="flex-1 overflow-y-auto px-6 py-6 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border">
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="bg-surface border border-border rounded-2xl p-5 flex flex-col gap-3 animate-pulse">
+                    <div className="h-5 bg-surface-hover rounded w-2/3" />
+                    <div className="h-3 bg-surface-hover rounded w-full" />
+                    <div className="h-3 bg-surface-hover rounded w-3/4" />
+                    <div className="h-9 bg-surface-hover rounded-xl w-full mt-2" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredTemplates.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center py-20">
+                <div className="w-14 h-14 rounded-2xl bg-surface-hover flex items-center justify-center text-text-muted mb-4">
+                  <Search size={24} />
+                </div>
+                <p className="text-[14px] font-bold text-text-main">No templates found</p>
+                <p className="text-[12px] text-text-muted mt-1">Try a different search term</p>
+                <button onClick={() => setTemplateSearchQuery('')}
+                  className="mt-4 px-4 h-8 rounded-lg bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer">
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredTemplates.map(template => (
+                  <div key={template.id} className="bg-surface border-2 border-accent-primary/30 rounded-2xl p-5 flex flex-col gap-3 hover:border-accent-primary/60 hover:shadow-lg transition-all group">
+                    {/* Title */}
+                    <div>
+                      <h3 className="text-[14px] font-bold text-text-main group-hover:text-accent-primary transition-colors leading-snug">{template.title}</h3>
+                      {template.description && (
+                        <p className="text-[11px] text-text-muted mt-0.5 leading-snug line-clamp-2">{template.description}</p>
+                      )}
+                    </div>
+                    {/* Stats */}
+                    <div className="flex flex-col gap-1.5 text-[11px]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-text-muted">Duration</span>
+                        <span className="font-semibold text-text-main">{template.duration_minutes} min</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-text-muted shrink-0">Subjects</span>
+                        <span className="font-semibold text-text-main text-right truncate" title={template.exam_template_subjects?.map((s: any) => s.subject_name).join(', ')}>
+                          {template.exam_template_subjects?.map((s: any) => s.subject_name).join(', ') || '—'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-text-muted">Marking</span>
+                        <span className="font-semibold text-text-main">+{template.marking_scheme?.mcq_correct || 0} / {template.marking_scheme?.mcq_wrong || 0}</span>
+                      </div>
+                    </div>
+                    {/* CTA */}
+                    <button
+                      onClick={() => { handleCreateExam(template.id); setIsTemplatesOpen(false); }}
+                      disabled={creatingId !== null}
+                      className="mt-auto flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-accent-primary/10 text-accent-primary text-[12px] font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer disabled:opacity-50 group-hover:bg-accent-primary group-hover:text-white group-hover:border-accent-primary"
+                    >
+                      <Plus size={13} /> {creatingId === template.id ? 'Creating...' : 'Use Template'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-border shrink-0">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">or start fresh</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+            <button
+              onClick={() => { handleCreateExam(); setIsTemplatesOpen(false); }}
+              disabled={creatingId !== null}
+              className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-accent-primary text-white text-[13px] font-bold hover:bg-accent-primary/90 transition-all cursor-pointer disabled:opacity-50 shadow-sm"
+            >
+              <Plus size={15} /> {creatingId === 'blank' ? 'Creating...' : 'Start with a Blank Exam'}
+            </button>
+          </div>
+          </div>
+        </div>
       )}
 
       {/* Delete Confirmation Modal */}

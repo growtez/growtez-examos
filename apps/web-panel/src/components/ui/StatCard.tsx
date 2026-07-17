@@ -32,20 +32,25 @@ export const StatCard = ({ label, value, icon, color = 'green', change = '+0%', 
 
     return (
         <div
-            className={`bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-sm flex items-center gap-5 transition-colors ${isClickable ? 'cursor-pointer hover:bg-surface-hover hover:border-accent-primary/50' : ''} ${className}`}
+            className={`bg-surface border border-border rounded-2xl p-4 md:p-6 shadow-sm flex items-center gap-5 transition-colors ${isClickable ? 'cursor-pointer hover:bg-surface-hover hover:border-accent-primary/50 group' : ''} ${className}`}
             onClick={handleClick}
             {...props}
         >
             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${getColors()}`}>
                 {icon}
             </div>
-            <div className="flex flex-col min-w-0">
+            <div className="flex flex-col min-w-0 flex-grow">
                 <div className="text-sm text-text-muted mb-1 truncate">{label}</div>
                 <div className="flex items-baseline gap-2">
                     <div className="text-2xl font-bold text-text-main truncate">{value}</div>
                     <div className="text-xs font-semibold text-emerald-500">{change}</div>
                 </div>
             </div>
+            {isClickable && (
+                <div className="ml-auto text-text-muted/50 group-hover:text-accent-primary transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </div>
+            )}
         </div>
     );
 };

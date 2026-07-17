@@ -4,6 +4,7 @@ import ExamInterface from './components/ExamInterface';
 import WaitingRoom from './components/WaitingRoom';
 import { supabase } from './lib/supabase';
 import { getDeviceId } from './lib/deviceId';
+import parikshaLogo from '../public/ParikshaOS_logo.png';
 
 type Step = 'login' | 'waiting_room' | 'exam' | 'submitted';
 
@@ -160,39 +161,60 @@ function App() {
 
   // ── Submission Complete Screen ─────────────────────────────────────────────
   return (
-    <div 
-      className="h-screen w-screen flex items-center justify-center bg-[#F9FAFB] px-4 py-8 font-sans text-[#1D2939] overflow-y-auto"
-      style={{
-        scrollbarWidth: 'thin',
-        scrollbarColor: '#008080 rgba(0, 0, 0, 0.05)'
-      }}
-    >
-      <div className="w-full max-w-md bg-white border border-[#E4E7EC] rounded-xl shadow-xl overflow-hidden text-center">
-        {/* Header bar */}
-        <div className="bg-[#008080] py-4 px-6">
-          <span className="text-white font-extrabold text-sm uppercase tracking-widest">Submission Complete</span>
+    <div className="h-screen w-screen flex flex-col items-center justify-center font-sans overflow-hidden relative bg-white">
+      {/* Decorative background circles */}
+      <div className="absolute top-[-80px] left-[-80px] w-64 h-64 rounded-full bg-[#008080]/5" />
+      <div className="absolute bottom-[-60px] right-[-60px] w-80 h-80 rounded-full bg-[#008080]/5" />
+      <div className="absolute top-1/2 left-[-120px] w-48 h-48 rounded-full bg-[#008080]/5" />
+
+      {/* Main content */}
+      <div className="relative z-10 flex flex-col items-center text-center px-8 max-w-lg">
+
+        {/* Logo at the top (bigger, w-36 h-36) */}
+        <div className="mb-6">
+          <img src={parikshaLogo} alt="ParikshaOS Logo" className="w-36 h-36 object-contain" />
         </div>
-        <div className="p-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#12B76A]/10 border border-[#12B76A]/20 rounded-full text-[#12B76A] mb-4 shadow-sm">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-extrabold text-[#1D2939] mb-2 uppercase tracking-wider">Test Submitted Successfully!</h2>
-          <p className="text-[#667085] text-sm mb-6 font-medium">
-            Your answers have been uploaded. You may now safely close this application.
+
+        {/* Success icon */}
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#008080]/10 border-2 border-[#008080]/30 mb-6 shadow-sm">
+          <svg className="w-10 h-10 text-[#008080]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+
+        {/* Heading */}
+        <h2 className="text-[#1D2939] text-2xl font-extrabold uppercase tracking-wider mb-3">Exam Submitted!</h2>
+
+        {/* Thank you message */}
+        <p className="text-[#344054] text-base font-medium mb-2 leading-relaxed">
+          Thank you for using <span className="font-bold text-[#008080]">ParikshaOS</span>.
+        </p>
+        <p className="text-[#667085] text-sm mb-8 leading-relaxed">
+          Your answers have been securely saved and uploaded.<br />
+          You may now close this application.
+        </p>
+
+        {/* Close button */}
+        <button
+          id="close-application-btn"
+          onClick={handleCloseApp}
+          className="flex items-center gap-2 px-10 py-3 bg-[#008080] hover:bg-[#006666] text-white font-extrabold text-sm uppercase tracking-widest rounded-none shadow-lg active:scale-95 transition-all mb-10"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          Close Application
+        </button>
+
+        {/* Footer with Text Logo */}
+        <div className="flex flex-col items-center gap-1 mt-4">
+          <h1 className="text-[#008080] text-lg font-black tracking-widest uppercase leading-none">ParikshaOS</h1>
+          <p className="text-[#667085] text-[10px] uppercase tracking-widest font-semibold leading-none">Powered by Growtez</p>
+          <p className="text-[#98A2B3] text-[9px] uppercase tracking-widest mt-2 font-semibold">
+            &copy; {new Date().getFullYear()} Growtez · All Rights Reserved
           </p>
-          <button
-            id="close-application-btn"
-            onClick={handleCloseApp}
-            className="w-full py-3 bg-[#F04438] hover:bg-[#d13b30] active:bg-[#b83029] text-white font-bold rounded-lg transition-colors text-sm uppercase tracking-wider shadow-sm flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Close Application
-          </button>
         </div>
+
       </div>
     </div>
   );

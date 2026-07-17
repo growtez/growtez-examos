@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
-import { Users, GraduationCap, FileText, CheckCircle, Users2, Layers, ArrowRight } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { Users, GraduationCap, FileText, CheckCircle, Users2, Layers } from 'lucide-react';
 import CreateExamButton from '@/components/CreateExamButton';
 
 export default async function SchoolAdminDashboard() {
@@ -35,7 +34,6 @@ export default async function SchoolAdminDashboard() {
   let teacherCount = 0;
   let examCount = 0;
   let activeExamCount = 0;
-  let recentExams: any[] = [];
 
   if (schoolId) {
     const [
@@ -43,15 +41,13 @@ export default async function SchoolAdminDashboard() {
       { count: sCount },
       { count: tCount },
       { count: eCount },
-      { count: aeCount },
-      { data: rExams }
+      { count: aeCount }
     ] = await Promise.all([
       supabase.from('schools').select('name').eq('id', schoolId).single(),
       supabase.from('students').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
       supabase.from('teachers').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
       supabase.from('exams').select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
-      supabase.from('exams').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).in('status', ['published', 'active']),
-      supabase.from('exams').select('id, title, duration_minutes, created_at, status').eq('school_id', schoolId).order('created_at', { ascending: false }).limit(4)
+      supabase.from('exams').select('*', { count: 'exact', head: true }).eq('school_id', schoolId).in('status', ['published', 'active'])
     ]);
 
     schoolName = school?.name ?? schoolName;
@@ -59,13 +55,12 @@ export default async function SchoolAdminDashboard() {
     teacherCount = tCount ?? 0;
     examCount = eCount ?? 0;
     activeExamCount = aeCount ?? 0;
-    recentExams = rExams || [];
   }
 
   const stats = [
-    { label: 'Total Students', value: studentCount, icon: GraduationCap, color: 'text-accent-primary', bg: 'bg-surface-hover/50', border: 'border-border', iconBg: 'bg-accent-primary/10', labelColor: 'text-text-muted', iconColor: 'text-accent-primary' },
-    { label: 'Teachers', value: teacherCount, icon: Users, color: 'text-accent-primary', bg: 'bg-surface-hover/50', border: 'border-border', iconBg: 'bg-accent-primary/10', labelColor: 'text-text-muted', iconColor: 'text-accent-primary' },
-    { label: 'Total Exams', value: examCount, icon: FileText, color: 'text-accent-primary', bg: 'bg-surface-hover/50', border: 'border-border', iconBg: 'bg-accent-primary/10', labelColor: 'text-text-muted', iconColor: 'text-accent-primary' },
+    { label: 'Total Students', value: studentCount, icon: GraduationCap, color: 'text-white', bg: 'bg-accent-primary', border: 'border-accent-primary', iconBg: 'bg-white/20', labelColor: 'text-white/80', iconColor: 'text-white' },
+    { label: 'Teachers', value: teacherCount, icon: Users, color: 'text-white', bg: 'bg-accent-primary', border: 'border-accent-primary', iconBg: 'bg-white/20', labelColor: 'text-white/80', iconColor: 'text-white' },
+    { label: 'Total Exams', value: examCount, icon: FileText, color: 'text-white', bg: 'bg-accent-primary', border: 'border-accent-primary', iconBg: 'bg-white/20', labelColor: 'text-white/80', iconColor: 'text-white' },
     { label: 'Active Exams', value: activeExamCount, icon: CheckCircle, color: 'text-white', bg: 'bg-accent-primary', border: 'border-accent-primary', iconBg: 'bg-white/20', labelColor: 'text-white/80', iconColor: 'text-white' },
   ];
 
@@ -105,7 +100,7 @@ export default async function SchoolAdminDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
           {/* Summary Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-transparent bg-gradient-to-br from-accent-primary to-accent-primary/70 p-6 shadow-xl text-white group">
+          <div className="relative overflow-hidden rounded-2xl border border-transparent bg-gradient-to-br from-accent-primary to-accent-primary/70 p-6 shadow-xl text-white">
             <div className="flex flex-col justify-between h-full relative z-10">
               <div>
                 <span className="text-xs font-semibold text-white/80 uppercase tracking-widest">Overview</span>
@@ -117,14 +112,14 @@ export default async function SchoolAdminDashboard() {
                   <p className="text-4xl font-extrabold">{teacherExamCount}</p>
                   <span className="text-[10px] font-bold text-white/80 uppercase tracking-widest mt-1 block">Assigned Exams</span>
                 </div>
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/20 backdrop-blur-md transition-transform group-hover:scale-110 shadow-lg">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/20 backdrop-blur-md shadow-lg">
                   <FileText className="w-7 h-7 text-white" />
                 </div>
               </div>
             </div>
             {/* Background elements */}
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-colors duration-500"></div>
-            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-black/10 rounded-full blur-2xl group-hover:bg-black/20 transition-colors duration-500"></div>
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-black/10 rounded-full blur-2xl"></div>
           </div>
 
           {/* Recent Exams */}
@@ -177,23 +172,23 @@ export default async function SchoolAdminDashboard() {
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (
-            <div key={stat.label} className={`min-w-[220px] sm:min-w-0 snap-center relative overflow-hidden rounded-xl sm:rounded-2xl border ${stat.border} ${stat.bg} p-3 sm:p-4 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 duration-300 group`}>
+            <div key={stat.label} className={`min-w-[220px] sm:min-w-0 snap-center relative overflow-hidden rounded-xl sm:rounded-2xl border ${stat.border} ${stat.bg} p-3 sm:p-4 shadow-sm`}>
               <div className="flex justify-between items-start relative z-10">
                 <div>
                   <span className={`text-[10px] sm:text-xs font-semibold uppercase tracking-wider ${stat.labelColor}`}>{stat.label}</span>
                   <p className={`text-xl sm:text-2xl font-extrabold mt-0.5 sm:mt-1 ${stat.color}`}>{stat.value}</p>
                 </div>
-                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center ${stat.iconBg} transition-transform group-hover:scale-110 duration-300`}>
+                <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center ${stat.iconBg}`}>
                   <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${stat.iconColor}`} />
                 </div>
               </div>
-              <div className={`absolute -bottom-4 -right-4 w-20 h-20 sm:w-24 sm:h-24 rounded-full ${stat.iconBg} blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-300`} />
+              <div className={`absolute -bottom-4 -right-4 w-20 h-20 sm:w-24 sm:h-24 rounded-full ${stat.iconBg} blur-xl opacity-50`} />
             </div>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 gap-5">
         {/* Quick Actions */}
         <div className="bg-surface rounded-2xl p-5 shadow-sm border border-border flex flex-col h-full">
           <div className="flex items-center gap-3 mb-5">
@@ -209,19 +204,19 @@ export default async function SchoolAdminDashboard() {
           </div>
           <div className="grid grid-cols-2 gap-3 flex-grow">
           <CreateExamButton />
-          <Link href="/teachers" className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border border-border bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-md hover:shadow-accent-primary/5 transition-all group text-center">
+          <Link href="/teachers" className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border-2 border-border/60 bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-lg hover:shadow-accent-primary/10 hover:-translate-y-0.5 transition-all group text-center">
             <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary group-hover:scale-110 group-hover:bg-accent-primary/20 transition-all duration-300">
               <Users size={18} />
             </div>
             <span className="font-bold text-xs text-text-main group-hover:text-accent-primary transition-colors">Manage Teachers</span>
           </Link>
-          <Link href="/students" className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border border-border bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-md hover:shadow-accent-primary/5 transition-all group text-center">
+          <Link href="/students" className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border-2 border-border/60 bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-lg hover:shadow-accent-primary/10 hover:-translate-y-0.5 transition-all group text-center">
             <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary group-hover:scale-110 group-hover:bg-accent-primary/20 transition-all duration-300">
               <Users2 size={18} />
             </div>
             <span className="font-bold text-xs text-text-main group-hover:text-accent-primary transition-colors">Manage Students</span>
           </Link>
-          <Link href="/results" className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border border-border bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-md hover:shadow-accent-primary/5 transition-all group text-center">
+          <Link href="/results" className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border-2 border-border/60 bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-lg hover:shadow-accent-primary/10 hover:-translate-y-0.5 transition-all group text-center">
             <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary group-hover:scale-110 group-hover:bg-accent-primary/20 transition-all duration-300">
               <CheckCircle size={18} />
             </div>
@@ -229,55 +224,6 @@ export default async function SchoolAdminDashboard() {
           </Link>
         </div>
         </div>
-
-        {/* Recent Exams */}
-        <Card className="shadow-sm border-border flex flex-col w-full p-4">
-          <CardHeader className="flex flex-row items-center justify-between pb-4 pt-3 border-b border-border mb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center border border-transparent shadow-sm">
-                <FileText size={16} className="text-accent-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-sm font-extrabold text-text-main leading-tight">
-                  Recent Exams
-                </CardTitle>
-                <p className="text-[10px] font-medium text-text-muted mt-0.5">Latest assessments</p>
-              </div>
-            </div>
-            <Link href="/exams" className="group flex items-center gap-1.5 text-[10px] font-bold text-text-main hover:text-accent-primary bg-surface-hover hover:bg-accent-primary/10 border border-border hover:border-accent-primary px-3 py-1.5 rounded-full transition-all duration-300 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)] hover:shadow-accent-primary/20">
-              View all <ArrowRight size={12} className="text-text-muted group-hover:text-accent-primary group-hover:translate-x-0.5 transition-all duration-300" />
-            </Link>
-          </CardHeader>
-          <CardContent className="flex-grow flex flex-col justify-start">
-            <div className="space-y-3 w-full">
-              {recentExams.length === 0 ? (
-                <p className="text-xs text-text-muted py-6 text-center">No exams scheduled.</p>
-              ) : (
-                recentExams.map((exam) => (
-                  <Link 
-                    key={exam.id} 
-                    href={`/exams/${exam.id}`}
-                    className="block p-3 rounded-xl border border-border bg-surface hover:border-accent-primary hover:bg-accent-primary/5 hover:shadow-md hover:shadow-accent-primary/5 transition-all duration-300 group relative overflow-hidden"
-                  >
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent-primary scale-y-0 group-hover:scale-y-100 transition-transform origin-center duration-300 rounded-l-xl"></div>
-                    <div className="flex justify-between items-start pl-1">
-                      <div className="min-w-0 flex-1 pr-2">
-                        <h4 className="text-xs font-bold text-text-main group-hover:text-accent-primary transition-colors truncate">{exam.title}</h4>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[10px] text-text-muted group-hover:text-accent-primary/70 font-medium transition-colors">{exam.duration_minutes}m</span>
-                          <span className="text-[9px] font-semibold text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded capitalize">{exam.status}</span>
-                        </div>
-                      </div>
-                      <span className="text-[9px] font-medium text-text-muted group-hover:text-accent-primary shrink-0 bg-surface-hover/50 group-hover:bg-accent-primary/10 border border-border group-hover:border-accent-primary transition-all px-1.5 py-0.5 rounded">
-                        {new Date(exam.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
     </div>
