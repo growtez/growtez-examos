@@ -33,6 +33,15 @@ export default function Step4Schedule({
     input.showPicker?.();
   };
 
+  // Calculate actual gap between start and end times when both are set
+  const actualGapMinutes = (startTime && endTime)
+    ? Math.round((new Date(endTime).getTime() - new Date(startTime).getTime()) / 60000)
+    : null;
+
+  const displayDuration = (actualGapMinutes !== null && actualGapMinutes > 0)
+    ? actualGapMinutes
+    : durationMinutes;
+
   return (
     <div className="bg-bg border border-border rounded-2xl p-6 shadow-sm">
       {isReadOnly && (
@@ -46,7 +55,10 @@ export default function Step4Schedule({
         </p>
         <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text-main">
           <Clock3 size={14} className="text-accent-primary" />
-          {durationMinutes} min duration
+          {displayDuration} min duration
+          {actualGapMinutes !== null && actualGapMinutes !== durationMinutes && actualGapMinutes > 0 && (
+            <span className="ml-1 text-[10px] font-semibold text-amber-500">(exam: {durationMinutes} min)</span>
+          )}
         </div>
       </div>
 
