@@ -178,7 +178,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
         .from('exams')
         .select(`*, results(id)`)
         .eq('school_id', activeSchoolId)
-        .eq('status', 'completed')
+        .in('status', ['completed', 'published', 'active'])
         .order('created_at', { ascending: false });
 
       const examsList = (data || []).map(e => ({
@@ -200,14 +200,102 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
   const fetchResults = async (examId: string) => {
     setLoadingResults(true);
     try {
-      const { data, error } = await supabase
+      // 1. Fetch assigned students
+      const { data: esData, error: esError } = await supabase
+        .from('exam_students')
+        .select('*')
+        .eq('exam_id', examId);
+      if (esError) throw esError;
+
+      // 2. Fetch results
+      const { data: resData, error: resError } = await supabase
         .from('results')
-        .select('*, students:student_id(full_name, roll_number, course, batch), exams:exam_id(title, total_marks, start_time)')
-        .eq('exam_id', examId)
-        .order('total_marks', { ascending: false });
-      
-      if (error) throw error;
-      setResults(data || []);
+        .select('*, exams:exam_id(title, total_marks, start_time)')
+        .eq('exam_id', examId);
+      if (resError) throw resError;
+
+      // Collect all student IDs from both assigned students and any results
+      const studentIds = Array.from(new Set([
+        ...(esData || []).map((es: any) => es.student_id),
+        ...(resData || []).map((r: any) => r.student_id)
+      ]));
+
+      // 3. Fetch student details separately
+      let studentsData: any[] = [];
+      if (studentIds.length > 0) {
+        const { data: sData, error: sError } = await supabase
+          .from('students')
+          .select('id, full_name, roll_number, course, batch')
+          .in('id', studentIds);
+        if (sError) throw sError;
+        studentsData = sData || [];
+      }
+
+      // Get exam details from existing state or fallback
+      let examDetails = exams.find(e => e.id === examId);
+      if (!examDetails) {
+        const { data: examData } = await supabase
+          .from('exams')
+          .select('title, total_marks, start_time, status')
+          .eq('id', examId)
+          .single();
+        examDetails = examData;
+      }
+
+      // 4. Merge results with assigned students
+      let merged = [];
+      if (examDetails?.status === 'completed') {
+        merged = studentIds.map((sid: any) => {
+          const studentResult = (resData || []).find((r: any) => r.student_id === sid);
+          const studentInfo = studentsData.find((s: any) => s.id === sid);
+          return {
+            id: studentResult?.id || `no-res-${sid}`,
+            student_id: sid,
+            exam_id: examId,
+            total_marks: studentResult ? (studentResult.total_marks ?? 0) : null,
+            time_taken_seconds: studentResult?.time_taken_seconds || null,
+            submitted_at: studentResult?.submitted_at || null,
+            answers: studentResult?.answers || null,
+            students: studentInfo || null,
+            exams: studentResult?.exams || {
+              title: examDetails?.title || '',
+              total_marks: examDetails?.total_marks || 0,
+              start_time: examDetails?.start_time || null
+            },
+            isAbsent: !studentResult
+          };
+        });
+      } else {
+        // If ongoing, only show students who have a result entry
+        merged = (resData || []).map((studentResult: any) => {
+          const studentInfo = studentsData.find((s: any) => s.id === studentResult.student_id);
+          return {
+            id: studentResult.id,
+            student_id: studentResult.student_id,
+            exam_id: examId,
+            total_marks: studentResult.total_marks ?? 0,
+            time_taken_seconds: studentResult.time_taken_seconds || null,
+            submitted_at: studentResult.submitted_at || null,
+            answers: studentResult.answers || null,
+            students: studentInfo || null,
+            exams: studentResult.exams || {
+              title: examDetails?.title || '',
+              total_marks: examDetails?.total_marks || 0,
+              start_time: examDetails?.start_time || null
+            },
+            isAbsent: false
+          };
+        });
+      }
+
+      // Sort by total marks descending (placing absent/null at the end)
+      merged.sort((a: any, b: any) => {
+        if (a.isAbsent && !b.isAbsent) return 1;
+        if (!a.isAbsent && b.isAbsent) return -1;
+        return (b.total_marks ?? 0) - (a.total_marks ?? 0);
+      });
+
+      setResults(merged);
 
       const { data: qData } = await supabase
         .from('questions')
@@ -310,14 +398,15 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
     }
   };
 
-  const handleDownloadStudentAnswerKey = (studentResult: any) => {
+  const handleDownloadStudentAnswerKey = async (studentResult: any) => {
     if (!studentResult.id) return;
-    const link = document.createElement('a');
-    link.href = `/api/download/answer-key?resultId=${studentResult.id}`;
-    link.download = '';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    setGeneratingStudentId(studentResult.id);
+    try {
+      const { downloadAnswerKey } = await import('@/lib/downloadAnswerKey');
+      await downloadAnswerKey(studentResult.id);
+    } finally {
+      setGeneratingStudentId(null);
+    }
   };
 
   const handleCopyLink = () => {
@@ -421,8 +510,10 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
               >
                 <div>
                   <div className="flex justify-between items-start mb-4">
-                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700`}>
-                      {exam.status || 'Draft'}
+                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                      exam.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {exam.status === 'completed' ? 'Completed' : 'Ongoing'}
                     </span>
                     {exam.total_marks && (
                       <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted bg-surface-hover px-2 py-1 rounded-md border border-border/50">
@@ -686,11 +777,17 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
                         <span className="text-text-main font-semibold text-[13px]">{res.students?.full_name}</span>
                       </td>
                       <td className="py-2.5 px-4 align-middle text-center">
-                        <span className="text-accent-primary font-bold text-base">{res.total_marks ?? 0}</span>
+                        {res.isAbsent ? (
+                          <span className="text-text-muted font-medium text-[13px]">—</span>
+                        ) : (
+                          <span className="text-accent-primary font-bold text-base">{res.total_marks ?? 0}</span>
+                        )}
                       </td>
                       <td className="py-2.5 px-4 align-middle">
                         <div className="flex flex-col gap-0.5 text-[11px]">
-                          {Array.isArray(res.section_scores) ? (
+                          {res.isAbsent ? (
+                            <span className="text-text-muted">—</span>
+                          ) : Array.isArray(res.section_scores) ? (
                             res.section_scores.map((score: any, idx: number) => (
                               <div key={idx} className="text-text-muted">
                                 <span className="font-semibold text-text-main">{score.subject_name}:</span> {score.marks} marks ({score.correct}C/{score.wrong}W)
@@ -702,7 +799,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
                         </div>
                       </td>
                       <td className="py-2.5 px-4 align-middle text-text-muted text-[13px] text-center font-medium">
-                        {formatTime(res.time_taken_seconds)}
+                        {res.isAbsent ? '—' : formatTime(res.time_taken_seconds)}
                       </td>
                       <td className="py-2.5 px-4 align-middle text-text-muted text-[11px] text-center">
                         {res.submitted_at ? (
@@ -725,6 +822,8 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
                             {generatingStudentId === res.id ? <Loader2 size={12} className="animate-spin" /> : <FileText size={12} />}
                             Answer Key
                           </button>
+                        ) : res.isAbsent ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">Absent</span>
                         ) : (
                           <span className="text-text-muted text-[11px] font-medium">In Progress</span>
                         )}

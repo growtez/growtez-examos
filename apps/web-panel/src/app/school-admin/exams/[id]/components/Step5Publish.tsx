@@ -64,6 +64,7 @@ export default function Step5Publish({
   const [resultsSortBy, setResultsSortBy] = useState('rank');
   const [isResultsFilterOpen, setIsResultsFilterOpen] = useState(false);
   const [isGeneratingResultsPdf, setIsGeneratingResultsPdf] = useState(false);
+  const [isGeneratingAnswerKey, setIsGeneratingAnswerKey] = useState<Record<string, boolean>>({});
 
   const isPublishedForFetch = exam.status !== 'draft';
 
@@ -73,13 +74,81 @@ export default function Step5Publish({
     const fetchResults = async () => {
       setLoadingResults(true);
       try {
-        const { data, error } = await supabase
+        // 1. Fetch assigned students
+        const { data: esData, error: esError } = await supabase
+          .from('exam_students')
+          .select('*')
+          .eq('exam_id', exam.id);
+        if (esError) throw esError;
+
+        // 2. Fetch results
+        const { data: resData, error: resError } = await supabase
           .from('results')
-          .select('*, students:student_id(full_name, roll_number, course, batch)')
-          .eq('exam_id', exam.id)
-          .order('total_marks', { ascending: false });
-        if (error) throw error;
-        if (!cancelled) setResults(data || []);
+          .select('*')
+          .eq('exam_id', exam.id);
+        if (resError) throw resError;
+
+        // Collect all student IDs from both assigned students and any results
+        const studentIds = Array.from(new Set([
+          ...(esData || []).map((es: any) => es.student_id),
+          ...(resData || []).map((r: any) => r.student_id)
+        ]));
+
+        // 3. Fetch student details separately
+        let studentsData: any[] = [];
+        if (studentIds.length > 0) {
+          const { data: sData, error: sError } = await supabase
+            .from('students')
+            .select('id, full_name, roll_number, course, batch')
+            .in('id', studentIds);
+          if (sError) throw sError;
+          studentsData = sData || [];
+        }
+
+        // 4. Merge results with assigned students
+        let merged = [];
+        if (exam.status === 'completed') {
+          merged = studentIds.map((sid: any) => {
+            const studentResult = (resData || []).find((r: any) => r.student_id === sid);
+            const studentInfo = studentsData.find((s: any) => s.id === sid);
+            return {
+              id: studentResult?.id || `no-res-${sid}`,
+              student_id: sid,
+              exam_id: exam.id,
+              total_marks: studentResult ? (studentResult.total_marks ?? 0) : null,
+              time_taken_seconds: studentResult?.time_taken_seconds || null,
+              submitted_at: studentResult?.submitted_at || null,
+              answers: studentResult?.answers || null,
+              students: studentInfo || null,
+              isAbsent: !studentResult
+            };
+          });
+        } else {
+          // If ongoing, only show students who have a result entry (are in progress or submitted)
+          merged = (resData || []).map((studentResult: any) => {
+            const studentInfo = studentsData.find((s: any) => s.id === studentResult.student_id);
+            return {
+              id: studentResult.id,
+              student_id: studentResult.student_id,
+              exam_id: exam.id,
+              total_marks: studentResult.total_marks ?? 0,
+              time_taken_seconds: studentResult.time_taken_seconds || null,
+              submitted_at: studentResult.submitted_at || null,
+              answers: studentResult.answers || null,
+              students: studentInfo || null,
+              isAbsent: false
+            };
+          });
+        }
+
+        // Sort by total marks descending (placing absent/null at the end)
+        merged.sort((a: any, b: any) => {
+          if (a.isAbsent && !b.isAbsent) return 1;
+          if (!a.isAbsent && b.isAbsent) return -1;
+          return (b.total_marks ?? 0) - (a.total_marks ?? 0);
+        });
+
+        if (!cancelled) setResults(merged);
       } catch (err) {
         console.error(err);
       } finally {
@@ -167,7 +236,7 @@ export default function Step5Publish({
               </tr>
             </thead>
             <tbody>
-      `;
+          `;
 
       for (const row of filteredResultsRows) {
         const score = row.total_marks ?? 'N/A';
@@ -204,14 +273,12 @@ export default function Step5Publish({
     }
   };
 
-  const handleDownloadStudentAnswerKey = (studentResult: any) => {
+  const handleDownloadStudentAnswerKey = async (studentResult: any) => {
     if (!studentResult.id) return;
-    const link = document.createElement('a');
-    link.href = `/api/download/answer-key?resultId=${studentResult.id}`;
-    link.download = '';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const { downloadAnswerKey } = await import('@/lib/downloadAnswerKey');
+    await downloadAnswerKey(studentResult.id, (loading) => {
+      setIsGeneratingAnswerKey(prev => ({ ...prev, [studentResult.id]: loading }));
+    });
   };
 
   const isSetupComplete =
@@ -570,10 +637,14 @@ export default function Step5Publish({
                             <span className="text-text-main font-semibold text-[13px]">{res.students?.full_name}</span>
                           </td>
                           <td className="py-2.5 px-4 align-middle text-center">
-                            <span className="text-accent-primary font-bold text-base">{res.total_marks ?? 0}</span>
+                            {res.isAbsent ? (
+                              <span className="text-text-muted font-medium text-[13px]">—</span>
+                            ) : (
+                              <span className="text-accent-primary font-bold text-base">{res.total_marks ?? 0}</span>
+                            )}
                           </td>
                           <td className="py-2.5 px-4 align-middle text-text-muted text-[13px] text-center font-medium">
-                            {formatTimeTaken(res.time_taken_seconds)}
+                            {res.isAbsent ? '—' : formatTimeTaken(res.time_taken_seconds)}
                           </td>
                           <td className="py-2.5 px-4 align-middle text-text-muted text-[11px] text-center">
                             {res.submitted_at ? (
@@ -590,11 +661,18 @@ export default function Step5Publish({
                               <button
                                 type="button"
                                 onClick={() => handleDownloadStudentAnswerKey(res)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface hover:bg-accent-primary/10 text-accent-primary font-semibold text-[11px] rounded-lg transition-all hover:scale-105 active:scale-95 border-none cursor-pointer"
+                                disabled={!!isGeneratingAnswerKey[res.id]}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface hover:bg-accent-primary/10 text-accent-primary font-semibold text-[11px] rounded-lg transition-all hover:scale-105 active:scale-95 border-none cursor-pointer disabled:opacity-50"
                               >
-                                <FileText size={12} />
+                                {isGeneratingAnswerKey[res.id] ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : (
+                                  <FileText size={12} />
+                                )}
                                 Answer Key
                               </button>
+                            ) : res.isAbsent ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">Absent</span>
                             ) : (
                               <span className="text-text-muted text-[11px] font-medium">In Progress</span>
                             )}

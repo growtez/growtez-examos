@@ -245,6 +245,7 @@ const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const resultId = searchParams.get('resultId');
+  const format = searchParams.get('format');
 
   if (!resultId) {
     return new NextResponse('Missing resultId', { status: 400 });
@@ -287,6 +288,16 @@ export async function GET(request: NextRequest) {
 
   const schoolName = exam.schools?.name || '';
   const studentName = result.students?.full_name || 'Unknown';
+
+  if (format === 'json') {
+    return NextResponse.json({
+      result,
+      exam,
+      questions,
+      schoolName,
+      studentName
+    });
+  }
 
   try {
     const pdfStream = await renderToStream(
