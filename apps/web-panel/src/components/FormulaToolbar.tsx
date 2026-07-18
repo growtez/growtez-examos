@@ -94,8 +94,8 @@ export default function FormulaToolbar({ onInsert, compact = false }: FormulaToo
           <button
             key={item.label}
             type="button"
-            title={`Insert: $${item.insert}$`}
-            onClick={() => onInsert(`$${item.insert}$`)}
+            title={`Insert: ${item.insert}`}
+            onClick={() => onInsert(item.insert)}
             className="px-2 py-1 text-[11px] font-mono bg-bg border border-border rounded-lg hover:bg-accent-primary/10 hover:border-accent-primary/40 hover:text-accent-primary transition-all text-text-main cursor-pointer active:scale-95"
           >
             {item.label}

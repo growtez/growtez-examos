@@ -8,7 +8,21 @@ interface MathRendererProps {
 }
 
 export default function MathRenderer({ text, className }: MathRendererProps) {
-  const parts = text.split(/(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g);
+  let processedText = text || "";
+  
+  // Convert LaTeX native block/inline delimiters to $$ and $ for our parser
+  processedText = processedText.replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$');
+  processedText = processedText.replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
+
+  // Heuristic: If there are no $ signs, but it contains obvious LaTeX math commands,
+  // treat the entire text as a block math equation.
+  const hasMathCommands = /\\(frac|lim|int|sum|prod|sqrt|alpha|beta|theta|pi|infty|pm|leq|geq|neq|rightarrow|Rightarrow|begin|end|sin|cos|tan|csc|sec|cot|log|ln|to)\b/.test(processedText) || /[\^_]\{/.test(processedText);
+  
+  if (!processedText.includes("$") && hasMathCommands) {
+    processedText = `$$${processedText.trim()}$$`;
+  }
+
+  const parts = processedText.split(/(\$\$[\s\S]+?\$\$|\$[^$\n]+?\$)/g);
 
   return (
     <span className={className}>
@@ -54,6 +68,7 @@ function MathBlock({
               displayMode,
               throwOnError: false,
               output: "htmlAndMathml",
+              fleqn: true,
             })
           );
         }
@@ -70,7 +85,7 @@ function MathBlock({
 
   return (
     <span
-      className={displayMode ? "block my-1 text-center" : "inline"}
+      className={displayMode ? "block my-2 text-left overflow-x-auto" : "inline"}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
