@@ -391,11 +391,30 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
               )}
             </div>
             {q.question_text && <p className="text-text-main font-medium mb-4">{q.question_text}</p>}
-            {q.image_url && (
-              <div className="mb-5">
-                <img src={q.image_url} alt="Question" className="max-w-full max-h-40 object-contain rounded-lg border border-border" />
-              </div>
-            )}
+             {(() => {
+              if (!q.image_url) return null;
+              const parseQuestionImages = (urlStr: string | null): string[] => {
+                if (!urlStr) return [];
+                const trimmed = urlStr.trim();
+                if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                  try {
+                    return JSON.parse(trimmed);
+                  } catch (e) {
+                    return [trimmed];
+                  }
+                }
+                return [trimmed];
+              };
+              const images = parseQuestionImages(q.image_url);
+              if (images.length === 0) return null;
+              return (
+                <div className="mb-5 flex flex-wrap gap-3">
+                  {images.map((url, idx) => (
+                    <img key={idx} src={url} alt={`Question ${idx + 1}`} className="max-w-full max-h-40 object-contain rounded-lg border border-border" />
+                  ))}
+                </div>
+              );
+            })()}
             {q.question_type === 'mcq' && q.options && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {['A', 'B', 'C', 'D'].map((opt) => (

@@ -171,12 +171,29 @@ const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
               </View>
               
               {q.question_text && <Text style={styles.questionText}>{q.question_text}</Text>}
-              {q.image_url && (
-                <Image 
-                  src={q.image_url} 
-                  style={{ maxWidth: '100%', maxHeight: 200, marginBottom: 10, objectFit: 'contain' }} 
-                />
-              )}
+              {(() => {
+                if (!q.image_url) return null;
+                const parseQuestionImages = (urlStr: string | null): string[] => {
+                  if (!urlStr) return [];
+                  const trimmed = urlStr.trim();
+                  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                    try {
+                      return JSON.parse(trimmed);
+                    } catch (e) {
+                      return [trimmed];
+                    }
+                  }
+                  return [trimmed];
+                };
+                const images = parseQuestionImages(q.image_url);
+                return images.map((url, idx) => (
+                  <Image 
+                    key={idx}
+                    src={url} 
+                    style={{ maxWidth: '100%', maxHeight: 200, marginBottom: 10, objectFit: 'contain' }} 
+                  />
+                ));
+              })()}
               
               {q.options && typeof q.options === 'object' && (
                 <View style={styles.optionsContainer}>
