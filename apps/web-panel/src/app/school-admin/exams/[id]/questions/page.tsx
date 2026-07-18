@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ReactCrop, { type Crop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Sigma } from 'lucide-react';
+import FormulaToolbar from '@/components/FormulaToolbar';
+import MathRenderer from '@/components/MathRenderer';
 
 export default function QuestionsPage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
@@ -55,6 +57,40 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
   const [optionDImage, setOptionDImage] = useState<string | null>(null);
   const [correctAnswer, setCorrectAnswer] = useState('A');
   const [natAnswer, setNatAnswer] = useState('');
+
+  const [showQFormula, setShowQFormula] = useState(false);
+  const [showOptFormula, setShowOptFormula] = useState<Record<string, boolean>>({});
+  const qTextRef = useRef<HTMLTextAreaElement>(null);
+  const optRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  const natRef = useRef<HTMLTextAreaElement>(null);
+
+  const autoGrow = (el: HTMLElement | null) => {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  };
+
+  const insertAtCursor = (
+    ref: React.RefObject<HTMLTextAreaElement | null> | HTMLTextAreaElement | null,
+    setter: (val: string) => void,
+    current: string,
+    latex: string
+  ) => {
+    const el = ref && ref !== null && 'current' in ref ? ref.current : ref as HTMLTextAreaElement | null;
+    if (!el) {
+      setter(current + latex);
+      return;
+    }
+    const start = el.selectionStart ?? current.length;
+    const end = el.selectionEnd ?? current.length;
+    const newVal = current.slice(0, start) + latex + current.slice(end);
+    setter(newVal);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.selectionStart = el.selectionEnd = start + latex.length;
+      autoGrow(el);
+    });
+  };
 
   useEffect(() => { init(); }, []);
   useEffect(() => { if (selectedSubject) fetchQuestions(); }, [selectedSubject]);
@@ -475,10 +511,44 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                 {/* Question Text and Image */}
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-text-main mb-1.5 uppercase tracking-wider">Question Text (Optional if image provided)</label>
-                    <textarea value={questionText} onChange={(e) => setQuestionText(e.target.value)} rows={3}
-                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all resize-none text-sm font-medium"
-                      placeholder="Enter question text..." />
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">Question Text (Optional if image provided)</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowQFormula(!showQFormula)}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                          showQFormula
+                            ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
+                            : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
+                        }`}
+                      >
+                        <Sigma size={11} />
+                        {showQFormula ? 'Hide Formula' : 'Add Formula'}
+                      </button>
+                    </div>
+                    {showQFormula && (
+                      <FormulaToolbar
+                        onInsert={(latex) =>
+                          insertAtCursor(qTextRef, setQuestionText, questionText, latex)
+                        }
+                      />
+                    )}
+                    <textarea 
+                      ref={(el) => {
+                        (qTextRef as any).current = el;
+                        autoGrow(el);
+                      }}
+                      value={questionText} 
+                      onChange={(e) => { setQuestionText(e.target.value); autoGrow(e.target); }} 
+                      rows={3}
+                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all resize-none text-sm font-medium whitespace-pre-wrap break-words"
+                      placeholder="Enter question text... Use $\sin(x)$ for inline math or $$\int_0^1 x^2\,dx$$ for block math" />
+                    {showQFormula && questionText && (
+                      <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg mt-2">
+                        <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Preview</p>
+                        <MathRenderer text={questionText} className="text-sm text-text-main" />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-text-main mb-1.5 uppercase tracking-wider">Add Image (Optional)</label>
@@ -546,9 +616,48 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                         { label: 'Option D', val: optionD, setVal: setOptionD, img: optionDImage, setImg: setOptionDImage, id: 'D' }
                       ].map((opt) => (
                         <div key={opt.label} className="bg-bg p-4 rounded-xl border border-border">
-                          <label className="block text-xs font-semibold text-text-muted mb-2">{opt.label}</label>
-                          <input type="text" value={opt.val} onChange={(e) => opt.setVal(e.target.value)} placeholder="Option text (optional if image)"
-                            className="w-full px-4 py-2.5 bg-surface border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium mb-3" />
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="block text-xs font-semibold text-text-muted">{opt.label}</label>
+                            <button
+                              type="button"
+                              onClick={() => setShowOptFormula(prev => ({ ...prev, [opt.id]: !prev[opt.id] }))}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-lg border transition-all cursor-pointer ${
+                                showOptFormula[opt.id]
+                                  ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
+                                  : 'bg-surface border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
+                              }`}
+                            >
+                              <Sigma size={10} />
+                              {showOptFormula[opt.id] ? 'Hide Formula' : 'Add Formula'}
+                            </button>
+                          </div>
+                          {showOptFormula[opt.id] && (
+                            <div className="mb-1.5">
+                              <FormulaToolbar
+                                compact
+                                onInsert={(latex) =>
+                                  insertAtCursor(
+                                    { current: optRefs.current[opt.id] } as any,
+                                    opt.setVal,
+                                    opt.val,
+                                    latex
+                                  )
+                                }
+                              />
+                            </div>
+                          )}
+                          <textarea 
+                            ref={(el) => { optRefs.current[opt.id] = el; autoGrow(el); }}
+                            rows={1}
+                            value={opt.val} 
+                            onChange={(e) => { opt.setVal(e.target.value); autoGrow(e.target); }} 
+                            placeholder="Option text (optional if image)"
+                            className="w-full px-4 py-2.5 bg-surface border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all resize-none text-sm font-medium mb-3 whitespace-pre-wrap break-words" />
+                          {showOptFormula[opt.id] && opt.val && (
+                            <div className="px-2 py-1 bg-bg border border-dashed border-border rounded text-[13px] text-text-main mb-3">
+                              <MathRenderer text={opt.val} />
+                            </div>
+                          )}
                           
                           <div className="flex items-center gap-3">
                             <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, opt.id as any)} className="hidden" id={`image-upload-${opt.id}`} />
@@ -580,10 +689,30 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                   </>
                 ) : (
                   <div>
-                    <label className="block text-xs font-semibold text-text-main mb-1.5 uppercase tracking-wider">Correct Numerical Answer</label>
-                    <input type="text" value={natAnswer} onChange={(e) => setNatAnswer(e.target.value)} required
-                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium"
-                      placeholder="e.g. 42.5" />
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">Correct Numerical Answer</label>
+                    </div>
+                    <FormulaToolbar
+                      compact
+                      onInsert={(latex) =>
+                        insertAtCursor(natRef, setNatAnswer, natAnswer, latex)
+                      }
+                    />
+                    <textarea
+                      ref={(el) => { (natRef as any).current = el; autoGrow(el); }}
+                      rows={1}
+                      value={natAnswer}
+                      onChange={(e) => { setNatAnswer(e.target.value); autoGrow(e.target); }}
+                      required
+                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium resize-none overflow-hidden whitespace-pre-wrap break-words"
+                      placeholder="e.g. 42.5 or \sqrt{2}"
+                    />
+                    {natAnswer && (
+                      <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg mt-2">
+                        <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Preview</p>
+                        <MathRenderer text={natAnswer} className="text-sm text-text-main" />
+                      </div>
+                    )}
                   </div>
                 )}
 
