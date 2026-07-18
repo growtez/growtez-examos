@@ -397,6 +397,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     uniqueAssignedCourses,
     filteredAssignedStudents,
     downloadResultsPDF,
+    linkGenerated,
+    setLinkGenerated,
   } = useExamDetailPage(params.id);
 
   const [questionSearchQuery, setQuestionSearchQuery] = useState("");
@@ -1442,6 +1444,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   setAddMode("link");
                   setLinkCopied(false);
                   setSearchQuery("");
+                  setLinkGenerated(false);
                 }}
                 className="text-white/70 hover:text-white transition-colors"
               >
@@ -1457,6 +1460,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     setAddMode("link");
                     setAddError("");
                     setAddSuccess("");
+                    setLinkGenerated(false);
                   }}
                   className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "link" ? "bg-surface text-accent-primary shadow-sm" : "text-text-muted hover:text-text-main"}`}
                 >
@@ -1467,6 +1471,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     setAddMode("search");
                     setAddError("");
                     setAddSuccess("");
+                    setLinkGenerated(false);
                   }}
                   className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "search" || addMode === "create" ? "bg-surface text-accent-primary shadow-sm" : "text-text-muted hover:text-text-main"}`}
                 >
@@ -1477,6 +1482,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     setAddMode("csv");
                     setAddError("");
                     setAddSuccess("");
+                    setLinkGenerated(false);
                   }}
                   className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "csv" ? "bg-surface text-accent-primary shadow-sm" : "text-text-muted hover:text-text-main"}`}
                 >
@@ -1521,7 +1527,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           </label>
                           <CustomCombobox
                             value={linkCourse}
-                            onChange={setLinkCourse}
+                            onChange={(val) => { setLinkCourse(val); setLinkGenerated(false); }}
                             options={uniqueCourses as string[]}
                             placeholder="e.g. NEET"
                             className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
@@ -1533,7 +1539,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           </label>
                           <CustomCombobox
                             value={linkBatch}
-                            onChange={setLinkBatch}
+                            onChange={(val) => { setLinkBatch(val); setLinkGenerated(false); }}
                             options={uniqueBatches as string[]}
                             placeholder="e.g. Morning"
                             className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
@@ -1545,7 +1551,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           </label>
                           <CustomCombobox
                             value={linkSession}
-                            onChange={setLinkSession}
+                            onChange={(val) => { setLinkSession(val); setLinkGenerated(false); }}
                             options={uniqueSessions as string[]}
                             placeholder="e.g. 2024-25"
                             className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
@@ -1554,26 +1560,35 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        readOnly
-                        value={`${getSchoolBaseUrl()}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`}
-                        className="flex-1 px-4 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-muted font-mono focus:outline-none truncate"
-                      />
+                    {linkGenerated ? (
+                      <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                        <input
+                          type="text"
+                          readOnly
+                          value={`${getSchoolBaseUrl()}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`}
+                          className="flex-1 px-4 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-muted font-mono focus:outline-none truncate"
+                        />
+                        <button
+                          onClick={() => {
+                            const url = `${getSchoolBaseUrl()}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`;
+                            navigator.clipboard.writeText(url);
+                            setLinkCopied(true);
+                            setTimeout(() => setLinkCopied(false), 2000);
+                          }}
+                          className="px-4 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5"
+                        >
+                          <CopyIcon size={16} />
+                          {linkCopied ? "Copied!" : "Copy"}
+                        </button>
+                      </div>
+                    ) : (
                       <button
-                        onClick={() => {
-                          const url = `${getSchoolBaseUrl()}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`;
-                          navigator.clipboard.writeText(url);
-                          setLinkCopied(true);
-                          setTimeout(() => setLinkCopied(false), 2000);
-                        }}
-                        className="px-4 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5"
+                        onClick={() => setLinkGenerated(true)}
+                        className="w-full py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-bold rounded-xl transition-colors shadow-sm"
                       >
-                        <CopyIcon size={16} />
-                        {linkCopied ? "Copied!" : "Copy"}
+                        Generate Link
                       </button>
-                    </div>
+                    )}
                   </div>
                   <div className="flex gap-3 pt-2 mt-auto">
                     <button
@@ -1582,6 +1597,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         setShowAddStudentModal(false);
                         setAddError("");
                         setSearchQuery("");
+                        setLinkGenerated(false);
                       }}
                       className="flex-1 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors"
                     >

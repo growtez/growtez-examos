@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 import Link from 'next/link';
-import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight, Layers, Moon, Sun, Check, Trash2 } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight, Layers, Moon, Sun, Check, Trash2, Coins, Bell, Clock, CreditCard, CheckCircle, X } from 'lucide-react';
 
 const navItems = [
   {
@@ -34,6 +34,16 @@ const navItems = [
     icon: <FileText className="w-5 h-5" />,
   },
   {
+    label: 'Credits',
+    href: '/credits',
+    icon: <Coins className="w-5 h-5" />,
+  },
+  {
+    label: 'Profile',
+    href: '/profile',
+    icon: <User className="w-5 h-5" />,
+  },
+  {
     label: 'Trash',
     href: '/exams/trash',
     icon: <Trash2 className="w-5 h-5" />,
@@ -56,6 +66,12 @@ export default function SchoolAdminLayout({
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [examStatus, setExamStatus] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(false);
+  const [totalCredits, setTotalCredits] = useState<number | null>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadNotifsCount, setUnreadNotifsCount] = useState(0);
+  const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  const notifDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (localStorage.getItem('theme') === 'dark') {
@@ -198,8 +214,35 @@ export default function SchoolAdminLayout({
         setRole(currentRole || 'school_admin');
 
         if (schoolId) {
-          const { data: school } = await supabase.from('schools').select('name').eq('id', schoolId).single();
-          if (school) setSchoolName(school.name);
+          const { data: school } = await supabase.from('schools').select('name, exam_credits, logo_url').eq('id', schoolId).single();
+          if (school) {
+            setSchoolName(school.name);
+            setTotalCredits(school.exam_credits || 0);
+            if (school.logo_url) setProfileImageUrl(school.logo_url);
+          }
+        }
+
+        // Fetch notifications
+        let notifsQuery = supabase.from('system_notifications').select('*');
+        if (schoolId) {
+          notifsQuery = notifsQuery.or(`target_school_id.eq.${schoolId},target_school_id.is.null`);
+        } else {
+          notifsQuery = notifsQuery.is('target_school_id', null);
+        }
+        const { data: notifs } = await notifsQuery.order('created_at', { ascending: false });
+        if (notifs) {
+          // Filter out locally hidden notifications
+          const hiddenStr = localStorage.getItem('hidden_notifications');
+          const hiddenList: string[] = hiddenStr ? JSON.parse(hiddenStr) : [];
+          const visibleNotifs = notifs.filter(n => !hiddenList.includes(n.id));
+
+          setNotifications(visibleNotifs);
+          
+          // Use localStorage to track seen notifications
+          const lastSeenStr = localStorage.getItem('last_seen_notif_time');
+          const lastSeen = lastSeenStr ? new Date(lastSeenStr) : new Date(0);
+          const unread = visibleNotifs.filter(n => new Date(n.created_at) > lastSeen).length;
+          setUnreadNotifsCount(unread);
         }
       }
     };
@@ -211,10 +254,28 @@ export default function SchoolAdminLayout({
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setProfileDropdownOpen(false);
       }
+      if (notifDropdownRef.current && !notifDropdownRef.current.contains(event.target as Node)) {
+        setNotifDropdownOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleDeleteNotification = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Add to hidden notifications in local storage
+    const hiddenStr = localStorage.getItem('hidden_notifications');
+    const hiddenList: string[] = hiddenStr ? JSON.parse(hiddenStr) : [];
+    if (!hiddenList.includes(id)) {
+      hiddenList.push(id);
+      localStorage.setItem('hidden_notifications', JSON.stringify(hiddenList));
+    }
+    
+    // Optimistically update UI
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -259,7 +320,8 @@ export default function SchoolAdminLayout({
          if (isUUID && !breadcrumbNames[lastSegment]) {
            crumbs.push({ label: 'Loading...', href: null });
          } else {
-           crumbs.push({ label: breadcrumbNames[lastSegment] || lastSegment, href: null });
+           const fallbackLabel = lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1);
+           crumbs.push({ label: breadcrumbNames[lastSegment] || fallbackLabel, href: null });
          }
       }
     }
@@ -293,10 +355,16 @@ export default function SchoolAdminLayout({
               <img src="/logo.png" alt="Growtez Logo" className="w-7 h-7 object-contain" />
             </div>
             {sidebarOpen && (
-              <div className="overflow-hidden">
+              <div className="overflow-hidden flex flex-col justify-center">
                 <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-sidebar-text to-sidebar-text-muted font-extrabold text-lg tracking-wide leading-tight truncate drop-shadow-sm" title="ParikshaOS">
                   ParikshaOS
                 </h1>
+                {totalCredits !== null && role === 'school_admin' && (
+                  <p className="text-[11px] font-medium text-accent-primary flex items-center gap-1 mt-0.5" title={`${totalCredits} Credits Available`}>
+                    <Coins className="w-3 h-3" />
+                    {totalCredits} Credits
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -426,12 +494,96 @@ export default function SchoolAdminLayout({
                 {schoolName}
               </span>
             )}
+            
+            <div className="relative" ref={notifDropdownRef}>
+              <button 
+                onClick={() => {
+                  setNotifDropdownOpen(!notifDropdownOpen);
+                  if (!notifDropdownOpen) {
+                    setUnreadNotifsCount(0); // Mark as read when opening
+                    localStorage.setItem('last_seen_notif_time', new Date().toISOString());
+                  }
+                }}
+                className="relative p-2 text-text-muted hover:text-accent-primary hover:bg-surface-hover rounded-full transition-colors"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadNotifsCount > 0 && (
+                  <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-surface"></span>
+                )}
+              </button>
+
+              {notifDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface rounded-xl shadow-lg border border-border overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col max-h-[85vh]">
+                  <div className="p-4 border-b border-border flex justify-between items-center bg-bg/50 backdrop-blur-md shrink-0">
+                    <h3 className="text-sm font-bold text-text-main flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-accent-primary" /> Notifications
+                    </h3>
+                  </div>
+                  <div className="overflow-y-auto flex-1">
+                    {notifications.length > 0 ? (
+                      <div className="divide-y divide-border">
+                        {notifications.map((notif) => (
+                          <div key={notif.id} className="p-4 hover:bg-surface-hover transition-colors">
+                            <div className="flex gap-3">
+                              <div className="flex-shrink-0 mt-1">
+                                {notif.type === 'fee_update' ? (
+                                  <CreditCard className="w-5 h-5 text-purple-500" />
+                                ) : notif.type === 'new_feature' ? (
+                                  <CheckCircle className="w-5 h-5 text-green-500" />
+                                ) : notif.type === 'alert' ? (
+                                  <AlertCircle className="w-5 h-5 text-red-500" />
+                                ) : (
+                                  <Bell className="w-5 h-5 text-blue-500" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-start gap-2">
+                                  <h4 className="text-sm font-bold text-text-main leading-tight">{notif.title}</h4>
+                                  <button 
+                                    onClick={(e) => handleDeleteNotification(notif.id, e)}
+                                    className="p-1 text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors shrink-0"
+                                    title="Delete notification"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                <p className="text-sm text-text-muted mt-1 whitespace-pre-wrap leading-snug">{notif.message}</p>
+                                {notif.image_url && (
+                                  <div className="mt-2.5 rounded-lg overflow-hidden max-w-full border border-border shadow-sm">
+                                    <img src={notif.image_url} alt="Announcement" className="max-h-32 w-full object-cover" />
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-1 mt-2 text-[11px] text-text-muted font-medium">
+                                  <Clock className="w-3 h-3" />
+                                  <span>{new Date(notif.created_at).toLocaleString()}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 px-4">
+                        <Bell className="w-8 h-8 text-text-muted mx-auto mb-3 opacity-30" />
+                        <h3 className="text-sm font-medium text-text-main">No New Notifications</h3>
+                        <p className="text-[13px] text-text-muted mt-1">You're all caught up!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="relative" ref={dropdownRef}>
               <div 
                 onClick={() => role !== 'teacher' && setProfileDropdownOpen(!profileDropdownOpen)}
-                className={`w-9 h-9 bg-accent-primary rounded-full flex items-center justify-center shadow-sm transition-shadow ${role !== 'teacher' ? 'cursor-pointer hover:shadow-md' : ''}`}
+                className={`w-9 h-9 bg-accent-primary rounded-full flex items-center justify-center shadow-sm transition-shadow ${role !== 'teacher' ? 'cursor-pointer hover:shadow-md' : ''} overflow-hidden`}
               >
-                <User className="text-white w-5 h-5" />
+                {profileImageUrl ? (
+                  <img src={profileImageUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="text-white w-5 h-5" />
+                )}
               </div>
               
               {profileDropdownOpen && role !== 'teacher' && (
@@ -439,11 +591,7 @@ export default function SchoolAdminLayout({
                   <div className="py-2">
                     <Link href="/profile" onClick={() => setProfileDropdownOpen(false)} className="flex items-center px-4 py-2.5 text-sm font-medium text-text-muted hover:bg-surface-hover hover:text-accent-primary transition-colors">
                       <User className="w-4 h-4 mr-3 text-text-muted" />
-                      Profile & Notifications
-                    </Link>
-                    <Link href="/feedback" onClick={() => setProfileDropdownOpen(false)} className="flex items-center px-4 py-2.5 text-sm font-medium text-text-muted hover:bg-surface-hover hover:text-accent-primary transition-colors">
-                      <MessageSquare className="w-4 h-4 mr-3 text-text-muted" />
-                      Feedback
+                      Profile & Settings
                     </Link>
                   </div>
                 </div>

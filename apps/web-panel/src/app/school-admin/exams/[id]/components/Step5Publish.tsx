@@ -680,21 +680,43 @@ export default function Step5Publish({
               </button>
             ) : (
               <>
-                <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-blue-700">
-                  <p className="text-xs font-bold uppercase">Price</p>
+                <div className={`rounded-xl border px-4 py-3 ${
+                  (examFee ?? 0) > 0 
+                    ? 'border-blue-200 bg-blue-50 text-blue-700' 
+                    : 'border-red-200 bg-red-50 text-red-700'
+                }`}>
+                  <p className="text-xs font-bold uppercase">Exam Credits</p>
                   <p className="mt-1 text-lg font-bold">
-                    {isFeeLoaded ? `Rs ${examFee}` : 'Loading...'}
+                    {examFee === null ? 'Loading...' : `${examFee} Available`}
                   </p>
                 </div>
-                <button
-                  onClick={handlePayment}
-                  disabled={!canPublish || publishing || !isFeeLoaded}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm"
-                >
-                  <CreditCard size={16} />
-                  Pay & Publish
-                </button>
-
+                
+                {(examFee ?? 0) > 0 ? (
+                  <button
+                    onClick={() => handlePublish(false)}
+                    disabled={!canPublish || publishing || examFee === null}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl disabled:opacity-50 transition-colors shadow-sm"
+                  >
+                    <Play size={16} />
+                    {publishing ? 'Publishing...' : 'Publish (Costs 1 Credit)'}
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <button
+                      disabled
+                      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-300 text-gray-500 font-semibold rounded-xl cursor-not-allowed"
+                    >
+                      <Play size={16} />
+                      Insufficient Credits
+                    </button>
+                    <a
+                      href="/school-admin/credits"
+                      className="text-sm text-center font-semibold text-accent-primary hover:underline mt-1"
+                    >
+                      Buy more credits
+                    </a>
+                  </div>
+                )}
               </>
             )}
           </div>
