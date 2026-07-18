@@ -3,6 +3,19 @@ import { createClient } from '@/lib/supabase/client';
 import { openRazorpayCheckout } from '@/components/RazorpayCheckout';
 import { type Crop } from 'react-image-crop';
 
+export const parseQuestionImages = (urlStr: string | null): string[] => {
+  if (!urlStr) return [];
+  const trimmed = urlStr.trim();
+  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    try {
+      return JSON.parse(trimmed);
+    } catch (e) {
+      return [trimmed];
+    }
+  }
+  return [trimmed];
+};
+
 export function useExamDetailPage(paramsId: string) {
   const supabase = createClient();
   const [exam, setExam] = useState<any>(null);
@@ -504,7 +517,10 @@ export function useExamDetailPage(paramsId: string) {
       ctx.fillRect(0, 0, finalWidth, finalHeight);
       ctx.drawImage(imageRef, completedCrop.x * scaleX, completedCrop.y * scaleY, cropWidth, cropHeight, 0, 0, finalWidth, finalHeight);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-      if (cropTarget === 'question') setQImage(dataUrl);
+      if (cropTarget === 'question') {
+        const existing = qImage ? parseQuestionImages(qImage) : [];
+        setQImage(JSON.stringify([...existing, dataUrl]));
+      }
       else if (cropTarget === 'A') setOptAImg(dataUrl);
       else if (cropTarget === 'B') setOptBImg(dataUrl);
       else if (cropTarget === 'C') setOptCImg(dataUrl);
@@ -744,7 +760,10 @@ export function useExamDetailPage(paramsId: string) {
         `;
 
         if (q.image_url) {
-          html += `<img src="${q.image_url}" style="max-width: 400px; max-height: 300px; display: block; margin-bottom: 15px; border-radius: 8px; border: 1px solid #e0f2f2;" />`;
+          const images = parseQuestionImages(q.image_url);
+          images.forEach((imgUrl: string) => {
+            html += `<img src="${imgUrl}" style="max-width: 400px; max-height: 300px; display: block; margin-bottom: 15px; border-radius: 8px; border: 1px solid #e0f2f2;" />`;
+          });
         }
 
         html += `<div style="padding-left: 15px; display: flex; flex-direction: column; gap: 8px;">`;

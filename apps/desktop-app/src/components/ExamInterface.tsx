@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { getDeviceId } from '../lib/deviceId';
 import Calculator from './Calculator';
 import Numpad from './Numpad';
+import MathRenderer from './MathRenderer';
 import parikshaLogo from '../../public/ParikshaOS_logo.png';
 
 interface ExamInterfaceProps {
@@ -516,17 +517,39 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
                 <div className="text-[16px] text-[#1D2939] leading-relaxed max-w-4xl font-serif">
                   {currentQuestion.question_text && (
-                    <p className="mb-4 whitespace-pre-wrap font-medium">{currentQuestion.question_text}</p>
-                  )}
-                  {currentQuestion.image_url && (
-                    <div className="mb-6">
-                      <img
-                        src={currentQuestion.image_url}
-                        alt="Question"
-                        className="max-w-full max-h-80 object-contain rounded-none border border-[#E4E7EC] shadow-sm"
-                      />
+                    <div className="mb-4 font-medium leading-relaxed">
+                      <MathRenderer text={currentQuestion.question_text} />
                     </div>
                   )}
+                  {(() => {
+                    if (!currentQuestion.image_url) return null;
+                    const parseQuestionImages = (urlStr: string | null): string[] => {
+                      if (!urlStr) return [];
+                      const trimmed = urlStr.trim();
+                      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                        try {
+                          return JSON.parse(trimmed);
+                        } catch (e) {
+                          return [trimmed];
+                        }
+                      }
+                      return [trimmed];
+                    };
+                    const images = parseQuestionImages(currentQuestion.image_url);
+                    if (images.length === 0) return null;
+                    return (
+                      <div className="mb-6 flex flex-wrap gap-4">
+                        {images.map((url, idx) => (
+                          <img
+                            key={idx}
+                            src={url}
+                            alt={`Question ${idx + 1}`}
+                            className="max-w-full max-h-80 object-contain rounded-none border border-[#E4E7EC] shadow-sm"
+                          />
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {currentQuestion.question_type === 'mcq' && currentQuestion.options ? (
@@ -552,7 +575,11 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                           <span className="flex items-start gap-3 font-serif text-[14px] w-full">
                             <span className="font-bold mt-0.5">({opt})</span>
                             <span className="flex flex-col gap-2">
-                              {currentQuestion.options[opt] && <span>{currentQuestion.options[opt]}</span>}
+                              {currentQuestion.options[opt] && (
+                                <span>
+                                  <MathRenderer text={currentQuestion.options[opt]} />
+                                </span>
+                              )}
                               {currentQuestion.options[`${opt}_image`] && (
                                 <img
                                   src={currentQuestion.options[`${opt}_image`]}

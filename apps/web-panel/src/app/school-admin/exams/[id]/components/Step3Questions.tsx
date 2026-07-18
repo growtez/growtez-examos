@@ -1,5 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { BookOpen, Edit2, Trash2, Search, AlertCircle } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { BookOpen, Edit2, Trash2, Search, AlertCircle, Sigma } from 'lucide-react';
+import FormulaToolbar from '@/components/FormulaToolbar';
+import MathRenderer from '@/components/MathRenderer';
+import { parseQuestionImages } from '../hooks/useExamDetailPage';
 
 interface Step3QuestionsProps {
   role: string;
@@ -137,6 +140,35 @@ export default function Step3Questions({
     el.style.height = `${el.scrollHeight}px`;
   };
 
+  // Refs for each textarea to support cursor-position formula insertion
+  const qTextRef = useRef<HTMLTextAreaElement>(null);
+  const optRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  const natRef = useRef<HTMLTextAreaElement>(null);
+
+  /** Inserts latex at the cursor position in a textarea and calls the setter */
+  const insertAtCursor = (
+    ref: React.RefObject<HTMLTextAreaElement | null>,
+    setter: (val: string) => void,
+    current: string,
+    latex: string
+  ) => {
+    const el = ref.current;
+    if (!el) {
+      setter(current + latex);
+      return;
+    }
+    const start = el.selectionStart ?? current.length;
+    const end = el.selectionEnd ?? current.length;
+    const newVal = current.slice(0, start) + latex + current.slice(end);
+    setter(newVal);
+    // Restore cursor after the inserted text
+    requestAnimationFrame(() => {
+      el.focus();
+      el.selectionStart = el.selectionEnd = start + latex.length;
+      autoGrow(el);
+    });
+  };
+
   const [toast, setToast] = useState<{ msg: string; show: boolean; key: number }>({ msg: '', show: false, key: 0 });
   useEffect(() => {
     if (drawerError) {
@@ -145,6 +177,21 @@ export default function Step3Questions({
       return () => clearTimeout(hideTimer);
     }
   }, [drawerError]);
+
+  const [showQFormula, setShowQFormula] = useState(false);
+  const [showOptFormula, setShowOptFormula] = useState<Record<string, boolean>>({
+    A: false,
+    B: false,
+    C: false,
+    D: false,
+  });
+
+  useEffect(() => {
+    if (drawerView !== 'editor') {
+      setShowQFormula(false);
+      setShowOptFormula({ A: false, B: false, C: false, D: false });
+    }
+  }, [drawerView]);
 
   return (
     <div className="flex flex-col gap-4 mb-4">
@@ -212,11 +259,11 @@ export default function Step3Questions({
                       </div>
                       <div className="h-3 w-4/5 rounded bg-border/50 mb-2" />
                       <div className="h-3 w-3/5 rounded bg-border/40 mb-3" />
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div className="h-8 rounded bg-border/30" />
-                        <div className="h-8 rounded bg-border/30" />
-                        <div className="h-8 rounded bg-border/30" />
-                        <div className="h-8 rounded bg-border/30" />
+                      <div className="flex flex-col gap-2">
+                        <div className="h-9 rounded-lg bg-border/30" />
+                        <div className="h-9 rounded-lg bg-border/30" />
+                        <div className="h-9 rounded-lg bg-border/30" />
+                        <div className="h-9 rounded-lg bg-border/30" />
                       </div>
                     </div>
                   ))}
@@ -261,23 +308,37 @@ export default function Step3Questions({
                             </div>
                           )}
                         </div>
-                        <p className="text-text-main text-xs font-semibold whitespace-pre-wrap break-words [overflow-wrap:anywhere] mb-1.5">{q.question_text}</p>
-                        {q.image_url && <img src={q.image_url} alt="Question" className="max-w-full max-h-[150px] object-contain rounded-lg border border-border mb-3" />}
+                        <div className="text-text-main text-xs font-semibold mb-1.5 break-words [overflow-wrap:anywhere]">
+                          <MathRenderer text={q.question_text ?? ''} />
+                        </div>
+                        {q.image_url && (
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {parseQuestionImages(q.image_url).map((url, idx) => (
+                              <img key={idx} src={url} alt={`Question ${idx + 1}`} className="max-w-full max-h-[150px] object-contain rounded-lg border border-border" />
+                            ))}
+                          </div>
+                        )}
                         {q.question_type === 'mcq' && q.options && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                          <div className="flex flex-col gap-2 mt-2">
                             {['A', 'B', 'C', 'D'].map(opt => (
-                              <div key={opt} className={`p-2 rounded text-[11px] border transition-colors flex items-start min-w-0 ${q.correct_option === opt ? 'bg-accent-primary/5 border-accent-primary text-accent-primary font-bold' : 'bg-surface text-text-muted border-border font-medium'}`}>
-                                <span className="mr-1.5 shrink-0">{opt}.</span>
-                                <div className="flex flex-col gap-1.5 min-w-0">
-                                  {q.options[opt] && <span className="break-words [overflow-wrap:anywhere] whitespace-pre-wrap">{q.options[opt]}</span>}
-                                  {q.options[`${opt}_image`] && <img src={q.options[`${opt}_image`]} alt={opt} className="max-w-[100px] max-h-[80px] object-contain rounded border border-border" />}
+                              <div key={opt} className={`p-3 rounded-lg text-xs border transition-colors flex items-start min-w-0 ${q.correct_option === opt ? 'bg-accent-primary/5 border-accent-primary text-accent-primary font-bold' : 'bg-surface text-text-muted border-border font-medium'}`}>
+                                <span className="mr-2 shrink-0">{opt}.</span>
+                                <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+                                  {q.options[opt] && (
+                                    <span className="break-words [overflow-wrap:anywhere]">
+                                      <MathRenderer text={q.options[opt]} />
+                                    </span>
+                                  )}
+                                  {q.options[`${opt}_image`] && <img src={q.options[`${opt}_image`]} alt={opt} className="max-w-[200px] max-h-[120px] object-contain rounded border border-border" />}
                                 </div>
                               </div>
                             ))}
                           </div>
                         )}
                         {q.question_type === 'nat' && (
-                          <div className="inline-flex max-w-full px-3 py-1.5 bg-accent-primary/5 border border-accent-primary rounded-lg text-xs text-accent-primary font-bold mt-2 break-words [overflow-wrap:anywhere]">Answer: {q.correct_option}</div>
+                          <div className="inline-flex max-w-full px-3 py-1.5 bg-accent-primary/5 border border-accent-primary rounded-lg text-xs text-accent-primary font-bold mt-2 break-words [overflow-wrap:anywhere]">
+                            Answer: <MathRenderer text={q.correct_option ?? ''} className="ml-1" />
+                          </div>
                         )}
                       </div>
                     )
@@ -322,10 +383,10 @@ export default function Step3Questions({
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`h-[100dvh] md:h-auto md:max-h-[88vh] w-full max-w-[560px] md:max-w-2xl bg-bg shadow-[-8px_0_40px_-12px_rgba(0,0,0,0.25)] md:shadow-2xl flex flex-col border-l border-border md:border md:rounded-2xl md:m-4 transition-all duration-500 ease-out transform ${drawerView === 'editor' ? 'translate-x-0 md:translate-y-0 md:scale-100 opacity-100' : 'translate-x-full md:translate-x-0 md:translate-y-4 md:scale-95 opacity-100 md:opacity-0'}`}
+              className={`h-[100dvh] md:h-auto md:max-h-[88vh] w-full max-w-[680px] md:max-w-4xl bg-bg shadow-[-8px_0_40px_-12px_rgba(0,0,0,0.25)] md:shadow-2xl flex flex-col border-l border-border md:border md:rounded-2xl md:m-4 transition-all duration-500 ease-out transform ${drawerView === 'editor' ? 'translate-x-0 md:translate-y-0 md:scale-100 opacity-100' : 'translate-x-full md:translate-x-0 md:translate-y-4 md:scale-95 opacity-100 md:opacity-0'}`}
             >
               {/* Drawer Header - pinned */}
-              <div className="px-5 py-4 border-b border-border flex justify-between items-center bg-surface shrink-0">
+              <div className="px-5 py-3 border-b border-border flex justify-between items-center bg-surface shrink-0">
                 <div className="flex items-center gap-3">
                   <span className="w-9 h-9 rounded-lg bg-accent-primary/10 flex items-center justify-center shrink-0">
                     <BookOpen size={17} className="text-accent-primary" />
@@ -363,29 +424,82 @@ export default function Step3Questions({
 
                   {/* Question text + image section */}
                   <div className="bg-surface border border-border rounded-xl p-4 shadow-sm space-y-3">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
-                      <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Question</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
+                        <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Question</label>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowQFormula(!showQFormula)}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                          showQFormula
+                            ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
+                            : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
+                        }`}
+                      >
+                        <Sigma size={11} />
+                        {showQFormula ? 'Hide Formula' : 'Add Formula'}
+                      </button>
                     </div>
+
+                    {/* Formula Toolbar for Question */}
+                    {showQFormula && (
+                      <FormulaToolbar
+                        onInsert={(latex) =>
+                          insertAtCursor(qTextRef, setQText, qText, latex)
+                        }
+                      />
+                    )}
+
                     <textarea
-                      ref={autoGrow}
+                      ref={(el) => {
+                        (qTextRef as any).current = el;
+                        autoGrow(el);
+                      }}
                       value={qText}
                       onChange={(e) => { setQText(e.target.value); autoGrow(e.target); }}
                       rows={2}
                       className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-text-main focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/15 outline-none resize-none text-sm font-medium transition-shadow overflow-hidden whitespace-pre-wrap break-words"
-                      placeholder="Enter question..."
+                      placeholder="Enter question... Use $\sin(x)$ for inline math or $$\int_0^1 x^2\,dx$$ for block math"
                     />
-                    <div className="flex items-center gap-3 pt-1">
+
+                    {/* Live Preview */}
+                    {showQFormula && qText && (
+                      <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg">
+                        <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Preview</p>
+                        <MathRenderer text={qText} className="text-sm text-text-main" />
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-3 pt-1 flex-wrap">
                       <input type="file" accept="image/*" onChange={(e) => handleDrawerImageUpload(e, 'question')} className="hidden" id="q-img" />
                       <label htmlFor="q-img" className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-bg border border-border text-accent-primary font-semibold text-xs rounded-lg hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors">
-                        Upload Image
+                        + Add Image
                       </label>
-                      {qImage && (
-                        <div className="relative group">
-                          <img src={qImage} alt="Preview" className="h-10 rounded-lg border border-border object-contain" />
-                          <button type="button" onClick={() => setQImage(null)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">✕</button>
-                        </div>
-                      )}
+                      {(() => {
+                        const images = qImage ? parseQuestionImages(qImage) : [];
+                        if (images.length === 0) return null;
+                        return (
+                          <div className="flex flex-wrap gap-2 items-center">
+                            {images.map((url, idx) => (
+                              <div key={idx} className="relative group">
+                                <img src={url} alt={`Preview ${idx + 1}`} className="h-10 rounded-lg border border-border object-contain bg-white" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = images.filter((_, i) => i !== idx);
+                                    setQImage(updated.length > 0 ? JSON.stringify(updated) : null);
+                                  }}
+                                  className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-sm cursor-pointer"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
@@ -397,7 +511,7 @@ export default function Step3Questions({
                           <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
                           <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Options</label>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-3">
                           {[
                             { label: 'Option A', val: optA, setVal: setOptA, img: optAImg, setImg: setOptAImg, id: 'A' },
                             { label: 'Option B', val: optB, setVal: setOptB, img: optBImg, setImg: setOptBImg, id: 'B' },
@@ -415,17 +529,53 @@ export default function Step3Questions({
                                   </span>
                                   {opt.label}
                                 </label>
-                                {correctAnswer === opt.id && (
-                                  <span className="text-[9px] font-bold text-accent-primary uppercase tracking-wider">Correct</span>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowOptFormula((prev) => ({ ...prev, [opt.id]: !prev[opt.id] }))}
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all cursor-pointer ${
+                                      showOptFormula[opt.id]
+                                        ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
+                                        : 'bg-surface border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
+                                    }`}
+                                  >
+                                    <Sigma size={10} />
+                                    {showOptFormula[opt.id] ? 'Hide Formula' : 'Add Formula'}
+                                  </button>
+                                  {correctAnswer === opt.id && (
+                                    <span className="text-[9px] font-bold text-accent-primary uppercase tracking-wider">Correct</span>
+                                  )}
+                                </div>
                               </div>
+                              {/* Formula toolbar for option */}
+                              {showOptFormula[opt.id] && (
+                                <div className="mb-1.5">
+                                  <FormulaToolbar
+                                    compact
+                                    onInsert={(latex) =>
+                                      insertAtCursor(
+                                        { current: optRefs.current[opt.id] } as any,
+                                        opt.setVal,
+                                        opt.val,
+                                        latex
+                                      )
+                                    }
+                                  />
+                                </div>
+                              )}
                               <textarea
-                                ref={autoGrow}
+                                ref={(el) => { optRefs.current[opt.id] = el; autoGrow(el); }}
                                 rows={1}
                                 value={opt.val}
                                 onChange={(e) => { opt.setVal(e.target.value); autoGrow(e.target); }}
-                                className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm mb-2 outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/15 transition-shadow resize-none overflow-hidden whitespace-pre-wrap break-words"
+                                className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm mb-1 outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/15 transition-shadow resize-none overflow-hidden whitespace-pre-wrap break-words"
                               />
+                              {/* Mini preview for option */}
+                              {showOptFormula[opt.id] && opt.val && (
+                                <div className="px-2 py-1 bg-bg border border-dashed border-border rounded text-[13px] text-text-main mb-1">
+                                  <MathRenderer text={opt.val} />
+                                </div>
+                              )}
                               <div className="flex items-center gap-2">
                                 <input type="file" accept="image/*" onChange={(e) => handleDrawerImageUpload(e, opt.id as any)} className="hidden" id={`img-${opt.id}`} />
                                 <label htmlFor={`img-${opt.id}`} className="cursor-pointer inline-flex items-center gap-1 px-2 py-1 bg-surface border border-border text-accent-primary font-semibold text-[10px] rounded hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors">
@@ -460,19 +610,31 @@ export default function Step3Questions({
                       </div>
                     </>
                   ) : (
-                    <div className="bg-surface border border-border rounded-xl p-4 shadow-sm">
-                      <div className="flex items-center gap-1.5 mb-2">
+                    <div className="bg-surface border border-border rounded-xl p-4 shadow-sm space-y-3">
+                      <div className="flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
                         <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Correct Numerical Answer</label>
                       </div>
+                      <FormulaToolbar
+                        compact
+                        onInsert={(latex) =>
+                          insertAtCursor(natRef, setNatAnswer, natAnswer, latex)
+                        }
+                      />
                       <textarea
-                        ref={autoGrow}
+                        ref={(el) => { (natRef as any).current = el; autoGrow(el); }}
                         rows={1}
                         value={natAnswer}
                         onChange={(e) => { setNatAnswer(e.target.value); autoGrow(e.target); }}
                         required
                         className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/15 text-sm font-medium transition-shadow resize-none overflow-hidden whitespace-pre-wrap break-words"
                       />
+                      {natAnswer && (
+                        <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg">
+                          <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Preview</p>
+                          <MathRenderer text={natAnswer} className="text-sm text-text-main" />
+                        </div>
+                      )}
                     </div>
                   )}
 
