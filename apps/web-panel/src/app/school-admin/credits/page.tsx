@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Coins, Zap, Loader2, ArrowRight, Check, MessageSquare } from 'lucide-react';
-import { initializeRazorpayCheckout } from '@/components/RazorpayCheckout';
+import { openRazorpayCheckout } from '@/components/RazorpayCheckout';
 
 interface Plan {
   id: string;
@@ -71,7 +71,7 @@ export default function CreditsPage() {
   const handleBuy = async (plan: Plan) => {
     setPurchasingPlan(plan.id);
     try {
-      await initializeRazorpayCheckout({
+      await openRazorpayCheckout({
         amount: plan.price,
         schoolId,
         planId: plan.id,
