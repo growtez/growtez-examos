@@ -18,6 +18,7 @@ export default function StudentResultPage({ params }: { params: { exam_id: strin
   
   // Result State
   const [result, setResult] = useState<any>(null);
+  const [isDownloadingKey, setIsDownloadingKey] = useState(false);
 
   useEffect(() => {
     const fetchExam = async () => {
@@ -86,14 +87,15 @@ export default function StudentResultPage({ params }: { params: { exam_id: strin
     }
   };
 
-  const handleDownloadAnswerKey = () => {
+  const handleDownloadAnswerKey = async () => {
     if (!result?.id) return;
-    const link = document.createElement('a');
-    link.href = `/api/download/answer-key?resultId=${result.id}`;
-    link.download = '';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    setIsDownloadingKey(true);
+    try {
+      const { downloadAnswerKey } = await import('@/lib/downloadAnswerKey');
+      await downloadAnswerKey(result.id);
+    } finally {
+      setIsDownloadingKey(false);
+    }
   };
 
   if (loading) {
@@ -208,9 +210,14 @@ export default function StudentResultPage({ params }: { params: { exam_id: strin
 
                   <button
                     onClick={handleDownloadAnswerKey}
-                    className="w-full py-3 bg-surface border border-accent-primary text-accent-primary font-bold rounded-xl transition-all hover:bg-accent-primary hover:text-white flex items-center justify-center gap-2"
+                    disabled={isDownloadingKey}
+                    className="w-full py-3 bg-surface border border-accent-primary text-accent-primary font-bold rounded-xl transition-all hover:bg-accent-primary hover:text-white flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    <FileText className="w-5 h-5" />
+                    {isDownloadingKey ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <FileText className="w-5 h-5" />
+                    )}
                     Download Answer Key
                   </button>
                   

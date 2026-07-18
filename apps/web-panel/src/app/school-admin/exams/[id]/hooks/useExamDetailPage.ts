@@ -1325,17 +1325,94 @@ export function useExamDetailPage(paramsId: string) {
     if (!newTitle) return;
 
     setLoading(true);
-    const { data: newExamId, error } = await supabase.rpc('duplicate_exam', {
-      p_exam_id: paramsId,
-      p_new_title: newTitle
-    });
+    try {
+      // 1. Insert new exam
+      const { data: newExam, error: examError } = await supabase
+        .from('exams')
+        .insert({
+          school_id: exam.school_id,
+          title: newTitle,
+          description: exam.description,
+          duration_minutes: exam.duration_minutes,
+          status: 'draft',
+          marking_scheme: exam.marking_scheme,
+          total_marks: exam.total_marks,
+          is_paid: exam.is_paid,
+          exam_instructions: exam.exam_instructions,
+          created_by: exam.created_by
+        })
+        .select()
+        .single();
 
-    if (error) {
-      alert('Failed to duplicate exam: ' + error.message);
-      console.error(error);
+      if (examError || !newExam) throw examError || new Error('Failed to create new exam');
+
+      // 2. Fetch old subjects
+      const { data: oldSubjects, error: subjectsError } = await supabase
+        .from('exam_subjects')
+        .select('*')
+        .eq('exam_id', paramsId);
+      
+      if (subjectsError) throw subjectsError;
+
+      // 3. Create new subjects and build a mapping
+      const oldToNewSubjectMap: Record<string, string> = {};
+      if (oldSubjects && oldSubjects.length > 0) {
+        for (const subj of oldSubjects) {
+          const { data: newSubj, error: subjInsertError } = await supabase
+            .from('exam_subjects')
+            .insert({
+              exam_id: newExam.id,
+              subject_name: subj.subject_name,
+              question_count: subj.question_count,
+              sort_order: subj.sort_order
+            })
+            .select()
+            .single();
+          
+          if (subjInsertError || !newSubj) throw subjInsertError || new Error('Failed to copy subject');
+          oldToNewSubjectMap[subj.id] = newSubj.id;
+        }
+      }
+
+      // 4. Fetch old questions
+      const { data: oldQuestions, error: questionsError } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('exam_id', paramsId);
+
+      if (questionsError) throw questionsError;
+
+      // 5. Insert new questions
+      if (oldQuestions && oldQuestions.length > 0) {
+        const questionsToInsert = oldQuestions.map(q => ({
+          exam_id: newExam.id,
+          school_id: exam.school_id,
+          exam_subject_id: q.exam_subject_id ? oldToNewSubjectMap[q.exam_subject_id] : null,
+          question_text: q.question_text,
+          image_url: q.image_url,
+          question_type: q.question_type,
+          options: q.options,
+          correct_option: q.correct_option,
+          positive_marks: q.positive_marks,
+          negative_marks: q.negative_marks,
+          question_number: q.question_number,
+          marks: q.marks
+        }));
+
+        const { error: batchInsertError } = await supabase
+          .from('questions')
+          .insert(questionsToInsert);
+        
+        if (batchInsertError) throw batchInsertError;
+      }
+
+      // Redirect to the new exam page
+      window.location.href = `/exams/${newExam.id}`;
+
+    } catch (err: any) {
+      alert('Failed to duplicate exam: ' + err.message);
+      console.error(err);
       setLoading(false);
-    } else {
-      window.location.href = `/exams/${newExamId}`;
     }
   };
 
