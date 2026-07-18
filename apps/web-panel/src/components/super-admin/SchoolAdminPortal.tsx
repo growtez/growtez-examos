@@ -7,9 +7,10 @@ import { TeachersListContent } from '../../app/school-admin/teachers/PageContent
 import { ResultsListContent } from '../../app/school-admin/results/PageContent';
 import { StudentsListContent } from '../../app/school-admin/students/PageContent';
 import DeleteSchoolButton from '../../app/super-admin/schools/DeleteSchoolButton';
-import { LayoutDashboard, FileText, GraduationCap, Trophy, Users, MessageSquare, Bell } from 'lucide-react';
+import { LayoutDashboard, FileText, GraduationCap, Trophy, Users, MessageSquare, Bell, Coins } from 'lucide-react';
 import SchoolFeedbackContent from './SchoolFeedbackContent';
 import SchoolNotificationsContent from './SchoolNotificationsContent';
+import EditSchoolCredits from './EditSchoolCredits';
 
 const menuItems = [
   { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -95,6 +96,10 @@ export function SchoolAdminPortal({ school, schoolAdmin }: { school: any; school
                 </div>
               </div>
               <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 bg-surface hover:bg-surface-hover px-3 py-1.5 rounded-xl border border-border transition-colors">
+                  <Coins size={14} className="text-accent-primary" />
+                  <EditSchoolCredits schoolId={school.id} initialCredits={school.exam_credits} />
+                </div>
                 <div className="bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-xl border border-red-500/20 transition-colors">
                   <DeleteSchoolButton schoolId={school.id} />
                 </div>

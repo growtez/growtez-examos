@@ -71,6 +71,7 @@ export function useExamDetailPage(paramsId: string) {
   const [filterSession, setFilterSession] = useState('');
   const [assignedBatchFilter, setAssignedBatchFilter] = useState('');
   const [assignedCourseFilter, setAssignedCourseFilter] = useState('');
+  const [linkGenerated, setLinkGenerated] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [bulkAssigning, setBulkAssigning] = useState(false);
 
@@ -924,13 +925,13 @@ export function useExamDetailPage(paramsId: string) {
       .order('full_name', { ascending: true });
     setTeachers(allTeachers || []);
 
-    const { data: feePlan } = await supabase
-      .from('plans')
-      .select('price')
-      .eq('name', 'Fixed Payment')
+    const { data: schoolData } = await supabase
+      .from('schools')
+      .select('exam_credits')
+      .eq('id', examData.school_id)
       .single();
-    if (feePlan) {
-      setExamFee(Number(feePlan.price));
+    if (schoolData) {
+      setExamFee(schoolData.exam_credits || 0); // Reusing examFee state as examCredits for now, or I'll change the state name
     }
 
     setLoading(false);
@@ -969,23 +970,35 @@ export function useExamDetailPage(paramsId: string) {
 
     try {
       if (!exam.is_paid && !bypassPayment) {
-        alert('You must pay the exam conduction fee before publishing this exam.');
-        setPublishing(false);
-        return;
+        // Call the publish API to deduct credit
+        const res = await fetch('/api/exams/publish-with-credit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ examId: exam.id, schoolId: exam.school_id })
+        });
+        
+        const data = await res.json();
+        if (!res.ok) {
+          if (res.status === 402) {
+            alert('Insufficient exam credits. Please purchase more credits.');
+          } else {
+            alert(data.error || 'Failed to publish exam');
+          }
+          setPublishing(false);
+          return;
+        }
       }
 
       const updates: any = {
         status: 'published',
         start_time: new Date(startTime).toISOString(),
-        end_time: new Date(endTime).toISOString()
+        end_time: new Date(endTime).toISOString(),
+        is_paid: true
       };
-
-      if (bypassPayment && !exam.is_paid) {
-        updates.is_paid = true;
-      }
 
       await supabase.from('exams').update(updates).eq('id', paramsId);
       setExam({ ...exam, ...updates });
+      fetchExamData(); // Refresh to update credits locally
       window.dispatchEvent(new CustomEvent('exam-status-update', { detail: { status: 'published' } }));
     } catch (err) {
       console.error(err);
@@ -996,25 +1009,7 @@ export function useExamDetailPage(paramsId: string) {
   };
 
   const handlePayment = async () => {
-    if (!exam.school_id || examFee == null) return;
-
-    const { data: { user } } = await supabase.auth.getUser();
-
-    openRazorpayCheckout({
-      amount: examFee,
-      examId: exam.id,
-      planName: `Exam Publish Fee: ${exam.title}`,
-      schoolId: exam.school_id,
-      userEmail: user?.email,
-      onSuccess: () => {
-        alert('Payment successful! You can now publish the exam.');
-        setExam((prev: any) => prev ? { ...prev, is_paid: true } : null);
-        fetchExamData();
-      },
-      onError: (err: any) => {
-        alert('Payment failed or cancelled: ' + (err.message || 'Unknown error'));
-      }
-    });
+    // Legacy function, replaced by credit system
   };
 
   const handleTogglePaid = async () => {
@@ -1833,5 +1828,7 @@ export function useExamDetailPage(paramsId: string) {
     uniqueAssignedCourses,
     filteredAssignedStudents,
     downloadResultsPDF,
+    linkGenerated,
+    setLinkGenerated,
   };
 }

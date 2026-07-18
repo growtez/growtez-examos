@@ -218,16 +218,17 @@ export default function SchoolsListPage() {
                                     School Name {getSortIcon('name')}
                                 </div>
                             </th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[30%]">Contact</th>
-                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[30%]">Domain</th>
+                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[25%]">Contact</th>
+                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[25%]">Domain</th>
+                            <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">Credits</th>
                         </tr>
                     </thead>
                     <tbody>
                         {loading ? (
-                            <TableRowsSkeleton rows={perPage} columns={3} />
+                            <TableRowsSkeleton rows={perPage} columns={4} />
                         ) : pagedSchools.length === 0 ? (
                             <tr>
-                                <td colSpan={3} className="text-center py-10 text-text-muted text-[13px]">
+                                <td colSpan={4} className="text-center py-10 text-text-muted text-[13px]">
                                     No schools found matching your criteria.
                                 </td>
                             </tr>
@@ -259,11 +260,16 @@ export default function SchoolsListPage() {
                                                 <span className="max-w-[120px] inline-block truncate" title={sch.domain || '—'}>{sch.domain || '—'}</span>
                                             </div>
                                         </td>
+                                        <td className="py-2.5 px-4 align-middle">
+                                            <span className="inline-flex items-center gap-1 bg-accent-primary/10 text-accent-primary font-bold text-[11px] px-2 py-0.5 rounded-full border border-accent-primary/20">
+                                                {sch.exam_credits || 0} Credits
+                                            </span>
+                                        </td>
                                     </tr>
                                 ))}
                                 {perPage - pagedSchools.length > 0 && Array.from({ length: perPage - pagedSchools.length }).map((_, idx) => (
                                     <tr key={`empty-${idx}`} className="border-b border-border/40 last:border-b-0 opacity-0 pointer-events-none">
-                                        <td colSpan={3} className="py-2.5 px-4 align-middle">
+                                        <td colSpan={4} className="py-2.5 px-4 align-middle">
                                             <div className="h-8"></div>
                                         </td>
                                     </tr>
@@ -320,6 +326,11 @@ export default function SchoolsListPage() {
                                             <span className="truncate">{sch.domain}</span>
                                         </div>
                                     )}
+                                    <div className="flex items-center mt-1">
+                                        <span className="inline-flex items-center gap-1 bg-accent-primary/10 text-accent-primary font-bold text-[11px] px-2 py-0.5 rounded-full border border-accent-primary/20">
+                                            {sch.exam_credits || 0} Credits
+                                        </span>
+                                    </div>
 
                                     <div className="flex items-center justify-between text-[11px] text-text-muted mt-1 pt-1.5 border-t border-border/20">
                                         <div className="flex items-center gap-3 w-full justify-end">

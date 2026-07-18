@@ -17,48 +17,22 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
     );
 
-    const { planId, examId, schoolId, planName } = await req.json();
+    const { planId, schoolId, planName } = await req.json();
 
-    if (!schoolId || (!planId && !examId)) {
+    if (!schoolId || !planId) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
-    // Step 8: Protect Duplicate Payments
-    if (examId) {
-      const { data: existingExam } = await supabase
-        .from('exams')
-        .select('is_paid')
-        .eq('id', examId)
-        .single();
-      
-      if (existingExam?.is_paid) {
-        return NextResponse.json({ error: 'Already purchased' }, { status: 400 });
-      }
+    const { data: planData } = await supabase
+      .from('plans')
+      .select('price')
+      .eq('id', planId)
+      .single();
+    
+    if (!planData) {
+      return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
     }
-
-    let calculatedAmount = 300; // Default fallback
-    if (examId) {
-      const { data: feePlan } = await supabase
-        .from('plans')
-        .select('price')
-        .eq('name', 'Fixed Payment')
-        .single();
-      
-      if (feePlan) {
-        calculatedAmount = Number(feePlan.price);
-      }
-    } else if (planId) {
-      const { data: planData } = await supabase
-        .from('plans')
-        .select('price')
-        .eq('id', planId)
-        .single();
-      
-      if (!planData) {
-        return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
-      }
-      calculatedAmount = Number(planData.price);
-    }
+    const calculatedAmount = Number(planData.price);
 
     if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
       return NextResponse.json({ error: 'Razorpay keys are not configured' }, { status: 500 });
@@ -80,9 +54,8 @@ export async function POST(req: Request) {
         website: 'parikshaos',
         school_id: schoolId,
         plan_id: planId || '',
-        exam_id: examId || '',
         plan_name: planName || '',
-        type: examId ? 'exam_fee' : 'credit_purchase'
+        type: 'credit_purchase'
       },
     };
 
