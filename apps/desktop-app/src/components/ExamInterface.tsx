@@ -22,9 +22,17 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const [showCalculator, setShowCalculator] = useState(false);
   const [school, setSchool] = useState<{ name: string; logo_url: string | null } | null>(null);
   
-  // Calculate time remaining based on server time and exam end_time
+  // Calculate time remaining based on server time, student start time, and duration or exam end_time
   const getInitialTimeLeft = () => {
-    if (!exam.end_time) return exam.duration_minutes * 60;
+    if (!exam.end_time) {
+      if (exam.student_started_at) {
+        const now = new Date(Date.now() + serverTimeOffset).getTime();
+        const startedAt = new Date(exam.student_started_at).getTime();
+        const elapsedSeconds = Math.floor((now - startedAt) / 1000);
+        return Math.max(0, (exam.duration_minutes * 60) - elapsedSeconds);
+      }
+      return exam.duration_minutes * 60;
+    }
     const now = new Date(Date.now() + serverTimeOffset).getTime();
     const endTime = new Date(exam.end_time).getTime();
     const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
@@ -526,13 +534,24 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                     const parseQuestionImages = (urlStr: string | null): string[] => {
                       if (!urlStr) return [];
                       const trimmed = urlStr.trim();
-                      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-                        try {
-                          return JSON.parse(trimmed);
-                        } catch (e) {
-                          return [trimmed];
+                      try {
+                        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                          let parsed = JSON.parse(trimmed);
+                          if (typeof parsed === 'string') {
+                             parsed = JSON.parse(parsed);
+                          }
+                          if (Array.isArray(parsed)) return parsed;
                         }
+                      } catch (e) {
+                        // Ignore parse errors and fallback to regex extraction
                       }
+                      
+                      // Fallback: extract any data URIs using regex
+                      const matches = trimmed.match(/data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+/g);
+                      if (matches && matches.length > 0) {
+                        return matches;
+                      }
+                      
                       return [trimmed];
                     };
                     const images = parseQuestionImages(currentQuestion.image_url);

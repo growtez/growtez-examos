@@ -180,20 +180,31 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         .from('exam_students')
         .select('*, exams:exam_id(*)')
         .eq('student_id', authData.user.id)
-        .eq('status', 'assigned');
+        .in('status', ['assigned', 'in_progress']);
 
       if (examError) throw examError;
 
-      const activeExams = (examAssignments || [])
-        .map((assignment: any) => assignment.exams)
-        .filter((exam: any) => exam && (exam.status === 'published' || exam.status === 'active'));
+      const activeAssignments = (examAssignments || []).filter(
+        (assignment: any) => assignment.exams && (assignment.exams.status === 'published' || assignment.exams.status === 'active')
+      );
 
-      if (activeExams.length === 0) {
+      if (activeAssignments.length === 0) {
         throw new Error('No active exams assigned to you at this moment.');
       }
 
-      // 4. Redirect directly to Waiting Room — skipping the exam selection screen
-      onLoginSuccess(profile, activeExams[0], 'waiting_room');
+      const selectedAssignment = activeAssignments[0];
+      const selectedExam = {
+        ...selectedAssignment.exams,
+        student_exam_status: selectedAssignment.status,
+        student_started_at: selectedAssignment.started_at,
+      };
+
+      // 4. Redirect directly to the Exam Interface if already in_progress, else to the Waiting Room
+      if (selectedAssignment.status === 'in_progress') {
+        onLoginSuccess(profile, selectedExam, 'exam');
+      } else {
+        onLoginSuccess(profile, selectedExam, 'waiting_room');
+      }
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
       try {

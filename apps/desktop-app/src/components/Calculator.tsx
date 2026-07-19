@@ -14,15 +14,13 @@ export default function Calculator({ onClose }: CalculatorProps) {
   const [pendingVal, setPendingVal] = useState<number | null>(null);
 
   // Floating & Dragging states
-  const [position, setPosition] = useState({ x: 100, y: 150 });
+  const [position, setPosition] = useState(() => {
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1000;
+    return { x: w - 380, y: 180 };
+  });
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
   const calculatorRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const w = window.innerWidth;
-    setPosition({ x: w - 380, y: 180 });
-  }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.calc-header')) {
