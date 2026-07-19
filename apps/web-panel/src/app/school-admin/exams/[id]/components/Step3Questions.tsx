@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BookOpen, Edit2, Trash2, Search, AlertCircle, Sigma } from 'lucide-react';
+import { BookOpen, Edit2, Trash2, Search, AlertCircle, Sigma, Plus } from 'lucide-react';
 import FormulaToolbar from '@/components/FormulaToolbar';
 import MathRenderer from '@/components/MathRenderer';
 import { parseQuestionImages } from '../hooks/useExamDetailPage';
@@ -208,24 +208,26 @@ export default function Step3Questions({
 
       {!isDraftStepperMode && (
         <div className="flex items-center justify-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 -mx-1 px-1">
-          {subjects.map((s) => {
+          {subjects
+            .filter((s) => {
+              // Teachers only see their assigned subjects
+              if (role === 'teacher') {
+                return s.exam_subject_teachers?.some((est: any) => est.teacher_id === userId);
+              }
+              return true;
+            })
+            .map((s) => {
             const added = questionCounts[s.id] || 0;
             const needed = s.question_count;
             const complete = added >= needed;
-            const isAssignedTeacher =
-              role !== 'teacher' ||
-              (role === 'teacher' && s.exam_subject_teachers?.some((est: any) => est.teacher_id === userId));
             const isSelected = drawerSubjectId === s.id;
 
             return (
               <button
                 key={s.id}
                 type="button"
-                disabled={!isAssignedTeacher}
-                onClick={() => isAssignedTeacher && openManageQuestions(s.id)}
-                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${!isAssignedTeacher
-                  ? 'bg-gray-50 border-gray-200 text-gray-400 opacity-60 cursor-not-allowed'
-                  : isSelected
+                onClick={() => openManageQuestions(s.id)}
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${isSelected
                     ? 'bg-accent-primary text-white border-accent-primary shadow-sm'
                     : 'bg-surface border-border text-text-main hover:border-accent-primary/50'
                   }`}
@@ -240,6 +242,43 @@ export default function Step3Questions({
         </div>
       )}
 
+      {/* Subject Header & Add Question for non-stepper mode (teacher view) */}
+      {!isDraftStepperMode && drawerSubjectId && (() => {
+        const activeSubject = subjects.find(s => s.id === drawerSubjectId);
+        const needed = activeSubject?.question_count ?? 0;
+        const added = drawerQuestions.length;
+        const isComplete = added >= needed;
+        const isExamDraft = exam?.status === 'draft';
+
+        return (
+          <div className="flex items-center justify-between bg-surface border border-border rounded-xl p-4 shadow-sm mb-2 mx-1">
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-bold text-text-main">
+                {activeSubject?.subject_name}
+              </h3>
+              <span className={`text-sm font-semibold px-2.5 py-1 rounded-md ${isComplete ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
+                {added}/{needed} Added
+              </span>
+            </div>
+            
+            <div>
+              {isComplete ? (
+                <span className="text-[13px] font-semibold text-emerald-600 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg select-none whitespace-nowrap">
+                  ✓ All questions added
+                </span>
+              ) : isExamDraft ? (
+                <button
+                  type="button"
+                  onClick={handleDrawerNewQuestion}
+                  className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg bg-accent-primary text-white hover:bg-accent-primary/90 transition-all text-sm font-bold shadow-sm cursor-pointer active:scale-95 whitespace-nowrap"
+                >
+                  <Plus size={16} /> Add Question
+                </button>
+              ) : null}
+            </div>
+          </div>
+        );
+      })()}
 
 
       {/* Questions Area — outer card border/background removed */}

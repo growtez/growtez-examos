@@ -39,7 +39,12 @@ export function useExamDetailPage(paramsId: string) {
   const [mcqWrong, setMcqWrong] = useState<number | string>(-1);
   const [natCorrect, setNatCorrect] = useState<number | string>(4);
   const [natWrong, setNatWrong] = useState<number | string>(0);
-  const [role, setRole] = useState<string>('school_admin');
+  const [role, setRole] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('user_role') || 'school_admin';
+    }
+    return 'school_admin';
+  });
   const [userId, setUserId] = useState<string>('');
   const [editDurationMode, setEditDurationMode] = useState(false);
   const [inlineEditDuration, setInlineEditDuration] = useState(180);
@@ -961,16 +966,22 @@ export function useExamDetailPage(paramsId: string) {
   }, [paramsId]);
 
   useEffect(() => {
-    if (currentStep === 3 && !loading && subjects.length > 0) {
-      const isCurrentSubjectValid = subjects.some(s => s.id === drawerSubjectId);
-      if (!isCurrentSubjectValid) {
-        const allowedSubject = subjects.find(s =>
-          role !== 'teacher' ||
-          s.exam_subject_teachers?.some((est: any) => est.teacher_id === userId)
-        );
-        if (allowedSubject) {
-          openManageQuestions(allowedSubject.id);
-        }
+    if (loading || subjects.length === 0) return;
+
+    // Check if the currently selected subject is valid
+    const isCurrentSubjectValid = drawerSubjectId && subjects.some(s => s.id === drawerSubjectId);
+
+    // For teachers, auto-select their first assigned subject if none is selected
+    if (role === 'teacher' && !isCurrentSubjectValid) {
+      const allowedSubject = subjects.find(s => s.exam_subject_teachers?.some((est: any) => est.teacher_id === userId));
+      if (allowedSubject) {
+        openManageQuestions(allowedSubject.id);
+      }
+    } 
+    // For admins, auto-select the first subject when on step 3 if none is selected
+    else if (currentStep === 3 && !isCurrentSubjectValid) {
+      if (subjects[0]) {
+        openManageQuestions(subjects[0].id);
       }
     }
   }, [currentStep, loading, subjects, drawerSubjectId, role, userId]);
