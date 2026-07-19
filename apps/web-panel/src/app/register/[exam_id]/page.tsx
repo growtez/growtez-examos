@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { getExamForRegistration } from '@/app/actions/exam';
 
 function RegistrationForm({ params, exam, school, onSuccess }: { params: { exam_id: string }, exam: any, school: any, onSuccess: (roll: string) => void }) {
   const searchParams = useSearchParams();
@@ -155,7 +156,6 @@ function RegistrationForm({ params, exam, school, onSuccess }: { params: { exam_
 }
 
 export default function StudentExamRegistration({ params }: { params: { exam_id: string } }) {
-  const supabase = createClient();
   const [exam, setExam] = useState<any>(null);
   const [school, setSchool] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -164,20 +164,10 @@ export default function StudentExamRegistration({ params }: { params: { exam_id:
 
   useEffect(() => {
     const fetchExam = async () => {
-      const { data: examData, error: examError } = await supabase
-        .from('exams')
-        .select('*')
-        .eq('id', params.exam_id)
-        .single();
-        
-      if (!examError && examData) {
-        setExam(examData);
-        const { data: schoolData } = await supabase
-          .from('schools')
-          .select('*')
-          .eq('id', examData.school_id)
-          .single();
-        setSchool(schoolData);
+      const res = await getExamForRegistration(params.exam_id);
+      if (res.success) {
+        setExam(res.exam);
+        setSchool(res.school);
       }
       setLoading(false);
     };
