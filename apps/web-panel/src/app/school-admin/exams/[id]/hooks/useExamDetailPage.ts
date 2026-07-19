@@ -584,7 +584,7 @@ export function useExamDetailPage(paramsId: string) {
     window.dispatchEvent(new CustomEvent('save-status-update', { detail: { status: 'saving' } }));
     try {
       const filteredInstructions = currentInstructions.filter(inst => inst.trim() !== '');
-      const { error } = await supabase.from('exams').update({
+      const updateData: any = {
         title: currentTitle,
         description: currentDesc,
         duration_minutes: currentDuration,
@@ -595,10 +595,17 @@ export function useExamDetailPage(paramsId: string) {
           nat_wrong: parseFloat(String(currentNatWrong)) || 0
         },
         exam_instructions: filteredInstructions,
-      }).eq('id', paramsId);
+      };
+
+      if (startTime && currentDuration > 0) {
+        const end = new Date(new Date(startTime).getTime() + currentDuration * 60000);
+        updateData.end_time = end.toISOString();
+      }
+
+      const { error } = await supabase.from('exams').update(updateData).eq('id', paramsId);
 
       if (error) throw error;
-      setExam((prev: any) => prev ? { ...prev, title: currentTitle, description: currentDesc, duration_minutes: currentDuration, exam_instructions: filteredInstructions } : null);
+      setExam((prev: any) => prev ? { ...prev, title: currentTitle, description: currentDesc, duration_minutes: currentDuration, exam_instructions: filteredInstructions, ...(updateData.end_time ? { end_time: updateData.end_time } : {}) } : null);
       setSaveStatus('saved');
       window.dispatchEvent(new CustomEvent('save-status-update', { detail: { status: 'saved' } }));
       setTimeout(() => {
@@ -624,15 +631,27 @@ export function useExamDetailPage(paramsId: string) {
     window.dispatchEvent(new CustomEvent('save-status-update', { detail: { status: 'saving' } }));
 
     try {
-      const updates = {
+      let calculatedDuration: number | undefined = undefined;
+      if (currentStartTime && currentEndTime) {
+        const gap = Math.round((new Date(currentEndTime).getTime() - new Date(currentStartTime).getTime()) / 60000);
+        if (gap > 0) {
+          calculatedDuration = gap;
+        }
+      }
+
+      const updates: any = {
         start_time: currentStartTime ? new Date(currentStartTime).toISOString() : null,
         end_time: currentEndTime ? new Date(currentEndTime).toISOString() : null,
+        ...(calculatedDuration !== undefined ? { duration_minutes: calculatedDuration } : {})
       };
 
       const { error } = await supabase.from('exams').update(updates).eq('id', paramsId);
       if (error) throw error;
 
       setExam((prev: any) => prev ? { ...prev, ...updates } : null);
+      if (calculatedDuration !== undefined) {
+        setDurationMinutes(calculatedDuration);
+      }
       setSaveStatus('saved');
       window.dispatchEvent(new CustomEvent('save-status-update', { detail: { status: 'saved' } }));
       setTimeout(() => {
