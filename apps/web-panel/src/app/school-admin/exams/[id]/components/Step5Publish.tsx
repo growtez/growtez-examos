@@ -788,7 +788,7 @@ export default function Step5Publish({
                       Insufficient Credits
                     </button>
                     <a
-                      href="/school-admin/credits"
+                      href="/credits"
                       className="text-sm text-center font-semibold text-accent-primary hover:underline mt-1"
                     >
                       Buy more credits
