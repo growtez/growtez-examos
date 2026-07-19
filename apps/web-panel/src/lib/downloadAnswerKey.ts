@@ -125,7 +125,9 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
 
       // Generate Options HTML
       let optionsHtml = '';
-      if (q.options && typeof q.options === 'object') {
+      const hasOptions = q.options && typeof q.options === 'object' && Object.keys(q.options).some(k => ['A', 'B', 'C', 'D'].includes(k) && (q.options[k] || q.options[`${k}_image`]));
+
+      if (hasOptions) {
         optionsHtml += `<div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">`;
         
         ['A', 'B', 'C', 'D'].forEach((key) => {
@@ -190,6 +192,39 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
         });
 
         optionsHtml += `</div>`;
+      } else {
+        // Handle NAT or other types without options
+        const isCorrect = marksAwarded > 0;
+        const hasAnswered = studentAns !== undefined && studentAns !== null && studentAns !== '';
+        
+        let boxStyle = `
+          padding: 12px;
+          border-radius: 6px;
+          border: 1px solid #e0f2f2;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 12px;
+          background-color: #f8fafc;
+          page-break-inside: avoid;
+        `;
+
+        let studentAnsText = hasAnswered ? String(studentAns) : 'Not Answered';
+        let studentAnsColor = hasAnswered ? (isCorrect ? '#22c55e' : '#ef4444') : '#94a3b8';
+        let correctAnsText = (correctAns !== undefined && correctAns !== null) ? String(correctAns) : 'N/A';
+
+        optionsHtml += `
+          <div style="${boxStyle}">
+            <div style="font-size: 13px; color: #334155;">
+              <span style="font-weight: 600; margin-right: 8px;">Your Answer:</span>
+              <span style="color: ${studentAnsColor}; font-weight: 600;">${escapeHtml(studentAnsText)}</span>
+            </div>
+            <div style="font-size: 13px; color: #334155;">
+              <span style="font-weight: 600; margin-right: 8px;">Correct Answer:</span>
+              <span style="color: #22c55e; font-weight: 600;">${escapeHtml(correctAnsText)}</span>
+            </div>
+          </div>
+        `;
       }
 
       // Combine Question HTML

@@ -1337,7 +1337,7 @@ export function useExamDetailPage(paramsId: string) {
           status: 'draft',
           marking_scheme: exam.marking_scheme,
           total_marks: exam.total_marks,
-          is_paid: exam.is_paid,
+          is_paid: false,
           exam_instructions: exam.exam_instructions,
           created_by: exam.created_by
         })
