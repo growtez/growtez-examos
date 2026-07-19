@@ -36,27 +36,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to create school record' }, { status: 500 });
     }
 
-    // 3. Create the user using Supabase Admin API
-    // Passing school_id in metadata so the trigger on_auth_user_created handles the profile correctly
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        role: 'school_admin',
-        full_name: fullName,
-        school_id: newSchool.id,
-      }
-    });
-
-    if (userError) {
-      console.error('Error creating auth user:', userError);
-      // Cleanup the school if user creation fails
-      await supabaseAdmin.from('schools').delete().eq('id', newSchool.id);
-      return NextResponse.json({ error: userError.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, message: 'Account created successfully' }, { status: 200 });
+    return NextResponse.json({ 
+      success: true, 
+      school_id: newSchool.id 
+    }, { status: 200 });
 
   } catch (error: any) {
     console.error('Registration error:', error);

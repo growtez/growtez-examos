@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Sun, Moon } from 'lucide-react';
+import Link from 'next/link';
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -11,6 +12,8 @@ function LoginContent() {
   
   // Form mode state
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
   
   // Form fields
   const [email, setEmail] = useState('');
@@ -108,20 +111,26 @@ function LoginContent() {
           throw new Error(data.error || 'Failed to register account');
         }
 
-        // Successfully registered! Now sign them in.
-        const { error: signInError } = await supabase.auth.signInWithPassword({
+        // Successfully created school, now trigger Supabase Auth signup to send OTP
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              role: 'school_admin',
+              full_name: fullName,
+              school_id: data.school_id,
+            }
+          }
         });
 
-        if (signInError) {
-          setSuccess('Account created! Please sign in with your new credentials.');
-          setIsRegistering(false);
-          setLoading(false);
-          return;
+        if (signUpError) {
+          throw new Error(signUpError.message);
         }
-        
-        window.location.href = '/';
+
+        // Enter OTP Verification Mode
+        setIsVerifyingOtp(true);
+        setLoading(false);
         return;
       } catch (err: any) {
         setError(getFriendlyError(err.message));
@@ -136,6 +145,11 @@ function LoginContent() {
       });
 
       if (authError) {
+        if (authError.message.toLowerCase().includes('email not confirmed')) {
+          setIsVerifyingOtp(true);
+          setLoading(false);
+          return;
+        }
         setError(getFriendlyError(authError.message));
         setLoading(false);
         return;
@@ -152,8 +166,18 @@ function LoginContent() {
       const role = user.user_metadata?.role || (user.email === 'growtezexamos@gmail.com' ? 'super_admin' : 'student');
 
       // Redirect based on role
-      if (role === 'super_admin' || role === 'school_admin' || role === 'teacher') {
-        window.location.href = '/';
+      const protocol = window.location.protocol;
+      const host = window.location.host; 
+      
+      // Extract base domain by removing existing subdomains if present
+      let baseDomain = host;
+      if (host.startsWith('admin.')) baseDomain = host.replace('admin.', '');
+      else if (host.startsWith('school.')) baseDomain = host.replace('school.', '');
+
+      if (role === 'super_admin') {
+        window.location.href = `${protocol}//admin.${baseDomain}/`;
+      } else if (role === 'school_admin' || role === 'teacher') {
+        window.location.href = `${protocol}//school.${baseDomain}/`;
       } else {
         // Sign the user out first (they don't belong here), then show error
         await supabase.auth.signOut();
@@ -162,6 +186,53 @@ function LoginContent() {
       }
     }
   };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    const supabase = createClient();
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email,
+      token: otpCode,
+      type: 'signup'
+    });
+
+    if (verifyError) {
+      setError('Invalid verification code. Please try again.');
+      setLoading(false);
+      return;
+    }
+
+    setSuccess('Email verified successfully! Redirecting...');
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 1500);
+  };
+
+  const handleResendOtp = async () => {
+    setError('');
+    setSuccess('');
+    setLoading(true);
+    
+    const supabase = createClient();
+    const { error: resendError } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+    });
+
+    if (resendError) {
+      setError(getFriendlyError(resendError.message));
+      setLoading(false);
+      return;
+    }
+
+    setSuccess('A new verification code has been sent to your email!');
+    setLoading(false);
+  };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg relative overflow-hidden py-12">
@@ -198,17 +269,81 @@ function LoginContent() {
           {/* Card header */}
           <div className="mb-6">
             <h2 className="text-xl font-bold text-text-main uppercase tracking-wider">
-              {isRegistering ? 'Create School Account' : 'Administrator Sign In'}
+              {isVerifyingOtp 
+                ? 'Verify Email' 
+                : isRegistering ? 'Create School Account' : 'Administrator Sign In'}
             </h2>
             <p className="text-text-muted text-xs mt-1">
-              {isRegistering 
-                ? 'Register your institute to start managing exams' 
-                : 'Provide your credentials to access the console'}
+              {isVerifyingOtp
+                ? (
+                  <span>
+                    Enter the code sent to <strong className="text-accent-primary">{email}</strong>.
+                  </span>
+                )
+                : isRegistering 
+                  ? 'Register your institute to start managing exams' 
+                  : 'Provide your credentials to access the console'}
             </p>
           </div>
 
-          <form onSubmit={handleAuth} className="space-y-5">
-            {isRegistering && (
+          {isVerifyingOtp ? (
+            <form onSubmit={handleVerifyOtp} className="space-y-5">
+              <div>
+                <label htmlFor="otpCode" className="block text-[11px] font-bold text-text-muted mb-1.5 uppercase tracking-wider">
+                  Verification Code
+                </label>
+                <input
+                  id="otpCode"
+                  type="text"
+                  maxLength={8}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  required
+                  className="w-full px-4 py-4 bg-surface-hover border border-accent-primary rounded-xl text-text-main placeholder-text-muted/40 focus:outline-none focus:ring-2 focus:ring-accent-primary-glow transition-all text-center text-2xl tracking-[0.5em] font-mono shadow-sm"
+                  placeholder="--------"
+                />
+              </div>
+              
+              {error && (
+                <div className="border border-red-500/20 bg-red-500/10 p-3.5 rounded-xl text-red-500 text-xs font-semibold">
+                  ⚠ {error}
+                </div>
+              )}
+              
+              {success && (
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/5 border border-green-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                  <div className="mt-0.5">
+                    <svg className="w-5 h-5 text-green-500 drop-shadow-[0_0_5px_rgba(34,197,94,0.4)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  </div>
+                  <div>
+                    <h4 className="text-green-400 font-bold text-[13px] tracking-wide">Action Successful</h4>
+                    <p className="text-green-500/90 text-xs mt-0.5 font-medium leading-relaxed">{success}</p>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || otpCode.length < 6}
+                className="w-full py-3 px-4 bg-accent-primary text-white font-bold uppercase tracking-wider rounded-xl hover:bg-accent-primary/90 focus:outline-none focus:ring-2 focus:ring-accent-primary-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-sm"
+              >
+                {loading ? 'Verifying...' : 'Verify Code'}
+              </button>
+
+              <div className="text-center mt-2">
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={loading}
+                  className="text-[10px] text-text-muted hover:text-accent-primary transition-colors font-bold tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Didn't receive the code? Resend
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleAuth} className="space-y-5">
+              {isRegistering && (
               <>
                 <div>
                   <label htmlFor="schoolName" className="block text-[11px] font-bold text-text-muted mb-1.5 uppercase tracking-wider">
@@ -257,9 +392,16 @@ function LoginContent() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-[11px] font-bold text-text-muted mb-1.5 uppercase tracking-wider">
-                Password
-              </label>
+              <div className="flex justify-between items-center mb-1.5">
+                <label htmlFor="password" className="block text-[11px] font-bold text-text-muted uppercase tracking-wider">
+                  Password
+                </label>
+                {!isRegistering && (
+                  <button type="button" onClick={() => window.location.href = '/forgot-password'} className="text-[10px] font-bold text-accent-primary hover:text-accent-primary/80 transition-colors uppercase tracking-wider">
+                    Forgot Password?
+                  </button>
+                )}
+              </div>
               <input
                 id="password"
                 type="password"
@@ -302,19 +444,26 @@ function LoginContent() {
               )}
             </button>
           </form>
+          )}
 
           {/* Toggle between login and register */}
           <div className="mt-6 text-center border-t border-border pt-4">
             <button
               type="button"
               onClick={() => {
-                setIsRegistering(!isRegistering);
+                if (isVerifyingOtp) {
+                  setIsVerifyingOtp(false);
+                } else {
+                  setIsRegistering(!isRegistering);
+                }
                 setError('');
                 setSuccess('');
               }}
               className="text-xs text-text-muted hover:text-accent-primary transition-colors font-semibold tracking-wide uppercase"
             >
-              {isRegistering ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
+              {isVerifyingOtp 
+                ? 'Back to login'
+                : isRegistering ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
             </button>
           </div>
         </div>
