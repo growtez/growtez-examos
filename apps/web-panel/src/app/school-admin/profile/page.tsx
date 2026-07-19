@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Bell, CreditCard, CheckCircle, Clock, AlertCircle, Building, User, Trash2, CheckCircle2, Plus, MessageSquare, Send } from 'lucide-react';
+import { Bell, CreditCard, CheckCircle, Clock, AlertCircle, Building, User, Trash2, CheckCircle2, Plus, MessageSquare, Send, LogOut } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { Crop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -18,6 +18,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [savingImage, setSavingImage] = useState(false);
   const [showImageSaveSuccess, setShowImageSaveSuccess] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
 
   // Feedback State
   const [submitting, setSubmitting] = useState(false);
@@ -143,6 +145,18 @@ export default function ProfilePage() {
     setSavingImage(false);
   };
 
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      window.location.href = '/login';
+    } catch (err) {
+      console.error('Error logging out:', err);
+      setLoggingOut(false);
+    }
+  };
+
   const handleSubmitFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!school?.id || !userId || !message.trim()) return;
@@ -173,9 +187,18 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
-      <div>
-        <h1 className="text-2xl font-bold text-text-main">Profile & Settings</h1>
-        <p className="text-text-muted mt-1">Manage your college profile and submit feedback to the team.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-text-main">Profile & Settings</h1>
+          <p className="text-text-muted mt-1">Manage your college profile and submit feedback to the team.</p>
+        </div>
+        <button
+          onClick={() => setShowSignoutConfirm(true)}
+          className="self-start sm:self-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl transition-all duration-200 active:scale-95 shadow-md shadow-red-500/10"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign Out
+        </button>
       </div>
 
       {/* College Details Section */}
@@ -413,6 +436,37 @@ export default function ProfilePage() {
               >
                 Save Crop
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSignoutConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={24} className="text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-text-main mb-2">Sign Out</h3>
+              <p className="text-text-muted text-sm font-medium mb-6">Are you sure you want to sign out of your account?</p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowSignoutConfirm(false)}
+                  disabled={loggingOut}
+                  className="flex-1 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                  className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm shadow-red-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <LogOut className={`w-4 h-4 ${loggingOut ? 'animate-pulse' : ''}`} />
+                  {loggingOut ? 'Signing out...' : 'Sign Out'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
