@@ -100,7 +100,7 @@ export default async function SchoolAdminDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
           {/* Summary Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-transparent bg-gradient-to-br from-accent-primary to-accent-primary/70 p-6 shadow-xl text-white">
+          <div className="relative overflow-hidden rounded-2xl border border-transparent bg-accent-primary p-6 shadow-xl text-white">
             <div className="flex flex-col justify-between h-full relative z-10">
               <div>
                 <span className="text-xs font-semibold text-white/80 uppercase tracking-widest">Overview</span>
@@ -118,8 +118,8 @@ export default async function SchoolAdminDashboard() {
               </div>
             </div>
             {/* Background elements */}
-            <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
-            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-black/10 rounded-full blur-2xl"></div>
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/5 rounded-full"></div>
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-black/5 rounded-full"></div>
           </div>
 
           {/* Recent Exams */}

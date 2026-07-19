@@ -159,14 +159,31 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
   useEffect(() => {
     const fetchExams = async () => {
       let activeSchoolId: string | undefined = schoolIdProp;
+      let isTeacher = false;
+      let currentUserId = '';
+
       if (!activeSchoolId) {
         const { data: { session } } = await supabase.auth.getSession();
         const user = session?.user;
         if (!user) return;
-        const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
-        if (!profile?.school_id) return;
-        activeSchoolId = profile.school_id;
+        currentUserId = user.id;
+
+        const role = user.user_metadata?.role;
+        if (role === 'teacher') {
+          isTeacher = true;
+          const { data: profile } = await supabase.from('teachers').select('school_id').eq('id', user.id).single();
+          if (profile?.school_id) activeSchoolId = profile.school_id;
+        } else {
+          activeSchoolId = user.user_metadata?.school_id;
+          if (!activeSchoolId) {
+            const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
+            if (profile?.school_id) activeSchoolId = profile.school_id;
+          }
+        }
+        
+        if (!activeSchoolId) return;
       }
+
       setSchoolId(activeSchoolId || null);
 
       if (activeSchoolId) {
@@ -174,12 +191,34 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
         if (schoolData) setSchoolName(schoolData.name);
       }
 
-      const { data } = await supabase
+      let query = supabase
         .from('exams')
         .select(`*, results(id)`)
         .eq('school_id', activeSchoolId)
         .in('status', ['completed', 'published', 'active'])
         .order('created_at', { ascending: false });
+
+      if (isTeacher && currentUserId) {
+        const { data: assignedSubjects } = await supabase.from('exam_subject_teachers').select('exam_subject_id').eq('teacher_id', currentUserId);
+        const examSubjectIds = assignedSubjects?.map(s => s.exam_subject_id) || [];
+        if (examSubjectIds.length > 0) {
+          const { data: subjects } = await supabase.from('exam_subjects').select('exam_id').in('id', examSubjectIds);
+          const uniqueExamIds = Array.from(new Set(subjects?.map(s => s.exam_id) || []));
+          if (uniqueExamIds.length > 0) {
+            query = query.in('id', uniqueExamIds);
+          } else {
+            setExams([]);
+            setLoadingExams(false);
+            return;
+          }
+        } else {
+          setExams([]);
+          setLoadingExams(false);
+          return;
+        }
+      }
+
+      const { data } = await query;
 
       const examsList = (data || []).map(e => ({
         ...e,
@@ -256,6 +295,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
             time_taken_seconds: studentResult?.time_taken_seconds || null,
             submitted_at: studentResult?.submitted_at || null,
             answers: studentResult?.answers || null,
+            section_scores: studentResult?.section_scores || null,
             students: studentInfo || null,
             exams: studentResult?.exams || {
               title: examDetails?.title || '',
@@ -277,6 +317,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
             time_taken_seconds: studentResult.time_taken_seconds || null,
             submitted_at: studentResult.submitted_at || null,
             answers: studentResult.answers || null,
+            section_scores: studentResult.section_scores || null,
             students: studentInfo || null,
             exams: studentResult.exams || {
               title: examDetails?.title || '',

@@ -39,11 +39,6 @@ const navItems = [
     icon: <Coins className="w-5 h-5" />,
   },
   {
-    label: 'Profile',
-    href: '/profile',
-    icon: <User className="w-5 h-5" />,
-  },
-  {
     label: 'Trash',
     href: '/exams/trash',
     icon: <Trash2 className="w-5 h-5" />,
@@ -57,7 +52,6 @@ export default function SchoolAdminLayout({
 }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [role, setRole] = useState<string | null>(null);
@@ -279,12 +273,6 @@ export default function SchoolAdminLayout({
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    window.location.href = '/login';
-  };
-
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/' || pathname === '/school-admin';
     return pathname?.startsWith(href);
@@ -425,17 +413,28 @@ export default function SchoolAdminLayout({
               <span className="truncate">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
             </div>
           </button>
-          <button
-            onClick={() => setShowSignoutConfirm(true)}
-            className="w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg border border-transparent text-sidebar-text-muted hover:text-red-400 hover:bg-red-400/10 transition-colors group"
-          >
-            <div className="flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 group-hover:scale-110">
-              <div className="scale-90 flex"><LogOut className="w-5 h-5" /></div>
-            </div>
-            <div className={`ml-2.5 h-full flex items-center overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out ${!sidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100'}`}>
-              <span className="truncate">Sign out</span>
-            </div>
-          </button>
+          {role && role !== 'teacher' && (
+            <Link
+              href="/profile"
+              className={`w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg border transition-colors group ${
+                isActive('/profile') 
+                  ? "bg-accent-primary/15 text-sidebar-text shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border-accent-primary font-semibold" 
+                  : "text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text border-transparent"
+              }`}
+              onClick={() => {
+                if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                  setSidebarOpen(false);
+                }
+              }}
+            >
+              <div className={`flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 ${isActive('/profile') ? 'text-accent-secondary' : 'text-sidebar-text-muted group-hover:text-sidebar-text group-hover:scale-110'}`}>
+                <div className="scale-90 flex"><User className="w-5 h-5" /></div>
+              </div>
+              <div className={`ml-2.5 h-full flex items-center overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out ${!sidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100'}`}>
+                <span className="truncate">Profile</span>
+              </div>
+            </Link>
+          )}
         </div>
       </aside>
 
@@ -606,35 +605,6 @@ export default function SchoolAdminLayout({
           {children}
         </main>
       </div>
-
-      {/* Sign Out Confirmation Modal */}
-      {showSignoutConfirm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-6 text-center">
-              <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertCircle size={24} className="text-red-500" />
-              </div>
-              <h3 className="text-lg font-bold text-text-main mb-2">Sign Out</h3>
-              <p className="text-text-muted text-sm font-medium mb-6">Are you sure you want to sign out of your account?</p>
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => setShowSignoutConfirm(false)}
-                  className="flex-1 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleLogout}
-                  className="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm shadow-red-500/20"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
