@@ -58,6 +58,7 @@ export default function SchoolAdminLayout({
   const [schoolName, setSchoolName] = useState<string>('');
   const [breadcrumbNames, setBreadcrumbNames] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [showSignoutConfirm, setShowSignoutConfirm] = useState(false);
   const [examStatus, setExamStatus] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(false);
   const [totalCredits, setTotalCredits] = useState<number | null>(null);
@@ -435,6 +436,19 @@ export default function SchoolAdminLayout({
               </div>
             </Link>
           )}
+          {role === 'teacher' && (
+            <button
+              onClick={() => setShowSignoutConfirm(true)}
+              className="w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg border border-transparent text-sidebar-text-muted hover:text-red-400 hover:bg-red-400/10 transition-colors group"
+            >
+              <div className="flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 group-hover:scale-110">
+                <div className="scale-90 flex"><LogOut className="w-5 h-5" /></div>
+              </div>
+              <div className={`ml-2.5 h-full flex items-center overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out ${!sidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100'}`}>
+                <span className="truncate">Sign out</span>
+              </div>
+            </button>
+          )}
         </div>
       </aside>
 
@@ -496,84 +510,86 @@ export default function SchoolAdminLayout({
               </span>
             )}
             
-            <div className="relative" ref={notifDropdownRef}>
-              <button 
-                onClick={() => {
-                  setNotifDropdownOpen(!notifDropdownOpen);
-                  if (!notifDropdownOpen) {
-                    setUnreadNotifsCount(0); // Mark as read when opening
-                    localStorage.setItem('last_seen_notif_time', new Date().toISOString());
-                  }
-                }}
-                className="relative p-2 text-text-muted hover:text-accent-primary hover:bg-surface-hover rounded-full transition-colors"
-              >
-                <Bell className="w-5 h-5" />
-                {unreadNotifsCount > 0 && (
-                  <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-surface"></span>
-                )}
-              </button>
+            {role !== 'teacher' && (
+              <div className="relative" ref={notifDropdownRef}>
+                <button 
+                  onClick={() => {
+                    setNotifDropdownOpen(!notifDropdownOpen);
+                    if (!notifDropdownOpen) {
+                      setUnreadNotifsCount(0); // Mark as read when opening
+                      localStorage.setItem('last_seen_notif_time', new Date().toISOString());
+                    }
+                  }}
+                  className="relative p-2 text-text-muted hover:text-accent-primary hover:bg-surface-hover rounded-full transition-colors"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadNotifsCount > 0 && (
+                    <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-surface"></span>
+                  )}
+                </button>
 
-              {notifDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface rounded-xl shadow-lg border border-border overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col max-h-[85vh]">
-                  <div className="p-4 border-b border-border flex justify-between items-center bg-bg/50 backdrop-blur-md shrink-0">
-                    <h3 className="text-sm font-bold text-text-main flex items-center gap-2">
-                      <Bell className="w-4 h-4 text-accent-primary" /> Notifications
-                    </h3>
-                  </div>
-                  <div className="overflow-y-auto flex-1">
-                    {notifications.length > 0 ? (
-                      <div className="divide-y divide-border">
-                        {notifications.map((notif) => (
-                          <div key={notif.id} className="p-4 hover:bg-surface-hover transition-colors">
-                            <div className="flex gap-3">
-                              <div className="flex-shrink-0 mt-1">
-                                {notif.type === 'fee_update' ? (
-                                  <CreditCard className="w-5 h-5 text-purple-500" />
-                                ) : notif.type === 'new_feature' ? (
-                                  <CheckCircle className="w-5 h-5 text-green-500" />
-                                ) : notif.type === 'alert' ? (
-                                  <AlertCircle className="w-5 h-5 text-red-500" />
-                                ) : (
-                                  <Bell className="w-5 h-5 text-blue-500" />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-start gap-2">
-                                  <h4 className="text-sm font-bold text-text-main leading-tight">{notif.title}</h4>
-                                  <button 
-                                    onClick={(e) => handleDeleteNotification(notif.id, e)}
-                                    className="p-1 text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors shrink-0"
-                                    title="Delete notification"
-                                  >
-                                    <X className="w-3.5 h-3.5" />
-                                  </button>
+                {notifDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface rounded-xl shadow-lg border border-border overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col max-h-[85vh]">
+                    <div className="p-4 border-b border-border flex justify-between items-center bg-bg/50 backdrop-blur-md shrink-0">
+                      <h3 className="text-sm font-bold text-text-main flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-accent-primary" /> Notifications
+                      </h3>
+                    </div>
+                    <div className="overflow-y-auto flex-1">
+                      {notifications.length > 0 ? (
+                        <div className="divide-y divide-border">
+                          {notifications.map((notif) => (
+                            <div key={notif.id} className="p-4 hover:bg-surface-hover transition-colors">
+                              <div className="flex gap-3">
+                                <div className="flex-shrink-0 mt-1">
+                                  {notif.type === 'fee_update' ? (
+                                    <CreditCard className="w-5 h-5 text-purple-500" />
+                                  ) : notif.type === 'new_feature' ? (
+                                    <CheckCircle className="w-5 h-5 text-green-500" />
+                                  ) : notif.type === 'alert' ? (
+                                    <AlertCircle className="w-5 h-5 text-red-500" />
+                                  ) : (
+                                    <Bell className="w-5 h-5 text-blue-500" />
+                                  )}
                                 </div>
-                                <p className="text-sm text-text-muted mt-1 whitespace-pre-wrap leading-snug">{notif.message}</p>
-                                {notif.image_url && (
-                                  <div className="mt-2.5 rounded-lg overflow-hidden max-w-full border border-border shadow-sm">
-                                    <img src={notif.image_url} alt="Announcement" className="max-h-32 w-full object-cover" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex justify-between items-start gap-2">
+                                    <h4 className="text-sm font-bold text-text-main leading-tight">{notif.title}</h4>
+                                    <button 
+                                      onClick={(e) => handleDeleteNotification(notif.id, e)}
+                                      className="p-1 text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors shrink-0"
+                                      title="Delete notification"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
                                   </div>
-                                )}
-                                <div className="flex items-center gap-1 mt-2 text-[11px] text-text-muted font-medium">
-                                  <Clock className="w-3 h-3" />
-                                  <span>{new Date(notif.created_at).toLocaleString()}</span>
+                                  <p className="text-sm text-text-muted mt-1 whitespace-pre-wrap leading-snug">{notif.message}</p>
+                                  {notif.image_url && (
+                                    <div className="mt-2.5 rounded-lg overflow-hidden max-w-full border border-border shadow-sm">
+                                      <img src={notif.image_url} alt="Announcement" className="max-h-32 w-full object-cover" />
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-1 mt-2 text-[11px] text-text-muted font-medium">
+                                    <Clock className="w-3 h-3" />
+                                    <span>{new Date(notif.created_at).toLocaleString()}</span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 px-4">
-                        <Bell className="w-8 h-8 text-text-muted mx-auto mb-3 opacity-30" />
-                        <h3 className="text-sm font-medium text-text-main">No New Notifications</h3>
-                        <p className="text-[13px] text-text-muted mt-1">You're all caught up!</p>
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 px-4">
+                          <Bell className="w-8 h-8 text-text-muted mx-auto mb-3 opacity-30" />
+                          <h3 className="text-sm font-medium text-text-main">No New Notifications</h3>
+                          <p className="text-[13px] text-text-muted mt-1">You're all caught up!</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             <div className="relative" ref={dropdownRef}>
               <div 
@@ -605,6 +621,42 @@ export default function SchoolAdminLayout({
           {children}
         </main>
       </div>
+
+      {/* Sign Out Confirmation Modal */}
+      {showSignoutConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <LogOut className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-xl font-bold text-text-main mb-2">Sign Out</h3>
+              <p className="text-text-muted text-sm mb-6">
+                Are you sure you want to sign out of your account?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowSignoutConfirm(false)}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-border text-text-main hover:bg-surface-hover font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    const supabase = createClient();
+                    await supabase.auth.signOut();
+                    localStorage.removeItem('user_role');
+                    window.location.href = '/login';
+                  }}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium transition-colors shadow-sm"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
