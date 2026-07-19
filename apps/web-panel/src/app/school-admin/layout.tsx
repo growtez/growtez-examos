@@ -211,7 +211,9 @@ export default function SchoolAdminLayout({
           }
         }
         
-        setRole(currentRole || 'school_admin');
+        const finalRole = currentRole || 'school_admin';
+        setRole(finalRole);
+        localStorage.setItem('user_role', finalRole);
 
         if (schoolId) {
           const { data: school } = await supabase.from('schools').select('name, exam_credits, logo_url').eq('id', schoolId).single();

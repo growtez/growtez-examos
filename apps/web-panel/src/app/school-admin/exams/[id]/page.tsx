@@ -451,43 +451,31 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const displayStatus = isExamOver ? "completed" : exam?.status || "draft";
   // Controls the stepper-pill layout (vs. the old single-column/summary layout).
   // The pills should stay visible for non-teachers regardless of draft/published status.
-  const isDraftStepperMode = loading || role !== "teacher";
+  // Teachers never see the stepper — they go straight to the questions view.
+  const isTeacher = role === "teacher";
+  const isDraftStepperMode = loading || (!isTeacher && true);
   // True once the exam is no longer editable: published (any non-draft status) or its window has passed.
   const isReadOnly = !loading && (exam?.status !== "draft" || isExamOver);
 
   if (loading) {
+    if (role === "teacher") {
+      return (
+        <div className="w-full max-w-5xl mx-auto animate-in fade-in duration-300 px-4 sm:px-6">
+          <div className="h-24 bg-surface border border-border rounded-xl mt-6 animate-pulse" />
+          <div className="flex justify-center mt-6 mb-6">
+            <div className="h-8 w-32 bg-surface border border-border rounded-full animate-pulse" />
+          </div>
+          <div className="h-16 bg-surface border border-border rounded-xl mb-4 animate-pulse" />
+          <div className="h-[400px] bg-surface border border-border rounded-xl animate-pulse" />
+        </div>
+      );
+    }
+
     return (
       <div className="w-full animate-in fade-in duration-300">
-        <div className="border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-3">
-          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4 mb-2 w-full max-w-5xl mx-auto">
-            <div className="flex justify-start sm:justify-end">
-              <button disabled className="inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-xl opacity-50 cursor-not-allowed sm:min-w-24">
-                <ChevronLeft size={14} />
-                <span className="hidden sm:inline">Prev</span>
-              </button>
-            </div>
-            <div className="min-w-0 overflow-x-auto bg-accent-primary/5 border border-accent-primary/20 rounded-2xl py-2 px-3 sm:px-6 shadow-sm shadow-accent-primary/5">
-              <div className="flex min-w-max items-center justify-center gap-4">
-                {STEPPER_STEPS.map((s) => (
-                  <div
-                    key={s.step}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center font-bold text-[10px] sm:text-[11px] border-2 bg-transparent text-text-muted border-border"
-                  >
-                    {s.step}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-end sm:justify-start">
-              <button disabled className="inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-surface border border-border text-text-main text-[11px] font-semibold rounded-xl opacity-50 cursor-not-allowed sm:min-w-24">
-                <span className="hidden sm:inline">Next</span>
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-          <h2 className="text-base sm:text-lg font-bold text-text-main">
-            Step 1 · Setup
-          </h2>
+        {/* Generic skeleton header without stepper to prevent flashing for teachers */}
+        <div className="border-b border-border bg-bg px-4 sm:px-6 pb-3 pt-4 flex flex-col gap-3 animate-pulse">
+          <div className="h-8 w-1/3 bg-surface border border-border rounded-lg mx-auto"></div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6 animate-pulse p-4 sm:p-6">
@@ -503,12 +491,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   return (
     <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div
-        className={`grid grid-cols-1 ${!isDraftStepperMode ? "xl:grid-cols-3 gap-6 lg:gap-8" : ""} mb-10`}
+        className={!isDraftStepperMode ? "max-w-5xl mx-auto mb-10" : "grid grid-cols-1 mb-10"}
       >
         {/* Main Content Column */}
-        <div
-          className={`${isDraftStepperMode ? "" : "xl:col-span-2"} space-y-6`}
-        >
+        <div className="space-y-6">
 
           {isDraftStepperMode && (
             <>
@@ -672,25 +658,27 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     )}
                   </div>
 
-                  {/* Right Side: Duplicate & Trash */}
-                  <div className="flex shrink-0 items-center gap-1.5 justify-end">
-                    <button
-                      onClick={handleDuplicate}
-                      title="Duplicate Exam"
-                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-lg text-xs font-bold text-accent-primary hover:bg-accent-primary hover:text-white transition-all shadow-sm whitespace-nowrap"
-                    >
-                      <Copy size={14} />
-                      <span className="hidden sm:inline">Duplicate</span>
-                    </button>
-                    <button
-                      onClick={handleTrash}
-                      title="Trash Exam"
-                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm whitespace-nowrap"
-                    >
-                      <Trash2 size={14} />
-                      <span className="hidden sm:inline">Delete</span>
-                    </button>
-                  </div>
+                  {/* Right Side: Duplicate & Trash (admin only) */}
+                  {!isTeacher && (
+                    <div className="flex shrink-0 items-center gap-1.5 justify-end">
+                      <button
+                        onClick={handleDuplicate}
+                        title="Duplicate Exam"
+                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-lg text-xs font-bold text-accent-primary hover:bg-accent-primary hover:text-white transition-all shadow-sm whitespace-nowrap"
+                      >
+                        <Copy size={14} />
+                        <span className="hidden sm:inline">Duplicate</span>
+                      </button>
+                      <button
+                        onClick={handleTrash}
+                        title="Trash Exam"
+                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm whitespace-nowrap"
+                      >
+                        <Trash2 size={14} />
+                        <span className="hidden sm:inline">Delete</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -750,7 +738,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           );
                         }
 
-                        if (!isReadOnly && role !== "teacher") {
+                        if (!isReadOnly) {
                           return (
                             <button
                               type="button"
@@ -826,26 +814,42 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           )}
 
           {/* Teacher Banner */}
-          {role === "teacher" && (
-            <div className="bg-accent-primary/10 border border-accent-primary/30 rounded-2xl p-5 mb-6 flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-4">
-              <div className="w-10 h-10 rounded-full bg-accent-primary/20 flex items-center justify-center text-accent-primary shrink-0">
-                <BookOpen size={20} />
+          {isTeacher && (
+            <div className="bg-accent-primary/10 border border-accent-primary/30 rounded-2xl p-5 mb-6 flex flex-col gap-4 shadow-sm animate-in fade-in slide-in-from-top-4">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-accent-primary/20 flex items-center justify-center text-accent-primary shrink-0">
+                  <BookOpen size={20} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-text-main font-bold text-base">
+                    {isReadOnly ? 'Question Paper (Read Only)' : 'Question Preparation Mode'}
+                  </h3>
+                  <p className="text-text-muted text-sm font-medium mt-1">
+                    {isReadOnly
+                      ? 'This exam is no longer editable. You can view the questions for your assigned subjects below.'
+                      : 'Select your assigned subject below to start adding or editing questions. You only have access to manage questions for subjects specifically assigned to you.'
+                    }
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-text-main font-bold text-base">
-                  Question Preparation Mode
-                </h3>
-                <p className="text-text-muted text-sm font-medium mt-1">
-                  Select your assigned subject below to start adding or editing
-                  questions. You only have access to manage questions for
-                  subjects specifically assigned to you.
-                </p>
-              </div>
+              {/* Download Paper button for teachers when exam is completed */}
+              {isExamOver && (
+                <div className="flex items-center gap-2 ml-14">
+                  <button
+                    onClick={downloadQuestionPaper}
+                    disabled={generatingPDF}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-accent-primary to-accent-primary/70 border border-[#004d4d] rounded-lg text-xs font-semibold text-white hover:from-[#006666] hover:to-[#004d4d] transition-all shadow-sm hover:shadow-md disabled:opacity-50"
+                  >
+                    <Download size={14} />
+                    {generatingPDF ? 'Generating...' : 'Download Exam Paper PDF'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
           {/* Subjects Split View (Questions Step) — visible for viewing on any status; edit controls self-gate on exam.status === 'draft' */}
-          {(role === "teacher" || currentStep === 3) && (
+          {(isTeacher || currentStep === 3) && (
             <Step3Questions
               role={role}
               userId={userId}
@@ -910,8 +914,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             />
           )}
 
-          {/* Assigned Students (Students Step) */}
-          {(role === "teacher" || currentStep === 2) && (
+          {/* Assigned Students (Students Step) — hidden for teachers */}
+          {(!isTeacher && currentStep === 2) && (
             <Step2Students
               role={role}
               isExamOver={isExamOver}
@@ -1015,8 +1019,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               isReadOnly={isReadOnly}
             />
           )}
-          {/* Schedule Step — shown on step 4 for any status; read-only once published or over */}
-          {(role === "teacher" || currentStep === 4) && (
+          {/* Schedule Step — shown on step 4 for any status; read-only once published or over; hidden for teachers */}
+          {(!isTeacher && currentStep === 4) && (
             <Step4Schedule
               startTime={startTime}
               setStartTime={setStartTime}
@@ -1030,8 +1034,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             />
           )}
 
-          {/* Publish Step — shown on step 5 for any status; Step5Publish renders its own read-only summary once published */}
-          {(role === "teacher" || currentStep === 5) && (
+          {/* Publish Step — shown on step 5 for any status; Step5Publish renders its own read-only summary once published; hidden for teachers */}
+          {(!isTeacher && currentStep === 5) && (
             <Step5Publish
               exam={exam}
               allStepsComplete={allStepsComplete}
