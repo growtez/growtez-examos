@@ -18,7 +18,7 @@ export async function GET(request: Request) {
             return cookieStore.get(name)?.value;
           },
           set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options });
+            cookieStore.set({ name, value, ...options, secure: process.env.NODE_ENV === 'production' });
           },
           remove(name: string, options: CookieOptions) {
             cookieStore.delete(name);

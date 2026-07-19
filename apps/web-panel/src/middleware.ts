@@ -61,8 +61,8 @@ export async function middleware(req: NextRequest) {
 
   // Route based on subdomain
   if (subdomain === 'admin') {
-    // Login page is always accessible
-    if (url.pathname === '/login' || url.pathname.startsWith('/api/auth')) {
+    // Public authentication pages are always accessible
+    if (url.pathname === '/login' || url.pathname === '/forgot-password' || url.pathname === '/reset-password' || url.pathname.startsWith('/api/auth')) {
       return NextResponse.rewrite(new URL(url.pathname === '/login' ? `/admin-login` : url.pathname, req.url), { headers: response.headers });
     }
 
@@ -81,9 +81,9 @@ export async function middleware(req: NextRequest) {
       return response;
     }
 
-    // Login page is always accessible
-    if (url.pathname === '/login' || url.pathname.startsWith('/api/auth')) {
-      return NextResponse.rewrite(new URL(`/login`, req.url), { headers: response.headers });
+    // Public authentication pages are always accessible
+    if (url.pathname === '/login' || url.pathname === '/forgot-password' || url.pathname === '/reset-password' || url.pathname.startsWith('/api/auth')) {
+      return NextResponse.rewrite(new URL(url.pathname, req.url), { headers: response.headers });
     }
 
     // Protect school-admin routes (ensure user has school_admin or teacher role)
