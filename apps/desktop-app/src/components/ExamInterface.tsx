@@ -526,13 +526,24 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                     const parseQuestionImages = (urlStr: string | null): string[] => {
                       if (!urlStr) return [];
                       const trimmed = urlStr.trim();
-                      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-                        try {
-                          return JSON.parse(trimmed);
-                        } catch (e) {
-                          return [trimmed];
+                      try {
+                        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                          let parsed = JSON.parse(trimmed);
+                          if (typeof parsed === 'string') {
+                             parsed = JSON.parse(parsed);
+                          }
+                          if (Array.isArray(parsed)) return parsed;
                         }
+                      } catch (e) {
+                        // Ignore parse errors and fallback to regex extraction
                       }
+                      
+                      // Fallback: extract any data URIs using regex
+                      const matches = trimmed.match(/data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+/g);
+                      if (matches && matches.length > 0) {
+                        return matches;
+                      }
+                      
                       return [trimmed];
                     };
                     const images = parseQuestionImages(currentQuestion.image_url);
