@@ -917,8 +917,8 @@ export function useExamDetailPage(paramsId: string) {
     }
     setQuestionCounts(counts);
 
-    const { data: examStudents } = await supabase
-      .from('exam_students')
+    const { data: studentsData } = await supabase
+      .from('students')
       .select('*')
       .eq('exam_id', paramsId)
       .order('created_at');
@@ -929,27 +929,19 @@ export function useExamDetailPage(paramsId: string) {
       .eq('exam_id', paramsId);
 
     let assignedWithStudents: any[] = [];
-    if (examStudents && examStudents.length > 0) {
-      const studentIds = examStudents.map((es: any) => es.student_id);
-      const { data: studentsData } = await supabase
-        .from('students')
-        .select('id, full_name, roll_number, date_of_birth, course, batch, session')
-        .in('id', studentIds);
-
-      assignedWithStudents = examStudents.map((es: any) => ({
-        ...es,
-        students: studentsData?.find((s: any) => s.id === es.student_id) || null,
-        result: examResults?.find((r: any) => r.student_id === es.student_id) || null
+    if (studentsData && studentsData.length > 0) {
+      assignedWithStudents = studentsData.map((s: any) => ({
+        id: s.id, // Keep wrapper object structure for components
+        exam_id: paramsId,
+        student_id: s.id,
+        status: s.status || 'assigned',
+        students: s,
+        result: examResults?.find((r: any) => r.student_id === s.id) || null
       }));
     }
     setAssignedStudents(assignedWithStudents);
 
-    const { data: allStudents } = await supabase
-      .from('students')
-      .select('id, full_name, roll_number, date_of_birth, course, batch, session')
-      .eq('school_id', examData.school_id)
-      .order('full_name');
-    setSchoolStudents(allStudents || []);
+    setSchoolStudents([]);
 
     const { data: allTeachers } = await supabase
       .from('teachers')
@@ -1181,53 +1173,7 @@ export function useExamDetailPage(paramsId: string) {
     });
   };
 
-  const handleAssignExisting = async (studentId: string) => {
-    setAddError('');
-    setAddSuccess('');
-    const { error } = await supabase.from('exam_students').insert({
-      exam_id: paramsId,
-      student_id: studentId,
-      status: 'assigned'
-    });
-    if (error) {
-      if (error.code === '23505') {
-        setAddError('Student is already assigned to this exam.');
-      } else {
-        setAddError(error.message);
-      }
-    } else {
-      setAddSuccess('Student assigned successfully!');
-      const student = schoolStudents.find(s => s.id === studentId);
-      if (student) {
-        setAssignedStudents(prev => [...prev, { id: crypto.randomUUID(), exam_id: paramsId, student_id: studentId, status: 'assigned', students: student, result: null }]);
-      }
-    }
-  };
 
-  const handleBulkAssign = async () => {
-    if (selectedStudents.length === 0) return;
-    setAddError('');
-    setAddSuccess('');
-    setBulkAssigning(true);
-
-    const { error } = await supabase.rpc('assign_students', {
-      p_exam_id: paramsId,
-      p_student_ids: selectedStudents
-    });
-
-    if (error) {
-      setAddError(error.message);
-    } else {
-      setAddSuccess(`${selectedStudents.length} students assigned successfully!`);
-      const newAssignments = selectedStudents.map(studentId => {
-        const student = schoolStudents.find(s => s.id === studentId);
-        return { id: crypto.randomUUID(), exam_id: paramsId, student_id: studentId, status: 'assigned', students: student || null, result: null };
-      });
-      setAssignedStudents(prev => [...prev, ...newAssignments]);
-      setSelectedStudents([]);
-    }
-    setBulkAssigning(false);
-  };
 
   const handleAddStudent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1349,13 +1295,7 @@ export function useExamDetailPage(paramsId: string) {
       onConfirm: async () => {
         setConfirmDialog((prev: any) => ({ ...prev, isOpen: false }));
         setAssignedStudents(prev => prev.filter(as => as.student_id !== studentId));
-        setSchoolStudents(prev => prev.filter(s => s.id !== studentId));
-        await supabase.from('exam_students').delete().eq('id', examStudentId);
-        await fetch('/api/students/delete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ student_id: studentId }),
-        });
+        await supabase.from('students').delete().eq('id', studentId);
       }
     });
   };
@@ -1921,8 +1861,6 @@ export function useExamDetailPage(paramsId: string) {
     handleSaveSubjectTeachers,
     handleAddSubject,
     toggleNewSubjectTeacher,
-    handleAssignExisting,
-    handleBulkAssign,
     handleAddStudent,
     handleCsvImport,
     handleDownloadCsvTemplate,

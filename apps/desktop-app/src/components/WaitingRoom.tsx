@@ -54,13 +54,13 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
     try {
       // Update student exam status to 'in_progress'
       await supabase
-        .from('exam_students')
+        .from('students')
         .update({
           status: 'in_progress',
           started_at: new Date().toISOString(),
         })
         .eq('exam_id', exam.id)
-        .eq('student_id', studentProfile.id);
+        .eq('id', studentProfile.id);
 
       onStartExam();
     } catch (err) {

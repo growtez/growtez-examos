@@ -27,7 +27,7 @@ export default async function ExamDetailPage({ params }: { params: { id: string 
     { count: studentCount },
     { data: subjects },
   ] = await Promise.all([
-    supabase.from('exam_students').select('*', { count: 'exact', head: true }).eq('exam_id', exam.id),
+    supabase.from('students').select('*', { count: 'exact', head: true }).eq('exam_id', exam.id),
     supabase
       .from('exam_subjects')
       .select('*, exam_subject_teachers(*, teachers:teacher_id(full_name))')

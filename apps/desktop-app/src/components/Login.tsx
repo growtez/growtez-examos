@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, setStudentToken } from '../lib/supabase';
 import { getDeviceId } from '../lib/deviceId';
 
 type Step = 'login' | 'waiting_room' | 'exam' | 'submitted';
@@ -122,39 +122,33 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       if (!rollNumber.trim()) throw new Error('Please enter your roll number');
       if (!dob) throw new Error('Please select your date of birth');
 
-      let email = `${rollNumber.trim()}@${selectedSchoolId}.student.examos.local`;
-      const password = formatDobPassword(dob);
-
-      // Attempt 1: Sign in with legacy email format
-      let { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Call the custom JWT endpoint
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const loginRes = await fetch(`${apiUrl}/api/auth/student-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          school_id: selectedSchoolId,
+          roll_number: rollNumber.trim(),
+          dob: dob
+        })
       });
 
-      // Attempt 2: If failed due to invalid credentials, try new unique email format (Roll + DOB)
-      if (authError && authError.message.toLowerCase().includes('invalid login credentials')) {
-        const formattedDobForEmail = dob.replace(/-/g, '');
-        email = `${rollNumber.trim()}_${formattedDobForEmail}@${selectedSchoolId}.student.examos.local`;
+      const loginData = await loginRes.json();
+      if (!loginRes.ok) throw new Error(loginData.error || 'Authentication failed');
 
-        const retryAuth = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      const { access_token, student } = loginData;
+      
+      // Inject token into the local supabase client
+      setStudentToken(access_token);
 
-        authData = retryAuth.data;
-        authError = retryAuth.error;
-      }
-
-      if (authError) throw authError;
-      if (!authData || !authData.user) throw new Error('Authentication failed: user not found');
-
-      authedUserId = authData.user.id;
+      authedUserId = student.id;
 
       // 1. Check and lock the device session — prevents simultaneous logins on other devices
       const devId = getDeviceId();
       const { data: isSessionValid, error: sessionError } = await supabase.rpc(
         'check_and_set_student_session',
-        { p_student_id: authData.user.id, p_device_id: devId }
+        { p_student_id: student.id, p_device_id: devId }
       );
 
       if (sessionError || !isSessionValid) {
@@ -175,16 +169,21 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         throw new Error('Student profile not found. Please contact school admin.');
       }
 
-      // 3. Auto-select the first active exam — no exam selection UI needed
-      const { data: examAssignments, error: examError } = await supabase
-        .from('exam_students')
-        .select('*, exams:exam_id(*)')
-        .eq('student_id', authData.user.id)
-        .in('status', ['assigned', 'in_progress']);
+      // 3. Auto-select the student's exam
+      const { data: examData, error: examError } = await supabase
+        .from('exams')
+        .select('*')
+        .eq('id', profile.exam_id)
+        .single();
 
       if (examError) throw examError;
 
-      const activeAssignments = (examAssignments || []).filter(
+      const activeAssignments = [
+        {
+          ...profile,
+          exams: examData
+        }
+      ].filter(
         (assignment: any) => assignment.exams && (assignment.exams.status === 'published' || assignment.exams.status === 'active')
       );
 

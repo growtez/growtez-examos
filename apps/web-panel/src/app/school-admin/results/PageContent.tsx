@@ -239,12 +239,12 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
   const fetchResults = async (examId: string) => {
     setLoadingResults(true);
     try {
-      // 1. Fetch assigned students
-      const { data: esData, error: esError } = await supabase
-        .from('exam_students')
-        .select('*')
+      // 1. Fetch assigned students directly from students table
+      const { data: studentsData, error: sError } = await supabase
+        .from('students')
+        .select('id, full_name, roll_number, course, batch')
         .eq('exam_id', examId);
-      if (esError) throw esError;
+      if (sError) throw sError;
 
       // 2. Fetch results
       const { data: resData, error: resError } = await supabase
@@ -252,23 +252,6 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
         .select('*, exams:exam_id(title, total_marks, start_time)')
         .eq('exam_id', examId);
       if (resError) throw resError;
-
-      // Collect all student IDs from both assigned students and any results
-      const studentIds = Array.from(new Set([
-        ...(esData || []).map((es: any) => es.student_id),
-        ...(resData || []).map((r: any) => r.student_id)
-      ]));
-
-      // 3. Fetch student details separately
-      let studentsData: any[] = [];
-      if (studentIds.length > 0) {
-        const { data: sData, error: sError } = await supabase
-          .from('students')
-          .select('id, full_name, roll_number, course, batch')
-          .in('id', studentIds);
-        if (sError) throw sError;
-        studentsData = sData || [];
-      }
 
       // Get exam details from existing state or fallback
       let examDetails = exams.find(e => e.id === examId);
@@ -282,6 +265,9 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
       }
 
       // 4. Merge results with assigned students
+      // 3. Extract student IDs
+      const studentIds = (studentsData || []).map((s: any) => s.id);
+
       let merged = [];
       if (examDetails?.status === 'completed') {
         merged = studentIds.map((sid: any) => {

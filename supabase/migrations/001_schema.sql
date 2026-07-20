@@ -50,31 +50,7 @@ CREATE TABLE IF NOT EXISTS public.teachers (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public.students (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE NOT NULL,
-    full_name TEXT NOT NULL,
-    email TEXT,
-    roll_number TEXT NOT NULL,
-    date_of_birth DATE NOT NULL,
-    course TEXT DEFAULT 'General',
-    batch TEXT DEFAULT 'Main',
-    session TEXT DEFAULT '2026-27',
-    active_device_id TEXT,
-    last_active_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
 
--- Drop the old unique constraint if it exists, and create the consolidated one
-ALTER TABLE public.students DROP CONSTRAINT IF EXISTS students_school_id_roll_number_key;
-DROP INDEX IF EXISTS idx_students_roll_school;
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_students_school_roll_course_batch_session 
-  ON public.students (school_id, roll_number, course, batch, session);
-
-ALTER TABLE public.students DROP CONSTRAINT IF EXISTS students_school_roll_course_batch_session_key;
-ALTER TABLE public.students
-  ADD CONSTRAINT students_school_roll_course_batch_session_key UNIQUE USING INDEX idx_students_school_roll_course_batch_session;
 
 CREATE TABLE IF NOT EXISTS public.exams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -92,6 +68,26 @@ CREATE TABLE IF NOT EXISTS public.exams (
     is_trashed BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS public.students (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    exam_id UUID REFERENCES public.exams(id) ON DELETE CASCADE NOT NULL,
+    full_name TEXT NOT NULL,
+    email TEXT,
+    roll_number TEXT NOT NULL,
+    date_of_birth DATE NOT NULL,
+    course TEXT DEFAULT 'General',
+    batch TEXT DEFAULT 'Main',
+    session TEXT DEFAULT '2026-27',
+    status TEXT DEFAULT 'assigned' CHECK (status IN ('assigned', 'in_progress', 'submitted')),
+    started_at TIMESTAMP WITH TIME ZONE,
+    submitted_at TIMESTAMP WITH TIME ZONE,
+    active_device_id TEXT,
+    last_active_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(exam_id, roll_number)
+);
+
 
 CREATE TABLE IF NOT EXISTS public.exam_subjects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -128,16 +124,26 @@ CREATE TABLE IF NOT EXISTS public.questions (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public.exam_students (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  exam_id UUID REFERENCES public.exams(id) ON DELETE CASCADE NOT NULL,
-  student_id UUID NOT NULL, -- Foreign key dropped as per requirement (Snippet 3)
-  status TEXT DEFAULT 'assigned' CHECK (status IN ('assigned', 'in_progress', 'submitted')),
-  started_at TIMESTAMP WITH TIME ZONE,
-  submitted_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(exam_id, student_id)
-);
+
+CREATE OR REPLACE FUNCTION public.get_student_id()
+RETURNS uuid AS $$
+BEGIN
+  RETURN COALESCE(
+    (current_setting('request.jwt.claims', true)::jsonb->>'student_id'),
+    current_setting('request.jwt.claim.sub', true)
+  )::uuid;
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.get_student_exam_id()
+RETURNS uuid AS $$
+BEGIN
+  RETURN (current_setting('request.jwt.claim.exam_id', true))::uuid;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE TABLE IF NOT EXISTS public.results (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -173,7 +179,7 @@ CREATE TABLE IF NOT EXISTS public.feedback (
 );
 
 -- Ensure specific foreign keys are dropped if they existed previously
-ALTER TABLE public.exam_students DROP CONSTRAINT IF EXISTS exam_students_student_id_fkey;
+
 ALTER TABLE public.exams DROP CONSTRAINT IF EXISTS exams_created_by_fkey;
 
 -- Add exam_instructions JSONB column to public.exams
@@ -250,7 +256,7 @@ ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exam_subjects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exam_subject_teachers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.exam_students ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.system_notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
 
@@ -307,7 +313,10 @@ DROP POLICY IF EXISTS "School admins/teachers can manage students in their schoo
 CREATE POLICY "School admins/teachers can manage students in their school" ON public.students FOR ALL USING (school_id = public.get_current_user_school_id());
 
 DROP POLICY IF EXISTS "Students can view their own profile" ON public.students;
-CREATE POLICY "Students can view their own profile" ON public.students FOR SELECT USING (id = auth.uid());
+CREATE POLICY "Students can view their own profile" ON public.students FOR SELECT USING (id = public.get_student_id());
+
+DROP POLICY IF EXISTS "Students can update their own profile" ON public.students;
+CREATE POLICY "Students can update their own profile" ON public.students FOR UPDATE USING (id = public.get_student_id());
 
 -- Policies for exams
 DROP POLICY IF EXISTS "Super admins can do all on exams" ON public.exams;
@@ -337,7 +346,7 @@ DROP POLICY IF EXISTS "School admins/teachers can view results in their school" 
 CREATE POLICY "School admins/teachers can view results in their school" ON public.results FOR SELECT USING (school_id = public.get_current_user_school_id() AND public.is_school_admin_or_teacher());
 
 DROP POLICY IF EXISTS "Students can view and insert their own results" ON public.results;
-CREATE POLICY "Students can view and insert their own results" ON public.results FOR ALL USING (student_id = auth.uid());
+CREATE POLICY "Students can view and insert their own results" ON public.results FOR ALL USING (student_id = public.get_student_id());
 
 -- Policies for exam_subjects
 DROP POLICY IF EXISTS "Super admins can do all on exam_subjects" ON public.exam_subjects;
@@ -349,6 +358,9 @@ CREATE POLICY "School users can view exam_subjects in their school" ON public.ex
 DROP POLICY IF EXISTS "School admins can manage exam_subjects" ON public.exam_subjects;
 CREATE POLICY "School admins can manage exam_subjects" ON public.exam_subjects FOR ALL USING (EXISTS (SELECT 1 FROM public.exams e WHERE e.id = exam_subjects.exam_id AND e.school_id = public.get_current_user_school_id()) AND EXISTS (SELECT 1 FROM public.school_admins u WHERE u.id = auth.uid()));
 
+DROP POLICY IF EXISTS "Students can view exam subjects for their exam" ON public.exam_subjects;
+CREATE POLICY "Students can view exam subjects for their exam" ON public.exam_subjects FOR SELECT USING (exam_id = public.get_student_exam_id());
+
 -- Policies for exam_subject_teachers
 DROP POLICY IF EXISTS "Super admins can do all on exam_subject_teachers" ON public.exam_subject_teachers;
 CREATE POLICY "Super admins can do all on exam_subject_teachers" ON public.exam_subject_teachers FOR ALL USING (public.is_super_admin());
@@ -359,18 +371,7 @@ CREATE POLICY "School users can view exam_subject_teachers" ON public.exam_subje
 DROP POLICY IF EXISTS "School admins can manage exam_subject_teachers" ON public.exam_subject_teachers;
 CREATE POLICY "School admins can manage exam_subject_teachers" ON public.exam_subject_teachers FOR ALL USING (EXISTS (SELECT 1 FROM public.exam_subjects es JOIN public.exams e ON e.id = es.exam_id WHERE es.id = exam_subject_teachers.exam_subject_id AND e.school_id = public.get_current_user_school_id()) AND EXISTS (SELECT 1 FROM public.school_admins u WHERE u.id = auth.uid()));
 
--- Policies for exam_students
-DROP POLICY IF EXISTS "Super admins can do all on exam_students" ON public.exam_students;
-CREATE POLICY "Super admins can do all on exam_students" ON public.exam_students FOR ALL USING (public.is_super_admin());
 
-DROP POLICY IF EXISTS "School admins/teachers can manage exam_students" ON public.exam_students;
-CREATE POLICY "School admins/teachers can manage exam_students" ON public.exam_students FOR ALL USING (public.check_exam_school_access(exam_id));
-
-DROP POLICY IF EXISTS "Students can view their own exam assignments" ON public.exam_students;
-CREATE POLICY "Students can view their own exam assignments" ON public.exam_students FOR SELECT USING (student_id = auth.uid());
-
-DROP POLICY IF EXISTS "Students can update their own exam status" ON public.exam_students;
-CREATE POLICY "Students can update their own exam status" ON public.exam_students FOR UPDATE USING (student_id = auth.uid());
 
 -- Policies for System Notifications
 DROP POLICY IF EXISTS "Super admins manage system notifications" ON public.system_notifications;
@@ -479,29 +480,7 @@ GRANT SELECT (id) ON auth.users TO anon;
 -- ============================================================
 
 -- Bulletproof RPC function to assign students that bypasses RLS insert quirks
-CREATE OR REPLACE FUNCTION public.assign_students(p_exam_id UUID, p_student_ids UUID[])
-RETURNS VOID AS $$
-DECLARE
-  v_has_access BOOLEAN;
-BEGIN
-  -- Check if user is super admin
-  IF public.is_super_admin() THEN
-    v_has_access := TRUE;
-  ELSE
-    -- Check if user is school admin or teacher for the exam's school
-    v_has_access := public.check_exam_school_access(p_exam_id);
-  END IF;
 
-  IF NOT v_has_access THEN
-    RAISE EXCEPTION 'Access denied to this exam';
-  END IF;
-
-  -- Insert students
-  INSERT INTO public.exam_students (exam_id, student_id, status)
-  SELECT p_exam_id, unnest(p_student_ids), 'assigned'
-  ON CONFLICT (exam_id, student_id) DO NOTHING;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- Bulletproof RPC function for students to submit exams, bypassing complex RLS inserts
@@ -526,7 +505,7 @@ BEGIN
     time_taken_seconds
   ) VALUES (
     p_exam_id,
-    auth.uid(),
+    public.get_student_id(),
     p_school_id,
     p_answers,
     p_total_marks,
@@ -541,10 +520,10 @@ BEGIN
     time_taken_seconds = EXCLUDED.time_taken_seconds,
     submitted_at = NOW();
 
-  -- Update exam_students status
-  UPDATE public.exam_students
+  -- Update student status
+  UPDATE public.students
   SET status = 'submitted', submitted_at = NOW()
-  WHERE exam_id = p_exam_id AND student_id = auth.uid();
+  WHERE exam_id = p_exam_id AND id = public.get_student_id();
   
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
