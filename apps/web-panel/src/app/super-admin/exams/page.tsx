@@ -68,7 +68,7 @@ export default function ExamsDashboard() {
     const [{ data: examsData }, { data: templatesData }] = await Promise.all([
       supabase
         .from('exams')
-        .select('*, schools(name), exam_students(count)')
+        .select('*, schools(name), students(count)')
         .eq('is_trashed', false)
         .order('created_at', { ascending: false }),
       supabase
@@ -472,7 +472,7 @@ export default function ExamsDashboard() {
                     </td>
                     <td className="py-2.5 px-4 align-middle text-[13px] text-text-muted font-medium">{exam.schools?.name || 'Unknown School'}</td>
                     <td className="py-2.5 px-4 align-middle text-[13px] text-text-muted">{exam.duration_minutes} min</td>
-                    <td className="py-2.5 px-4 align-middle text-[13px] text-text-muted">{exam.exam_students?.[0]?.count || 0}</td>
+                    <td className="py-2.5 px-4 align-middle text-[13px] text-text-muted">{exam.students?.[0]?.count || 0}</td>
                     <td className="py-2.5 px-4 align-middle">
                       <span className={`inline-flex px-2 py-1 text-[10px] font-bold uppercase rounded-lg border ${statusColors[exam.status] || statusColors.draft}`}>
                         {exam.status}

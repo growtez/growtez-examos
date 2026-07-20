@@ -36,7 +36,7 @@ export default function TrashExamsPage() {
 
     const { data } = await supabase
       .from('exams')
-      .select('*, exam_students(count)')
+      .select('*, students(count)')
       .eq('school_id', schoolId)
       .eq('is_trashed', true)
       .order('created_at', { ascending: false });

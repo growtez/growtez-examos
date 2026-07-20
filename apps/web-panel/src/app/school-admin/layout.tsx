@@ -23,11 +23,7 @@ const navItems = [
     href: '/teachers',
     icon: <Users className="w-5 h-5" />,
   },
-  {
-    label: 'Students',
-    href: '/students',
-    icon: <GraduationCap className="w-5 h-5" />,
-  },
+
   {
     label: 'Results',
     href: '/results',

@@ -74,12 +74,12 @@ export default function Step5Publish({
     const fetchResults = async () => {
       setLoadingResults(true);
       try {
-        // 1. Fetch assigned students
-        const { data: esData, error: esError } = await supabase
-          .from('exam_students')
-          .select('*')
+        // 1. Fetch assigned students directly from students table
+        const { data: studentsData, error: sError } = await supabase
+          .from('students')
+          .select('id, full_name, roll_number, course, batch')
           .eq('exam_id', exam.id);
-        if (esError) throw esError;
+        if (sError) throw sError;
 
         // 2. Fetch results
         const { data: resData, error: resError } = await supabase
@@ -87,23 +87,6 @@ export default function Step5Publish({
           .select('*')
           .eq('exam_id', exam.id);
         if (resError) throw resError;
-
-        // Collect all student IDs from both assigned students and any results
-        const studentIds = Array.from(new Set([
-          ...(esData || []).map((es: any) => es.student_id),
-          ...(resData || []).map((r: any) => r.student_id)
-        ]));
-
-        // 3. Fetch student details separately
-        let studentsData: any[] = [];
-        if (studentIds.length > 0) {
-          const { data: sData, error: sError } = await supabase
-            .from('students')
-            .select('id, full_name, roll_number, course, batch')
-            .in('id', studentIds);
-          if (sError) throw sError;
-          studentsData = sData || [];
-        }
 
         // 4. Merge results with assigned students
         let merged = [];

@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
-import { createClient as createServerClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
@@ -11,28 +12,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const supabase = createServerClient();
-    
-    // Get exam to find school_id
-    const { data: exam, error: examError } = await supabase
-      .from('exams')
-      .select('school_id')
-      .eq('id', exam_id)
-      .single();
-
-    if (examError || !exam) {
-      return NextResponse.json({ error: 'Exam not found' }, { status: 404 });
-    }
-
-    const school_id = exam.school_id;
-    // Construct email using DOB to ensure uniqueness for duplicate roll numbers across batches
-    const dobStr = date_of_birth.replace(/-/g, '');
-    const email = `${roll_number.trim()}_${dobStr}@${school_id}.student.examos.local`;
-    
-    // Format password as DDMMYYYY
-    const parts = date_of_birth.split('-');
-    const password = `${parts[2]}${parts[1]}${parts[0]}`;
-
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -41,78 +20,48 @@ export async function POST(req: Request) {
     }
 
     const adminSupabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false, autoRefreshToken: false }
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }) }
     });
 
-    // 1. Check if student already exists in this school with the same details
-    const { data: existingStudent } = await adminSupabase
-      .from('students')
+    // 1. Check if exam exists
+    const { data: exam, error: examError } = await adminSupabase
+      .from('exams')
       .select('id')
-      .eq('school_id', school_id)
-      .eq('roll_number', roll_number)
-      .eq('course', course)
-      .eq('batch', batch)
-      .eq('session', session)
+      .eq('id', exam_id)
       .single();
 
-    let studentId = existingStudent?.id;
-
-    if (!studentId) {
-      // 2. Create auth user if they don't exist
-      const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          full_name,
-          role: 'student',
-          school_id,
-          roll_number,
-          date_of_birth,
-          course,
-          batch,
-          session
-        }
-      });
-
-      if (authError) {
-        return NextResponse.json({ error: authError.message }, { status: 400 });
-      }
-
-      if (!authData.user) {
-        return NextResponse.json({ error: 'Failed to create auth user' }, { status: 400 });
-      }
-
-      studentId = authData.user.id;
-      // Give the trigger a moment to create the student profile
-      await new Promise(resolve => setTimeout(resolve, 500));
+    if (examError || !exam) {
+      console.error('Exam fetch error in create student:', examError, 'exam_id:', exam_id);
+      return NextResponse.json({ error: `Exam not found: ${examError?.message || 'No exam returned'}. ID: ${exam_id}` }, { status: 404 });
     }
 
-    // 3. Assign to exam
-    const { error: assignError } = await adminSupabase.from('exam_students').insert({
-      exam_id: exam_id,
-
-      student_id: studentId,
-      status: 'assigned'
-    });
-
-    // If error is 23505 (unique constraint violation), it means they are already assigned, which is fine.
-    if (assignError && assignError.code !== '23505') {
-      console.error('Assign error:', assignError);
-      // We don't fail the whole request since the user was processed, but log it
-    }
-
-    return NextResponse.json({ 
-      success: true, 
-      student: {
-        id: studentId,
+    // 2. Insert into students table directly (exam_id + roll_number must be unique)
+    const { data: newStudent, error: insertError } = await adminSupabase
+      .from('students')
+      .insert({
+        exam_id,
         full_name,
         roll_number,
         date_of_birth,
         course,
         batch,
-        session
+        session,
+        status: 'assigned'
+      })
+      .select('*')
+      .single();
+
+    if (insertError) {
+      if (insertError.code === '23505') {
+        return NextResponse.json({ error: 'A student with this roll number is already registered for this exam.' }, { status: 400 });
       }
+      return NextResponse.json({ error: insertError.message }, { status: 400 });
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      student: newStudent
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });

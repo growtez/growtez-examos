@@ -1474,17 +1474,19 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 >
                   Share Link
                 </button>
+
                 <button
                   onClick={() => {
-                    setAddMode("search");
+                    setAddMode("create");
                     setAddError("");
                     setAddSuccess("");
                     setLinkGenerated(false);
                   }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "search" || addMode === "create" ? "bg-surface text-accent-primary shadow-sm" : "text-text-muted hover:text-text-main"}`}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "create" ? "bg-surface text-accent-primary shadow-sm" : "text-text-muted hover:text-text-main"}`}
                 >
-                  Search & Add
+                  Add Manually
                 </button>
+
                 <button
                   onClick={() => {
                     setAddMode("csv");
@@ -1613,169 +1615,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     </button>
                   </div>
                 </div>
-              ) : addMode === "search" ? (
-                <div className="space-y-4 flex-1 flex flex-col overflow-hidden">
-                  <div className="flex flex-col gap-3 shrink-0">
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search by name or roll number..."
-                      className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
-                    />
-                    <div className="flex gap-2">
-                      <select
-                        value={filterCourse}
-                        onChange={(e) => setFilterCourse(e.target.value)}
-                        className={`flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary ${uniqueCourses.length === 0 ? 'appearance-none bg-none cursor-default' : ''}`}
-                      >
-                        <option value="">All Courses</option>
-                        {uniqueCourses.map((c: any) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={filterBatch}
-                        onChange={(e) => setFilterBatch(e.target.value)}
-                        className={`flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary ${uniqueBatches.length === 0 ? 'appearance-none bg-none cursor-default' : ''}`}
-                      >
-                        <option value="">All Batches</option>
-                        {uniqueBatches.map((b: any) => (
-                          <option key={b} value={b}>
-                            {b}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={filterSession}
-                        onChange={(e) => setFilterSession(e.target.value)}
-                        className={`flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary ${uniqueSessions.length === 0 ? 'appearance-none bg-none cursor-default' : ''}`}
-                      >
-                        <option value="">All Sessions</option>
-                        {uniqueSessions.map((s: any) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {filteredStudents.length > 0 && (
-                    <div className="flex justify-between items-center px-1 shrink-0">
-                      <div className="text-xs font-semibold text-text-muted">
-                        {selectedStudents.length} selected
-                      </div>
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => {
-                            if (
-                              selectedStudents.length ===
-                              filteredStudents.length
-                            ) {
-                              setSelectedStudents([]);
-                            } else {
-                              setSelectedStudents(
-                                filteredStudents.map((s) => s.id),
-                              );
-                            }
-                          }}
-                          className="text-accent-primary text-xs font-bold hover:underline"
-                        >
-                          {selectedStudents.length === filteredStudents.length
-                            ? "Deselect All"
-                            : "Select All"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex-1 overflow-y-auto border border-border rounded-xl divide-y divide-[#e0f2f2] custom-scrollbar">
-                    {filteredStudents.map((student) => (
-                      <div
-                        key={student.id}
-                        className="p-2 flex justify-between items-center hover:bg-bg transition-colors cursor-pointer"
-                        onClick={() => {
-                          setSelectedStudents((prev) =>
-                            prev.includes(student.id)
-                              ? prev.filter((id) => id !== student.id)
-                              : [...prev, student.id],
-                          );
-                        }}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <input
-                            type="checkbox"
-                            checked={selectedStudents.includes(student.id)}
-                            onChange={() => { }}
-                            className="w-3.5 h-3.5 text-accent-primary border-border rounded focus:ring-accent-primary cursor-pointer"
-                          />
-                          <div>
-                            <p className="font-semibold text-text-main text-[13px] leading-tight">
-                              {student.full_name}
-                            </p>
-                            <p className="text-[11px] font-mono text-accent-primary mt-0.5 leading-tight">
-                              Roll: {student.roll_number}{" "}
-                              <span className="text-text-muted px-1">•</span>{" "}
-                              <span className="text-gray-500 font-sans">
-                                {student.course} ({student.batch})
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAssignExisting(student.id);
-                          }}
-                          className="px-3 py-1.5 bg-surface-hover text-accent-primary hover:bg-accent-primary hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors shrink-0"
-                        >
-                          Assign
-                        </button>
-                      </div>
-                    ))}
-                    {filteredStudents.length === 0 && (
-                      <div className="p-6 text-center">
-                        <p className="text-sm font-medium text-text-muted">
-                          No available students found.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {selectedStudents.length > 0 && (
-                    <button
-                      onClick={handleBulkAssign}
-                      disabled={bulkAssigning}
-                      className="w-full py-3 mt-2 shrink-0 bg-accent-primary hover:bg-accent-primary/80 text-white font-bold rounded-xl shadow-lg shadow-accent-primary/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {bulkAssigning ? (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        `Assign ${selectedStudents.length} Selected Student${selectedStudents.length !== 1 ? "s" : ""}`
-                      )}
-                    </button>
-                  )}
-
-                  <div className="pt-2 text-center shrink-0">
-                    <p className="text-sm font-medium text-text-muted">
-                      Can't find the student?
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAddMode("create");
-                        setAddError("");
-                        setAddSuccess("");
-                      }}
-                      className="mt-2 text-accent-primary font-bold text-sm hover:underline"
-                    >
-                      Create New Student
-                    </button>
-                  </div>
-                </div>
               ) : addMode === "create" ? (
                 <form
                   onSubmit={handleAddStudent}
@@ -1785,17 +1624,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     <h4 className="text-text-main font-bold text-sm">
                       Create New Student
                     </h4>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAddMode("search");
-                        setAddError("");
-                        setAddSuccess("");
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-bg text-accent-primary hover:bg-surface-hover hover:text-[#006666] rounded-lg text-xs font-bold transition-colors border border-border"
-                    >
-                      <ArrowLeft size={14} /> Back
-                    </button>
+
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-text-muted mb-1.5">

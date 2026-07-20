@@ -152,7 +152,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
 
     let examQuery = supabase
       .from('exams')
-      .select('*, exam_students(count)')
+      .select('*, students(count)')
       .eq('school_id', schoolId)
       .eq('is_trashed', false)
       .order('created_at', { ascending: false });
@@ -528,7 +528,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                   </div>
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-text-muted">Students</span>
-                    <span className="font-semibold text-text-main">{exam.exam_students?.[0]?.count || 0}</span>
+                    <span className="font-semibold text-text-main">{exam.students?.[0]?.count || 0}</span>
                   </div>
                   <div className="flex items-center justify-between text-[11px]">
                     <span className="text-text-muted">Created</span>
@@ -631,7 +631,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                             </div>
                           </td>
                           <td className="py-2 px-3 align-middle text-[12px] text-text-muted">{exam.duration_minutes} min</td>
-                          <td className="py-2 px-3 align-middle text-[12px] text-text-muted">{exam.exam_students?.[0]?.count || 0}</td>
+                          <td className="py-2 px-3 align-middle text-[12px] text-text-muted">{exam.students?.[0]?.count || 0}</td>
                           <td className="py-2 px-3 align-middle">
                             <span className={`inline-flex px-1.5 py-0.5 text-[10px] font-bold uppercase rounded border ${statusColors[exam.status] || statusColors.draft}`}>
                               {exam.status}
