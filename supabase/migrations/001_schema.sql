@@ -125,6 +125,25 @@ CREATE TABLE IF NOT EXISTS public.questions (
 );
 
 
+CREATE OR REPLACE FUNCTION public.get_student_id()
+RETURNS uuid AS $$
+BEGIN
+  RETURN COALESCE(
+    (current_setting('request.jwt.claims', true)::jsonb->>'student_id'),
+    current_setting('request.jwt.claim.sub', true)
+  )::uuid;
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.get_student_exam_id()
+RETURNS uuid AS $$
+BEGIN
+  RETURN (current_setting('request.jwt.claim.exam_id', true))::uuid;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE TABLE IF NOT EXISTS public.results (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -294,7 +313,10 @@ DROP POLICY IF EXISTS "School admins/teachers can manage students in their schoo
 CREATE POLICY "School admins/teachers can manage students in their school" ON public.students FOR ALL USING (school_id = public.get_current_user_school_id());
 
 DROP POLICY IF EXISTS "Students can view their own profile" ON public.students;
-CREATE POLICY "Students can view their own profile" ON public.students FOR SELECT USING (id = auth.uid());
+CREATE POLICY "Students can view their own profile" ON public.students FOR SELECT USING (id = public.get_student_id());
+
+DROP POLICY IF EXISTS "Students can update their own profile" ON public.students;
+CREATE POLICY "Students can update their own profile" ON public.students FOR UPDATE USING (id = public.get_student_id());
 
 -- Policies for exams
 DROP POLICY IF EXISTS "Super admins can do all on exams" ON public.exams;
@@ -324,7 +346,7 @@ DROP POLICY IF EXISTS "School admins/teachers can view results in their school" 
 CREATE POLICY "School admins/teachers can view results in their school" ON public.results FOR SELECT USING (school_id = public.get_current_user_school_id() AND public.is_school_admin_or_teacher());
 
 DROP POLICY IF EXISTS "Students can view and insert their own results" ON public.results;
-CREATE POLICY "Students can view and insert their own results" ON public.results FOR ALL USING (student_id = auth.uid());
+CREATE POLICY "Students can view and insert their own results" ON public.results FOR ALL USING (student_id = public.get_student_id());
 
 -- Policies for exam_subjects
 DROP POLICY IF EXISTS "Super admins can do all on exam_subjects" ON public.exam_subjects;
@@ -335,6 +357,9 @@ CREATE POLICY "School users can view exam_subjects in their school" ON public.ex
 
 DROP POLICY IF EXISTS "School admins can manage exam_subjects" ON public.exam_subjects;
 CREATE POLICY "School admins can manage exam_subjects" ON public.exam_subjects FOR ALL USING (EXISTS (SELECT 1 FROM public.exams e WHERE e.id = exam_subjects.exam_id AND e.school_id = public.get_current_user_school_id()) AND EXISTS (SELECT 1 FROM public.school_admins u WHERE u.id = auth.uid()));
+
+DROP POLICY IF EXISTS "Students can view exam subjects for their exam" ON public.exam_subjects;
+CREATE POLICY "Students can view exam subjects for their exam" ON public.exam_subjects FOR SELECT USING (exam_id = public.get_student_exam_id());
 
 -- Policies for exam_subject_teachers
 DROP POLICY IF EXISTS "Super admins can do all on exam_subject_teachers" ON public.exam_subject_teachers;

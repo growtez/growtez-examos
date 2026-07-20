@@ -265,6 +265,9 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
       }
 
       // 4. Merge results with assigned students
+      // 3. Extract student IDs
+      const studentIds = (studentsData || []).map((s: any) => s.id);
+
       let merged = [];
       if (examDetails?.status === 'completed') {
         merged = studentIds.map((sid: any) => {

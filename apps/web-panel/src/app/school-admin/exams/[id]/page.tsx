@@ -375,8 +375,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     handleSaveSubjectTeachers,
     handleAddSubject,
     toggleNewSubjectTeacher,
-    handleAssignExisting,
-    handleBulkAssign,
+
     handleAddStudent,
     handleCsvImport,
     handleDownloadCsvTemplate,

@@ -123,7 +123,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       if (!dob) throw new Error('Please select your date of birth');
 
       // Call the custom JWT endpoint
-      const loginRes = await fetch('http://localhost:3000/api/auth/student-login', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const loginRes = await fetch(`${apiUrl}/api/auth/student-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

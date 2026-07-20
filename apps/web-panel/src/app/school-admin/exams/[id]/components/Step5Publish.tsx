@@ -88,6 +88,9 @@ export default function Step5Publish({
           .eq('exam_id', exam.id);
         if (resError) throw resError;
 
+        // 3. Extract student IDs
+        const studentIds = (studentsData || []).map((s: any) => s.id);
+
         // 4. Merge results with assigned students
         let merged = [];
         if (exam.status === 'completed') {
