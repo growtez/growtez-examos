@@ -140,6 +140,7 @@ interface Step1DetailsProps {
   handleSaveExamDetails: (e: React.FormEvent) => void;
   paramsId: string;
   isReadOnly?: boolean;
+  showStep1Errors?: boolean;
 }
 
 const GENERAL_INSTRUCTIONS = [
@@ -191,6 +192,7 @@ export default function Step1Details({
   handleSaveExamDetails,
   paramsId,
   isReadOnly = false,
+  showStep1Errors = false,
 }: Step1DetailsProps) {
   const [expandedCards, setExpandedCards] = useState({
     details: true,
@@ -249,7 +251,7 @@ export default function Step1Details({
                 }}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                 required
-                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow"
+                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && title.trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
               />
             </div>
             <div>
@@ -265,9 +267,10 @@ export default function Step1Details({
               <label className="block text-xs font-semibold text-text-muted mb-1">Duration (minutes) *</label>
               <input
                 type="number"
-                value={durationMinutes}
+                value={durationMinutes === 0 ? '' : durationMinutes}
                 onChange={(e) => {
-                  const newDuration = parseInt(e.target.value) || 0;
+                  const val = e.target.value;
+                  const newDuration = val === '' ? 0 : (parseInt(val) || 0);
                   setDurationMinutes(newDuration);
                   if (startTime && newDuration > 0) {
                     const end = new Date(new Date(startTime).getTime() + newDuration * 60000);
@@ -278,7 +281,7 @@ export default function Step1Details({
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
                 min={1}
                 required
-                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow"
+                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && durationMinutes < 1 ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
               />
             </div>
           </div>
@@ -300,7 +303,7 @@ export default function Step1Details({
                 value={mcqCorrect}
                 onChange={(e) => setMcqCorrect(e.target.value)}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow"
+                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && String(mcqCorrect).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
               />
             </div>
             <div>
@@ -311,7 +314,7 @@ export default function Step1Details({
                 value={mcqWrong}
                 onChange={(e) => setMcqWrong(e.target.value)}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow"
+                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && String(mcqWrong).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
               />
             </div>
             <div>
@@ -322,7 +325,7 @@ export default function Step1Details({
                 value={natCorrect}
                 onChange={(e) => setNatCorrect(e.target.value)}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow"
+                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && String(natCorrect).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
               />
             </div>
             <div>
@@ -333,7 +336,7 @@ export default function Step1Details({
                 value={natWrong}
                 onChange={(e) => setNatWrong(e.target.value)}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow"
+                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && String(natWrong).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
               />
             </div>
           </div>
@@ -396,8 +399,11 @@ export default function Step1Details({
                       <div className="flex items-center gap-1">
                         <input
                           type="number"
-                          value={inlineEditSubjectCount}
-                          onChange={(e) => setInlineEditSubjectCount(Math.max(1, parseInt(e.target.value) || 1))}
+                          value={inlineEditSubjectCount === 0 ? '' : inlineEditSubjectCount}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setInlineEditSubjectCount(val === '' ? 0 : (parseInt(val) || 0));
+                          }}
                           className="w-12 px-1 py-0.5 text-[10px] border border-[#008080] rounded outline-none font-bold"
                           min="1"
                         />

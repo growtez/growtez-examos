@@ -100,7 +100,7 @@ export default function Step2Students({
           <select
             value={assignedCourseFilter}
             onChange={(e) => setAssignedCourseFilter(e.target.value)}
-            className="px-4 py-2 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all text-sm font-medium w-full sm:w-40 appearance-none"
+            className={`px-4 py-2 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all text-sm font-medium w-full sm:w-40 ${uniqueAssignedCourses.length === 0 ? 'appearance-none bg-none cursor-default' : ''}`}
           >
             <option value="">All Courses</option>
             {uniqueAssignedCourses.map((course: any) => (
@@ -111,7 +111,7 @@ export default function Step2Students({
           <select
             value={assignedBatchFilter}
             onChange={(e) => setAssignedBatchFilter(e.target.value)}
-            className="px-4 py-2 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all text-sm font-medium w-full sm:w-40 appearance-none"
+            className={`px-4 py-2 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary transition-all text-sm font-medium w-full sm:w-40 ${uniqueAssignedBatches.length === 0 ? 'appearance-none bg-none cursor-default' : ''}`}
           >
             <option value="">All Batches</option>
             {uniqueAssignedBatches.map((batch: any) => (

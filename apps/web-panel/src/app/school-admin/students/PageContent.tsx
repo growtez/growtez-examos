@@ -39,9 +39,11 @@ function CustomCombobox({ value, onChange, options, placeholder, className }: { 
         style={{ paddingRight: '1.75rem' }}
         required
       />
-      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-text-muted bg-transparent">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-      </div>
+      {options.length > 0 && (
+        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-text-muted bg-transparent">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+      )}
       {isOpen && filteredOptions.length > 0 && (
         <ul className="absolute z-10 w-full bg-surface border border-border mt-1 rounded-xl shadow-xl shadow-accent-primary/10 max-h-[130px] overflow-y-auto custom-scrollbar">
           {filteredOptions.map((opt) => (

@@ -102,7 +102,18 @@ export async function POST(req: Request) {
       // We don't fail the whole request since the user was processed, but log it
     }
 
-    return NextResponse.json({ success: true, user: { id: studentId } });
+    return NextResponse.json({ 
+      success: true, 
+      student: {
+        id: studentId,
+        full_name,
+        roll_number,
+        date_of_birth,
+        course,
+        batch,
+        session
+      }
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
   }

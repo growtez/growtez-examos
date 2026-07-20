@@ -168,6 +168,11 @@ export function useExamDetailPage(paramsId: string) {
   }, [paramsId]);
 
   const handleSetStep = (step: number) => {
+    if (currentStep === 1 && step > 1 && !canProceedToNextStep(1)) {
+      setShowStep1Errors(true);
+      return;
+    }
+    setShowStep1Errors(false);
     setCurrentStep(step);
     window.history.replaceState(null, '', `?step=${step}`);
     if (typeof window !== 'undefined') {
@@ -538,11 +543,12 @@ export function useExamDetailPage(paramsId: string) {
     setCompletedCrop(null);
   };
 
+  const [showStep1Errors, setShowStep1Errors] = useState(false);
+
   const canProceedToNextStep = (step: number) => {
     if (step === 1) {
       return (
         title.trim() !== '' &&
-        description.trim() !== '' &&
         durationMinutes > 0 &&
         String(mcqCorrect).trim() !== '' &&
         String(mcqWrong).trim() !== '' &&
@@ -690,6 +696,10 @@ export function useExamDetailPage(paramsId: string) {
       setNatCorrect(newNatCorrect);
       setNatWrong(newNatWrong);
       setInstructionsList(newInstructions);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('breadcrumb-update', { detail: { id: paramsId, title: newTitle } }));
+      }
 
       const savePromise = autoSaveExamDetails(newTitle, newDesc, newDuration, newMcqCorrect, newMcqWrong, newNatCorrect, newNatWrong, newInstructions);
 
@@ -1071,13 +1081,13 @@ export function useExamDetailPage(paramsId: string) {
   };
 
   const handleSaveSubjectCount = async (subjectId: string) => {
-    if (inlineEditSubjectCount < 1) {
-      alert('Question count must be at least 1');
-      return;
-    }
+    const finalCount = inlineEditSubjectCount < 1 ? 1 : inlineEditSubjectCount;
     setEditSubjectId(null);
-    setSubjects(prev => prev.map(s => s.id === subjectId ? { ...s, question_count: inlineEditSubjectCount } : s));
-    await supabase.from('exam_subjects').update({ question_count: inlineEditSubjectCount }).eq('id', subjectId);
+    setSubjects(prev => prev.map(s => s.id === subjectId ? { ...s, question_count: finalCount } : s));
+    await supabase.from('exam_subjects').update({ question_count: finalCount }).eq('id', subjectId);
+    if (inlineEditSubjectCount < 1) {
+      setInlineEditSubjectCount(1);
+    }
   };
 
   const handleDeleteSubject = async (e: React.MouseEvent, subjectId: string, subjectName: string) => {
@@ -1937,5 +1947,7 @@ export function useExamDetailPage(paramsId: string) {
     downloadResultsPDF,
     linkGenerated,
     setLinkGenerated,
+    showStep1Errors,
+    setShowStep1Errors,
   };
 }
