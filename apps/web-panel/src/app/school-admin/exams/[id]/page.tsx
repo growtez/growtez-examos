@@ -938,7 +938,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               supabase={supabase}
               paramsId={params.id}
               isReadOnly={isReadOnly}
-              onAddStudentsClick={() => { setShowAddStudentModal(true); setAddMode('search'); setAddError(''); setAddSuccess(''); }}
+              onAddStudentsClick={() => { setShowAddStudentModal(true); setAddMode('link'); setAddError(''); setAddSuccess(''); }}
             />
           )}
 
