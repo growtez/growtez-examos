@@ -276,7 +276,15 @@ export default function SchoolAdminLayout({
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/' || pathname === '/school-admin';
-    return pathname?.startsWith(href);
+    
+    if (pathname === href) return true;
+    
+    if (pathname?.startsWith(`${href}/`)) {
+      if (href === '/exams' && pathname.startsWith('/exams/trash')) return false;
+      return true;
+    }
+    
+    return false;
   };
 
   const getBreadcrumbs = () => {

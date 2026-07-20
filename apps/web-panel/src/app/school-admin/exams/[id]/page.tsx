@@ -92,21 +92,23 @@ function CustomCombobox({
         className={`${className} text-ellipsis overflow-hidden whitespace-nowrap`}
         style={{ paddingRight: "1.75rem" }}
       />
-      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-text-muted bg-transparent">
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M19 9l-7 7-7-7"
-          ></path>
-        </svg>
-      </div>
+      {options.length > 0 && (
+        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-text-muted bg-transparent">
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M19 9l-7 7-7-7"
+            ></path>
+          </svg>
+        </div>
+      )}
       {isOpen && filteredOptions.length > 0 && (
         <ul className="absolute z-10 w-full bg-surface border border-border mt-1 rounded-xl shadow-xl shadow-[#008080]/10 max-h-[130px] overflow-y-auto custom-scrollbar">
           {filteredOptions.map((opt) => (
@@ -399,6 +401,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     downloadResultsPDF,
     linkGenerated,
     setLinkGenerated,
+    showStep1Errors,
   } = useExamDetailPage(params.id);
 
   const [questionSearchQuery, setQuestionSearchQuery] = useState("");
@@ -1017,6 +1020,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               handleSaveExamDetails={handleSaveExamDetails}
               paramsId={params.id}
               isReadOnly={isReadOnly}
+              showStep1Errors={showStep1Errors}
             />
           )}
           {/* Schedule Step — shown on step 4 for any status; read-only once published or over; hidden for teachers */}
@@ -1623,7 +1627,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       <select
                         value={filterCourse}
                         onChange={(e) => setFilterCourse(e.target.value)}
-                        className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary"
+                        className={`flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary ${uniqueCourses.length === 0 ? 'appearance-none bg-none cursor-default' : ''}`}
                       >
                         <option value="">All Courses</option>
                         {uniqueCourses.map((c: any) => (
@@ -1635,7 +1639,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       <select
                         value={filterBatch}
                         onChange={(e) => setFilterBatch(e.target.value)}
-                        className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary"
+                        className={`flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary ${uniqueBatches.length === 0 ? 'appearance-none bg-none cursor-default' : ''}`}
                       >
                         <option value="">All Batches</option>
                         {uniqueBatches.map((b: any) => (
@@ -1647,7 +1651,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       <select
                         value={filterSession}
                         onChange={(e) => setFilterSession(e.target.value)}
-                        className="flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary"
+                        className={`flex-1 px-3 py-2 bg-surface border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary ${uniqueSessions.length === 0 ? 'appearance-none bg-none cursor-default' : ''}`}
                       >
                         <option value="">All Sessions</option>
                         {uniqueSessions.map((s: any) => (

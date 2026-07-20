@@ -1,8 +1,67 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { ChevronLeft, ChevronRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, Plus, Users } from 'lucide-react';
+
+function CustomCombobox({ value, onChange, options, placeholder, className }: { value: string, onChange: (v: string) => void, options: string[], placeholder: string, className: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [filteredOptions, setFilteredOptions] = useState(options);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    setFilteredOptions(options.filter(o => o.toLowerCase().includes(value.toLowerCase())));
+  }, [value, options]);
+
+  return (
+    <div className="relative w-full" ref={wrapperRef}>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+        placeholder={placeholder}
+        className={`${className} text-ellipsis overflow-hidden whitespace-nowrap`}
+        style={{ paddingRight: '1.75rem' }}
+        required
+      />
+      {options.length > 0 && (
+        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-text-muted bg-transparent">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+      )}
+      {isOpen && filteredOptions.length > 0 && (
+        <ul className="absolute z-10 w-full bg-surface border border-border mt-1 rounded-xl shadow-xl shadow-accent-primary/10 max-h-[130px] overflow-y-auto custom-scrollbar">
+          {filteredOptions.map((opt) => (
+            <li
+              key={opt}
+              className="px-4 py-2.5 hover:bg-surface-hover cursor-pointer text-sm font-medium text-text-main transition-colors"
+              onClick={() => {
+                onChange(opt);
+                setIsOpen(false);
+              }}
+            >
+              {opt}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   const [teachers, setTeachers] = useState<any[]>([]);
@@ -413,9 +472,13 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
               </div>
               <div>
                 <label className="block text-sm font-semibold text-text-main mb-1.5">Department</label>
-                <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} required
+                <CustomCombobox
+                  value={department}
+                  onChange={setDepartment}
+                  options={uniqueDepartments as string[]}
+                  placeholder="e.g. Mathematics"
                   className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
-                  placeholder="e.g. Mathematics" />
+                />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-text-main mb-1.5">Password</label>
@@ -460,9 +523,13 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
               </div>
               <div>
                 <label className="block text-sm font-semibold text-text-main mb-1.5">Department</label>
-                <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} required
+                <CustomCombobox
+                  value={department}
+                  onChange={setDepartment}
+                  options={uniqueDepartments as string[]}
+                  placeholder="e.g. Mathematics"
                   className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
-                  placeholder="e.g. Mathematics" />
+                />
               </div>
               {error && <div className="bg-red-500/10 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-medium">{error}</div>}
               <div className="flex gap-3 pt-2">
