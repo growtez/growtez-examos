@@ -1,31 +1,23 @@
-import React from 'react';
+
 
 interface VirtualKeyboardProps {
   onKeyPress: (key: string) => void;
   onBackspace: () => void;
-  onClose: () => void;
 }
 
-export default function VirtualKeyboard({ onKeyPress, onBackspace, onClose }: VirtualKeyboardProps) {
+export default function VirtualKeyboard({ onKeyPress, onBackspace }: VirtualKeyboardProps) {
   const rows = [
-    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '/'],
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
     ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
     ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
   ];
 
   return (
-    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-[#E4E7EC] p-2 shadow-xl border border-[#D0D5DD] rounded z-[100] flex flex-col items-center animate-in fade-in zoom-in-95 duration-200 select-none w-max max-w-[95vw]">
-      <div className="w-full flex flex-col gap-1.5">
-        <div className="flex justify-between items-center px-1 mb-0.5">
-          <div className="text-[10px] font-bold text-[#667085] uppercase tracking-wider">On-Screen Keyboard</div>
-          <button 
-            type="button"
-            onClick={onClose}
-            className="text-[11px] font-bold text-white bg-[#008080] hover:bg-[#006666] uppercase tracking-wider px-2.5 py-1 transition-colors rounded shadow-sm"
-          >
-            Close Keyboard
-          </button>
+    <div id="virtual-keyboard" className="bg-[#E4E7EC] p-3 shadow-xl border border-[#D0D5DD] rounded z-[100] flex flex-col items-center animate-in fade-in duration-200 select-none w-max">
+      <div className="w-full flex flex-col gap-2">
+        <div className="flex justify-center items-center px-1 mb-2">
+          <div className="text-xs font-bold text-[#667085] uppercase tracking-widest">On-Screen Keyboard</div>
         </div>
         {rows.map((row, i) => (
           <div key={i} className={`flex justify-center gap-1 ${i === 2 ? 'px-3' : i === 3 ? 'px-6' : ''}`}>

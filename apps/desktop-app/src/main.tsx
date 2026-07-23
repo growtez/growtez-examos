@@ -8,8 +8,6 @@ document.addEventListener("contextmenu", (e) => e.preventDefault());
 
 // Disable keyboard globally
 document.addEventListener("keydown", (e) => {
-  // Allow reload (F5 / Ctrl+R) and DevTools (F12 / Ctrl+Shift+I) for debugging if needed
-  // But the prompt says "remove keyboard support entirely"
   e.preventDefault();
 });
 

@@ -32,6 +32,9 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [expandedTemplateId, setExpandedTemplateId] = useState<string | null>(null);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+  const [selectedExams, setSelectedExams] = useState<string[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [confirmBulkDialog, setConfirmBulkDialog] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
 
   const scrollRight = () => {
@@ -291,6 +294,39 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
     }
   };
 
+  const confirmBulkDelete = async () => {
+    if (selectedExams.length === 0) return;
+    setIsBulkDeleting(true);
+    const supabase = createClient();
+    try {
+      const { error } = await supabase.from('exams').update({ is_trashed: true }).in('id', selectedExams);
+      if (error) throw error;
+      setExams(prev => prev.filter(ex => !selectedExams.includes(ex.id)));
+      setSelectedExams([]);
+      setConfirmBulkDialog(false);
+    } catch (err: any) {
+      console.error('Error in bulk delete:', err);
+      alert(err.message);
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedExams(pagedExams.map(ex => ex.id));
+    } else {
+      setSelectedExams([]);
+    }
+  };
+
+  const handleSelectExam = (id: string, e: React.MouseEvent | React.ChangeEvent) => {
+    e.stopPropagation();
+    setSelectedExams(prev => 
+      prev.includes(id) ? prev.filter(eId => eId !== id) : [...prev, id]
+    );
+  };
+
   const handleExport = () => {
     const csvContent = "data:text/csv;charset=utf-8,"
       + "Title,Duration,Status,Created At\n"
@@ -327,7 +363,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
             type="text"
             placeholder="Search exams..."
             value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); setSelectedExams([]); }}
             className="w-full h-8 pl-7 pr-6 bg-surface border border-border rounded-lg text-text-main text-[12px] focus:outline-none focus:border-accent-primary transition-all"
           />
           {searchQuery && (
@@ -355,7 +391,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
             <div className="absolute left-0 top-full mt-1 w-32 bg-surface border border-border rounded-xl shadow-lg z-50 flex flex-col overflow-hidden py-1">
               {['all', 'draft', 'published', 'active', 'completed'].map(status => (
                 <button key={status}
-                  onClick={() => { setFilterStatus(status); setPage(1); setIsFilterOpen(false); }}
+                  onClick={() => { setFilterStatus(status); setPage(1); setIsFilterOpen(false); setSelectedExams([]); }}
                   className={`px-3 py-1.5 text-left text-[12px] hover:bg-surface-hover transition-colors ${
                     filterStatus === status ? 'text-accent-primary font-semibold' : 'text-text-main'
                   }`}>
@@ -384,6 +420,16 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
           </Link>
         )}
 
+        {/* Bulk Delete */}
+        {role !== 'teacher' && selectedExams.length > 0 && (
+          <button
+            onClick={() => setConfirmBulkDialog(true)}
+            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-red-500 text-white text-[12px] font-medium transition-all cursor-pointer shadow-sm hover:bg-red-600 animate-in fade-in"
+          >
+            <Trash2 size={12} /> Delete ({selectedExams.length})
+          </button>
+        )}
+
         {/* Active filter chips */}
         {(searchQuery || filterStatus !== 'all' || sortBy !== 'newest') && (
           <button
@@ -396,14 +442,14 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
 
         <div className="ml-auto flex items-center gap-1.5">
           {/* Pagination */}
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
+          <button onClick={() => { setPage(p => Math.max(1, p - 1)); setSelectedExams([]); }} disabled={safePage === 1}
             className="w-7 h-7 flex items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
             <ChevronLeft size={13} />
           </button>
           <span className="text-[11px] font-medium text-text-muted whitespace-nowrap px-1">
             {safePage} / {totalPages}
           </span>
-          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
+          <button onClick={() => { setPage(p => Math.min(totalPages, p + 1)); setSelectedExams([]); }} disabled={safePage === totalPages}
             className="w-7 h-7 flex items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer">
             <ChevronRight size={13} />
           </button>
@@ -422,7 +468,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                 {[8, 20, 50, 100].map(n => (
                   <button
                     key={n}
-                    onClick={() => { setPerPage(n); setPage(1); setIsPerPageOpen(false); }}
+                    onClick={() => { setPerPage(n); setPage(1); setIsPerPageOpen(false); setSelectedExams([]); }}
                     className={`px-3 py-1.5 text-left text-[11px] hover:bg-surface-hover transition-colors ${
                       perPage === n ? 'text-accent-primary font-bold' : 'text-text-main font-medium'
                     }`}
@@ -506,16 +552,38 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
         </div>
       ) : (
         <>
+          <div className="md:hidden mb-3 flex items-center justify-between bg-surface border border-border p-3 rounded-xl">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary"
+                checked={pagedExams.length > 0 && selectedExams.length === pagedExams.length}
+                onChange={handleSelectAll}
+              />
+              <span className="text-[12px] font-bold text-text-main">Select All</span>
+            </label>
+          </div>
           <div className="md:hidden space-y-3">
             {pagedExams.map((exam) => (
               <div
                 key={exam.id}
-                className="relative bg-surface border border-border rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-accent-primary/30 transition-all overflow-hidden flex flex-col"
+                onClick={() => router.push(`/exams/${exam.id}`)}
+                className={`relative bg-surface border rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer ${selectedExams.includes(exam.id) ? 'border-accent-primary ring-1 ring-accent-primary/20' : 'border-border hover:border-accent-primary/30'}`}
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="min-w-0">
-                    <h3 className="text-base font-extrabold text-text-main tracking-tight truncate" title={exam.title}>{exam.title}</h3>
-                    <p className="text-[11px] text-text-muted truncate" title={exam.description}>{exam.description || 'No description'}</p>
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div onClick={(e) => e.stopPropagation()} className="pt-1 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary cursor-pointer"
+                        checked={selectedExams.includes(exam.id)}
+                        onChange={(e) => handleSelectExam(exam.id, e)}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-base font-extrabold text-text-main tracking-tight truncate" title={exam.title}>{exam.title}</h3>
+                      <p className="text-[11px] text-text-muted truncate" title={exam.description}>{exam.description || 'No description'}</p>
+                    </div>
                   </div>
                   <span className={`inline-flex px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border shrink-0 ${statusColors[exam.status] || statusColors.draft}`}>
                     {exam.status}
@@ -562,12 +630,22 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
               /* Teacher Card View */
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {pagedExams.map((exam) => (
-                  <div key={exam.id} className="bg-surface rounded-xl border border-border hover:border-accent-primary/30 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group">
+                  <div key={exam.id} onClick={() => router.push(`/exams/${exam.id}`)} className={`bg-surface rounded-xl border hover:shadow-md transition-all flex flex-col overflow-hidden group cursor-pointer ${selectedExams.includes(exam.id) ? 'border-accent-primary ring-1 ring-accent-primary/20' : 'border-border hover:border-accent-primary/30'}`}>
                     <div className="p-4 flex-1">
                       <div className="flex justify-between items-start mb-2">
-                        <span className={`inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border ${statusColors[exam.status] || statusColors.draft}`}>
-                          {exam.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <div onClick={(e) => e.stopPropagation()} className="cursor-pointer flex items-center">
+                            <input 
+                              type="checkbox" 
+                              className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary cursor-pointer"
+                              checked={selectedExams.includes(exam.id)}
+                              onChange={(e) => handleSelectExam(exam.id, e)}
+                            />
+                          </div>
+                          <span className={`inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full border ${statusColors[exam.status] || statusColors.draft}`}>
+                            {exam.status}
+                          </span>
+                        </div>
                         <span className="text-[11px] text-text-muted">{formatDate(exam.created_at)}</span>
                       </div>
                       <h3 className="text-sm font-bold text-text-main mb-1 group-hover:text-accent-primary transition-colors line-clamp-1" title={exam.title}>{exam.title}</h3>
@@ -609,7 +687,15 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                   <table className="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
                     <thead>
                       <tr className="border-b border-border bg-surface-hover/50">
-                        <th className="py-2 px-3 text-[11px] font-bold text-text-muted uppercase tracking-wide cursor-pointer hover:text-text-main transition-colors w-[38%]" onClick={() => toggleSort('title')}>
+                        <th className="py-2 px-3 w-[40px] text-center">
+                          <input 
+                            type="checkbox" 
+                            className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary cursor-pointer"
+                            checked={pagedExams.length > 0 && selectedExams.length === pagedExams.length}
+                            onChange={handleSelectAll}
+                          />
+                        </th>
+                        <th className="py-2 px-3 text-[11px] font-bold text-text-muted uppercase tracking-wide cursor-pointer hover:text-text-main transition-colors" onClick={() => toggleSort('title')}>
                           <div className="flex items-center gap-1.5">Title {getSortIcon('title')}</div>
                         </th>
                         <th className="py-2 px-3 text-[11px] font-bold text-text-muted uppercase tracking-wide w-[12%]">Duration</th>
@@ -623,7 +709,15 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                     </thead>
                     <tbody>
                       {pagedExams.map((exam) => (
-                        <tr key={exam.id} onClick={() => router.push(`/exams/${exam.id}`)} className="group even:bg-bg hover:bg-surface-hover border-b border-border/40 last:border-b-0 transition-colors cursor-pointer">
+                        <tr key={exam.id} onClick={() => router.push(`/exams/${exam.id}`)} className={`group border-b border-border/40 last:border-b-0 transition-colors cursor-pointer ${selectedExams.includes(exam.id) ? 'bg-accent-primary/5' : 'even:bg-bg hover:bg-surface-hover'}`}>
+                          <td className="py-2 px-3 align-middle text-center" onClick={(e) => e.stopPropagation()}>
+                            <input 
+                              type="checkbox" 
+                              className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary cursor-pointer"
+                              checked={selectedExams.includes(exam.id)}
+                              onChange={(e) => handleSelectExam(exam.id, e)}
+                            />
+                          </td>
                           <td className="py-2 px-3 align-middle">
                             <div className="flex flex-col min-w-0">
                               <span className="font-semibold text-text-main text-[12px] truncate group-hover:text-accent-primary transition-colors max-w-[240px]" title={exam.title}>{exam.title}</span>
@@ -831,6 +925,43 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                 className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-all cursor-pointer disabled:opacity-50"
               >
                 {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {confirmBulkDialog && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => !isBulkDeleting && setConfirmBulkDialog(false)}
+        >
+          <div
+            className="bg-surface border border-border rounded-2xl shadow-xl w-full max-w-sm p-5 animate-in zoom-in-95"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 mb-4">
+              <Trash2 size={22} />
+            </div>
+            <h3 className="text-text-main font-bold text-base">Delete {selectedExams.length} {selectedExams.length === 1 ? 'exam' : 'exams'}?</h3>
+            <p className="text-text-muted text-sm mt-1.5">
+              The selected exams will be moved to trash. You can restore them later from the Trash page.
+            </p>
+            <div className="flex items-center gap-2 mt-5">
+              <button
+                onClick={() => setConfirmBulkDialog(false)}
+                disabled={isBulkDeleting}
+                className="flex-1 py-2.5 rounded-xl border border-border text-text-main text-sm font-bold hover:bg-surface-hover transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmBulkDelete}
+                disabled={isBulkDeleting}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-all cursor-pointer disabled:opacity-50"
+              >
+                {isBulkDeleting ? 'Deleting...' : 'Delete All'}
               </button>
             </div>
           </div>
