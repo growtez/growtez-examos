@@ -2,13 +2,23 @@ import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { roll_number, dob, school_id } = body;
 
     if (!roll_number || !dob || !school_id) {
-      return NextResponse.json({ error: 'Missing required credentials' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required credentials' }, { status: 400, headers: corsHeaders });
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -16,7 +26,7 @@ export async function POST(req: Request) {
     const jwtSecret = process.env.SUPABASE_JWT_SECRET;
 
     if (!supabaseServiceKey || !jwtSecret) {
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500, headers: corsHeaders });
     }
 
     const adminSupabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -32,10 +42,10 @@ export async function POST(req: Request) {
       .from('exams')
       .select('id')
       .eq('school_id', school_id)
-      .eq('status', 'active');
+      .in('status', ['active', 'published']);
 
     if (examsError || !exams || exams.length === 0) {
-      return NextResponse.json({ error: 'No active exams found for your school' }, { status: 404 });
+      return NextResponse.json({ error: 'No active exams found for your school' }, { status: 404, headers: corsHeaders });
     }
 
     const examIds = exams.map(e => e.id);
@@ -50,7 +60,7 @@ export async function POST(req: Request) {
       .single();
 
     if (studentError || !student) {
-      return NextResponse.json({ error: 'Invalid login credentials or not assigned to any active exam.' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid login credentials or not assigned to any active exam.' }, { status: 401, headers: corsHeaders });
     }
 
     // 3. Generate Custom JWT for Supabase RLS
@@ -69,8 +79,8 @@ export async function POST(req: Request) {
     return NextResponse.json({
       access_token: token,
       student: student
-    });
+    }, { headers: corsHeaders });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500, headers: corsHeaders });
   }
 }

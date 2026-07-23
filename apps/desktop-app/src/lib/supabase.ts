@@ -14,10 +14,9 @@ export const setStudentToken = (token: string) => {
 const customFetch = async (url: RequestInfo | URL, options?: RequestInit) => {
   if (currentToken) {
     options = options || {};
-    options.headers = {
-      ...options.headers,
-      Authorization: `Bearer ${currentToken}`,
-    };
+    const headers = new Headers(options.headers);
+    headers.set('Authorization', `Bearer ${currentToken}`);
+    options.headers = headers;
   }
   return fetch(url, options);
 };

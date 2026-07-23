@@ -16,7 +16,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [rollNumber, setRollNumber] = useState('');
   const [dob, setDob] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeInput, setActiveInput] = useState<'school' | 'roll' | null>(null);
+  const [activeInput, setActiveInput] = useState<'school' | 'roll' | 'dob' | null>(null);
 
   const [error, setError] = useState('');
 
@@ -42,7 +42,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   // Handle click outside and Escape key to close the dropdown and revert search term
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const vk = document.getElementById('virtual-keyboard');
+      if (
+        dropdownRef.current && 
+        !dropdownRef.current.contains(event.target as Node) &&
+        (!vk || !vk.contains(event.target as Node))
+      ) {
         setIsOpen(false);
         const currentSchool = schools.find((s) => s.id === selectedSchoolId);
         if (currentSchool) {
@@ -104,12 +109,34 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     fetchSchools();
   }, []);
 
+  const formatDob = (val: string) => {
+    // If it's already YYYY-MM-DD from native calendar picker
+    if (val.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [y, m, d] = val.split('-');
+      return `${d}/${m}/${y}`;
+    }
+    
+    let clean = val.replace(/[^\d]/g, '');
+    if (clean.length > 8) clean = clean.substring(0, 8);
+    
+    let formatted = clean;
+    if (clean.length >= 3) {
+      formatted = clean.substring(0, 2) + '/' + clean.substring(2);
+    }
+    if (clean.length >= 5) {
+      formatted = formatted.substring(0, 5) + '/' + clean.substring(4);
+    }
+    return formatted;
+  };
+
   const handleKeyPress = (key: string) => {
     if (activeInput === 'school') {
       setSearchTerm(prev => prev + key);
       setIsOpen(true);
     } else if (activeInput === 'roll') {
       setRollNumber(prev => prev + key);
+    } else if (activeInput === 'dob') {
+      setDob(prev => formatDob(prev + key));
     }
   };
 
@@ -119,6 +146,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       setIsOpen(true);
     } else if (activeInput === 'roll') {
       setRollNumber(prev => prev.slice(0, -1));
+    } else if (activeInput === 'dob') {
+      setDob(prev => {
+        const clean = prev.replace(/[^\d]/g, '');
+        return formatDob(clean.slice(0, -1));
+      });
     }
   };
 
@@ -134,6 +166,20 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       if (!rollNumber.trim()) throw new Error('Please enter your roll number');
       if (!dob) throw new Error('Please select your date of birth');
 
+      // convert DD/MM/YYYY or DD-MM-YYYY to YYYY-MM-DD
+      let formattedDob = dob.trim();
+      if (formattedDob.includes('/')) {
+        const parts = formattedDob.split('/');
+        if (parts.length === 3 && parts[2].length === 4) {
+          formattedDob = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+      } else if (formattedDob.includes('-')) {
+        const parts = formattedDob.split('-');
+        if (parts.length === 3 && parts[0].length !== 4) {
+          formattedDob = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+      }
+
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       const loginRes = await fetch(`${apiUrl}/api/auth/student-login`, {
         method: 'POST',
@@ -141,12 +187,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         body: JSON.stringify({
           school_id: selectedSchoolId,
           roll_number: rollNumber.trim(),
-          dob: dob
+          dob: formattedDob
         })
       });
 
       const loginData = await loginRes.json();
-      if (!loginRes.ok) throw new Error(loginData.error || 'Authentication failed');
+      if (!loginRes.ok) throw new Error(`Login API Error: ${loginData.error || 'Authentication failed'}`);
 
       const { access_token, student } = loginData;
       
@@ -159,7 +205,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         { p_student_id: student.id, p_device_id: devId }
       );
 
-      if (sessionError || !isSessionValid) {
+      if (sessionError) {
+        throw new Error(`Session Check Error: ${sessionError.message} (Hint: ${sessionError.hint || 'none'})`);
+      }
+      if (!isSessionValid) {
         throw new Error(
           'This student is already logged in on another device. ' +
           'Please wait for the active session to expire or contact your administrator.'
@@ -173,7 +222,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         .single();
 
       if (profileError || !profile) {
-        throw new Error('Student profile not found. Please contact school admin.');
+        throw new Error(`Profile Error: ${profileError?.message || 'Not found'}`);
       }
 
       const { data: examData, error: examError } = await supabase
@@ -182,7 +231,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         .eq('id', profile.exam_id)
         .single();
 
-      if (examError) throw examError;
+      if (examError) throw new Error(`Exam Fetch Error: ${examError.message} (Hint: ${examError.hint || 'No hint'})`);
 
       const activeAssignments = [
         {
@@ -210,7 +259,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         onLoginSuccess(profile, selectedExam, 'waiting_room');
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      console.error(err);
+      setError(err.message || JSON.stringify(err));
       try {
         if (authedUserId) {
           await supabase.rpc('clear_student_session', {
@@ -252,15 +302,14 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       </header>
 
       <div 
-        className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col"
+        className="flex-1 overflow-y-auto p-4 md:p-12 flex flex-col md:flex-row items-center justify-center max-w-6xl mx-auto w-full gap-8 md:gap-24"
         style={{
           scrollbarWidth: 'thin',
           scrollbarColor: '#008080 rgba(0, 0, 0, 0.05)'
         }}
       >
-        <div className="shrink-0 h-[3vh] md:h-[5vh] min-h-[20px]"></div>
-
-        <div className="bg-white w-full max-w-sm mx-auto border border-[#E4E7EC] rounded-none shadow-xl shrink-0">
+        <div className="w-full max-w-sm flex flex-col shrink-0">
+          <div className="bg-white w-full border border-[#E4E7EC] rounded-none shadow-xl shrink-0">
           <div className="bg-[#008080] py-3 px-4 text-center">
             <span className="text-white font-extrabold text-sm uppercase tracking-widest">CANDIDATE LOGIN</span>
           </div>
@@ -280,9 +329,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                       onFocus={(e) => {
                         e.target.select();
                         setIsOpen(true);
+                        setActiveInput('school');
                       }}
                       onClick={() => {
                         setIsOpen(true);
+                        setActiveInput('school');
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Tab') {
@@ -303,8 +354,26 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                         }
                       }}
                       placeholder="Search school / center..."
-                      className="w-full px-3 py-2 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] placeholder-[#98A2B3] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm pr-10"
+                      className="w-full px-3 py-2 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] placeholder-[#98A2B3] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm pr-24"
                     />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-10">
+                      {searchTerm && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSearchTerm('');
+                            setSelectedSchoolId('');
+                            if (activeInput === 'school') setIsOpen(true); // Re-open dropdown if typing
+                          }}
+                          className="p-1 text-[#98A2B3] hover:text-[#F04438] transition-colors focus:outline-none"
+                          title="Clear field"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                      )}
+                    </div>
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                       <svg className="h-5 w-5 text-[#667085]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
@@ -312,7 +381,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     </div>
 
                     {isOpen && (
-                      <div className="absolute z-50 mt-1 w-full bg-white border border-[#E4E7EC] rounded-none shadow-lg max-h-60 overflow-y-auto">
+                      <div className="absolute z-[110] mt-1 w-full bg-white border border-[#E4E7EC] rounded-none shadow-lg max-h-60 overflow-y-auto">
                         {filteredSchools.length > 0 ? (
                           filteredSchools.map((school) => (
                             <div
@@ -350,29 +419,74 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                         value={rollNumber}
                         onChange={(e) => setRollNumber(e.target.value)}
                         onFocus={() => setActiveInput('roll')}
+                        onClick={() => setActiveInput('roll')}
                         required
                         placeholder="Enter your roll number"
-                        className="w-full px-3 py-2 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] placeholder-[#98A2B3] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
+                        className="w-full px-3 py-2 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] placeholder-[#98A2B3] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm pr-10"
                       />
-                      {activeInput === 'roll' && (
-                        <VirtualKeyboard 
-                          onKeyPress={handleKeyPress} 
-                          onBackspace={handleBackspace} 
-                          onClose={() => setActiveInput(null)}
-                        />
-                      )}
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                        {rollNumber && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setRollNumber('');
+                            }}
+                            className="p-1 text-[#98A2B3] hover:text-[#F04438] transition-colors focus:outline-none"
+                            title="Clear field"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-[#667085] mb-2 uppercase tracking-wider">Date of Birth</label>
-                    <input
-                      type="date"
-                      value={dob}
-                      onChange={(e) => setDob(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={dob}
+                        onChange={(e) => setDob(formatDob(e.target.value))}
+                        onFocus={() => setActiveInput('dob')}
+                        onClick={() => setActiveInput('dob')}
+                        required
+                        placeholder="DD/MM/YYYY"
+                        className="w-full px-3 py-2 bg-white border border-[#E4E7EC] rounded-none text-[#1D2939] placeholder-[#98A2B3] focus:outline-none focus:border-[#008080] focus:ring-1 focus:ring-[#008080] transition-all text-sm shadow-sm pr-16"
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 gap-1">
+                        {dob && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setDob('');
+                            }}
+                            className="p-1 text-[#98A2B3] hover:text-[#F04438] transition-colors focus:outline-none"
+                            title="Clear field"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                          </button>
+                        )}
+                        <div className="relative flex items-center justify-center w-7 h-7" title="Pick from Calendar">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#98A2B3] hover:text-[#008080] transition-colors"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                          <input 
+                            type="date"
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val) {
+                                setDob(formatDob(val));
+                                setActiveInput('dob');
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -392,7 +506,16 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                   </button>
                 </div>
               </form>
+            </div>
           </div>
+        </div>
+
+        {/* Right Column: Virtual Keyboard */}
+        <div className="flex flex-col items-center justify-center shrink-0 mt-8 md:mt-0">
+          <VirtualKeyboard 
+            onKeyPress={handleKeyPress} 
+            onBackspace={handleBackspace} 
+          />
         </div>
       </div>
 
