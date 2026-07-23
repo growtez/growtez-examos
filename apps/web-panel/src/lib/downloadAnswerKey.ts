@@ -64,7 +64,8 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
     // 1. Fetch JSON data from route
     const res = await fetch(`/api/download/answer-key?resultId=${resultId}&format=json`);
     if (!res.ok) {
-      throw new Error(`Failed to fetch data: ${res.statusText}`);
+      const errorText = await res.text().catch(() => res.statusText);
+      throw new Error(`Failed to fetch data: ${errorText}`);
     }
     const data = await res.json();
     const { result, exam, questions, schoolName, studentName } = data;
