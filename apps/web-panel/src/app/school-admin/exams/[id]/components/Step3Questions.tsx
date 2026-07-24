@@ -562,13 +562,10 @@ export default function Step3Questions({
                           ].map((opt) => (
                             <div
                               key={opt.label}
-                              className={`bg-bg p-3 rounded-lg border transition-colors ${correctAnswer === opt.id ? 'border-accent-primary/50 ring-1 ring-accent-primary/15' : 'border-border'}`}
+                              className={`rounded-lg border transition-colors overflow-hidden flex flex-col ${correctAnswer === opt.id ? 'border-accent-primary ring-1 ring-accent-primary/20' : 'border-gray-300 dark:border-gray-700'}`}
                             >
-                              <div className="flex items-center justify-between mb-1.5">
+                              <div className="bg-bg px-3 py-2 border-b border-border flex items-center justify-between">
                                 <label className="flex items-center gap-1.5 text-xs font-bold text-text-muted">
-                                  <span className={`w-4 h-4 rounded flex items-center justify-center text-[9px] font-bold ${correctAnswer === opt.id ? 'bg-accent-primary text-white' : 'bg-surface border border-border text-text-muted'}`}>
-                                    {opt.id}
-                                  </span>
                                   {opt.label}
                                 </label>
                                 <div className="flex items-center gap-2">
@@ -599,35 +596,39 @@ export default function Step3Questions({
                                   )}
                                 </div>
                               </div>
-                              {/* Formula toolbar for option */}
-                              {showOptFormula[opt.id] && (
-                                <div className="mb-1.5">
-                                  <FormulaToolbar
-                                    compact
-                                    onInsert={(latex) =>
-                                      insertAtCursor(
-                                        { current: optRefs.current[opt.id] } as any,
-                                        opt.setVal,
-                                        opt.val,
-                                        latex
-                                      )
-                                    }
-                                  />
-                                </div>
-                              )}
-                              <textarea
-                                ref={(el) => { optRefs.current[opt.id] = el; autoGrow(el); }}
-                                rows={1}
-                                value={opt.val}
-                                onChange={(e) => { opt.setVal(e.target.value); autoGrow(e.target); }}
-                                className="w-full px-3 py-1.5 bg-surface border border-border rounded-lg text-sm mb-1 outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/15 transition-shadow resize-none overflow-hidden whitespace-pre-wrap break-words"
-                              />
-                              {/* Mini preview for option */}
-                              {showOptFormula[opt.id] && opt.val && (
-                                <div className="px-2 py-1 bg-bg border border-dashed border-border rounded text-[13px] text-text-main mb-1">
-                                  <MathRenderer text={opt.val} />
-                                </div>
-                              )}
+                              
+                              <div className="bg-surface p-3 flex flex-col">
+                                {/* Formula toolbar for option */}
+                                {showOptFormula[opt.id] && (
+                                  <div className="mb-2">
+                                    <FormulaToolbar
+                                      compact
+                                      onInsert={(latex) =>
+                                        insertAtCursor(
+                                          { current: optRefs.current[opt.id] } as any,
+                                          opt.setVal,
+                                          opt.val,
+                                          latex
+                                        )
+                                      }
+                                    />
+                                  </div>
+                                )}
+                                <textarea
+                                  ref={(el) => { optRefs.current[opt.id] = el; autoGrow(el); }}
+                                  rows={1}
+                                  value={opt.val}
+                                  onChange={(e) => { opt.setVal(e.target.value); autoGrow(e.target); }}
+                                  className="w-full bg-transparent text-sm outline-none resize-none overflow-hidden whitespace-pre-wrap break-words placeholder:text-text-muted/40"
+                                  placeholder={`Type ${opt.label} text here...`}
+                                />
+                                {/* Mini preview for option */}
+                                {showOptFormula[opt.id] && opt.val && (
+                                  <div className="pt-2 mt-2 border-t border-border/50 text-[13px] text-text-main">
+                                    <MathRenderer text={opt.val} />
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -710,7 +711,7 @@ export default function Step3Questions({
                   Cancel
                 </button>
                 <button type="submit" form="drawer-question-form" disabled={drawerFormLoading} className="flex-1 py-2.5 bg-accent-primary text-white font-semibold rounded-lg text-sm hover:bg-accent-primary/90 disabled:opacity-50 transition-colors shadow-sm">
-                  {drawerFormLoading ? 'Saving...' : 'Save Question'}
+                  {drawerFormLoading ? 'Saving...' : 'Save'}
                 </button>
                 {!editingQuestionId && drawerQuestions.length < (subjects.find(s => s.id === drawerSubjectId)?.question_count ?? 0) - 1 && (
                   <button type="button" onClick={(e) => doSaveQuestion(e, true)} disabled={drawerFormLoading} className="flex-1 py-2.5 bg-accent-primary/10 text-accent-primary font-semibold rounded-lg text-sm border border-accent-primary/20 hover:bg-accent-primary/20 disabled:opacity-50 transition-colors">
