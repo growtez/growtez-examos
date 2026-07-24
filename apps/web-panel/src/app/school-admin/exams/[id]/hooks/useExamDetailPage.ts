@@ -39,6 +39,11 @@ export function useExamDetailPage(paramsId: string) {
   const [mcqWrong, setMcqWrong] = useState<number | string>(-1);
   const [natCorrect, setNatCorrect] = useState<number | string>(4);
   const [natWrong, setNatWrong] = useState<number | string>(0);
+  const [msqCorrect, setMsqCorrect] = useState<number | string>(4);
+  const [msqPartial, setMsqPartial] = useState<number | string>(1);
+  const [msqWrong, setMsqWrong] = useState<number | string>(0);
+  const [msqPartialEnabled, setMsqPartialEnabled] = useState<boolean>(false);
+  const [msqEnabled, setMsqEnabled] = useState<boolean>(false);
   const [role, setRole] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('user_role') || 'school_admin';
@@ -116,7 +121,7 @@ export function useExamDetailPage(paramsId: string) {
   const [drawerError, setDrawerError] = useState('');
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
 
-  const [qType, setQType] = useState<'mcq' | 'nat'>('mcq');
+  const [qType, setQType] = useState<'mcq' | 'msq' | 'nat'>('mcq');
   const [qText, setQText] = useState('');
   const [qImage, setQImage] = useState<string | null>(null);
 
@@ -392,7 +397,7 @@ export function useExamDetailPage(paramsId: string) {
       if (!qText.trim() && !qImage) throw new Error('Please provide question text or an image.');
 
       const missingFields: string[] = [];
-      if (qType === 'mcq') {
+      if (qType === 'mcq' || qType === 'msq') {
         if (!optA.trim() && !optAImg) missingFields.push('Option A');
         if (!optB.trim() && !optBImg) missingFields.push('Option B');
         if (!optC.trim() && !optCImg) missingFields.push('Option C');
@@ -419,12 +424,12 @@ export function useExamDetailPage(paramsId: string) {
         question_text: qText,
         question_number: editingQuestionId ? undefined : drawerQuestions.length + 1,
         image_url: qImage,
-        marks: qType === 'mcq' ? (markingScheme.mcq_correct || 4) : (markingScheme.nat_correct || 4),
-        positive_marks: qType === 'mcq' ? (markingScheme.mcq_correct || 4) : (markingScheme.nat_correct || 4),
-        negative_marks: qType === 'mcq' ? (markingScheme.mcq_wrong || -1) : (markingScheme.nat_wrong || 0),
+        marks: qType === 'nat' ? (markingScheme.nat_correct || 4) : (markingScheme[`${qType}_correct`] || markingScheme.mcq_correct || 4),
+        positive_marks: qType === 'nat' ? (markingScheme.nat_correct || 4) : (markingScheme[`${qType}_correct`] || markingScheme.mcq_correct || 4),
+        negative_marks: qType === 'nat' ? (markingScheme.nat_wrong || 0) : (markingScheme[`${qType}_wrong`] || markingScheme.mcq_wrong || -1),
       };
 
-      if (qType === 'mcq') {
+      if (qType === 'mcq' || qType === 'msq') {
         questionData.options = { A: optA, A_image: optAImg, B: optB, B_image: optBImg, C: optC, C_image: optCImg, D: optD, D_image: optDImg };
         questionData.correct_option = correctAnswer;
       } else {
@@ -460,7 +465,7 @@ export function useExamDetailPage(paramsId: string) {
     setQType(q.question_type);
     setQText(q.question_text || '');
     setQImage(q.image_url || null);
-    if (q.question_type === 'mcq') {
+    if (q.question_type === 'mcq' || q.question_type === 'msq') {
       setOptA(q.options?.A || ''); setOptAImg(q.options?.A_image || null);
       setOptB(q.options?.B || ''); setOptBImg(q.options?.B_image || null);
       setOptC(q.options?.C || ''); setOptCImg(q.options?.C_image || null);
@@ -547,6 +552,12 @@ export function useExamDetailPage(paramsId: string) {
 
   const canProceedToNextStep = (step: number) => {
     if (step === 1) {
+      const msqValid = !msqEnabled || (
+        String(msqCorrect).trim() !== '' &&
+        String(msqWrong).trim() !== '' &&
+        (!msqPartialEnabled || String(msqPartial).trim() !== '')
+      );
+
       return (
         title.trim() !== '' &&
         durationMinutes > 0 &&
@@ -554,6 +565,7 @@ export function useExamDetailPage(paramsId: string) {
         String(mcqWrong).trim() !== '' &&
         String(natCorrect).trim() !== '' &&
         String(natWrong).trim() !== '' &&
+        msqValid &&
         subjects.length > 0
       );
     }
@@ -586,6 +598,11 @@ export function useExamDetailPage(paramsId: string) {
     currentMcqWrong = mcqWrong,
     currentNatCorrect = natCorrect,
     currentNatWrong = natWrong,
+    currentMsqCorrect = msqCorrect,
+    currentMsqPartial = msqPartial,
+    currentMsqWrong = msqWrong,
+    currentMsqPartialEnabled = msqPartialEnabled,
+    currentMsqEnabled = msqEnabled,
     currentInstructions = instructionsList
   ) => {
     if (!currentTitle.trim() || currentDuration < 1) {
@@ -603,7 +620,12 @@ export function useExamDetailPage(paramsId: string) {
           mcq_correct: parseFloat(String(currentMcqCorrect)) || 0,
           mcq_wrong: parseFloat(String(currentMcqWrong)) || 0,
           nat_correct: parseFloat(String(currentNatCorrect)) || 0,
-          nat_wrong: parseFloat(String(currentNatWrong)) || 0
+          nat_wrong: parseFloat(String(currentNatWrong)) || 0,
+          msq_correct: parseFloat(String(currentMsqCorrect)) || 0,
+          msq_partial: parseFloat(String(currentMsqPartial)) || 0,
+          msq_wrong: parseFloat(String(currentMsqWrong)) || 0,
+          msq_partial_enabled: currentMsqPartialEnabled,
+          msq_enabled: currentMsqEnabled
         },
         exam_instructions: filteredInstructions,
       };
@@ -631,7 +653,7 @@ export function useExamDetailPage(paramsId: string) {
 
   const handleSaveExamDetails = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    await autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList);
+    await autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList);
   };
 
   const autoSaveSchedule = async (
@@ -686,6 +708,11 @@ export function useExamDetailPage(paramsId: string) {
       const newMcqWrong = template.marking_scheme?.mcq_wrong ?? mcqWrong;
       const newNatCorrect = template.marking_scheme?.nat_correct ?? natCorrect;
       const newNatWrong = template.marking_scheme?.nat_wrong ?? natWrong;
+      const newMsqCorrect = template.marking_scheme?.msq_correct ?? msqCorrect;
+      const newMsqPartial = template.marking_scheme?.msq_partial ?? msqPartial;
+      const newMsqWrong = template.marking_scheme?.msq_wrong ?? msqWrong;
+      const newMsqPartialEnabled = template.marking_scheme?.msq_partial_enabled ?? msqPartialEnabled;
+      const newMsqEnabled = template.marking_scheme?.msq_enabled ?? msqEnabled;
       const newInstructions = template.exam_instructions?.length ? template.exam_instructions : instructionsList;
 
       setTitle(newTitle);
@@ -744,7 +771,7 @@ export function useExamDetailPage(paramsId: string) {
   const removeInstructionItem = (index: number) => {
     const updated = instructionsList.filter((_, i) => i !== index);
     setInstructionsList(updated);
-    autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, updated);
+    autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, updated);
   };
 
   const updateInstructionItem = (index: number, value: string) => {
@@ -898,6 +925,11 @@ export function useExamDetailPage(paramsId: string) {
       setMcqWrong(examData.marking_scheme.mcq_wrong ?? -1);
       setNatCorrect(examData.marking_scheme.nat_correct ?? 4);
       setNatWrong(examData.marking_scheme.nat_wrong ?? 0);
+      setMsqCorrect(examData.marking_scheme.msq_correct ?? 4);
+      setMsqPartial(examData.marking_scheme.msq_partial ?? 1);
+      setMsqWrong(examData.marking_scheme.msq_wrong ?? 0);
+      setMsqPartialEnabled(examData.marking_scheme.msq_partial_enabled ?? false);
+      setMsqEnabled(examData.marking_scheme.msq_enabled ?? false);
     }
 
     const { data: subjectsData } = await supabase
@@ -1670,6 +1702,16 @@ export function useExamDetailPage(paramsId: string) {
     setNatCorrect,
     natWrong,
     setNatWrong,
+    msqCorrect,
+    setMsqCorrect,
+    msqPartial,
+    setMsqPartial,
+    msqWrong,
+    setMsqWrong,
+    msqPartialEnabled,
+    setMsqPartialEnabled,
+    msqEnabled,
+    setMsqEnabled,
     role,
     setRole,
     userId,

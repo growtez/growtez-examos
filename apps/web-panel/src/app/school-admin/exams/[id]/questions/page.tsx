@@ -602,21 +602,17 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                           <img
                             src={rawImageToCrop}
                             onLoad={(e) => {
-                              setImageRef(e.currentTarget);
-                              // On mobile set a default centre crop so users don't have to draw one
-                              const isMobile = window.innerWidth < 640;
-                              if (isMobile) {
-                                const defaultCrop: Crop = { unit: '%', x: 5, y: 5, width: 90, height: 90 };
-                                setCrop(defaultCrop);
-                                const img = e.currentTarget;
-                                setCompletedCrop({
-                                  unit: 'px',
-                                  x: img.naturalWidth * 0.05,
-                                  y: img.naturalHeight * 0.05,
-                                  width: img.naturalWidth * 0.9,
-                                  height: img.naturalHeight * 0.9,
-                                });
-                              }
+                              const img = e.currentTarget;
+                              setImageRef(img);
+                              const defaultCrop: Crop = { unit: '%', x: 0, y: 0, width: 100, height: 100 };
+                              setCrop(defaultCrop);
+                              setCompletedCrop({
+                                unit: 'px',
+                                x: 0,
+                                y: 0,
+                                width: img.naturalWidth,
+                                height: img.naturalHeight,
+                              });
                             }}
                             alt="Crop preview"
                             className="max-h-[60vh] object-contain"
