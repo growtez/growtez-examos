@@ -394,10 +394,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     handleDownloadCsvTemplate,
     handleRemoveStudent,
     handleDuplicate,
-    showDuplicateModal,
-    setShowDuplicateModal,
-    duplicateTitle,
-    setDuplicateTitle,
     doDuplicate,
     handleCreateAndAssignTeacher,
     handleUnpublish,
@@ -531,7 +527,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   return (
     <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div
-        className={!isDraftStepperMode ? "max-w-5xl mx-auto mb-10" : "grid grid-cols-1 mb-10"}
+        className={!isDraftStepperMode ? "max-w-5xl mx-auto mb-10" : "grid grid-cols-1 mb-10 pb-24 sm:pb-0"}
       >
         {/* Main Content Column */}
         <div className="space-y-6">
@@ -632,8 +628,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
 
-              {/* Scrolling Header Container */}
-              <div className="-mx-6 mb-2 border-b border-border bg-bg px-4 sm:px-6 pb-2 flex flex-col gap-2 relative z-10">
+              {/* Scrolling Header Container */}              <div className="-mx-6 mb-2 border-b border-border bg-bg px-4 sm:px-6 pb-2 flex flex-col gap-2 relative z-10">
                 {/* Mobile Duplicate/Delete Buttons Row */}
                 {!isTeacher && (
                   <div className="flex justify-end gap-1.5 w-full">
@@ -661,9 +656,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
                 {/* Step-specific Controls */}
                 {(currentStep === 1 || currentStep === 3) && (
-                  <div className="flex flex-wrap items-center gap-2 md:gap-3 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 md:gap-3 min-w-0 mt-1">
                     {/* Step 1: Template */}
-
                     {currentStep === 1 && (
                       <div className="flex w-full items-center gap-1.5">
                         <select
@@ -688,15 +682,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             <span className="w-2 h-2 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
                           </span>
                         )}
-                        {/* Collapse All button — mobile only, pushed to far right */}
-                        <button
-                          type="button"
-                          onClick={() => setStep1CollapseAll((prev) => !prev)}
-                          className="sm:hidden ml-auto text-[11px] font-bold text-accent-primary hover:underline flex items-center gap-1 shrink-0"
-                        >
-                          <ChevronDown size={12} className={`transition-transform ${step1CollapseAll ? 'rotate-180' : ''}`} />
-                          {step1CollapseAll ? 'Collapse All' : 'Expand All'}
-                        </button>
                       </div>
                     )}
                     {/* Step 3: Subject Pills */}
@@ -761,9 +746,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                   </div>
-                </div>
                 )}
-
               </div>
 
               {/* Row 2: Search Filter Row (only for Step 3) */}
@@ -1163,7 +1146,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
           {/* Bottom Navigation */}
           {isDraftStepperMode && (
-            <div className="flex justify-between items-center mt-6 pt-5 border-t border-border pb-6">
+            <div className="flex justify-between items-center pt-3 pb-4 sm:pt-5 sm:pb-6 sm:mt-6 border-t border-border fixed bottom-0 left-0 right-0 w-full bg-bg z-40 px-4 sm:static sm:w-auto sm:px-0 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] sm:shadow-none">
               <button
                 onClick={() => currentStep > 1 && handleSetStep(currentStep - 1)}
                 disabled={currentStep <= 1}
@@ -1963,74 +1946,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
-      {/* Duplicate Exam Modal */}
-      {showDuplicateModal && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setShowDuplicateModal(false);
-          }}
-        >
-          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden border border-border animate-in fade-in zoom-in-95 duration-150">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-accent-primary/10 rounded-xl flex items-center justify-center text-accent-primary shrink-0">
-                  <Copy size={20} />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-text-main">
-                    Duplicate Exam
-                  </h3>
-                  <p className="text-xs text-text-muted font-medium">
-                    Create a copy of this exam with all its subjects and questions.
-                  </p>
-                </div>
-              </div>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (duplicateTitle.trim()) {
-                    doDuplicate(duplicateTitle);
-                  }
-                }}
-              >
-                <div className="mb-5">
-                  <label className="block text-xs font-bold text-text-main uppercase tracking-wider mb-1.5">
-                    New Exam Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={duplicateTitle}
-                    onChange={(e) => setDuplicateTitle(e.target.value)}
-                    placeholder="Enter exam title..."
-                    autoFocus
-                    required
-                    className="w-full px-3.5 py-2.5 bg-bg border border-border rounded-xl text-text-main text-sm font-medium focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/15 outline-none transition-all"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setShowDuplicateModal(false)}
-                    className="px-4 py-2 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-xs transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={!duplicateTitle.trim()}
-                    className="px-5 py-2 bg-accent-primary hover:bg-accent-primary/90 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-colors shadow-sm cursor-pointer"
-                  >
-                    Duplicate Exam
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Add Subject Modal */}
       {showAddSubjectModal && (

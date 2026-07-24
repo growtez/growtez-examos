@@ -72,21 +72,16 @@ function CollapsibleCard({
   return (
     <div className={`bg-surface border-2 border-border/50 rounded-xl p-3.5 sm:p-4 shadow-sm h-full hover:border-accent-primary/30 hover:shadow-md transition-all group ${className || ''}`}>
       <div
-        onClick={onToggle}
-        className="w-full flex items-center justify-between gap-2 mb-3 border-b border-[#f0f7f7] pb-1.5 cursor-pointer sm:cursor-default"
+        className="w-full flex items-center justify-between gap-2 mb-3 border-b border-[#f0f7f7] pb-1.5"
       >
         <span className="flex items-center gap-1.5">
           <h3 className="text-sm font-bold text-text-main">{title}</h3>
-          <ChevronDown
-            size={14}
-            className={`text-text-muted transition-transform sm:hidden ${expanded ? 'rotate-180' : ''}`}
-          />
         </span>
         {headerExtra && (
-          <span onClick={(e) => e.stopPropagation()}>{headerExtra}</span>
+          <span>{headerExtra}</span>
         )}
       </div>
-      <div className={`${expanded ? 'block' : 'hidden'} sm:block`}>{children}</div>
+      <div className="block">{children}</div>
     </div>
   );
 }
