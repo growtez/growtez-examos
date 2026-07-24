@@ -514,13 +514,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             <>
               <div className="sticky top-0 z-30 -mx-6 -mt-6 pt-6 px-4 sm:px-6 pb-4 bg-bg relative isolate before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-[-1] before:bg-bg">
                 {/* Horizontal Stepper (Top) */}
-                <div className="grid grid-cols-[auto_1fr_auto] items-center sm:gap-4 w-full max-w-5xl mx-auto">
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4 w-full max-w-5xl mx-auto">
                   {/* Prev Button */}
                   <div className="flex justify-start sm:justify-end">
                     <button
                       onClick={() => currentStep > 1 && handleSetStep(currentStep - 1)}
                       disabled={currentStep <= 1}
-                      className={`inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-accent-primary border border-accent-primary text-white text-[11px] font-semibold rounded-xl transition-all shadow-sm sm:min-w-24 ${currentStep > 1
+                      className={`inline-flex items-center justify-center gap-1 px-2 sm:px-4 py-1.5 bg-accent-primary border border-accent-primary text-white text-[11px] font-semibold rounded-xl transition-all shadow-sm sm:min-w-24 ${currentStep > 1
                         ? "hover:opacity-90 active:scale-95"
                         : "opacity-50 cursor-not-allowed"
                         }`}
@@ -574,9 +574,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                               </button>
                             </div>
                             {idx < STEPPER_STEPS.length - 1 && (
-                              <div className="block w-4 sm:w-8 h-1 mx-1.5 sm:mx-2 rounded-full bg-accent-primary/20 overflow-hidden shrink-0">
+                              <div className="block w-3 sm:w-8 h-[3px] mx-1 sm:mx-2 rounded-full shrink-0 overflow-hidden">
                                 <div
-                                  className={`h-full transition-all duration-500 ease-out ${isSegmentFilled ? "w-full bg-accent-primary shadow-[0_0_8px_rgba(0,128,128,0.4)]" : "w-0 bg-accent-primary"}`}
+                                  className={`h-full w-full rounded-full transition-all duration-500 ease-out ${isSegmentFilled ? 'bg-accent-primary shadow-[0_0_6px_rgba(0,128,128,0.4)]' : 'bg-accent-primary/25'}`}
                                 />
                               </div>
                             )}
@@ -591,7 +591,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     <button
                       onClick={() => currentStep < 5 && handleSetStep(currentStep + 1)}
                       disabled={currentStep >= 5}
-                      className={`inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-accent-primary border border-accent-primary text-white text-[11px] font-semibold rounded-xl transition-all shadow-sm sm:min-w-24 ${currentStep < 5
+                      className={`inline-flex items-center justify-center gap-1 px-2 sm:px-4 py-1.5 bg-accent-primary border border-accent-primary text-white text-[11px] font-semibold rounded-xl transition-all shadow-sm sm:min-w-24 ${currentStep < 5
                         ? "hover:opacity-90 active:scale-95"
                         : "opacity-50 cursor-not-allowed"
                         }`}
@@ -640,7 +640,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   <div className="flex flex-wrap items-center gap-2 md:gap-3 min-w-0">
                     {/* Step 1: Template + Collapse All */}
                     {currentStep === 1 && (
-                      <div className="flex min-w-0 items-center gap-1.5">
+                      <div className="flex w-full items-center gap-1.5">
                         <select
                           onChange={(e) => {
                             const selected = templates.find((t) => t.id === e.target.value);
@@ -663,11 +663,11 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             <span className="w-2 h-2 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
                           </span>
                         )}
-                        {/* Collapse All button — mobile only */}
+                        {/* Collapse All button — mobile only, pushed to far right */}
                         <button
                           type="button"
                           onClick={() => setStep1CollapseAll((prev) => !prev)}
-                          className="sm:hidden text-[11px] font-bold text-accent-primary hover:underline flex items-center gap-1 ml-1"
+                          className="sm:hidden ml-auto text-[11px] font-bold text-accent-primary hover:underline flex items-center gap-1 shrink-0"
                         >
                           <ChevronDown size={12} className={`transition-transform ${step1CollapseAll ? 'rotate-180' : ''}`} />
                           {step1CollapseAll ? 'Collapse All' : 'Expand All'}
