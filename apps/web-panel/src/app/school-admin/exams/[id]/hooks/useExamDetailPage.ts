@@ -1331,10 +1331,17 @@ export function useExamDetailPage(paramsId: string) {
     });
   };
 
-  const handleDuplicate = async () => {
-    const newTitle = prompt('Enter a title for the duplicated exam:', `${exam.title} (Copy)`);
-    if (!newTitle) return;
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateTitle, setDuplicateTitle] = useState('');
 
+  const handleDuplicate = () => {
+    setDuplicateTitle(`${exam?.title || 'Exam'} (Copy)`);
+    setShowDuplicateModal(true);
+  };
+
+  const doDuplicate = async (newTitle: string) => {
+    if (!newTitle.trim()) return;
+    setShowDuplicateModal(false);
     setLoading(true);
     try {
       // 1. Insert new exam
@@ -1342,7 +1349,7 @@ export function useExamDetailPage(paramsId: string) {
         .from('exams')
         .insert({
           school_id: exam.school_id,
-          title: newTitle,
+          title: newTitle.trim(),
           description: exam.description,
           duration_minutes: exam.duration_minutes,
           status: 'draft',
@@ -1907,6 +1914,11 @@ export function useExamDetailPage(paramsId: string) {
     handleDownloadCsvTemplate,
     handleRemoveStudent,
     handleDuplicate,
+    showDuplicateModal,
+    setShowDuplicateModal,
+    duplicateTitle,
+    setDuplicateTitle,
+    doDuplicate,
     handleCreateAndAssignTeacher,
     handleUnpublish,
     handleTrash,

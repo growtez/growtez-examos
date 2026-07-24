@@ -392,6 +392,11 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     handleDownloadCsvTemplate,
     handleRemoveStudent,
     handleDuplicate,
+    showDuplicateModal,
+    setShowDuplicateModal,
+    duplicateTitle,
+    setDuplicateTitle,
+    doDuplicate,
     handleCreateAndAssignTeacher,
     handleUnpublish,
     handleTrash,
@@ -512,7 +517,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
           {isDraftStepperMode && (
             <>
-              <div className="sticky top-0 z-30 -mx-6 -mt-6 pt-6 px-4 sm:px-6 pb-4 bg-bg relative isolate before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-[-1] before:bg-bg">
+              <div className="sticky top-0 z-30 -mx-6 -mt-6 px-4 sm:px-6 pb-3 sm:pb-4 bg-bg relative isolate before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-[-1] before:bg-bg">
                 {/* Horizontal Stepper (Top) */}
                 <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4 w-full max-w-5xl mx-auto">
                   {/* Prev Button */}
@@ -604,7 +609,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </div>
 
               {/* Scrolling Header Container */}
-              <div className="-mx-6 mb-4 border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-3 relative z-10">
+              <div className="-mx-6 mb-2 border-b border-border bg-bg px-4 sm:px-6 pb-1 flex flex-col gap-2 relative z-10">
                 {/* Row 1: Title + Dup/Delete on mobile */}
                 <div className="flex items-center justify-between gap-2">
                   <h2 className="text-base sm:text-lg font-bold text-text-main flex items-center gap-1.5 whitespace-nowrap min-w-0">
@@ -1100,7 +1105,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               supabase={supabase}
             />
           )}
-          
+
           {/* Bottom Navigation */}
           {isDraftStepperMode && (
             <div className="flex justify-between items-center mt-6 pt-5 border-t border-border pb-6">
@@ -1115,7 +1120,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 <ChevronLeft size={14} />
                 Prev
               </button>
-              
+
               {currentStep < 5 ? (
                 <button
                   onClick={() => handleSetStep(currentStep + 1)}
@@ -1836,7 +1841,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Confirmation Dialog */}
       {confirmDialog.isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
@@ -1881,9 +1886,78 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
+      {/* Duplicate Exam Modal */}
+      {showDuplicateModal && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setShowDuplicateModal(false);
+          }}
+        >
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden border border-border animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-accent-primary/10 rounded-xl flex items-center justify-center text-accent-primary shrink-0">
+                  <Copy size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-text-main">
+                    Duplicate Exam
+                  </h3>
+                  <p className="text-xs text-text-muted font-medium">
+                    Create a copy of this exam with all its subjects and questions.
+                  </p>
+                </div>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (duplicateTitle.trim()) {
+                    doDuplicate(duplicateTitle);
+                  }
+                }}
+              >
+                <div className="mb-5">
+                  <label className="block text-xs font-bold text-text-main uppercase tracking-wider mb-1.5">
+                    New Exam Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={duplicateTitle}
+                    onChange={(e) => setDuplicateTitle(e.target.value)}
+                    placeholder="Enter exam title..."
+                    autoFocus
+                    required
+                    className="w-full px-3.5 py-2.5 bg-bg border border-border rounded-xl text-text-main text-sm font-medium focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/15 outline-none transition-all"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowDuplicateModal(false)}
+                    className="px-4 py-2 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-xs transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!duplicateTitle.trim()}
+                    className="px-5 py-2 bg-accent-primary hover:bg-accent-primary/90 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-colors shadow-sm cursor-pointer"
+                  >
+                    Duplicate Exam
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Subject Modal */}
       {showAddSubjectModal && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setShowAddSubjectModal(false);
@@ -2011,7 +2085,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Crop tool for the Manage Questions drawer */}
       {rawImageToCrop && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-[1100] p-4 animate-in fade-in"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setRawImageToCrop(null);
