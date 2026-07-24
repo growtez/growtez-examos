@@ -305,6 +305,7 @@ export function useExamDetailPage(paramsId: string) {
   const handleDrawerNewQuestion = () => {
     setEditingQuestionId(null);
     setDrawerView('editor');
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
 
     // Load draft if one exists
     if (typeof window !== 'undefined' && drawerSubjectId) {
@@ -475,6 +476,7 @@ export function useExamDetailPage(paramsId: string) {
       setNatAnswer(q.correct_option || '');
     }
     setDrawerView('editor');
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
   };
 
   const handleDrawerDeleteQuestion = async (qId: string) => {
@@ -1204,6 +1206,52 @@ export function useExamDetailPage(paramsId: string) {
     });
   };
 
+  const handleMoveSubject = async (index: number, direction: 'left' | 'right') => {
+    if (direction === 'left' && index === 0) return;
+    if (direction === 'right' && index === subjects.length - 1) return;
+
+    const swapIndex = direction === 'left' ? index - 1 : index + 1;
+    const newSubjects = [...subjects];
+    const temp = newSubjects[index];
+    newSubjects[index] = newSubjects[swapIndex];
+    newSubjects[swapIndex] = temp;
+
+    newSubjects.forEach((sub, i) => {
+      sub.sort_order = i;
+    });
+
+    setSubjects(newSubjects);
+
+    const sub1 = newSubjects[index];
+    const sub2 = newSubjects[swapIndex];
+
+    await Promise.all([
+      supabase.from('exam_subjects').update({ sort_order: sub1.sort_order }).eq('id', sub1.id),
+      supabase.from('exam_subjects').update({ sort_order: sub2.sort_order }).eq('id', sub2.id)
+    ]);
+  };
+
+  const handleReorderSubjects = async (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    if (fromIndex < 0 || fromIndex >= subjects.length) return;
+    if (toIndex < 0 || toIndex >= subjects.length) return;
+
+    const newSubjects = [...subjects];
+    const [movedItem] = newSubjects.splice(fromIndex, 1);
+    newSubjects.splice(toIndex, 0, movedItem);
+
+    newSubjects.forEach((sub, i) => {
+      sub.sort_order = i;
+    });
+
+    setSubjects(newSubjects);
+
+    const updatePromises = newSubjects.map(sub => 
+      supabase.from('exam_subjects').update({ sort_order: sub.sort_order }).eq('id', sub.id)
+    );
+    await Promise.all(updatePromises);
+  };
+
 
 
   const handleAddStudent = async (e: React.FormEvent) => {
@@ -1331,13 +1379,9 @@ export function useExamDetailPage(paramsId: string) {
     });
   };
 
-  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
-  const [duplicateTitle, setDuplicateTitle] = useState('');
+  const handleDuplicate = async (newTitle: string) => {
+    if (!newTitle) return;
 
-  const handleDuplicate = () => {
-    setDuplicateTitle(`${exam?.title || 'Exam'} (Copy)`);
-    setShowDuplicateModal(true);
-  };
 
   const doDuplicate = async (newTitle: string) => {
     if (!newTitle.trim()) return;
@@ -1909,6 +1953,8 @@ export function useExamDetailPage(paramsId: string) {
     handleSaveSubjectTeachers,
     handleAddSubject,
     toggleNewSubjectTeacher,
+    handleMoveSubject,
+    handleReorderSubjects,
     handleAddStudent,
     handleCsvImport,
     handleDownloadCsvTemplate,

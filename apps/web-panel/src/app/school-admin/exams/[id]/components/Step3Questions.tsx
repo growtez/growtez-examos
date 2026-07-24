@@ -393,7 +393,7 @@ export default function Step3Questions({
                       <div key={q.id} className="p-4 bg-surface border border-border rounded-xl shadow-sm group relative overflow-hidden">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                            <span className="w-5 h-5 rounded bg-surface border border-border flex items-center justify-center text-[10px] text-text-main font-bold shrink-0">{originalNumber}</span>
+<span className="min-w-7 h-7 px-1.5 rounded bg-surface border border-border flex items-center justify-center text-xs text-text-main font-bold shrink-0">{originalNumber}</span>
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border shrink-0 ${q.question_type === 'mcq' ? 'bg-blue-50 text-blue-600 border-blue-200' : q.question_type === 'msq' ? 'bg-purple-50 text-purple-600 border-purple-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
                               {q.question_type}
                             </span>
