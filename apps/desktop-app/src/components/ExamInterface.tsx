@@ -601,6 +601,11 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                   <div className="flex items-center gap-3">
                     <h2 className="text-lg font-bold text-[#1D2939]">Question {currentQuestion.question_number ?? (currentQuestionIndex + 1)}:</h2>
                   </div>
+                  {currentQuestion.question_type && (
+                    <span className="font-sans text-xs font-bold text-[#008080] bg-[#EAF2F2] border border-[#008080] px-3 py-1 uppercase tracking-wider shadow-sm">
+                      {currentQuestion.question_type.toUpperCase()}
+                    </span>
+                  )}
                 </div>
 
                 <div className="text-[16px] text-[#1D2939] leading-relaxed max-w-4xl font-serif">
