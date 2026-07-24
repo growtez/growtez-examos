@@ -527,7 +527,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   return (
     <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div
-        className={!isDraftStepperMode ? "max-w-5xl mx-auto mb-10" : "grid grid-cols-1 mb-10 pb-24 sm:pb-0"}
+        className={!isDraftStepperMode ? "max-w-5xl mx-auto mb-10" : "grid grid-cols-1 mb-10 pb-36 min-h-[110vh] sm:min-h-0 sm:pb-0"}
       >
         {/* Main Content Column */}
         <div className="space-y-6">
@@ -641,7 +641,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       className="inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-lg text-xs font-bold text-accent-primary hover:bg-accent-primary hover:text-white transition-all shadow-sm whitespace-nowrap"
                     >
                       <Copy size={13} />
-                      <span className="hidden sm:inline">Duplicate</span>
+                      <span>Duplicate</span>
                     </button>
                     <button
                       onClick={handleTrash}
@@ -1146,7 +1146,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
           {/* Bottom Navigation */}
           {isDraftStepperMode && (
-            <div className="flex justify-between items-center pt-3 pb-4 sm:pt-5 sm:pb-6 sm:mt-6 border-t border-border fixed bottom-0 left-0 right-0 w-full bg-bg z-40 px-4 sm:static sm:w-auto sm:px-0 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)] sm:shadow-none">
+            <div className="flex justify-between items-center mt-6 pt-5 border-t border-border pb-6">
               <button
                 onClick={() => currentStep > 1 && handleSetStep(currentStep - 1)}
                 disabled={currentStep <= 1}
@@ -1172,28 +1172,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               )}
             </div>
           )}
-          {/* Mobile Admin Actions (Duplicate/Delete) */}
-          {!isTeacher && (currentStep === 1 || currentStep === 5 || exam.status !== 'draft') && (
-            <div className="sm:hidden flex items-center gap-3 mt-6 pt-6 border-t border-border w-full pb-4">
-              <button
-                onClick={() => {
-                  setDuplicateTitleInput(`${title || 'Exam'} (Copy)`);
-                  setShowDuplicateConfirm(true);
-                }}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-primary/10 border border-accent-primary/20 rounded-xl text-sm font-bold text-accent-primary hover:bg-accent-primary hover:text-white transition-all shadow-sm"
-              >
-                <Copy size={16} />
-                Duplicate
-              </button>
-              <button
-                onClick={handleTrash}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-sm font-bold text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
-              >
-                <Trash2 size={16} />
-                Delete
-              </button>
-            </div>
-          )}
+
         </div>
       </div>
 
