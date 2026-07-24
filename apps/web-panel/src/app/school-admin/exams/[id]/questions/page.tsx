@@ -24,6 +24,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState('');
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [previewQuestionId, setPreviewQuestionId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   
   const [confirmDialog, setConfirmDialog] = useState({
@@ -55,7 +56,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
   const [optionCImage, setOptionCImage] = useState<string | null>(null);
   const [optionD, setOptionD] = useState('');
   const [optionDImage, setOptionDImage] = useState<string | null>(null);
-  const [correctAnswer, setCorrectAnswer] = useState('A');
+  const [correctAnswer, setCorrectAnswer] = useState('');
   const [natAnswer, setNatAnswer] = useState('');
 
   const [showQFormula, setShowQFormula] = useState(false);
@@ -150,6 +151,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
     try {
       if (!exam || !selectedSubject) throw new Error('Missing exam or subject');
       if (!questionText.trim() && !questionImage) throw new Error('Please provide question text or an image.');
+      if (questionType === 'mcq' && !correctAnswer) throw new Error('Please select the correct answer (A, B, C, or D).');
       
       const subjectDef = subjects.find(s => s.id === selectedSubject);
       if (!editingQuestionId && subjectDef && questions.length >= subjectDef.question_count) {
@@ -201,7 +203,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
       setOptionB(''); setOptionBImage(null);
       setOptionC(''); setOptionCImage(null);
       setOptionD(''); setOptionDImage(null);
-      setCorrectAnswer('A'); setNatAnswer(''); setShowForm(false); setEditingQuestionId(null);
+      setCorrectAnswer(''); setNatAnswer(''); setShowForm(false); setEditingQuestionId(null);
       fetchQuestions();
     } catch (err: any) {
       setError(err.message);
@@ -310,7 +312,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
       setOptionCImage(q.options?.C_image || null);
       setOptionD(q.options?.D || '');
       setOptionDImage(q.options?.D_image || null);
-      setCorrectAnswer(q.correct_option || 'A');
+      setCorrectAnswer(q.correct_option || '');
       setNatAnswer('');
     } else {
       setNatAnswer(q.correct_option || '');
@@ -356,7 +358,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
   );
 
   return (
-    <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 px-0 sm:px-4">
       <div className="mb-8">
         <Link href={userRole === 'teacher' ? '/exams' : `/exams/${params.id}?step=2`} className="inline-flex items-center gap-1.5 text-text-muted hover:text-accent-primary text-sm font-bold uppercase tracking-wider transition-colors mb-4">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
@@ -397,7 +399,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
               setOptionB(''); setOptionBImage(null);
               setOptionC(''); setOptionCImage(null);
               setOptionD(''); setOptionDImage(null);
-              setCorrectAnswer('A'); setNatAnswer(''); setShowForm(true); 
+              setCorrectAnswer(''); setNatAnswer(''); setShowForm(true); 
             }}
               className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-accent-primary text-white font-semibold rounded-xl text-sm hover:bg-accent-primary/80 transition-all shadow-sm active:scale-95">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
@@ -410,7 +412,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
       {/* Questions List */}
       <div className="space-y-4 mb-8">
         {questions.map((q, idx) => (
-          <div key={q.id} className="bg-surface border border-border rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div key={q.id} className="bg-surface border border-border rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <span className="w-8 h-8 rounded-xl bg-bg border border-border flex items-center justify-center text-sm text-accent-primary font-bold">{idx + 1}</span>
@@ -419,57 +421,70 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                 </span>
                 <span className="text-[10px] font-bold text-text-muted border border-border px-2.5 py-1 rounded-full bg-bg">+{q.positive_marks} / {q.negative_marks}</span>
               </div>
-              {exam?.status === 'draft' && (
-                <div className="flex items-center gap-3">
-                  <button onClick={() => handleEditQuestion(q)} className="text-accent-primary hover:text-accent-primary/80 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-surface-hover transition-colors">Edit</button>
-                  <button onClick={() => handleDeleteQuestion(q.id)} className="text-red-500 hover:text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">Delete</button>
-                </div>
-              )}
-            </div>
-            {q.question_text && <p className="text-text-main font-medium mb-4">{q.question_text}</p>}
-             {(() => {
-              if (!q.image_url) return null;
-              const parseQuestionImages = (urlStr: string | null): string[] => {
-                if (!urlStr) return [];
-                const trimmed = urlStr.trim();
-                if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-                  try {
-                    return JSON.parse(trimmed);
-                  } catch (e) {
-                    return [trimmed];
-                  }
-                }
-                return [trimmed];
-              };
-              const images = parseQuestionImages(q.image_url);
-              if (images.length === 0) return null;
-              return (
-                <div className="mb-5 flex flex-wrap gap-3">
-                  {images.map((url, idx) => (
-                    <img key={idx} src={url} alt={`Question ${idx + 1}`} className="max-w-full max-h-40 object-contain rounded-lg border border-border" />
-                  ))}
-                </div>
-              );
-            })()}
-            {q.question_type === 'mcq' && q.options && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {['A', 'B', 'C', 'D'].map((opt) => (
-                  <div key={opt} className={`p-4 rounded-xl text-sm border-2 transition-colors ${q.correct_option === opt ? 'bg-accent-primary/5 border-accent-primary text-accent-primary font-bold' : 'bg-bg text-text-muted border-border font-medium'}`}>
-                    <div className="flex items-start">
-                      <span className={`mr-2 mt-0.5 ${q.correct_option === opt ? 'text-accent-primary' : 'text-text-muted font-bold'}`}>{opt}.</span>
-                      <div className="flex flex-col gap-3">
-                        {q.options[opt] && <span>{q.options[opt]}</span>}
-                        {q.options[`${opt}_image`] && (
-                          <img src={q.options[`${opt}_image`]} alt={`Option ${opt}`} className="max-w-[150px] max-h-[150px] object-contain rounded-lg border border-border" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPreviewQuestionId(previewQuestionId === q.id ? null : q.id)}
+                  className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                    previewQuestionId === q.id
+                      ? 'bg-accent-primary/10 text-accent-primary border border-accent-primary/30'
+                      : 'text-text-muted hover:text-accent-primary hover:bg-surface-hover border border-border'
+                  }`}
+                >
+                  {previewQuestionId === q.id ? 'Hide' : 'Preview'}
+                </button>
+                {exam?.status === 'draft' && (
+                  <>
+                    <button onClick={() => handleEditQuestion(q)} className="text-accent-primary hover:text-accent-primary/80 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-surface-hover transition-colors">Edit</button>
+                    <button onClick={() => handleDeleteQuestion(q.id)} className="text-red-500 hover:text-red-600 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">Delete</button>
+                  </>
+                )}
               </div>
-            )}
-            {q.question_type === 'nat' && (
-              <div className="inline-flex px-4 py-2 bg-accent-primary/5 border border-accent-primary rounded-xl text-sm text-accent-primary font-bold mt-2">Answer: {q.correct_option}</div>
+            </div>
+            {/* Preview section — shown/hidden per card */}
+            {previewQuestionId === q.id && (
+              <div className="mt-2 animate-in fade-in duration-200">
+                {q.question_text && <p className="text-text-main font-medium mb-4">{q.question_text}</p>}
+                {(() => {
+                  if (!q.image_url) return null;
+                  const parseQuestionImages = (urlStr: string | null): string[] => {
+                    if (!urlStr) return [];
+                    const trimmed = urlStr.trim();
+                    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                      try { return JSON.parse(trimmed); } catch (e) { return [trimmed]; }
+                    }
+                    return [trimmed];
+                  };
+                  const images = parseQuestionImages(q.image_url);
+                  if (images.length === 0) return null;
+                  return (
+                    <div className="mb-5 flex flex-wrap gap-3">
+                      {images.map((url, i) => (
+                        <img key={i} src={url} alt={`Question ${i + 1}`} className="max-w-full max-h-40 object-contain rounded-lg border border-border" />
+                      ))}
+                    </div>
+                  );
+                })()}
+                {q.question_type === 'mcq' && q.options && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {['A', 'B', 'C', 'D'].map((opt) => (
+                      <div key={opt} className={`p-4 rounded-xl text-sm border-2 transition-colors ${q.correct_option === opt ? 'bg-accent-primary/5 border-accent-primary text-accent-primary font-bold' : 'bg-bg text-text-muted border-border font-medium'}`}>
+                        <div className="flex items-start">
+                          <span className={`mr-2 mt-0.5 ${q.correct_option === opt ? 'text-accent-primary' : 'text-text-muted font-bold'}`}>{opt}.</span>
+                          <div className="flex flex-col gap-3">
+                            {q.options[opt] && <span>{q.options[opt]}</span>}
+                            {q.options[`${opt}_image`] && (
+                              <img src={q.options[`${opt}_image`]} alt={`Option ${opt}`} className="max-w-[150px] max-h-[150px] object-contain rounded-lg border border-border" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {q.question_type === 'nat' && (
+                  <div className="inline-flex px-4 py-2 bg-accent-primary/5 border border-accent-primary rounded-xl text-sm text-accent-primary font-bold mt-2">Answer: {q.correct_option}</div>
+                )}
+              </div>
             )}
           </div>
         ))}
@@ -487,14 +502,14 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
 
       {/* Add/Edit Question Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4" onClick={() => setShowForm(false)}>
           <div className="bg-surface rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
-              <span className="text-white font-bold">{editingQuestionId ? 'Edit Question' : 'Add Question'} — {currentSubject?.subject_name}</span>
+            <div className="bg-accent-primary px-4 sm:px-6 py-4 flex items-center justify-between">
+              <span className="text-white font-bold text-sm sm:text-base">{editingQuestionId ? 'Edit Question' : 'Add Question'} — {currentSubject?.subject_name}</span>
               <button onClick={() => setShowForm(false)} className="text-white/70 hover:text-white transition-colors">✕</button>
             </div>
             
-            <div className="p-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
+            <div className="p-4 sm:p-6 max-h-[85vh] sm:max-h-[80vh] overflow-y-auto custom-scrollbar">
               <form onSubmit={handleAddQuestion} className="space-y-6">
                 {/* Question Type */}
                 <div className="flex bg-bg rounded-xl p-1 border border-border">
@@ -586,7 +601,19 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                         >
                           <img
                             src={rawImageToCrop}
-                            onLoad={(e) => setImageRef(e.currentTarget)}
+                            onLoad={(e) => {
+                              const img = e.currentTarget;
+                              setImageRef(img);
+                              const defaultCrop: Crop = { unit: '%', x: 0, y: 0, width: 100, height: 100 };
+                              setCrop(defaultCrop);
+                              setCompletedCrop({
+                                unit: 'px',
+                                x: 0,
+                                y: 0,
+                                width: img.naturalWidth,
+                                height: img.naturalHeight,
+                              });
+                            }}
                             alt="Crop preview"
                             className="max-h-[60vh] object-contain"
                           />

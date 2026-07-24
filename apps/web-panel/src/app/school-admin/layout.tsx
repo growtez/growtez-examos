@@ -631,7 +631,7 @@ export default function SchoolAdminLayout({
           </div>
         </header>
 
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 px-6 py-1 overflow-auto">
           {children}
         </main>
       </div>

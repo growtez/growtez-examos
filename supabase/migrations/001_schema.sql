@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS public.questions (
     exam_subject_id UUID REFERENCES public.exam_subjects(id) ON DELETE CASCADE,
     question_text TEXT,
     image_url TEXT,
-    question_type TEXT DEFAULT 'mcq' CHECK (question_type IN ('mcq', 'nat')),
+    question_type TEXT DEFAULT 'mcq' CHECK (question_type IN ('mcq', 'msq', 'nat')),
     options JSONB,
     correct_option TEXT NOT NULL,
     positive_marks INTEGER DEFAULT 4,

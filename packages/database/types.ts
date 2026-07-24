@@ -54,6 +54,11 @@ export interface MarkingScheme {
   mcq_wrong: number;
   nat_correct: number;
   nat_wrong: number;
+  msq_correct?: number;
+  msq_partial?: number;
+  msq_wrong?: number;
+  msq_partial_enabled?: boolean;
+  msq_enabled?: boolean;
 }
 
 export interface Exam {
@@ -87,7 +92,7 @@ export interface ExamSubjectTeacher {
   created_at: string;
 }
 
-export type QuestionType = 'mcq' | 'nat';
+export type QuestionType = 'mcq' | 'msq' | 'nat';
 
 export interface McqOptions {
   A: string;

@@ -30,6 +30,7 @@ import {
   Link as LinkIcon,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Filter,
 } from "lucide-react";
 import ReactCrop, { type Crop } from "react-image-crop";
@@ -185,6 +186,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setNatCorrect,
     natWrong,
     setNatWrong,
+    msqCorrect,
+    setMsqCorrect,
+    msqPartial,
+    setMsqPartial,
+    msqWrong,
+    setMsqWrong,
+    msqPartialEnabled,
+    setMsqPartialEnabled,
+    msqEnabled,
+    setMsqEnabled,
     role,
     setRole,
     userId,
@@ -383,6 +394,11 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     handleDownloadCsvTemplate,
     handleRemoveStudent,
     handleDuplicate,
+    showDuplicateModal,
+    setShowDuplicateModal,
+    duplicateTitle,
+    setDuplicateTitle,
+    doDuplicate,
     handleCreateAndAssignTeacher,
     handleUnpublish,
     handleTrash,
@@ -408,6 +424,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [questionSearchQuery, setQuestionSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
+  const [step1CollapseAll, setStep1CollapseAll] = useState(false);
 
   const [draggedPillIndex, setDraggedPillIndex] = useState<number | null>(null);
   const [draggedOverPillIndex, setDraggedOverPillIndex] = useState<number | null>(null);
@@ -441,7 +458,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     });
 
     const rows = filtered.map((q, idx) => {
-      const isMcq = q.question_type === 'mcq';
+      const isMcq = q.question_type === 'mcq' || q.question_type === 'msq';
       return [
         idx + 1,
         q.question_type || '',
@@ -522,6 +539,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           {isDraftStepperMode && (
             <>
               <div className="sticky top-0 z-30 -mx-6 -mt-6 pt-3 px-4 sm:px-6 pb-2 bg-bg relative isolate before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-[-1] before:bg-bg">
+
                 {/* Horizontal Stepper (Top) */}
                 <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4 w-full max-w-5xl mx-auto">
                   {/* Prev Button */}
@@ -529,7 +547,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     <button
                       onClick={() => currentStep > 1 && handleSetStep(currentStep - 1)}
                       disabled={currentStep <= 1}
-                      className={`inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-accent-primary border border-accent-primary text-white text-[11px] font-semibold rounded-xl transition-all shadow-sm sm:min-w-24 ${currentStep > 1
+                      className={`inline-flex items-center justify-center gap-1 px-2 sm:px-4 py-1.5 bg-accent-primary border border-accent-primary text-white text-[11px] font-semibold rounded-xl transition-all shadow-sm sm:min-w-24 ${currentStep > 1
                         ? "hover:opacity-90 active:scale-95"
                         : "opacity-50 cursor-not-allowed"
                         }`}
@@ -540,7 +558,17 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   </div>
 
                   {/* Stepper Box */}
-                  <div className="min-w-0 w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-accent-primary/5 border border-accent-primary rounded-2xl py-2.5 px-3 sm:px-4 shadow-sm shadow-accent-primary/5">
+                  <div
+                    ref={(el) => {
+                      if (el) {
+                        const activeEl = el.querySelector('[data-active="true"]') as HTMLElement;
+                        if (activeEl) {
+                          activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                        }
+                      }
+                    }}
+                    className="min-w-0 w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-accent-primary/5 border border-accent-primary rounded-2xl py-2.5 px-3 sm:px-4 shadow-sm shadow-accent-primary/5"
+                  >
                     <div className="flex min-w-max items-center justify-start sm:justify-center">
                       {STEPPER_STEPS.map((s, idx) => {
                         const isActive = currentStep === s.step;
@@ -549,6 +577,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         return (
                           <div
                             key={s.step}
+                            data-active={isActive ? "true" : "false"}
+
                             className="flex items-center"
                           >
                             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -573,8 +603,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             </div>
                             {idx < STEPPER_STEPS.length - 1 && (
                               <div className="block w-4 sm:w-8 h-1 mx-1.5 sm:mx-2 rounded-full bg-accent-primary/20 overflow-hidden shrink-0">
+
                                 <div
-                                  className={`h-full transition-all duration-500 ease-out ${isSegmentFilled ? "w-full bg-accent-primary shadow-[0_0_8px_rgba(0,128,128,0.4)]" : "w-0 bg-accent-primary"}`}
+                                  className={`h-full w-full rounded-full transition-all duration-500 ease-out ${isSegmentFilled ? 'bg-accent-primary shadow-[0_0_6px_rgba(0,128,128,0.4)]' : 'bg-accent-primary/25'}`}
                                 />
                               </div>
                             )}
@@ -589,7 +620,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     <button
                       onClick={() => currentStep < 5 && handleSetStep(currentStep + 1)}
                       disabled={currentStep >= 5}
-                      className={`inline-flex min-w-10 items-center justify-center gap-1.5 px-2.5 sm:px-4 py-1.5 bg-accent-primary border border-accent-primary text-white text-[11px] font-semibold rounded-xl transition-all shadow-sm sm:min-w-24 ${currentStep < 5
+                      className={`inline-flex items-center justify-center gap-1 px-2 sm:px-4 py-1.5 bg-accent-primary border border-accent-primary text-white text-[11px] font-semibold rounded-xl transition-all shadow-sm sm:min-w-24 ${currentStep < 5
                         ? "hover:opacity-90 active:scale-95"
                         : "opacity-50 cursor-not-allowed"
                         }`}
@@ -602,16 +633,39 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </div>
 
               {/* Scrolling Header Container */}
-              <div className="-mx-6 mb-4 border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-4 relative z-10">
-                {/* Row 1 removed as requested */}
+              <div className="-mx-6 mb-2 border-b border-border bg-bg px-4 sm:px-6 pb-2 flex flex-col gap-2 relative z-10">
+                {/* Mobile Duplicate/Delete Buttons Row */}
+                {!isTeacher && (
+                  <div className="flex justify-end gap-1.5 w-full">
+                    <button
+                      onClick={() => {
+                        setDuplicateTitleInput(`${title || 'Exam'} (Copy)`);
+                        setShowDuplicateConfirm(true);
+                      }}
+                      title="Duplicate Exam"
+                      className="inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-lg text-xs font-bold text-accent-primary hover:bg-accent-primary hover:text-white transition-all shadow-sm whitespace-nowrap"
+                    >
+                      <Copy size={13} />
+                      <span className="hidden sm:inline">Duplicate</span>
+                    </button>
+                    <button
+                      onClick={handleTrash}
+                      title="Trash Exam"
+                      className="inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm whitespace-nowrap"
+                    >
+                      <Trash2 size={13} />
+                      <span className="hidden sm:inline">Delete</span>
+                    </button>
+                  </div>
+                )}
 
-                {/* Row 2: Controls and Actions */}
-                <div className="flex flex-wrap items-center justify-between gap-3 w-full">
-                  {/* Left Side: Step-specific Controls or Pills */}
-                  <div className="flex flex-wrap items-center gap-2 md:gap-3 min-w-0 flex-1">
+                {/* Step-specific Controls */}
+                {(currentStep === 1 || currentStep === 3) && (
+                  <div className="flex flex-wrap items-center gap-2 md:gap-3 min-w-0">
                     {/* Step 1: Template */}
+
                     {currentStep === 1 && (
-                      <div className="flex min-w-0 items-center gap-1.5">
+                      <div className="flex w-full items-center gap-1.5">
                         <select
                           onChange={(e) => {
                             const selected = templates.find((t) => t.id === e.target.value);
@@ -634,12 +688,20 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             <span className="w-2 h-2 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
                           </span>
                         )}
+                        {/* Collapse All button — mobile only, pushed to far right */}
+                        <button
+                          type="button"
+                          onClick={() => setStep1CollapseAll((prev) => !prev)}
+                          className="sm:hidden ml-auto text-[11px] font-bold text-accent-primary hover:underline flex items-center gap-1 shrink-0"
+                        >
+                          <ChevronDown size={12} className={`transition-transform ${step1CollapseAll ? 'rotate-180' : ''}`} />
+                          {step1CollapseAll ? 'Collapse All' : 'Expand All'}
+                        </button>
                       </div>
                     )}
-                    {/* Step 2: Add Students button was moved to Step2Students component */}
-                    {/* Step 3: Centered Pills */}
+                    {/* Step 3: Subject Pills */}
                     {currentStep === 3 && (
-                      <div className="relative flex items-center justify-start min-w-0 -mx-4 px-4 md:mx-0 md:px-0">
+                      <div className="relative flex items-center justify-start min-w-0 -mx-4 px-4 md:mx-0 md:px-0 w-full">
                         <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar px-1 max-w-full snap-x snap-mandatory md:snap-none">
                           {subjects.map((s, idx) => {
                             const added = questionCounts[s.id] || 0;
@@ -699,32 +761,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                   </div>
-
-                  {/* Right Side: Duplicate & Trash (admin only) */}
-                  {!isTeacher && (
-                    <div className="hidden sm:flex shrink-0 items-center gap-1.5 justify-end">
-                      <button
-                        onClick={() => {
-                          setDuplicateTitleInput(`${title || 'Exam'} (Copy)`);
-                          setShowDuplicateConfirm(true);
-                        }}
-                        title="Duplicate Exam"
-                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-lg text-xs font-bold text-accent-primary hover:bg-accent-primary hover:text-white transition-all shadow-sm whitespace-nowrap"
-                      >
-                        <Copy size={14} />
-                        <span>Duplicate</span>
-                      </button>
-                      <button
-                        onClick={handleTrash}
-                        title="Trash Exam"
-                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm whitespace-nowrap"
-                      >
-                        <Trash2 size={14} />
-                        <span className="hidden sm:inline">Delete</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
+                )}
+
               </div>
 
               {/* Row 2: Search Filter Row (only for Step 3) */}
@@ -760,6 +799,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           <div className="absolute left-0 mt-2 w-40 bg-surface border border-border rounded-xl shadow-lg py-1 z-50 flex flex-col">
                             <button type="button" onClick={() => { setTypeFilter('all'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'all' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>All Types</button>
                             <button type="button" onClick={() => { setTypeFilter('mcq'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'mcq' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>MCQ</button>
+                            <button type="button" onClick={() => { setTypeFilter('msq'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'msq' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>MSQ</button>
                             <button type="button" onClick={() => { setTypeFilter('nat'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'nat' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>NAT</button>
                           </div>
                         </>
@@ -911,6 +951,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               drawerFormLoading={drawerFormLoading}
               drawerError={drawerError}
               editingQuestionId={editingQuestionId}
+              msqEnabled={msqEnabled}
               qType={qType}
               setQType={setQType}
               qText={qText}
@@ -1042,6 +1083,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setNatCorrect={setNatCorrect}
               natWrong={natWrong}
               setNatWrong={setNatWrong}
+              msqCorrect={msqCorrect}
+              setMsqCorrect={setMsqCorrect}
+              msqPartial={msqPartial}
+              setMsqPartial={setMsqPartial}
+              msqWrong={msqWrong}
+              setMsqWrong={setMsqWrong}
+              msqPartialEnabled={msqPartialEnabled}
+              setMsqPartialEnabled={setMsqPartialEnabled}
+              msqEnabled={msqEnabled}
+              setMsqEnabled={setMsqEnabled}
               instructionsList={instructionsList}
               updateInstructionItem={updateInstructionItem}
               addInstructionItem={addInstructionItem}
@@ -1066,6 +1117,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               paramsId={params.id}
               isReadOnly={isReadOnly}
               showStep1Errors={showStep1Errors}
+              expandAll={step1CollapseAll}
             />
           )}
           {/* Schedule Step — shown on step 4 for any status; read-only once published or over; hidden for teachers */}
@@ -1108,7 +1160,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               supabase={supabase}
             />
           )}
-          
+
           {/* Bottom Navigation */}
           {isDraftStepperMode && (
             <div className="flex justify-between items-center mt-6 pt-5 border-t border-border pb-6">
@@ -1123,7 +1175,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 <ChevronLeft size={14} />
                 Prev
               </button>
-              
+
               {currentStep < 5 ? (
                 <button
                   onClick={() => handleSetStep(currentStep + 1)}
@@ -1166,7 +1218,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       {manageTeachersSubject && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
-          onClick={() => setManageTeachersSubject(null)}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setManageTeachersSubject(null);
+              setShowAddTeacherMode(false);
+              setAddTeacherError("");
+            }
+          }}
         >
           <div
             className="bg-surface rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
@@ -1392,7 +1450,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       {showInstructionPreview && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
-          onClick={() => setShowInstructionPreview(false)}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setShowInstructionPreview(false);
+          }}
         >
           <div
             className="bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]"
@@ -1496,13 +1556,15 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       {showAddStudentModal && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => {
-            setShowAddStudentModal(false);
-            setAddError("");
-            setAddSuccess("");
-            setAddMode("link");
-            setLinkCopied(false);
-            setSearchQuery("");
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAddStudentModal(false);
+              setAddError("");
+              setAddSuccess("");
+              setAddMode("link");
+              setLinkCopied(false);
+              setSearchQuery("");
+            }
           }}
         >
           <div
@@ -1856,7 +1918,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Confirmation Dialog */}
       {confirmDialog.isOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+          }}
+        >
           <div className="bg-surface rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden">
             <div className="p-6 text-center">
               <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1896,9 +1963,83 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
         </div>
       )}
 
+      {/* Duplicate Exam Modal */}
+      {showDuplicateModal && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setShowDuplicateModal(false);
+          }}
+        >
+          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden border border-border animate-in fade-in zoom-in-95 duration-150">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-accent-primary/10 rounded-xl flex items-center justify-center text-accent-primary shrink-0">
+                  <Copy size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-text-main">
+                    Duplicate Exam
+                  </h3>
+                  <p className="text-xs text-text-muted font-medium">
+                    Create a copy of this exam with all its subjects and questions.
+                  </p>
+                </div>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (duplicateTitle.trim()) {
+                    doDuplicate(duplicateTitle);
+                  }
+                }}
+              >
+                <div className="mb-5">
+                  <label className="block text-xs font-bold text-text-main uppercase tracking-wider mb-1.5">
+                    New Exam Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={duplicateTitle}
+                    onChange={(e) => setDuplicateTitle(e.target.value)}
+                    placeholder="Enter exam title..."
+                    autoFocus
+                    required
+                    className="w-full px-3.5 py-2.5 bg-bg border border-border rounded-xl text-text-main text-sm font-medium focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/15 outline-none transition-all"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowDuplicateModal(false)}
+                    className="px-4 py-2 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-xs transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!duplicateTitle.trim()}
+                    className="px-5 py-2 bg-accent-primary hover:bg-accent-primary/90 disabled:opacity-50 text-white font-bold rounded-xl text-xs transition-colors shadow-sm cursor-pointer"
+                  >
+                    Duplicate Exam
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Subject Modal */}
       {showAddSubjectModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setShowAddSubjectModal(false);
+          }}
+        >
           <div className="bg-surface rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-accent-primary px-6 py-4 flex justify-between items-center">
               <h3 className="text-white font-bold">Add Subject</h3>
@@ -2021,7 +2162,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Crop tool for the Manage Questions drawer */}
       {rawImageToCrop && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-[1100] p-4 animate-in fade-in">
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-[1100] p-4 animate-in fade-in"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setRawImageToCrop(null);
+          }}
+        >
           <div className="bg-surface rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
               <span className="text-white font-bold">Crop Image</span>
@@ -2042,7 +2188,25 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               >
                 <img
                   src={rawImageToCrop || undefined}
-                  onLoad={(e) => setImageRef(e.currentTarget)}
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    setImageRef(img);
+                    const isMobile = window.innerWidth < 768;
+                    if (isMobile) {
+                      const defaultCrop: Crop = { unit: '%', x: 0, y: 0, width: 100, height: 100 };
+                      setCrop(defaultCrop);
+                      setCompletedCrop({
+                        unit: 'px',
+                        x: 0,
+                        y: 0,
+                        width: img.naturalWidth,
+                        height: img.naturalHeight,
+                      });
+                    } else {
+                      setCrop(undefined);
+                      setCompletedCrop(null);
+                    }
+                  }}
                   alt="Crop preview"
                   className="max-h-[60vh] object-contain"
                 />
