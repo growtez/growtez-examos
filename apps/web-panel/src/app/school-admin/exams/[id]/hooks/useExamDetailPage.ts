@@ -534,13 +534,12 @@ export function useExamDetailPage(paramsId: string) {
       ctx.drawImage(imageRef, completedCrop.x * scaleX, completedCrop.y * scaleY, cropWidth, cropHeight, 0, 0, finalWidth, finalHeight);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
       if (cropTarget === 'question') {
-        const existing = qImage ? parseQuestionImages(qImage) : [];
-        setQImage(JSON.stringify([...existing, dataUrl]));
+        setQImage(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
       }
-      else if (cropTarget === 'A') setOptAImg(dataUrl);
-      else if (cropTarget === 'B') setOptBImg(dataUrl);
-      else if (cropTarget === 'C') setOptCImg(dataUrl);
-      else if (cropTarget === 'D') setOptDImg(dataUrl);
+      else if (cropTarget === 'A') setOptAImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
+      else if (cropTarget === 'B') setOptBImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
+      else if (cropTarget === 'C') setOptCImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
+      else if (cropTarget === 'D') setOptDImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
     }
     setRawImageToCrop(null);
     setCropTarget(null);

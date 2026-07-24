@@ -156,6 +156,7 @@ interface Step1DetailsProps {
   paramsId: string;
   isReadOnly?: boolean;
   showStep1Errors?: boolean;
+  expandAll?: boolean;
 }
 
 const GENERAL_INSTRUCTIONS = [
@@ -218,6 +219,7 @@ export default function Step1Details({
   paramsId,
   isReadOnly = false,
   showStep1Errors = false,
+  expandAll,
 }: Step1DetailsProps) {
   const [expandedCards, setExpandedCards] = useState({
     details: true,
@@ -232,6 +234,13 @@ export default function Step1Details({
     const next = !allExpanded;
     setExpandedCards({ details: next, marking: next, subjects: next, instructions: next });
   };
+
+  // Sync from parent-controlled expand/collapse (mobile header button)
+  useEffect(() => {
+    if (expandAll !== undefined) {
+      setExpandedCards({ details: expandAll, marking: expandAll, subjects: expandAll, instructions: expandAll });
+    }
+  }, [expandAll]);
 
   useEffect(() => {
     if (showStep1Errors) {
@@ -290,16 +299,6 @@ export default function Step1Details({
           <span>Please fill in all required fields marked in red (and add at least 1 subject) before proceeding.</span>
         </div>
       )}
-      <div className="sm:hidden flex justify-end">
-        <button
-          type="button"
-          onClick={toggleAll}
-          className="text-[11px] font-bold text-accent-primary hover:underline flex items-center gap-1"
-        >
-          <ChevronDown size={12} className={`transition-transform ${allExpanded ? 'rotate-180' : ''}`} />
-          {allExpanded ? 'Collapse All' : 'Expand All'}
-        </button>
-      </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Exam Details */}
         <CollapsibleCard

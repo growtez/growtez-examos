@@ -30,6 +30,7 @@ import {
   Link as LinkIcon,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Filter,
 } from "lucide-react";
 import ReactCrop, { type Crop } from "react-image-crop";
@@ -416,6 +417,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [questionSearchQuery, setQuestionSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
+  const [step1CollapseAll, setStep1CollapseAll] = useState(false);
 
   const handleExportQuestions = () => {
     if (!drawerSubjectId) return;
@@ -510,7 +512,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
           {isDraftStepperMode && (
             <>
-              <div className="sticky top-0 z-30 -mx-6 -mt-6 pt-6 px-4 sm:px-6 pb-2 bg-bg relative isolate before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-[-1] before:bg-bg">
+              <div className="sticky top-0 z-30 -mx-6 -mt-6 pt-6 px-4 sm:px-6 pb-4 bg-bg relative isolate before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-[-1] before:bg-bg">
                 {/* Horizontal Stepper (Top) */}
                 <div className="grid grid-cols-[auto_1fr_auto] items-center sm:gap-4 w-full max-w-5xl mx-auto">
                   {/* Prev Button */}
@@ -529,22 +531,27 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   </div>
 
                   {/* Stepper Box */}
-                  <div className="min-w-0 w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-accent-primary/5 border border-accent-primary rounded-2xl py-2.5 px-3 sm:px-4 shadow-sm shadow-accent-primary/5">
+                  <div
+                    ref={(el) => {
+                      if (el) {
+                        const activeEl = el.querySelector('[data-active="true"]') as HTMLElement;
+                        if (activeEl) {
+                          activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                        }
+                      }
+                    }}
+                    className="min-w-0 w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-accent-primary/5 border border-accent-primary rounded-2xl py-2.5 px-3 sm:px-4 shadow-sm shadow-accent-primary/5"
+                  >
                     <div className="flex min-w-max items-center justify-start sm:justify-center">
                       {STEPPER_STEPS.map((s, idx) => {
                         const isActive = currentStep === s.step;
                         const isDone = !isActive && canProceedToNextStep(s.step);
-                        const isSegmentFilled = currentStep > s.step;
-                        const totalSteps = STEPPER_STEPS.length;
-                        let windowStart = currentStep - 1;
-                        if (windowStart < 1) windowStart = 1;
-                        if (windowStart > totalSteps - 2) windowStart = totalSteps - 2;
-                        const windowEnd = windowStart + 2;
-                        const isVisibleOnMobile = s.step >= windowStart && s.step <= windowEnd;
+                        const isSegmentFilled = currentStep >= s.step;
                         return (
                           <div
                             key={s.step}
-                            className={`${isVisibleOnMobile ? "flex" : "hidden"} sm:flex items-center`}
+                            data-active={isActive ? "true" : "false"}
+                            className="flex items-center"
                           >
                             <div className="flex items-center gap-1.5 sm:gap-2">
                               <button
@@ -567,7 +574,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                               </button>
                             </div>
                             {idx < STEPPER_STEPS.length - 1 && (
-                              <div className={`${(isVisibleOnMobile && s.step < windowEnd) ? "block" : "hidden"} sm:block w-4 sm:w-8 h-1 mx-1.5 sm:mx-2 rounded-full bg-accent-primary/20 overflow-hidden shrink-0`}>
+                              <div className="block w-4 sm:w-8 h-1 mx-1.5 sm:mx-2 rounded-full bg-accent-primary/20 overflow-hidden shrink-0">
                                 <div
                                   className={`h-full transition-all duration-500 ease-out ${isSegmentFilled ? "w-full bg-accent-primary shadow-[0_0_8px_rgba(0,128,128,0.4)]" : "w-0 bg-accent-primary"}`}
                                 />
@@ -597,19 +604,41 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </div>
 
               {/* Scrolling Header Container */}
-              <div className="-mx-6 mb-4 border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-4 relative z-10">
-                {/* Row 1: Title (Full Width) */}
-                <h2 className="text-base sm:text-lg font-bold text-text-main flex items-center gap-1.5 whitespace-nowrap">
-                  <span className="text-accent-primary">Step {currentStep}</span>
-                  <span className="text-text-muted">·</span>
-                  <span>{STEPPER_STEPS.find((s) => s.step === currentStep)?.label}</span>
-                </h2>
+              <div className="-mx-6 mb-4 border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-3 relative z-10">
+                {/* Row 1: Title + Dup/Delete on mobile */}
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-text-main flex items-center gap-1.5 whitespace-nowrap min-w-0">
+                    <span className="text-accent-primary shrink-0">Step {currentStep}</span>
+                    <span className="text-text-muted shrink-0">·</span>
+                    <span className="truncate">{STEPPER_STEPS.find((s) => s.step === currentStep)?.label}</span>
+                  </h2>
+                  {/* Dup & Delete — always visible inline with title */}
+                  {!isTeacher && (
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <button
+                        onClick={handleDuplicate}
+                        title="Duplicate Exam"
+                        className="inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-lg text-xs font-bold text-accent-primary hover:bg-accent-primary hover:text-white transition-all shadow-sm whitespace-nowrap"
+                      >
+                        <Copy size={13} />
+                        <span className="hidden sm:inline">Duplicate</span>
+                      </button>
+                      <button
+                        onClick={handleTrash}
+                        title="Trash Exam"
+                        className="inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm whitespace-nowrap"
+                      >
+                        <Trash2 size={13} />
+                        <span className="hidden sm:inline">Delete</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
 
-                {/* Row 2: Controls and Actions */}
-                <div className="flex flex-wrap items-center justify-between gap-3 w-full">
-                  {/* Left Side: Step-specific Controls or Pills */}
-                  <div className="flex flex-wrap items-center gap-2 md:gap-3 min-w-0 flex-1">
-                    {/* Step 1: Template */}
+                {/* Row 2: Step-specific Controls */}
+                {(currentStep === 1 || currentStep === 3) && (
+                  <div className="flex flex-wrap items-center gap-2 md:gap-3 min-w-0">
+                    {/* Step 1: Template + Collapse All */}
                     {currentStep === 1 && (
                       <div className="flex min-w-0 items-center gap-1.5">
                         <select
@@ -634,12 +663,20 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             <span className="w-2 h-2 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
                           </span>
                         )}
+                        {/* Collapse All button — mobile only */}
+                        <button
+                          type="button"
+                          onClick={() => setStep1CollapseAll((prev) => !prev)}
+                          className="sm:hidden text-[11px] font-bold text-accent-primary hover:underline flex items-center gap-1 ml-1"
+                        >
+                          <ChevronDown size={12} className={`transition-transform ${step1CollapseAll ? 'rotate-180' : ''}`} />
+                          {step1CollapseAll ? 'Collapse All' : 'Expand All'}
+                        </button>
                       </div>
                     )}
-                    {/* Step 2: Add Students button was moved to Step2Students component */}
-                    {/* Step 3: Centered Pills */}
+                    {/* Step 3: Subject Pills */}
                     {currentStep === 3 && (
-                      <div className="relative flex items-center justify-start min-w-0 -mx-4 px-4 md:mx-0 md:px-0">
+                      <div className="relative flex items-center justify-start min-w-0 -mx-4 px-4 md:mx-0 md:px-0 w-full">
                         <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar px-1 max-w-full snap-x snap-mandatory md:snap-none">
                           {subjects.map((s) => {
                             const added = questionCounts[s.id] || 0;
@@ -669,29 +706,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                   </div>
-
-                  {/* Right Side: Duplicate & Trash (admin only) */}
-                  {!isTeacher && (
-                    <div className="flex shrink-0 items-center gap-1.5 justify-end">
-                      <button
-                        onClick={handleDuplicate}
-                        title="Duplicate Exam"
-                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-lg text-xs font-bold text-accent-primary hover:bg-accent-primary hover:text-white transition-all shadow-sm whitespace-nowrap"
-                      >
-                        <Copy size={14} />
-                        <span className="hidden sm:inline">Duplicate</span>
-                      </button>
-                      <button
-                        onClick={handleTrash}
-                        title="Trash Exam"
-                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm whitespace-nowrap"
-                      >
-                        <Trash2 size={14} />
-                        <span className="hidden sm:inline">Delete</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
 
               {/* Row 2: Search Filter Row (only for Step 3) */}
@@ -1042,6 +1057,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               paramsId={params.id}
               isReadOnly={isReadOnly}
               showStep1Errors={showStep1Errors}
+              expandAll={step1CollapseAll}
             />
           )}
           {/* Schedule Step — shown on step 4 for any status; read-only once published or over; hidden for teachers */}
@@ -1120,7 +1136,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       {manageTeachersSubject && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
-          onClick={() => setManageTeachersSubject(null)}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setManageTeachersSubject(null);
+              setShowAddTeacherMode(false);
+              setAddTeacherError("");
+            }
+          }}
         >
           <div
             className="bg-surface rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200"
@@ -1346,7 +1368,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       {showInstructionPreview && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
-          onClick={() => setShowInstructionPreview(false)}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setShowInstructionPreview(false);
+          }}
         >
           <div
             className="bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]"
@@ -1450,13 +1474,15 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       {showAddStudentModal && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={() => {
-            setShowAddStudentModal(false);
-            setAddError("");
-            setAddSuccess("");
-            setAddMode("link");
-            setLinkCopied(false);
-            setSearchQuery("");
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAddStudentModal(false);
+              setAddError("");
+              setAddSuccess("");
+              setAddMode("link");
+              setLinkCopied(false);
+              setSearchQuery("");
+            }
           }}
         >
           <div
@@ -1810,7 +1836,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Confirmation Dialog */}
       {confirmDialog.isOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+          }}
+        >
           <div className="bg-surface rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden">
             <div className="p-6 text-center">
               <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1852,7 +1883,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Add Subject Modal */}
       {showAddSubjectModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setShowAddSubjectModal(false);
+          }}
+        >
           <div className="bg-surface rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-accent-primary px-6 py-4 flex justify-between items-center">
               <h3 className="text-white font-bold">Add Subject</h3>
@@ -1975,7 +2011,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
       {/* Crop tool for the Manage Questions drawer */}
       {rawImageToCrop && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-[1100] p-4 animate-in fade-in">
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-[1100] p-4 animate-in fade-in"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setRawImageToCrop(null);
+          }}
+        >
           <div className="bg-surface rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
               <span className="text-white font-bold">Crop Image</span>
@@ -1999,15 +2040,21 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   onLoad={(e) => {
                     const img = e.currentTarget;
                     setImageRef(img);
-                    const defaultCrop: Crop = { unit: '%', x: 0, y: 0, width: 100, height: 100 };
-                    setCrop(defaultCrop);
-                    setCompletedCrop({
-                      unit: 'px',
-                      x: 0,
-                      y: 0,
-                      width: img.naturalWidth,
-                      height: img.naturalHeight,
-                    });
+                    const isMobile = window.innerWidth < 768;
+                    if (isMobile) {
+                      const defaultCrop: Crop = { unit: '%', x: 0, y: 0, width: 100, height: 100 };
+                      setCrop(defaultCrop);
+                      setCompletedCrop({
+                        unit: 'px',
+                        x: 0,
+                        y: 0,
+                        width: img.naturalWidth,
+                        height: img.naturalHeight,
+                      });
+                    } else {
+                      setCrop(undefined);
+                      setCompletedCrop(null);
+                    }
                   }}
                   alt="Crop preview"
                   className="max-h-[60vh] object-contain"

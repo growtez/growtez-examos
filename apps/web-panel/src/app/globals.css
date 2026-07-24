@@ -83,21 +83,77 @@
   }
 }
 
-/* Modern Scrollbar */
+/* ─── Scrollbar — Google/Chrome style ─── */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #e8ecf0;
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-surface-hover rounded-full;
+  background: #a0aec0;
+  border-radius: 10px;
+  border: 2px solid #e8ecf0; /* gap between thumb and track */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-border;
+  background: #718096;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Dark mode */
+.dark ::-webkit-scrollbar-track {
+  background: #1e1e21;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-color: #1e1e21;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* Thin scrollbar for inner containers (modals, lists, etc.) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #e8ecf0;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #a0aec0;
+  border-radius: 10px;
+  border: 1px solid #e8ecf0;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #718096;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: #1e1e21;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-color: #1e1e21;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
 }
 
 /* Loader */

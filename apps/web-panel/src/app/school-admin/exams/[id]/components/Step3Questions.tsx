@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BookOpen, Edit2, Trash2, Search, AlertCircle, Sigma, Plus } from 'lucide-react';
+import { BookOpen, Edit2, Trash2, Search, AlertCircle, Sigma, Plus, ArrowUp } from 'lucide-react';
 import FormulaToolbar from '@/components/FormulaToolbar';
 import MathRenderer from '@/components/MathRenderer';
 import { parseQuestionImages } from '../hooks/useExamDetailPage';
@@ -136,6 +136,27 @@ export default function Step3Questions({
 
   const isDraftStepperMode = role !== 'teacher' && exam?.status === 'draft';
   const [showQuestionPreview, setShowQuestionPreview] = useState(false);
+  const [showTopBtn, setShowTopBtn] = useState(false);
+
+  useEffect(() => {
+    const mainEl = document.querySelector('main.overflow-auto');
+    if (!mainEl) return;
+    
+    const handleScroll = () => {
+      if (mainEl.scrollTop > 300) setShowTopBtn(true);
+      else setShowTopBtn(false);
+    };
+    
+    mainEl.addEventListener('scroll', handleScroll);
+    return () => mainEl.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    const mainEl = document.querySelector('main.overflow-auto');
+    if (mainEl) {
+      mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   const autoGrow = (el: HTMLTextAreaElement | null) => {
     if (!el) return;
@@ -224,7 +245,9 @@ export default function Step3Questions({
             .map((s) => {
             const added = questionCounts[s.id] || 0;
             const needed = s.question_count;
-            const complete = added >= needed;
+            const exact = added === needed;
+            const over = added > needed;
+            const under = added < needed;
             const isSelected = drawerSubjectId === s.id;
 
             return (
@@ -232,14 +255,17 @@ export default function Step3Questions({
                 key={s.id}
                 type="button"
                 onClick={() => openManageQuestions(s.id)}
-                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${isSelected
+                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${
+                  isSelected
                     ? 'bg-accent-primary text-white border-accent-primary shadow-sm'
-                    : 'bg-surface border-border text-text-main hover:border-accent-primary/50'
-                  }`}
+                    : over
+                      ? 'bg-amber-50 border-amber-300 text-amber-700'
+                      : 'bg-surface border-border text-text-main hover:border-accent-primary/50'
+                }`}
               >
                 {s.subject_name}
-                <span className={isSelected ? 'text-white/80' : complete ? 'text-emerald-600' : 'text-amber-600'}>
-                  {added}/{needed}
+                <span className={isSelected ? 'text-white/80' : exact ? 'text-emerald-600' : over ? 'text-amber-600' : 'text-red-500'}>
+                  {added}/{needed}{over ? ' ⚠' : ''}
                 </span>
               </button>
             );
@@ -252,35 +278,63 @@ export default function Step3Questions({
         const activeSubject = subjects.find(s => s.id === drawerSubjectId);
         const needed = activeSubject?.question_count ?? 0;
         const added = drawerQuestions.length;
-        const isComplete = added >= needed;
+        const isExact = added === needed;
+        const isOver = added > needed;
         const isExamDraft = exam?.status === 'draft';
 
         return (
-          <div className="flex items-center justify-between bg-surface border border-border rounded-xl p-4 shadow-sm mb-2">
-            <div className="flex items-center gap-3">
-              <h3 className="text-lg font-bold text-text-main">
-                {activeSubject?.subject_name}
-              </h3>
-              <span className={`text-sm font-semibold px-2.5 py-1 rounded-md ${isComplete ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
-                {added}/{needed} Added
-              </span>
-            </div>
-            
-            <div>
-              {isComplete ? (
-                <span className="text-[13px] font-semibold text-emerald-600 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg select-none whitespace-nowrap">
-                  ✓ All questions added
+          <div className="flex flex-col gap-2 mb-2">
+            <div className="flex items-center justify-between bg-surface border border-border rounded-xl p-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold text-text-main">
+                  {activeSubject?.subject_name}
+                </h3>
+                <span className={`text-sm font-semibold px-2.5 py-1 rounded-md ${
+                  isExact
+                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                    : isOver
+                      ? 'bg-amber-50 text-amber-600 border border-amber-200'
+                      : 'bg-red-50 text-red-500 border border-red-200'
+                }`}>
+                  {added}/{needed} Added
                 </span>
-              ) : isExamDraft ? (
-                <button
-                  type="button"
-                  onClick={handleDrawerNewQuestion}
-                  className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg bg-accent-primary text-white hover:bg-accent-primary/90 transition-all text-sm font-bold shadow-sm cursor-pointer active:scale-95 whitespace-nowrap"
-                >
-                  <Plus size={16} /> Add Question
-                </button>
-              ) : null}
+              </div>
+
+              <div>
+                {isOver ? (
+                  <span className="text-[13px] font-semibold text-amber-600 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 select-none whitespace-nowrap">
+                    ⚠ {added - needed} extra question{added - needed > 1 ? 's' : ''} added
+                  </span>
+                ) : isExact ? (
+                  <span className="text-[13px] font-semibold text-emerald-600 flex items-center gap-1.5 px-3 py-2 rounded-lg select-none whitespace-nowrap">
+                    ✓ All questions added
+                  </span>
+                ) : isExamDraft ? (
+                  <button
+                    type="button"
+                    onClick={handleDrawerNewQuestion}
+                    className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-lg bg-accent-primary text-white hover:bg-accent-primary/90 transition-all text-sm font-bold shadow-sm cursor-pointer active:scale-95 whitespace-nowrap"
+                  >
+                    <Plus size={16} /> Add Question
+                  </button>
+                ) : null}
+              </div>
             </div>
+
+            {/* Over-quota warning banner */}
+            {isOver && (
+              <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-amber-700">
+                    {added - needed} extra question{added - needed > 1 ? 's' : ''} added — target is {needed}
+                  </p>
+                  <p className="text-xs text-amber-600 mt-0.5">
+                    You can still proceed. The exam will include all {added} questions. To match the target, delete {added - needed} question{added - needed > 1 ? 's' : ''} or go back to Step 1 to update the target count.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         );
       })()}
@@ -377,7 +431,13 @@ export default function Step3Questions({
                                         <MathRenderer text={q.options[opt]} />
                                       </span>
                                     )}
-                                    {q.options[`${opt}_image`] && <img src={q.options[`${opt}_image`]} alt={opt} className="max-w-[200px] max-h-[120px] object-contain rounded border border-border" />}
+                                    {q.options[`${opt}_image`] && (
+                                      <div className="flex flex-wrap gap-2">
+                                        {parseQuestionImages(q.options[`${opt}_image`]).map((url, idx) => (
+                                          <img key={idx} src={url} alt={`${opt} ${idx + 1}`} className="max-w-[200px] max-h-[120px] object-contain rounded border border-border" />
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -447,7 +507,9 @@ export default function Step3Questions({
         <>
           <div
             className={`fixed inset-0 bg-black/50 backdrop-blur-[2px] z-[1000] flex justify-end md:items-center md:justify-center transition-opacity duration-300 ${drawerView === 'editor' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-            onClick={() => setDrawerView('list')}
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setDrawerView('list');
+            }}
           >
             <div
               onClick={(e) => e.stopPropagation()}
@@ -522,31 +584,6 @@ export default function Step3Questions({
                       </div>
                     </div>
 
-                    {/* Image Preview List if present */}
-                    {(() => {
-                      const images = qImage ? parseQuestionImages(qImage) : [];
-                      if (images.length === 0) return null;
-                      return (
-                        <div className="flex flex-wrap gap-2 items-center pb-1">
-                          {images.map((url, idx) => (
-                            <div key={idx} className="relative group">
-                              <img src={url} alt={`Preview ${idx + 1}`} className="h-10 rounded-lg border border-border object-contain bg-white" />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = images.filter((_, i) => i !== idx);
-                                  setQImage(updated.length > 0 ? JSON.stringify(updated) : null);
-                                }}
-                                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-sm cursor-pointer"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-
                     {/* Formula Toolbar for Question */}
                     {showQFormula && (
                       <FormulaToolbar
@@ -568,9 +605,34 @@ export default function Step3Questions({
                       placeholder="Enter question... Use $\sin(x)$ for inline math or $$\int_0^1 x^2\,dx$$ for block math"
                     />
 
+                    {/* Image Preview List if present */}
+                    {(() => {
+                      const images = qImage ? parseQuestionImages(qImage) : [];
+                      if (images.length === 0) return null;
+                      return (
+                        <div className="flex flex-wrap gap-2 items-center pt-1">
+                          {images.map((url, idx) => (
+                            <div key={idx} className="relative group">
+                              <img src={url} alt={`Preview ${idx + 1}`} className="h-14 rounded-lg border border-border object-contain bg-white" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = images.filter((_, i) => i !== idx);
+                                  setQImage(updated.length > 0 ? JSON.stringify(updated) : null);
+                                }}
+                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm cursor-pointer hover:bg-red-600 transition-colors"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
                     {/* Live Preview */}
                     {showQFormula && qText && (
-                      <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg">
+                      <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg mt-1">
                         <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Preview</p>
                         <MathRenderer text={qText} className="text-sm text-text-main" />
                       </div>
@@ -609,12 +671,6 @@ export default function Step3Questions({
                                     <label htmlFor={`img-${opt.id}`} className="cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border text-accent-primary font-bold text-[10px] rounded hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors">
                                       + Image
                                     </label>
-                                    {opt.img && (
-                                      <div className="relative group">
-                                        <img src={opt.img} alt="Preview" className="h-6 rounded border border-border object-contain" />
-                                        <button type="button" onClick={() => opt.setImg(null)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-3 h-3 flex items-center justify-center text-[8px] cursor-pointer">✕</button>
-                                      </div>
-                                    )}
                                     <button
                                       type="button"
                                       onClick={() => setShowOptFormula((prev) => ({ ...prev, [opt.id]: !prev[opt.id] }))}
@@ -655,6 +711,28 @@ export default function Step3Questions({
                                   className="w-full bg-transparent text-sm outline-none resize-none overflow-hidden whitespace-pre-wrap break-words placeholder:text-text-muted/40"
                                   placeholder={`Type ${opt.label} text here...`}
                                 />
+                                {/* Option Image Preview (below text) */}
+                                {(() => {
+                                  const images = opt.img ? parseQuestionImages(opt.img) : [];
+                                  if (images.length === 0) return null;
+                                  return (
+                                    <div className="flex flex-wrap gap-2 items-center pt-2">
+                                      {images.map((url, idx) => (
+                                        <div key={idx} className="relative group">
+                                          <img src={url} alt={`Preview ${idx + 1}`} className="h-14 rounded border border-border object-contain bg-white" />
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = images.filter((_, i) => i !== idx);
+                                              opt.setImg(updated.length > 0 ? JSON.stringify(updated) : null);
+                                            }}
+                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm cursor-pointer hover:bg-red-600 transition-colors"
+                                          >✕</button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
                                 {/* Mini preview for option */}
                                 {showOptFormula[opt.id] && opt.val && (
                                   <div className="pt-2 mt-2 border-t border-border/50 text-[13px] text-text-main">
@@ -778,7 +856,12 @@ export default function Step3Questions({
 
       {/* Question Preview Modal */}
       {showQuestionPreview && (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm">
+        <div 
+          className="fixed inset-0 z-[1100] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setShowQuestionPreview(false);
+          }}
+        >
           <div className="bg-bg rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col border border-border animate-in fade-in zoom-in-95 duration-200">
             <div className="px-5 py-4 border-b border-border flex justify-between items-center bg-surface shrink-0">
               <h3 className="text-base font-bold text-text-main flex items-center gap-2 m-0 leading-tight">
@@ -828,7 +911,13 @@ export default function Step3Questions({
                                 <MathRenderer text={text} />
                               </span>
                             )}
-                            {img && <img src={img} alt={opt} className="max-w-[200px] max-h-[120px] object-contain rounded border border-border" />}
+                            {img && (
+                              <div className="flex flex-wrap gap-2">
+                                {parseQuestionImages(img).map((url, idx) => (
+                                  <img key={idx} src={url} alt={`${opt} ${idx + 1}`} className="max-w-[200px] max-h-[120px] object-contain rounded border border-border" />
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -853,6 +942,17 @@ export default function Step3Questions({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Go to Top Button */}
+      {showTopBtn && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 p-3 bg-accent-primary text-white rounded-full shadow-lg hover:bg-accent-primary/90 transition-all hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-5 duration-300"
+          title="Go to Top"
+        >
+          <ArrowUp size={20} />
+        </button>
       )}
     </div>
   );
