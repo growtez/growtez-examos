@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2, Check, BookOpen, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, BookOpen, ChevronDown, ArrowLeft, ArrowRight } from 'lucide-react';
 
 /**
  * A single-line-looking field that wraps text and grows its height
@@ -15,6 +15,7 @@ function AutoGrowInput({
   placeholder,
   required,
   className,
+  id,
 }: {
   value: string;
   onChange: (val: string) => void;
@@ -22,6 +23,7 @@ function AutoGrowInput({
   placeholder?: string;
   required?: boolean;
   className?: string;
+  id?: string;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -34,6 +36,7 @@ function AutoGrowInput({
 
   return (
     <textarea
+      id={id}
       ref={ref}
       value={value}
       onChange={(e) => onChange(e.target.value)}
@@ -134,6 +137,8 @@ interface Step1DetailsProps {
   setInlineEditSubjectCount: (val: number) => void;
   handleSaveSubjectCount: (subjectId: string) => void;
   handleDeleteSubject: (e: any, id: string, name: string) => void;
+  handleMoveSubject?: (index: number, direction: 'left' | 'right') => void;
+  handleReorderSubjects?: (fromIndex: number, toIndex: number) => void;
   setManageTeachersSubject: (subject: any) => void;
   setSelectedTeacherIds: (ids: string[]) => void;
   setTeacherSearchQuery: (query: string) => void;
@@ -186,6 +191,8 @@ export default function Step1Details({
   setInlineEditSubjectCount,
   handleSaveSubjectCount,
   handleDeleteSubject,
+  handleMoveSubject,
+  handleReorderSubjects,
   setManageTeachersSubject,
   setSelectedTeacherIds,
   setTeacherSearchQuery,
@@ -197,9 +204,12 @@ export default function Step1Details({
   const [expandedCards, setExpandedCards] = useState({
     details: true,
     marking: true,
-    subjects: true,
     instructions: true,
+    subjects: true,
   });
+
+  const [draggedSubjectIndex, setDraggedSubjectIndex] = useState<number | null>(null);
+  const [draggedOverSubjectIndex, setDraggedOverSubjectIndex] = useState<number | null>(null);
   const allExpanded = Object.values(expandedCards).every(Boolean);
   const toggleCard = (key: keyof typeof expandedCards) =>
     setExpandedCards((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -221,16 +231,7 @@ export default function Step1Details({
           This exam is published — details are read-only.
         </div>
       )}
-      <div className="sm:hidden flex justify-end">
-        <button
-          type="button"
-          onClick={toggleAll}
-          className="text-[11px] font-bold text-accent-primary hover:underline flex items-center gap-1"
-        >
-          <ChevronDown size={12} className={`transition-transform ${allExpanded ? 'rotate-180' : ''}`} />
-          {allExpanded ? 'Collapse All' : 'Expand All'}
-        </button>
-      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Exam Details */}
         <CollapsibleCard
@@ -362,21 +363,104 @@ export default function Step1Details({
           }
         >
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {subjects.map((s) => {
+            {subjects.map((s, index) => {
               const added = questionCounts[s.id] || 0;
               const needed = s.question_count;
               const complete = added >= needed;
+              const isDragging = draggedSubjectIndex === index;
+              const isDragOver = draggedOverSubjectIndex === index;
+
+              const isEditing = editSubjectId === s.id;
+
               return (
-                <div key={s.id} className="bg-bg border border-border rounded-xl p-3 flex flex-col justify-between hover:border-accent-primary/40 hover:shadow-sm transition-all group cursor-default">
+                <div 
+                  key={s.id} 
+                  draggable={!!handleReorderSubjects && !isEditing}
+                  data-subject-index={index}
+                  onDragStart={(e) => {
+                    if (isEditing) {
+                      e.preventDefault();
+                      return;
+                    }
+                    const target = e.target as HTMLElement;
+                    if (target.closest('button') || target.closest('input')) {
+                      e.preventDefault();
+                      return;
+                    }
+                    setTimeout(() => setDraggedSubjectIndex(index), 0);
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', index.toString());
+                  }}
+                  onDragEnter={(e) => e.preventDefault()}
+                  onTouchStart={(e) => {
+                    if (isEditing) return;
+                    const target = e.target as HTMLElement;
+                    if (target.closest('button') || target.closest('input')) return;
+                    setDraggedSubjectIndex(index);
+                    document.body.style.overflow = 'hidden';
+                  }}
+                  onTouchMove={(e) => {
+                    if (draggedSubjectIndex === null) return;
+                    const touch = e.touches[0];
+                    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                    const card = element?.closest('[data-subject-index]');
+                    if (card) {
+                      const hoverIndex = parseInt(card.getAttribute('data-subject-index') || '-1', 10);
+                      if (hoverIndex !== -1 && hoverIndex !== draggedOverSubjectIndex) {
+                        setDraggedOverSubjectIndex(hoverIndex);
+                      }
+                    }
+                  }}
+                  onTouchEnd={(e) => {
+                    document.body.style.overflow = '';
+                    if (draggedSubjectIndex !== null && draggedOverSubjectIndex !== null && draggedSubjectIndex !== draggedOverSubjectIndex && handleReorderSubjects) {
+                      handleReorderSubjects(draggedSubjectIndex, draggedOverSubjectIndex);
+                    }
+                    setDraggedSubjectIndex(null);
+                    setDraggedOverSubjectIndex(null);
+                  }}
+                  onTouchCancel={() => {
+                    document.body.style.overflow = '';
+                    setDraggedSubjectIndex(null);
+                    setDraggedOverSubjectIndex(null);
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (draggedSubjectIndex !== null && draggedSubjectIndex !== index) {
+                      setDraggedOverSubjectIndex(index);
+                    }
+                  }}
+                  onDragLeave={() => {
+                    setDraggedOverSubjectIndex(null);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (draggedSubjectIndex !== null && draggedSubjectIndex !== index && handleReorderSubjects) {
+                      handleReorderSubjects(draggedSubjectIndex, index);
+                    }
+                    setDraggedSubjectIndex(null);
+                    setDraggedOverSubjectIndex(null);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedSubjectIndex(null);
+                    setDraggedOverSubjectIndex(null);
+                  }}
+                  className={`bg-bg border rounded-xl p-3 flex flex-col justify-between transition-all group ${!isEditing ? 'cursor-grab active:cursor-grabbing' : ''} ${isDragging ? 'opacity-50' : ''} ${isDragOver ? 'border-accent-primary border-dashed shadow-md bg-accent-primary/5' : 'border-border hover:border-accent-primary/40 hover:shadow-sm'}`}
+                >
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-text-main font-bold text-xs leading-relaxed break-words sm:leading-normal group-hover:text-accent-primary transition-colors">{s.subject_name}</span>
-                    <button
-                      type="button"
-                      onClick={(e) => handleDeleteSubject(e, s.id, s.subject_name)}
-                      className="text-red-400 hover:text-red-600 transition-colors p-1"
-                    >
-                      <Trash2 size={12} />
-                    </button>
+                    <div className="flex items-center gap-1">
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteSubject(e, s.id, s.subject_name)}
+                        className="text-red-400 hover:text-red-600 transition-colors p-1"
+                        title="Delete Subject"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1.5 mb-2">
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider leading-relaxed sm:leading-normal ${complete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
@@ -398,19 +482,26 @@ export default function Step1Details({
                     {editSubjectId === s.id && (
                       <div className="flex items-center gap-1">
                         <input
+                          autoFocus
                           type="number"
                           value={inlineEditSubjectCount === 0 ? '' : inlineEditSubjectCount}
                           onChange={(e) => {
                             const val = e.target.value;
                             setInlineEditSubjectCount(val === '' ? 0 : (parseInt(val) || 0));
                           }}
-                          className="w-12 px-1 py-0.5 text-[10px] border border-[#008080] rounded outline-none font-bold"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSaveSubjectCount(s.id);
+                            }
+                          }}
+                          className="w-20 px-1.5 py-0.5 text-xs border border-accent-primary rounded outline-none font-bold text-center"
                           min="1"
                         />
                         <button
                           type="button"
                           onClick={() => handleSaveSubjectCount(s.id)}
-                          className="text-white bg-accent-primary p-0.5 rounded"
+                          className="text-white bg-accent-primary p-0.5 rounded hover:bg-accent-primary/90 transition-colors"
                         >
                           <Check size={12} />
                         </button>
@@ -459,7 +550,16 @@ export default function Step1Details({
               </button>
               <button
                 type="button"
-                onClick={addInstructionItem}
+                onClick={() => {
+                  addInstructionItem();
+                  setTimeout(() => {
+                    const el = document.getElementById(`instruction-input-${instructionsList.length}`);
+                    if (el) {
+                      el.focus();
+                      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                  }, 100);
+                }}
                 className="inline-flex items-center gap-1 text-accent-primary text-[11px] font-bold hover:underline"
               >
                 <Plus size={12} /> Add
@@ -484,6 +584,7 @@ export default function Step1Details({
               <div key={index} className="flex items-start gap-2 w-full">
                 <span className="text-text-muted font-bold text-[11px] w-4 text-right flex-shrink-0 mt-1.5">{index + 1}.</span>
                 <AutoGrowInput
+                  id={`instruction-input-${index}`}
                   value={inst}
                   onChange={(val) => updateInstructionItem(index, val)}
                   onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}

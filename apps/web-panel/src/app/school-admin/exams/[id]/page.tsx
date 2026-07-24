@@ -375,6 +375,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     handleSaveSubjectTeachers,
     handleAddSubject,
     toggleNewSubjectTeacher,
+    handleMoveSubject,
+    handleReorderSubjects,
 
     handleAddStudent,
     handleCsvImport,
@@ -406,6 +408,25 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [questionSearchQuery, setQuestionSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
+
+  const [draggedPillIndex, setDraggedPillIndex] = useState<number | null>(null);
+  const [draggedOverPillIndex, setDraggedOverPillIndex] = useState<number | null>(null);
+
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+  const [duplicateTitleInput, setDuplicateTitleInput] = useState("");
+  const [isDuplicating, setIsDuplicating] = useState(false);
+
+  const confirmDuplicateExam = async () => {
+    if (!duplicateTitleInput.trim()) return;
+    setIsDuplicating(true);
+    await handleDuplicate(duplicateTitleInput);
+    setIsDuplicating(false);
+    setShowDuplicateConfirm(false);
+  };
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
 
   const handleExportQuestions = () => {
     if (!drawerSubjectId) return;
@@ -500,9 +521,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
           {isDraftStepperMode && (
             <>
-              <div className="sticky top-0 z-30 -mx-6 -mt-6 pt-6 px-4 sm:px-6 pb-2 bg-bg relative isolate before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-[-1] before:bg-bg">
+              <div className="sticky top-0 z-30 -mx-6 -mt-6 pt-3 px-4 sm:px-6 pb-2 bg-bg relative isolate before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-[-1] before:bg-bg">
                 {/* Horizontal Stepper (Top) */}
-                <div className="grid grid-cols-[auto_1fr_auto] items-center sm:gap-4 w-full max-w-5xl mx-auto">
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4 w-full max-w-5xl mx-auto">
                   {/* Prev Button */}
                   <div className="flex justify-start sm:justify-end">
                     <button
@@ -525,16 +546,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         const isActive = currentStep === s.step;
                         const isDone = !isActive && canProceedToNextStep(s.step);
                         const isSegmentFilled = currentStep > s.step;
-                        const totalSteps = STEPPER_STEPS.length;
-                        let windowStart = currentStep - 1;
-                        if (windowStart < 1) windowStart = 1;
-                        if (windowStart > totalSteps - 2) windowStart = totalSteps - 2;
-                        const windowEnd = windowStart + 2;
-                        const isVisibleOnMobile = s.step >= windowStart && s.step <= windowEnd;
                         return (
                           <div
                             key={s.step}
-                            className={`${isVisibleOnMobile ? "flex" : "hidden"} sm:flex items-center`}
+                            className="flex items-center"
                           >
                             <div className="flex items-center gap-1.5 sm:gap-2">
                               <button
@@ -557,7 +572,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                               </button>
                             </div>
                             {idx < STEPPER_STEPS.length - 1 && (
-                              <div className={`${(isVisibleOnMobile && s.step < windowEnd) ? "block" : "hidden"} sm:block w-4 sm:w-8 h-1 mx-1.5 sm:mx-2 rounded-full bg-accent-primary/20 overflow-hidden shrink-0`}>
+                              <div className="block w-4 sm:w-8 h-1 mx-1.5 sm:mx-2 rounded-full bg-accent-primary/20 overflow-hidden shrink-0">
                                 <div
                                   className={`h-full transition-all duration-500 ease-out ${isSegmentFilled ? "w-full bg-accent-primary shadow-[0_0_8px_rgba(0,128,128,0.4)]" : "w-0 bg-accent-primary"}`}
                                 />
@@ -588,12 +603,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
               {/* Scrolling Header Container */}
               <div className="-mx-6 mb-4 border-b border-border bg-bg px-4 sm:px-6 pb-3 flex flex-col gap-4 relative z-10">
-                {/* Row 1: Title (Full Width) */}
-                <h2 className="text-base sm:text-lg font-bold text-text-main flex items-center gap-1.5 whitespace-nowrap">
-                  <span className="text-accent-primary">Step {currentStep}</span>
-                  <span className="text-text-muted">·</span>
-                  <span>{STEPPER_STEPS.find((s) => s.step === currentStep)?.label}</span>
-                </h2>
+                {/* Row 1 removed as requested */}
 
                 {/* Row 2: Controls and Actions */}
                 <div className="flex flex-wrap items-center justify-between gap-3 w-full">
@@ -631,17 +641,47 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     {currentStep === 3 && (
                       <div className="relative flex items-center justify-start min-w-0 -mx-4 px-4 md:mx-0 md:px-0">
                         <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar px-1 max-w-full snap-x snap-mandatory md:snap-none">
-                          {subjects.map((s) => {
+                          {subjects.map((s, idx) => {
                             const added = questionCounts[s.id] || 0;
                             const needed = s.question_count;
                             const complete = added >= needed;
                             const isSelected = drawerSubjectId === s.id;
+                            const isDragging = draggedPillIndex === idx;
+                            const isDragOver = draggedOverPillIndex === idx;
+                            
                             return (
                               <button
                                 key={s.id}
                                 type="button"
+                                draggable={true}
+                                onDragStart={(e) => {
+                                  setDraggedPillIndex(idx);
+                                  e.dataTransfer.effectAllowed = 'move';
+                                }}
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  e.dataTransfer.dropEffect = 'move';
+                                  if (draggedPillIndex !== null && draggedPillIndex !== idx) {
+                                    setDraggedOverPillIndex(idx);
+                                  }
+                                }}
+                                onDragLeave={() => {
+                                  setDraggedOverPillIndex(null);
+                                }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  if (draggedPillIndex !== null && draggedPillIndex !== idx) {
+                                    handleReorderSubjects(draggedPillIndex, idx);
+                                  }
+                                  setDraggedPillIndex(null);
+                                  setDraggedOverPillIndex(null);
+                                }}
+                                onDragEnd={() => {
+                                  setDraggedPillIndex(null);
+                                  setDraggedOverPillIndex(null);
+                                }}
                                 onClick={() => openManageQuestions(s.id)}
-                                className={`snap-start shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${isSelected
+                                className={`snap-start shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap cursor-pointer ${isDragging ? 'opacity-50' : ''} ${isDragOver ? 'border-accent-primary border-dashed bg-accent-primary/5' : isSelected
                                   ? "bg-accent-primary text-white border-accent-primary shadow-sm"
                                   : "bg-surface border-border text-text-main hover:border-accent-primary/50"
                                   }`}
@@ -662,14 +702,17 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
                   {/* Right Side: Duplicate & Trash (admin only) */}
                   {!isTeacher && (
-                    <div className="flex shrink-0 items-center gap-1.5 justify-end">
+                    <div className="hidden sm:flex shrink-0 items-center gap-1.5 justify-end">
                       <button
-                        onClick={handleDuplicate}
+                        onClick={() => {
+                          setDuplicateTitleInput(`${title || 'Exam'} (Copy)`);
+                          setShowDuplicateConfirm(true);
+                        }}
                         title="Duplicate Exam"
                         className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-lg text-xs font-bold text-accent-primary hover:bg-accent-primary hover:text-white transition-all shadow-sm whitespace-nowrap"
                       >
                         <Copy size={14} />
-                        <span className="hidden sm:inline">Duplicate</span>
+                        <span>Duplicate</span>
                       </button>
                       <button
                         onClick={handleTrash}
@@ -788,7 +831,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg py-1 min-w-[140px] z-50">
                           <button
                             onClick={() => {
-                              handleDuplicate();
+                              setDuplicateTitleInput(`${title || 'Exam'} (Copy)`);
+                              setShowDuplicateConfirm(true);
                               setShowMoreMenu(false);
                             }}
                             className="w-full px-3 py-2 text-left text-xs font-semibold text-text-main hover:bg-surface-hover hover:text-accent-primary flex items-center gap-2"
@@ -1013,6 +1057,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setInlineEditSubjectCount={setInlineEditSubjectCount}
               handleSaveSubjectCount={handleSaveSubjectCount}
               handleDeleteSubject={handleDeleteSubject}
+              handleMoveSubject={handleMoveSubject}
+              handleReorderSubjects={handleReorderSubjects}
               setManageTeachersSubject={setManageTeachersSubject}
               setSelectedTeacherIds={setSelectedTeacherIds}
               setTeacherSearchQuery={setTeacherSearchQuery}
@@ -1089,6 +1135,28 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               ) : (
                 <div />
               )}
+            </div>
+          )}
+          {/* Mobile Admin Actions (Duplicate/Delete) */}
+          {!isTeacher && (currentStep === 1 || currentStep === 5 || exam.status !== 'draft') && (
+            <div className="sm:hidden flex items-center gap-3 mt-6 pt-6 border-t border-border w-full pb-4">
+              <button
+                onClick={() => {
+                  setDuplicateTitleInput(`${title || 'Exam'} (Copy)`);
+                  setShowDuplicateConfirm(true);
+                }}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-primary/10 border border-accent-primary/20 rounded-xl text-sm font-bold text-accent-primary hover:bg-accent-primary hover:text-white transition-all shadow-sm"
+              >
+                <Copy size={16} />
+                Duplicate
+              </button>
+              <button
+                onClick={handleTrash}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-sm font-bold text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+              >
+                <Trash2 size={16} />
+                Delete
+              </button>
             </div>
           )}
         </div>
@@ -1994,6 +2062,62 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 className="px-5 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm"
               >
                 Crop & Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Duplicate Confirmation Modal */}
+      {showDuplicateConfirm && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1100] flex items-center justify-center p-4"
+          onClick={() => !isDuplicating && setShowDuplicateConfirm(false)}
+        >
+          <div
+            className="bg-surface border border-border rounded-2xl shadow-xl w-full max-w-sm p-6 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-4">
+              <Copy size={22} />
+            </div>
+            <h3 className="text-text-main font-bold text-lg leading-tight mb-2">Duplicate Exam</h3>
+            <p className="text-text-muted text-sm mb-4">
+              Create a copy of this exam. You can edit all details in the new draft.
+            </p>
+            <div className="mb-5">
+              <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
+                New Exam Title
+              </label>
+              <input
+                type="text"
+                value={duplicateTitleInput}
+                onChange={(e) => setDuplicateTitleInput(e.target.value)}
+                autoFocus
+                className="w-full px-4 py-2.5 bg-bg border border-border rounded-xl text-text-main text-sm focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all font-medium"
+                placeholder="Enter title..."
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowDuplicateConfirm(false)}
+                disabled={isDuplicating}
+                className="flex-1 py-2.5 rounded-xl border border-border text-text-main text-sm font-bold hover:bg-surface-hover transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDuplicateExam}
+                disabled={isDuplicating || !duplicateTitleInput.trim()}
+                className="flex-1 py-2.5 rounded-xl bg-accent-primary text-white text-sm font-bold hover:bg-accent-primary/90 transition-all cursor-pointer disabled:opacity-50 shadow-sm flex items-center justify-center gap-2"
+              >
+                {isDuplicating ? (
+                  <>
+                    <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    Duplicating...
+                  </>
+                ) : (
+                  "Duplicate"
+                )}
               </button>
             </div>
           </div>

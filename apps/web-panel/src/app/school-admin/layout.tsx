@@ -330,17 +330,17 @@ export default function SchoolAdminLayout({
     <div className="flex h-[100dvh] overflow-hidden bg-bg">
       {/* Mobile Backdrop */}
       <div 
-        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 md:hidden ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        className={`fixed inset-0 bg-black/50 z-[55] transition-opacity duration-300 md:hidden ${sidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
         onClick={() => setSidebarOpen(false)}
       />
 
       {/* Sidebar */}
-      <aside className={`fixed md:relative z-50 h-[100dvh] bg-sidebar-bg border-r border-sidebar-border transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-48 translate-x-0' : 'w-48 -translate-x-full md:translate-x-0 md:w-16'}`}>
+      <aside className={`fixed md:relative z-[60] h-[100dvh] bg-sidebar-bg border-r border-sidebar-border transition-all duration-300 flex flex-col ${sidebarOpen ? 'w-48 translate-x-0' : 'w-48 -translate-x-full md:translate-x-0 md:w-16'}`}>
         
         {/* Desktop Toggle Button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="hidden md:flex absolute -right-3 top-5 w-6 h-6 bg-sidebar-bg rounded-full items-center justify-center text-sidebar-text-muted hover:text-sidebar-text hover:bg-sidebar-hover transition-colors border border-sidebar-border z-50 shadow-sm cursor-pointer"
+          className="hidden md:flex absolute -right-3 top-5 w-6 h-6 bg-sidebar-bg rounded-full items-center justify-center text-sidebar-text-muted hover:text-sidebar-text hover:bg-sidebar-hover transition-colors border border-sidebar-border z-[60] shadow-sm cursor-pointer"
         >
           {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </button>
@@ -457,7 +457,7 @@ export default function SchoolAdminLayout({
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-12 bg-surface/80 backdrop-blur-md border-b border-border flex items-center justify-between gap-4 px-4 shadow-sm sticky top-0 z-30">
+        <header className="h-12 bg-surface/80 backdrop-blur-md border-b border-border flex items-center justify-between gap-4 px-4 shadow-sm sticky top-0 z-50">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -533,64 +533,74 @@ export default function SchoolAdminLayout({
                 </button>
 
                 {notifDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-surface rounded-xl shadow-lg border border-border overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col max-h-[85vh]">
-                    <div className="p-4 border-b border-border flex justify-between items-center bg-bg/50 backdrop-blur-md shrink-0">
-                      <h3 className="text-sm font-bold text-text-main flex items-center gap-2">
-                        <Bell className="w-4 h-4 text-accent-primary" /> Notifications
-                      </h3>
-                    </div>
-                    <div className="overflow-y-auto flex-1">
-                      {notifications.length > 0 ? (
-                        <div className="divide-y divide-border">
-                          {notifications.map((notif) => (
-                            <div key={notif.id} className="p-4 hover:bg-surface-hover transition-colors">
-                              <div className="flex gap-3">
-                                <div className="flex-shrink-0 mt-1">
-                                  {notif.type === 'fee_update' ? (
-                                    <CreditCard className="w-5 h-5 text-purple-500" />
-                                  ) : notif.type === 'new_feature' ? (
-                                    <CheckCircle className="w-5 h-5 text-green-500" />
-                                  ) : notif.type === 'alert' ? (
-                                    <AlertCircle className="w-5 h-5 text-red-500" />
-                                  ) : (
-                                    <Bell className="w-5 h-5 text-blue-500" />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex justify-between items-start gap-2">
-                                    <h4 className="text-sm font-bold text-text-main leading-tight">{notif.title}</h4>
-                                    <button 
-                                      onClick={(e) => handleDeleteNotification(notif.id, e)}
-                                      className="p-1 text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors shrink-0"
-                                      title="Delete notification"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
+                  <>
+                    {/* Mobile Backdrop */}
+                    <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm sm:hidden" onClick={() => setNotifDropdownOpen(false)} />
+                    
+                    <div className="fixed sm:absolute inset-x-4 top-14 sm:inset-auto sm:top-auto sm:right-0 sm:mt-2 w-auto sm:w-96 bg-surface rounded-2xl shadow-xl border border-border overflow-hidden z-50 animate-in fade-in sm:zoom-in-95 duration-200 flex flex-col max-h-[80vh] sm:max-h-[85vh]">
+                      <div className="p-4 border-b border-border flex justify-between items-center bg-bg/50 backdrop-blur-md shrink-0">
+                        <h3 className="text-sm font-bold text-text-main flex items-center gap-2">
+                          <Bell className="w-4 h-4 text-accent-primary" /> Notifications
+                        </h3>
+                        <button onClick={() => setNotifDropdownOpen(false)} className="sm:hidden p-1 text-text-muted hover:text-text-main hover:bg-surface-hover rounded-full transition-colors">
+                          <X size={16} />
+                        </button>
+                      </div>
+                      <div className="overflow-y-auto flex-1 overscroll-contain">
+                        {notifications.length > 0 ? (
+                          <div className="divide-y divide-border">
+                            {notifications.map((notif) => (
+                              <div key={notif.id} className="p-4 hover:bg-surface-hover transition-colors">
+                                <div className="flex gap-3">
+                                  <div className="flex-shrink-0 mt-1">
+                                    {notif.type === 'fee_update' ? (
+                                      <CreditCard className="w-5 h-5 text-purple-500" />
+                                    ) : notif.type === 'new_feature' ? (
+                                      <CheckCircle className="w-5 h-5 text-green-500" />
+                                    ) : notif.type === 'alert' ? (
+                                      <AlertCircle className="w-5 h-5 text-red-500" />
+                                    ) : (
+                                      <Bell className="w-5 h-5 text-blue-500" />
+                                    )}
                                   </div>
-                                  <p className="text-sm text-text-muted mt-1 whitespace-pre-wrap leading-snug">{notif.message}</p>
-                                  {notif.image_url && (
-                                    <div className="mt-2.5 rounded-lg overflow-hidden max-w-full border border-border shadow-sm">
-                                      <img src={notif.image_url} alt="Announcement" className="max-h-32 w-full object-cover" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-start gap-2">
+                                      <h4 className="text-sm font-bold text-text-main leading-tight">{notif.title}</h4>
+                                      <button 
+                                        onClick={(e) => handleDeleteNotification(notif.id, e)}
+                                        className="p-1.5 text-text-muted hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors shrink-0 -mt-1 -mr-1"
+                                        title="Delete notification"
+                                      >
+                                        <X className="w-3.5 h-3.5" />
+                                      </button>
                                     </div>
-                                  )}
-                                  <div className="flex items-center gap-1 mt-2 text-[11px] text-text-muted font-medium">
-                                    <Clock className="w-3 h-3" />
-                                    <span>{new Date(notif.created_at).toLocaleString()}</span>
+                                    <p className="text-sm text-text-muted mt-1 whitespace-pre-wrap leading-snug">{notif.message}</p>
+                                    {notif.image_url && (
+                                      <div className="mt-2.5 rounded-lg overflow-hidden max-w-full border border-border shadow-sm">
+                                        <img src={notif.image_url} alt="Announcement" className="max-h-32 w-full object-cover" />
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-1 mt-2 text-[11px] text-text-muted font-medium">
+                                      <Clock className="w-3 h-3" />
+                                      <span>{new Date(notif.created_at).toLocaleString()}</span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-10 px-4">
+                            <div className="w-12 h-12 bg-surface-hover rounded-full flex items-center justify-center mx-auto mb-3">
+                              <Bell className="w-5 h-5 text-text-muted opacity-50" />
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 px-4">
-                          <Bell className="w-8 h-8 text-text-muted mx-auto mb-3 opacity-30" />
-                          <h3 className="text-sm font-medium text-text-main">No New Notifications</h3>
-                          <p className="text-[13px] text-text-muted mt-1">You're all caught up!</p>
-                        </div>
-                      )}
+                            <h3 className="text-sm font-bold text-text-main">No New Notifications</h3>
+                            <p className="text-xs text-text-muted mt-1">You're all caught up!</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
             )}
