@@ -1381,11 +1381,11 @@ export function useExamDetailPage(paramsId: string) {
 
   const handleDuplicate = async (newTitle: string) => {
     if (!newTitle) return;
-
+    await doDuplicate(newTitle);
+  };
 
   const doDuplicate = async (newTitle: string) => {
     if (!newTitle.trim()) return;
-    setShowDuplicateModal(false);
     setLoading(true);
     try {
       // 1. Insert new exam
@@ -1960,10 +1960,6 @@ export function useExamDetailPage(paramsId: string) {
     handleDownloadCsvTemplate,
     handleRemoveStudent,
     handleDuplicate,
-    showDuplicateModal,
-    setShowDuplicateModal,
-    duplicateTitle,
-    setDuplicateTitle,
     doDuplicate,
     handleCreateAndAssignTeacher,
     handleUnpublish,
