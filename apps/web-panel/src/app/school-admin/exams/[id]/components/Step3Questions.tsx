@@ -179,6 +179,7 @@ export default function Step3Questions({
   }, [drawerError]);
 
   const [showQFormula, setShowQFormula] = useState(false);
+  const [showNatFormula, setShowNatFormula] = useState(false);
   const [showOptFormula, setShowOptFormula] = useState<Record<string, boolean>>({
     A: false,
     B: false,
@@ -189,6 +190,7 @@ export default function Step3Questions({
   useEffect(() => {
     if (drawerView !== 'editor') {
       setShowQFormula(false);
+      setShowNatFormula(false);
       setShowOptFormula({ A: false, B: false, C: false, D: false });
     }
   }, [drawerView]);
@@ -251,7 +253,7 @@ export default function Step3Questions({
         const isExamDraft = exam?.status === 'draft';
 
         return (
-          <div className="flex items-center justify-between bg-surface border border-border rounded-xl p-4 shadow-sm mb-2 mx-1">
+          <div className="flex items-center justify-between bg-surface border border-border rounded-xl p-4 shadow-sm mb-2">
             <div className="flex items-center gap-3">
               <h3 className="text-lg font-bold text-text-main">
                 {activeSubject?.subject_name}
@@ -290,7 +292,7 @@ export default function Step3Questions({
               {drawerLoading ? (
                 <div className="space-y-3">
                   {[...Array(4)].map((_, i) => (
-                    <div key={i} className="mx-4 p-4 bg-surface border border-border rounded-xl shadow-sm animate-pulse">
+                    <div key={i} className="p-4 bg-surface border border-border rounded-xl shadow-sm animate-pulse">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="w-5 h-5 rounded bg-border/60" />
                         <span className="h-4 w-14 rounded-full bg-border/60" />
@@ -308,7 +310,7 @@ export default function Step3Questions({
                   ))}
                 </div>
               ) : drawerQuestions.length === 0 ? (
-                <div className="text-center py-12 mx-4 md:mx-0 bg-surface md:bg-transparent border md:border-0 border-border rounded-xl md:rounded-none shadow-sm md:shadow-none">
+                <div className="text-center py-12 bg-surface md:bg-transparent border md:border-0 border-border rounded-xl md:rounded-none shadow-sm md:shadow-none">
                   <BookOpen size={32} className="mx-auto mb-3 text-border" />
                   <p className="text-text-muted font-medium">No questions added yet.</p>
                 </div>
@@ -322,7 +324,7 @@ export default function Step3Questions({
                   });
                   if (filtered.length === 0) {
                     return (
-                      <div className="text-center py-12 mx-4 bg-surface border border-border rounded-xl shadow-sm">
+                      <div className="text-center py-12 bg-surface border border-border rounded-xl shadow-sm">
                         <Search size={32} className="mx-auto mb-3 text-border animate-pulse" />
                         <p className="text-text-muted font-medium">No questions match your search/filters.</p>
                       </div>
@@ -331,7 +333,7 @@ export default function Step3Questions({
                   return filtered.map((q) => {
                     const originalNumber = drawerQuestions.indexOf(q) + 1;
                     return (
-                      <div key={q.id} className="mx-4 p-4 bg-surface border border-border rounded-xl shadow-sm group relative overflow-hidden">
+                      <div key={q.id} className="p-4 bg-surface border border-border rounded-xl shadow-sm group relative overflow-hidden">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2 min-w-0 flex-wrap">
                             <span className="w-5 h-5 rounded bg-surface border border-border flex items-center justify-center text-[10px] text-text-main font-bold shrink-0">{originalNumber}</span>
@@ -448,7 +450,7 @@ export default function Step3Questions({
               </div>
 
               {/* Drawer Body - scrollable */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-5 bg-bg">
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-5 bg-surface">
                 <form id="drawer-question-form" onSubmit={(e) => doSaveQuestion(e, false)} className="space-y-5">
 
                   {/* Question type toggle */}
@@ -462,25 +464,56 @@ export default function Step3Questions({
                   </div>
 
                   {/* Question text + image section */}
-                  <div className="bg-surface border border-border rounded-xl p-4 shadow-sm space-y-3">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
                         <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Question</label>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowQFormula(!showQFormula)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
-                          showQFormula
-                            ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
-                            : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
-                        }`}
-                      >
-                        <Sigma size={11} />
-                        {showQFormula ? 'Hide Formula' : 'Add Formula'}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <input type="file" accept="image/*" onChange={(e) => handleDrawerImageUpload(e, 'question')} className="hidden" id="q-img" />
+                        <label htmlFor="q-img" className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 bg-bg border border-border text-accent-primary font-bold text-[11px] rounded-lg hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors">
+                          + Image
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowQFormula(!showQFormula)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                            showQFormula
+                              ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
+                              : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
+                          }`}
+                        >
+                          <Sigma size={11} />
+                          {showQFormula ? 'Hide Formula' : 'Formula'}
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Image Preview List if present */}
+                    {(() => {
+                      const images = qImage ? parseQuestionImages(qImage) : [];
+                      if (images.length === 0) return null;
+                      return (
+                        <div className="flex flex-wrap gap-2 items-center pb-1">
+                          {images.map((url, idx) => (
+                            <div key={idx} className="relative group">
+                              <img src={url} alt={`Preview ${idx + 1}`} className="h-10 rounded-lg border border-border object-contain bg-white" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = images.filter((_, i) => i !== idx);
+                                  setQImage(updated.length > 0 ? JSON.stringify(updated) : null);
+                                }}
+                                className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-sm cursor-pointer"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
 
                     {/* Formula Toolbar for Question */}
                     {showQFormula && (
@@ -510,43 +543,13 @@ export default function Step3Questions({
                         <MathRenderer text={qText} className="text-sm text-text-main" />
                       </div>
                     )}
-
-                    <div className="flex items-center gap-3 pt-1 flex-wrap">
-                      <input type="file" accept="image/*" onChange={(e) => handleDrawerImageUpload(e, 'question')} className="hidden" id="q-img" />
-                      <label htmlFor="q-img" className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-bg border border-border text-accent-primary font-semibold text-xs rounded-lg hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors">
-                        + Add Image
-                      </label>
-                      {(() => {
-                        const images = qImage ? parseQuestionImages(qImage) : [];
-                        if (images.length === 0) return null;
-                        return (
-                          <div className="flex flex-wrap gap-2 items-center">
-                            {images.map((url, idx) => (
-                              <div key={idx} className="relative group">
-                                <img src={url} alt={`Preview ${idx + 1}`} className="h-10 rounded-lg border border-border object-contain bg-white" />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const updated = images.filter((_, i) => i !== idx);
-                                    setQImage(updated.length > 0 ? JSON.stringify(updated) : null);
-                                  }}
-                                  className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-sm cursor-pointer"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })()}
-                    </div>
                   </div>
 
                   {qType === 'mcq' ? (
                     <>
                       {/* Options section */}
-                      <div className="bg-surface border border-border rounded-xl p-4 shadow-sm">
-                        <div className="flex items-center gap-1.5 mb-3">
+                      <div className="space-y-3 pt-2 border-t border-border">
+                        <div className="flex items-center gap-1.5 mb-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
                           <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Options</label>
                         </div>
@@ -569,6 +572,16 @@ export default function Step3Questions({
                                   {opt.label}
                                 </label>
                                 <div className="flex items-center gap-2">
+                                  <input type="file" accept="image/*" onChange={(e) => handleDrawerImageUpload(e, opt.id as any)} className="hidden" id={`img-${opt.id}`} />
+                                  <label htmlFor={`img-${opt.id}`} className="cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border text-accent-primary font-bold text-[10px] rounded hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors">
+                                    + Image
+                                  </label>
+                                  {opt.img && (
+                                    <div className="relative group">
+                                      <img src={opt.img} alt="Preview" className="h-6 rounded border border-border object-contain" />
+                                      <button type="button" onClick={() => opt.setImg(null)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-3 h-3 flex items-center justify-center text-[8px] cursor-pointer">✕</button>
+                                    </div>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() => setShowOptFormula((prev) => ({ ...prev, [opt.id]: !prev[opt.id] }))}
@@ -579,7 +592,7 @@ export default function Step3Questions({
                                     }`}
                                   >
                                     <Sigma size={10} />
-                                    {showOptFormula[opt.id] ? 'Hide Formula' : 'Add Formula'}
+                                    {showOptFormula[opt.id] ? 'Hide Formula' : 'Formula'}
                                   </button>
                                   {correctAnswer === opt.id && (
                                     <span className="text-[9px] font-bold text-accent-primary uppercase tracking-wider">Correct</span>
@@ -615,26 +628,14 @@ export default function Step3Questions({
                                   <MathRenderer text={opt.val} />
                                 </div>
                               )}
-                              <div className="flex items-center gap-2">
-                                <input type="file" accept="image/*" onChange={(e) => handleDrawerImageUpload(e, opt.id as any)} className="hidden" id={`img-${opt.id}`} />
-                                <label htmlFor={`img-${opt.id}`} className="cursor-pointer inline-flex items-center gap-1 px-2 py-1 bg-surface border border-border text-accent-primary font-semibold text-[10px] rounded hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors">
-                                  Add Image
-                                </label>
-                                {opt.img && (
-                                  <div className="relative group">
-                                    <img src={opt.img} alt="Preview" className="h-6 rounded border border-border object-contain" />
-                                    <button type="button" onClick={() => opt.setImg(null)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-3 h-3 flex items-center justify-center text-[8px]">✕</button>
-                                  </div>
-                                )}
-                              </div>
                             </div>
                           ))}
                         </div>
                       </div>
 
                       {/* Correct answer section */}
-                      <div className="bg-surface border border-border rounded-xl p-4 shadow-sm">
-                        <div className="flex items-center gap-1.5 mb-3">
+                      <div className="space-y-2 pt-2 border-t border-border">
+                        <div className="flex items-center gap-1.5 mb-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
                           <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Correct Answer</label>
                         </div>
@@ -649,17 +650,33 @@ export default function Step3Questions({
                       </div>
                     </>
                   ) : (
-                    <div className="bg-surface border border-border rounded-xl p-4 shadow-sm space-y-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
-                        <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Correct Numerical Answer</label>
+                    <div className="space-y-3 pt-2 border-t border-border">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
+                          <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Correct Numerical Answer</label>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowNatFormula(!showNatFormula)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                            showNatFormula
+                              ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
+                              : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
+                          }`}
+                        >
+                          <Sigma size={11} />
+                          {showNatFormula ? 'Hide Formula' : 'Formula'}
+                        </button>
                       </div>
-                      <FormulaToolbar
-                        compact
-                        onInsert={(latex) =>
-                          insertAtCursor(natRef, setNatAnswer, natAnswer, latex)
-                        }
-                      />
+                      {showNatFormula && (
+                        <FormulaToolbar
+                          compact
+                          onInsert={(latex) =>
+                            insertAtCursor(natRef, setNatAnswer, natAnswer, latex)
+                          }
+                        />
+                      )}
                       <textarea
                         ref={(el) => { (natRef as any).current = el; autoGrow(el); }}
                         rows={1}
@@ -667,8 +684,9 @@ export default function Step3Questions({
                         onChange={(e) => { setNatAnswer(e.target.value); autoGrow(e.target); }}
                         required
                         className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/15 text-sm font-medium transition-shadow resize-none overflow-hidden whitespace-pre-wrap break-words"
+                        placeholder="e.g. 42.5 or \sqrt{2}"
                       />
-                      {natAnswer && (
+                      {showNatFormula && natAnswer && (
                         <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg">
                           <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Preview</p>
                           <MathRenderer text={natAnswer} className="text-sm text-text-main" />

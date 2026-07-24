@@ -134,7 +134,7 @@ export function useExamDetailPage(paramsId: string) {
   const [optCImg, setOptCImg] = useState<string | null>(null);
   const [optD, setOptD] = useState('');
   const [optDImg, setOptDImg] = useState<string | null>(null);
-  const [correctAnswer, setCorrectAnswer] = useState('A');
+  const [correctAnswer, setCorrectAnswer] = useState('');
   const [natAnswer, setNatAnswer] = useState('');
 
   const [generatingPDF, setGeneratingPDF] = useState(false);
@@ -213,7 +213,7 @@ export function useExamDetailPage(paramsId: string) {
           setOptCImg(draft.optCImg || null);
           setOptD(draft.optD || '');
           setOptDImg(draft.optDImg || null);
-          setCorrectAnswer(draft.correctAnswer || 'A');
+          setCorrectAnswer(draft.correctAnswer || '');
           setNatAnswer(draft.natAnswer || '');
           setDrawerError('');
         } catch (e) {
@@ -249,7 +249,7 @@ export function useExamDetailPage(paramsId: string) {
     setQType('mcq'); setQText(''); setQImage(null);
     setOptA(''); setOptAImg(null); setOptB(''); setOptBImg(null);
     setOptC(''); setOptCImg(null); setOptD(''); setOptDImg(null);
-    setCorrectAnswer('A'); setNatAnswer(''); setDrawerError('');
+    setCorrectAnswer(''); setNatAnswer(''); setDrawerError('');
     if (typeof window !== 'undefined' && drawerSubjectId) {
       window.localStorage.removeItem(`exam-question-draft-${paramsId}-${drawerSubjectId}`);
     }
@@ -277,7 +277,7 @@ export function useExamDetailPage(paramsId: string) {
             setOptB(draft.optB || ''); setOptBImg(draft.optBImg || null);
             setOptC(draft.optC || ''); setOptCImg(draft.optCImg || null);
             setOptD(draft.optD || ''); setOptDImg(draft.optDImg || null);
-            setCorrectAnswer(draft.correctAnswer || 'A');
+            setCorrectAnswer(draft.correctAnswer || '');
             setNatAnswer(draft.natAnswer || '');
             restored = true;
           } catch (e) {
@@ -289,7 +289,7 @@ export function useExamDetailPage(paramsId: string) {
         setQType('mcq'); setQText(''); setQImage(null);
         setOptA(''); setOptAImg(null); setOptB(''); setOptBImg(null);
         setOptC(''); setOptCImg(null); setOptD(''); setOptDImg(null);
-        setCorrectAnswer('A'); setNatAnswer('');
+        setCorrectAnswer(''); setNatAnswer('');
       }
       setEditingQuestionId(null);
     }
@@ -319,7 +319,7 @@ export function useExamDetailPage(paramsId: string) {
           setOptCImg(draft.optCImg || null);
           setOptD(draft.optD || '');
           setOptDImg(draft.optDImg || null);
-          setCorrectAnswer(draft.correctAnswer || 'A');
+          setCorrectAnswer(draft.correctAnswer || '');
           setNatAnswer(draft.natAnswer || '');
           setDrawerError('');
           return;
@@ -356,7 +356,7 @@ export function useExamDetailPage(paramsId: string) {
       const isDefault = qType === 'mcq' && qText === '' && qImage === null &&
         optA === '' && optAImg === null && optB === '' && optBImg === null &&
         optC === '' && optCImg === null && optD === '' && optDImg === null &&
-        correctAnswer === 'A' && natAnswer === '';
+        correctAnswer === '' && natAnswer === '';
 
       const key = `exam-question-draft-${paramsId}-${drawerSubjectId}`;
       if (isDefault) {
@@ -465,7 +465,7 @@ export function useExamDetailPage(paramsId: string) {
       setOptB(q.options?.B || ''); setOptBImg(q.options?.B_image || null);
       setOptC(q.options?.C || ''); setOptCImg(q.options?.C_image || null);
       setOptD(q.options?.D || ''); setOptDImg(q.options?.D_image || null);
-      setCorrectAnswer(q.correct_option || 'A'); setNatAnswer('');
+      setCorrectAnswer(q.correct_option || ''); setNatAnswer('');
     } else {
       setNatAnswer(q.correct_option || '');
     }
