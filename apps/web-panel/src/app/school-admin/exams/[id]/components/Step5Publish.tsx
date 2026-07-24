@@ -293,24 +293,33 @@ export default function Step5Publish({
     subjects.length === 0 ? 'Add at least one subject' : null,
   ].filter(Boolean) as string[];
 
-  const incompleteSubjects = subjects
-    .filter((subject) => (questionCounts[subject.id] || 0) < subject.question_count)
-    .map((subject) => {
-      const added = questionCounts[subject.id] || 0;
-      return `${subject.subject_name}: ${added}/${subject.question_count} questions`;
-    });
+  const subjectDetails = subjects.map((s) => {
+    const added = questionCounts[s.id] || 0;
+    const needed = s.question_count || 0;
+    if (added === needed) {
+      return `${s.subject_name}: ${added}/${needed} (Complete)`;
+    }
+    if (added > needed) {
+      return `${s.subject_name}: ${added}/${needed} (${added - needed} extra question${added - needed > 1 ? 's' : ''})`;
+    }
+    return `${s.subject_name}: ${added}/${needed} (Missing ${needed - added} question${needed - added > 1 ? 's' : ''})`;
+  });
+
+  const hasSubjectWarnings = subjects.some((s) => (questionCounts[s.id] || 0) > s.question_count);
 
   const requirements = [
     {
       step: 1,
       title: 'Setup',
       complete: isSetupComplete,
+      warn: false,
       details: setupMissing.length > 0 ? setupMissing : ['Complete'],
     },
     {
       step: 2,
       title: 'Students',
       complete: isStudentsComplete,
+      warn: false,
       details: isStudentsComplete
         ? [`${assignedStudentsCount} assigned`]
         : ['Assign students'],
@@ -319,16 +328,16 @@ export default function Step5Publish({
       step: 3,
       title: 'Questions',
       complete: isQuestionsComplete,
-      details: isQuestionsComplete
-        ? ['Complete']
-        : subjects.length === 0
-          ? ['Add subjects']
-          : incompleteSubjects,
+      warn: hasSubjectWarnings,
+      details: subjects.length === 0
+        ? ['Add subjects']
+        : subjectDetails,
     },
     {
       step: 4,
       title: 'Schedule',
       complete: isScheduleComplete,
+      warn: false,
       details: isScheduleComplete
         ? ['Complete']
         : [
@@ -698,24 +707,30 @@ export default function Step5Publish({
           </div>
 
           <div className="space-y-4">
-            {requirements.map((item) => (
+            {requirements.map((item, idx) => (
               <button
-                key={item.title}
+                key={`${item.title}-${idx}`}
                 type="button"
                 onClick={() => onNavigateToStep(item.step)}
                 className="w-full border-b border-border/70 pb-4 text-left transition-colors hover:bg-bg/40 last:border-b-0 last:pb-0"
               >
                 <div className="flex items-start gap-3">
-                  {item.complete ? (
+                  {item.warn ? (
+                    <AlertCircle className="mt-0.5 shrink-0 text-amber-500" size={18} />
+                  ) : item.complete ? (
                     <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-600" size={18} />
                   ) : (
                     <AlertCircle className="mt-0.5 shrink-0 text-red-600" size={18} />
                   )}
                   <div className="min-w-0">
-                    <p className={`text-sm font-bold ${item.complete ? 'text-emerald-700' : 'text-red-700'}`}>
+                    <p className={`text-sm font-bold ${
+                      item.warn ? 'text-amber-600' : item.complete ? 'text-emerald-700' : 'text-red-700'
+                    }`}>
                       {item.title}
                     </p>
-                    <ul className={`mt-1 space-y-1 text-xs font-semibold ${item.complete ? 'text-emerald-700/85' : 'text-red-700/90'}`}>
+                    <ul className={`mt-1 space-y-1 text-xs font-semibold ${
+                      item.warn ? 'text-amber-600/90' : item.complete ? 'text-emerald-700/85' : 'text-red-700/90'
+                    }`}>
                       {item.details.map((detail) => (
                         <li key={detail}>{detail}</li>
                       ))}
