@@ -185,6 +185,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setNatCorrect,
     natWrong,
     setNatWrong,
+    msqCorrect,
+    setMsqCorrect,
+    msqPartial,
+    setMsqPartial,
+    msqWrong,
+    setMsqWrong,
+    msqPartialEnabled,
+    setMsqPartialEnabled,
+    msqEnabled,
+    setMsqEnabled,
     role,
     setRole,
     userId,
@@ -420,7 +430,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     });
 
     const rows = filtered.map((q, idx) => {
-      const isMcq = q.question_type === 'mcq';
+      const isMcq = q.question_type === 'mcq' || q.question_type === 'msq';
       return [
         idx + 1,
         q.question_type || '',
@@ -717,6 +727,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           <div className="absolute left-0 mt-2 w-40 bg-surface border border-border rounded-xl shadow-lg py-1 z-50 flex flex-col">
                             <button type="button" onClick={() => { setTypeFilter('all'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'all' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>All Types</button>
                             <button type="button" onClick={() => { setTypeFilter('mcq'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'mcq' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>MCQ</button>
+                            <button type="button" onClick={() => { setTypeFilter('msq'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'msq' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>MSQ</button>
                             <button type="button" onClick={() => { setTypeFilter('nat'); setIsTypeFilterOpen(false); }} className={`px-4 py-2 text-left text-xs font-semibold hover:bg-surface-hover border-none bg-transparent cursor-pointer ${typeFilter === 'nat' ? 'text-accent-primary bg-accent-primary/5' : 'text-text-main'}`}>NAT</button>
                           </div>
                         </>
@@ -867,6 +878,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               drawerFormLoading={drawerFormLoading}
               drawerError={drawerError}
               editingQuestionId={editingQuestionId}
+              msqEnabled={msqEnabled}
               qType={qType}
               setQType={setQType}
               qText={qText}
@@ -998,6 +1010,16 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setNatCorrect={setNatCorrect}
               natWrong={natWrong}
               setNatWrong={setNatWrong}
+              msqCorrect={msqCorrect}
+              setMsqCorrect={setMsqCorrect}
+              msqPartial={msqPartial}
+              setMsqPartial={setMsqPartial}
+              msqWrong={msqWrong}
+              setMsqWrong={setMsqWrong}
+              msqPartialEnabled={msqPartialEnabled}
+              setMsqPartialEnabled={setMsqPartialEnabled}
+              msqEnabled={msqEnabled}
+              setMsqEnabled={setMsqEnabled}
               instructionsList={instructionsList}
               updateInstructionItem={updateInstructionItem}
               addInstructionItem={addInstructionItem}
@@ -1974,7 +1996,19 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               >
                 <img
                   src={rawImageToCrop || undefined}
-                  onLoad={(e) => setImageRef(e.currentTarget)}
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    setImageRef(img);
+                    const defaultCrop: Crop = { unit: '%', x: 0, y: 0, width: 100, height: 100 };
+                    setCrop(defaultCrop);
+                    setCompletedCrop({
+                      unit: 'px',
+                      x: 0,
+                      y: 0,
+                      width: img.naturalWidth,
+                      height: img.naturalHeight,
+                    });
+                  }}
                   alt="Crop preview"
                   className="max-h-[60vh] object-contain"
                 />

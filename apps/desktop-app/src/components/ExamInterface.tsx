@@ -161,7 +161,21 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const currentQuestion = currentQuestions[currentQuestionIndex];
 
   const handleSelectOption = (qId: string, option: string) => {
-    setAnswers(prev => ({ ...prev, [qId]: { ...prev[qId], answer: option } }));
+    const isMsq = questions.find(q => q.id === qId)?.question_type === 'msq';
+    setAnswers(prev => {
+      if (!isMsq) {
+        return { ...prev, [qId]: { ...prev[qId], answer: option } };
+      }
+      const currentAns = prev[qId]?.answer || '';
+      let selected = currentAns ? currentAns.split(',') : [];
+      if (selected.includes(option)) {
+        selected = selected.filter(o => o !== option);
+      } else {
+        selected.push(option);
+      }
+      selected.sort();
+      return { ...prev, [qId]: { ...prev[qId], answer: selected.join(',') } };
+    });
   };
 
   const handleNatChange = (qId: string, val: string) => {
@@ -265,8 +279,45 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         const studentAns = answers[q.id]?.answer;
         const subIdx = subjects.findIndex(s => s.id === q.exam_subject_id);
         const section = sectionScores[subIdx];
-        if (studentAns === null || studentAns === '') {
+
+        if (studentAns === null || studentAns === '' || studentAns === undefined) {
           section.unanswered++;
+        } else if (q.question_type === 'msq') {
+          const selectedOpts = String(studentAns).split(',').filter(Boolean).sort();
+          const correctOpts = String(q.correct_option).split(',').filter(Boolean).sort();
+          
+          let hasWrong = false;
+          let correctCount = 0;
+          selectedOpts.forEach(opt => {
+            if (correctOpts.includes(opt)) correctCount++;
+            else hasWrong = true;
+          });
+
+          const msqCorrect = exam?.marking_scheme?.msq_correct ?? 4;
+          const msqPartial = exam?.marking_scheme?.msq_partial ?? 1;
+          const msqWrong = exam?.marking_scheme?.msq_wrong ?? 0;
+          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? true;
+
+          if (hasWrong) {
+            section.wrong++;
+            section.marks += msqWrong;
+            finalScore += msqWrong;
+          } else if (correctCount === correctOpts.length) {
+            section.correct++;
+            section.marks += msqCorrect;
+            finalScore += msqCorrect;
+          } else {
+            if (msqPartialEnabled) {
+              section.correct++; // Consider partially correct as correct for count, or maybe a separate bucket. We'll count as correct for now, or just leave it.
+              const partialScore = msqPartial * correctCount;
+              section.marks += partialScore;
+              finalScore += partialScore;
+            } else {
+              section.wrong++;
+              section.marks += msqWrong;
+              finalScore += msqWrong;
+            }
+          }
         } else if (studentAns === q.correct_option) {
           section.correct++;
           section.marks += q.positive_marks ?? 4;
@@ -338,8 +389,37 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         const subIdx = subjects.findIndex(s => s.id === q.exam_subject_id);
         const section = sectionScores[subIdx];
 
-        if (studentAns === null || studentAns === '') {
+        if (studentAns === null || studentAns === '' || studentAns === undefined) {
           section.unanswered++;
+        } else if (q.question_type === 'msq') {
+          const selectedOpts = String(studentAns).split(',').filter(Boolean).sort();
+          const correctOpts = String(q.correct_option).split(',').filter(Boolean).sort();
+          
+          let hasWrong = false;
+          let correctCount = 0;
+          selectedOpts.forEach(opt => {
+            if (correctOpts.includes(opt)) correctCount++;
+            else hasWrong = true;
+          });
+
+          const msqCorrect = exam?.marking_scheme?.msq_correct ?? 4;
+          const msqPartial = exam?.marking_scheme?.msq_partial ?? 1;
+          const msqWrong = exam?.marking_scheme?.msq_wrong ?? -2;
+
+          if (hasWrong) {
+            section.wrong++;
+            section.marks += msqWrong;
+            finalScore += msqWrong;
+          } else if (correctCount === correctOpts.length) {
+            section.correct++;
+            section.marks += msqCorrect;
+            finalScore += msqCorrect;
+          } else {
+            section.correct++;
+            const partialScore = msqPartial * correctCount;
+            section.marks += partialScore;
+            finalScore += partialScore;
+          }
         } else if (studentAns === q.correct_option) {
           section.correct++;
           section.marks += q.positive_marks ?? 4;
@@ -571,10 +651,12 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                   })()}
                 </div>
 
-                {currentQuestion.question_type === 'mcq' && currentQuestion.options ? (
+                {(currentQuestion.question_type === 'mcq' || currentQuestion.question_type === 'msq') && currentQuestion.options ? (
                   <div className="space-y-3 max-w-2xl mt-8">
                     {['A', 'B', 'C', 'D'].map((opt) => {
-                      const selected = answers[currentQuestion.id]?.answer === opt;
+                      const isMsq = currentQuestion.question_type === 'msq';
+                      const currentAns = answers[currentQuestion.id]?.answer || '';
+                      const selected = isMsq ? currentAns.split(',').includes(opt) : currentAns === opt;
                       return (
                         <label
                           key={opt}
@@ -585,11 +667,11 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                           }`}
                         >
                           <input
-                            type="radio"
+                            type={isMsq ? "checkbox" : "radio"}
                             name={`q_${currentQuestion.id}`}
                             checked={selected}
                             onChange={() => handleSelectOption(currentQuestion.id, opt)}
-                            className="w-4 h-4 text-[#008080] border-[#E4E7EC] focus:ring-[#008080] cursor-pointer mt-1"
+                            className={`w-4 h-4 text-[#008080] border-[#E4E7EC] focus:ring-[#008080] cursor-pointer mt-1 ${isMsq ? 'rounded' : ''}`}
                           />
                           <span className="flex items-start gap-3 font-serif text-[14px] w-full">
                             <span className="font-bold mt-0.5">({opt})</span>

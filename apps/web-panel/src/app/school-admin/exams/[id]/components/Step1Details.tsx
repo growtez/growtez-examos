@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2, Check, BookOpen, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, BookOpen, ChevronDown, Info, AlertCircle } from 'lucide-react';
 
 /**
  * A single-line-looking field that wraps text and grows its height
@@ -110,6 +110,16 @@ interface Step1DetailsProps {
   setNatCorrect: (val: number | string) => void;
   natWrong: number | string;
   setNatWrong: (val: number | string) => void;
+  msqCorrect: number | string;
+  setMsqCorrect: (val: number | string) => void;
+  msqPartial: number | string;
+  setMsqPartial: (val: number | string) => void;
+  msqWrong: number | string;
+  setMsqWrong: (val: number | string) => void;
+  msqPartialEnabled: boolean;
+  setMsqPartialEnabled: (val: boolean) => void;
+  msqEnabled: boolean;
+  setMsqEnabled: (val: boolean) => void;
   instructionsList: string[];
   updateInstructionItem: (index: number, value: string) => void;
   addInstructionItem: () => void;
@@ -122,6 +132,11 @@ interface Step1DetailsProps {
     mcqWrong?: number | string,
     natCorrect?: number | string,
     natWrong?: number | string,
+    msqCorrect?: string | number,
+    msqPartial?: string | number,
+    msqWrong?: string | number,
+    msqPartialEnabled?: boolean,
+    msqEnabled?: boolean,
     instructionsList?: string[]
   ) => void;
   setShowInstructionPreview: (val: boolean) => void;
@@ -171,6 +186,16 @@ export default function Step1Details({
   setNatCorrect,
   natWrong,
   setNatWrong,
+  msqCorrect,
+  setMsqCorrect,
+  msqPartial,
+  setMsqPartial,
+  msqWrong,
+  setMsqWrong,
+  msqPartialEnabled,
+  setMsqPartialEnabled,
+  msqEnabled,
+  setMsqEnabled,
   instructionsList,
   updateInstructionItem,
   addInstructionItem,
@@ -208,6 +233,44 @@ export default function Step1Details({
     setExpandedCards({ details: next, marking: next, subjects: next, instructions: next });
   };
 
+  useEffect(() => {
+    if (showStep1Errors) {
+      setExpandedCards({ details: true, marking: true, subjects: true, instructions: true });
+
+      setTimeout(() => {
+        let targetEl: HTMLElement | null = null;
+        if (!title.trim()) {
+          targetEl = document.getElementById('exam-title-input');
+        } else if (durationMinutes < 1) {
+          targetEl = document.getElementById('exam-duration-input');
+        } else if (String(mcqCorrect).trim() === '') {
+          targetEl = document.getElementById('mcq-correct-input');
+        } else if (String(mcqWrong).trim() === '') {
+          targetEl = document.getElementById('mcq-wrong-input');
+        } else if (String(natCorrect).trim() === '') {
+          targetEl = document.getElementById('nat-correct-input');
+        } else if (String(natWrong).trim() === '') {
+          targetEl = document.getElementById('nat-wrong-input');
+        } else if (msqEnabled && String(msqCorrect).trim() === '') {
+          targetEl = document.getElementById('msq-correct-input');
+        } else if (msqEnabled && String(msqWrong).trim() === '') {
+          targetEl = document.getElementById('msq-wrong-input');
+        } else if (msqEnabled && msqPartialEnabled && String(msqPartial).trim() === '') {
+          targetEl = document.getElementById('msq-partial-input');
+        } else if (subjects.length === 0) {
+          targetEl = document.getElementById('subjects-section-card');
+        }
+
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if ('focus' in targetEl && typeof targetEl.focus === 'function') {
+            targetEl.focus();
+          }
+        }
+      }, 150);
+    }
+  }, [showStep1Errors, title, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqWrong, msqPartial, msqEnabled, msqPartialEnabled, subjects.length]);
+
   return (
     <form
       onSubmit={(e) => {
@@ -219,6 +282,12 @@ export default function Step1Details({
       {isReadOnly && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-600">
           This exam is published — details are read-only.
+        </div>
+      )}
+      {showStep1Errors && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 flex items-center gap-3 text-xs font-semibold text-red-600 shadow-sm animate-pulse">
+          <AlertCircle size={18} className="shrink-0 text-red-500" />
+          <span>Please fill in all required fields marked in red (and add at least 1 subject) before proceeding.</span>
         </div>
       )}
       <div className="sm:hidden flex justify-end">
@@ -242,14 +311,17 @@ export default function Step1Details({
           <div className="space-y-2">
             <div>
               <label className="block text-xs font-semibold text-text-muted mb-1">Title *</label>
-              <AutoGrowInput
+              <input
+                id="exam-title-input"
+                type="text"
                 value={title}
-                onChange={(newTitle) => {
+                onChange={(e) => {
+                  const newTitle = e.target.value;
                   setTitle(newTitle);
                   setExam((prev: any) => (prev ? { ...prev, title: newTitle } : null));
                   window.dispatchEvent(new CustomEvent('breadcrumb-update', { detail: { id: paramsId, title: newTitle } }));
                 }}
-                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
+                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
                 required
                 className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && title.trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
               />
@@ -259,13 +331,14 @@ export default function Step1Details({
               <AutoGrowInput
                 value={description}
                 onChange={setDescription}
-                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
+                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
                 className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal min-h-[3.5rem] shadow-sm hover:shadow"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-text-muted mb-1">Duration (minutes) *</label>
               <input
+                id="exam-duration-input"
                 type="number"
                 value={durationMinutes === 0 ? '' : durationMinutes}
                 onChange={(e) => {
@@ -278,7 +351,7 @@ export default function Step1Details({
                     setEndTime(endString);
                   }
                 }}
-                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
+                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
                 min={1}
                 required
                 className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && durationMinutes < 1 ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
@@ -294,60 +367,165 @@ export default function Step1Details({
           onToggle={() => toggleCard('marking')}
           className="order-2"
         >
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-            <div>
-              <label className="block text-[11px] font-semibold text-text-muted mb-1">MCQ Correct</label>
-              <input
-                type="number"
-                step="any"
-                value={mcqCorrect}
-                onChange={(e) => setMcqCorrect(e.target.value)}
-                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && String(mcqCorrect).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
-              />
+          <div className="flex flex-col gap-4">
+            {/* MCQ Section */}
+            <div className="bg-surface border border-border rounded-lg p-3 flex items-center gap-2 sm:gap-4">
+              <h4 className="text-xs font-bold text-text-main shrink-0">MCQ</h4>
+              <div className="flex-1 grid grid-cols-2 gap-2 sm:gap-4">
+                <div className={`relative border ${showStep1Errors && String(mcqCorrect).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-md focus-within:border-accent-primary focus-within:ring-1 focus-within:ring-accent-primary/20 transition-all shadow-sm bg-bg`}>
+                  <label className="absolute -top-2 left-2 bg-surface px-1 text-[10px] font-semibold text-text-muted whitespace-nowrap z-10 pointer-events-none">Correct (+)</label>
+                  <input
+                    id="mcq-correct-input"
+                    type="number"
+                    step="any"
+                    value={mcqCorrect}
+                    onChange={(e) => setMcqCorrect(e.target.value)}
+                    onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                    className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
+                  />
+                </div>
+                <div className={`relative border ${showStep1Errors && String(mcqWrong).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-md focus-within:border-accent-primary focus-within:ring-1 focus-within:ring-accent-primary/20 transition-all shadow-sm bg-bg`}>
+                  <label className="absolute -top-2 left-2 bg-surface px-1 text-[10px] font-semibold text-text-muted whitespace-nowrap z-10 pointer-events-none">Wrong (-)</label>
+                  <input
+                    id="mcq-wrong-input"
+                    type="number"
+                    step="any"
+                    value={mcqWrong}
+                    onChange={(e) => setMcqWrong(e.target.value)}
+                    onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                    className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-text-muted mb-1">MCQ Wrong (-)</label>
-              <input
-                type="number"
-                step="any"
-                value={mcqWrong}
-                onChange={(e) => setMcqWrong(e.target.value)}
-                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && String(mcqWrong).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
-              />
+
+            {/* NAT Section */}
+            <div className="bg-surface border border-border rounded-lg p-3 flex items-center gap-2 sm:gap-4">
+              <h4 className="text-xs font-bold text-text-main shrink-0">NAT</h4>
+              <div className="flex-1 grid grid-cols-2 gap-2 sm:gap-4">
+                <div className={`relative border ${showStep1Errors && String(natCorrect).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-md focus-within:border-accent-primary focus-within:ring-1 focus-within:ring-accent-primary/20 transition-all shadow-sm bg-bg`}>
+                  <label className="absolute -top-2 left-2 bg-surface px-1 text-[10px] font-semibold text-text-muted whitespace-nowrap z-10 pointer-events-none">Correct (+)</label>
+                  <input
+                    id="nat-correct-input"
+                    type="number"
+                    step="any"
+                    value={natCorrect}
+                    onChange={(e) => setNatCorrect(e.target.value)}
+                    onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                    className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
+                  />
+                </div>
+                <div className={`relative border ${showStep1Errors && String(natWrong).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-md focus-within:border-accent-primary focus-within:ring-1 focus-within:ring-accent-primary/20 transition-all shadow-sm bg-bg`}>
+                  <label className="absolute -top-2 left-2 bg-surface px-1 text-[10px] font-semibold text-text-muted whitespace-nowrap z-10 pointer-events-none">Wrong (-)</label>
+                  <input
+                    id="nat-wrong-input"
+                    type="number"
+                    step="any"
+                    value={natWrong}
+                    onChange={(e) => setNatWrong(e.target.value)}
+                    onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                    className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-text-muted mb-1">NAT Correct</label>
-              <input
-                type="number"
-                step="any"
-                value={natCorrect}
-                onChange={(e) => setNatCorrect(e.target.value)}
-                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && String(natCorrect).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-text-muted mb-1">NAT Wrong (-)</label>
-              <input
-                type="number"
-                step="any"
-                value={natWrong}
-                onChange={(e) => setNatWrong(e.target.value)}
-                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
-                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && String(natWrong).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
-              />
+
+            {/* MSQ Section */}
+            <div className="bg-surface border border-border rounded-lg p-3 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={msqEnabled}
+                    onChange={(e) => {
+                      setMsqEnabled(e.target.checked);
+                      autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, e.target.checked, instructionsList);
+                    }}
+                    className="w-4 h-4 text-accent-primary rounded border-border focus:ring-accent-primary cursor-pointer"
+                  />
+                  <h4 className="text-xs font-bold text-text-main select-none">MSQ</h4>
+                </label>
+
+                <label className={`flex items-center gap-2 cursor-pointer transition-opacity ${!msqEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={msqPartialEnabled}
+                    onChange={(e) => {
+                      setMsqPartialEnabled(e.target.checked);
+                      autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, e.target.checked, msqEnabled, instructionsList);
+                    }}
+                    disabled={!msqEnabled}
+                    className="w-3.5 h-3.5 text-accent-primary rounded border-border focus:ring-accent-primary cursor-pointer"
+                  />
+                  <span className="text-[11px] font-semibold text-text-muted select-none">Partial Marking</span>
+                </label>
+              </div>
+
+              <div className={`transition-opacity ${!msqEnabled ? 'opacity-50 pointer-events-none' : ''} space-y-3`}>
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 pt-1">
+                  <div className={`relative border ${showStep1Errors && msqEnabled && String(msqCorrect).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} ${!msqEnabled ? 'bg-gray-50' : 'bg-bg'} rounded-md focus-within:border-accent-primary focus-within:ring-1 focus-within:ring-accent-primary/20 transition-all shadow-sm`}>
+                    <label className="absolute -top-2 left-2 bg-surface px-1 text-[10px] font-semibold text-text-muted whitespace-nowrap z-10 pointer-events-none">Full (+)</label>
+                    <input
+                      id="msq-correct-input"
+                      type="number"
+                      step="any"
+                      value={msqCorrect}
+                      onChange={(e) => setMsqCorrect(e.target.value)}
+                      onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                      disabled={!msqEnabled}
+                      className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
+                    />
+                  </div>
+                  <div className={`relative border ${showStep1Errors && msqEnabled && String(msqWrong).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} ${!msqEnabled ? 'bg-gray-50' : 'bg-bg'} rounded-md focus-within:border-accent-primary focus-within:ring-1 focus-within:ring-accent-primary/20 transition-all shadow-sm`}>
+                    <label className="absolute -top-2 left-2 bg-surface px-1 text-[10px] font-semibold text-text-muted whitespace-nowrap z-10 pointer-events-none">Wrong (-)</label>
+                    <input
+                      id="msq-wrong-input"
+                      type="number"
+                      step="any"
+                      value={msqWrong}
+                      onChange={(e) => setMsqWrong(e.target.value)}
+                      onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                      disabled={!msqEnabled}
+                      className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-1">
+                  <div className={`relative border ${showStep1Errors && msqEnabled && msqPartialEnabled && String(msqPartial).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} ${!msqEnabled || !msqPartialEnabled ? 'opacity-50 bg-gray-50' : 'bg-bg'} rounded-md focus-within:border-accent-primary focus-within:ring-1 focus-within:ring-accent-primary/20 transition-all shadow-sm`}>
+                    <label className="absolute -top-2 left-2 bg-surface px-1 text-[10px] font-semibold text-text-muted whitespace-nowrap z-10 flex items-center gap-1">
+                      <span>Partial (+)</span>
+                      <span 
+                        className="cursor-pointer pointer-events-auto"
+                        title="• 1 correct → +1 mark&#10;• 2 correct → +2 marks&#10;• All correct → Full Marks&#10;• Any wrong → Wrong Marks"
+                      >
+                        <Info className="w-3 h-3 text-text-muted hover:text-accent-primary transition-colors" />
+                      </span>
+                    </label>
+                    <input
+                      id="msq-partial-input"
+                      type="number"
+                      step="any"
+                      value={msqPartial}
+                      onChange={(e) => setMsqPartial(e.target.value)}
+                      onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                      disabled={!msqEnabled || !msqPartialEnabled}
+                      className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </CollapsibleCard>
 
         {/* Subjects (Step 1 Position) */}
-        <CollapsibleCard
-          title="Subjects"
+        <div id="subjects-section-card" className="lg:col-span-2 order-3">
+          <CollapsibleCard
+            title="Subjects"
           expanded={expandedCards.subjects}
           onToggle={() => toggleCard('subjects')}
-          className="lg:col-span-2 order-3 mb-4"
+          className="mb-4"
           headerExtra={
             <button
               type="button"
@@ -361,8 +539,29 @@ export default function Step1Details({
             </button>
           }
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {subjects.map((s) => {
+          {subjects.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 px-4 text-center bg-bg/50 border border-dashed border-border rounded-xl">
+              <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-2">
+                <AlertCircle size={20} className="text-amber-500" />
+              </div>
+              <p className="text-xs font-bold text-text-main mb-1">No Subjects Added Yet</p>
+              <p className="text-[11px] text-text-muted max-w-xs mb-3">
+                Click below to add your first subject to this exam.
+              </p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowAddSubjectModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent-primary text-white text-xs font-bold hover:bg-accent-primary/90 transition-all shadow-sm cursor-pointer active:scale-95"
+              >
+                <Plus size={14} /> Add Subject Now
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {subjects.map((s) => {
               const added = questionCounts[s.id] || 0;
               const needed = s.question_count;
               const complete = added >= needed;
@@ -440,14 +639,16 @@ export default function Step1Details({
               );
             })}
           </div>
+          )}
         </CollapsibleCard>
+      </div>
 
         {/* Exam Instructions */}
         <CollapsibleCard
           title="Exam Instructions"
           expanded={expandedCards.instructions}
           onToggle={() => toggleCard('instructions')}
-          className="order-3 lg:col-span-2"
+          className="order-4 lg:col-span-2"
           headerExtra={
             <div className="flex items-center gap-4">
               <button
@@ -486,7 +687,7 @@ export default function Step1Details({
                 <AutoGrowInput
                   value={inst}
                   onChange={(val) => updateInstructionItem(index, val)}
-                  onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, instructionsList)}
+                  onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
                   placeholder="e.g. Do not close browser..."
                   className="flex-1 min-w-0 px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
                 />

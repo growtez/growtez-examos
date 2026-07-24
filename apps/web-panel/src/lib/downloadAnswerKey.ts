@@ -92,7 +92,32 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
       
       let marksAwarded = 0;
       if (studentAns !== undefined && studentAns !== null && studentAns !== '') {
-        if (String(studentAns).trim().toLowerCase() === String(correctAns).trim().toLowerCase()) {
+        if (q.question_type === 'msq') {
+          const selectedOpts = String(studentAns).split(',').filter(Boolean).sort();
+          const correctOpts = String(q.correct_option).split(',').filter(Boolean).sort();
+          let hasWrong = false;
+          let correctCount = 0;
+          selectedOpts.forEach(opt => {
+            if (correctOpts.includes(opt)) correctCount++;
+            else hasWrong = true;
+          });
+          const msqCorrect = exam?.marking_scheme?.msq_correct ?? 4;
+          const msqPartial = exam?.marking_scheme?.msq_partial ?? 1;
+          const msqWrong = exam?.marking_scheme?.msq_wrong ?? 0;
+          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? true;
+
+          if (hasWrong) {
+            marksAwarded = msqWrong;
+          } else if (correctCount === correctOpts.length) {
+            marksAwarded = msqCorrect;
+          } else {
+            if (msqPartialEnabled) {
+              marksAwarded = msqPartial * correctCount;
+            } else {
+              marksAwarded = msqWrong;
+            }
+          }
+        } else if (String(studentAns).trim().toLowerCase() === String(correctAns).trim().toLowerCase()) {
           marksAwarded = q.positive_marks || q.marks || 1;
         } else {
           marksAwarded = q.negative_marks ? -Math.abs(q.negative_marks) : (q.question_type === 'mcq' ? -1 : 0);
@@ -137,8 +162,12 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
           
           if (!val && !imgVal) return;
           
-          const isCorrect = String(correctAns).trim().toUpperCase() === key;
-          const isStudentAns = studentAns !== undefined && studentAns !== null && String(studentAns).trim().toUpperCase() === key;
+          const isCorrect = q.question_type === 'msq'
+            ? String(correctAns).trim().toUpperCase().split(',').includes(key)
+            : String(correctAns).trim().toUpperCase() === key;
+          const isStudentAns = q.question_type === 'msq'
+            ? studentAns !== undefined && studentAns !== null && String(studentAns).trim().toUpperCase().split(',').includes(key)
+            : studentAns !== undefined && studentAns !== null && String(studentAns).trim().toUpperCase() === key;
           const isWrong = isStudentAns && !isCorrect;
 
           let boxStyle = `
