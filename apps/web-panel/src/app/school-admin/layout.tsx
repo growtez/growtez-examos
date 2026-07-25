@@ -47,12 +47,7 @@ export default function SchoolAdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth >= 768;
-    }
-    return false;
-  });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [role, setRole] = useState<string | null>(null);
@@ -129,25 +124,29 @@ export default function SchoolAdminLayout({
 
   useEffect(() => {
     const fetchBreadcrumbName = async () => {
-      const segments = pathname?.split('/').filter(Boolean) || [];
-      const lastSegment = segments[segments.length - 1];
-      
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lastSegment);
-      
-      if (isUUID && !breadcrumbNames[lastSegment]) {
-         const type = segments[segments.length - 2];
-         const supabase = createClient();
-         
-         if (type === 'exams' || type === 'results') {
-            const { data } = await supabase.from('exams').select('title').eq('id', lastSegment).single();
-            if (data?.title) setBreadcrumbNames(prev => ({...prev, [lastSegment]: data.title}));
-         } else if (type === 'teachers') {
-            const { data } = await supabase.from('teachers').select('full_name').eq('id', lastSegment).single();
-            if (data?.full_name) setBreadcrumbNames(prev => ({...prev, [lastSegment]: data.full_name}));
-         } else if (type === 'students') {
-            const { data } = await supabase.from('students').select('full_name').eq('id', lastSegment).single();
-            if (data?.full_name) setBreadcrumbNames(prev => ({...prev, [lastSegment]: data.full_name}));
-         }
+      try {
+        const segments = pathname?.split('/').filter(Boolean) || [];
+        const lastSegment = segments[segments.length - 1];
+        
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lastSegment);
+        
+        if (isUUID && !breadcrumbNames[lastSegment]) {
+           const type = segments[segments.length - 2];
+           const supabase = createClient();
+           
+           if (type === 'exams' || type === 'results') {
+              const { data } = await supabase.from('exams').select('title').eq('id', lastSegment).single();
+              if (data?.title) setBreadcrumbNames(prev => ({...prev, [lastSegment]: data.title}));
+           } else if (type === 'teachers') {
+              const { data } = await supabase.from('teachers').select('full_name').eq('id', lastSegment).single();
+              if (data?.full_name) setBreadcrumbNames(prev => ({...prev, [lastSegment]: data.full_name}));
+           } else if (type === 'students') {
+              const { data } = await supabase.from('students').select('full_name').eq('id', lastSegment).single();
+              if (data?.full_name) setBreadcrumbNames(prev => ({...prev, [lastSegment]: data.full_name}));
+           }
+        }
+      } catch (err) {
+        console.warn('Failed to fetch breadcrumb title:', err);
       }
     };
     setSaveStatus('idle');
@@ -180,6 +179,9 @@ export default function SchoolAdminLayout({
   }, [pathname]);
 
   useEffect(() => {
+    if (window.innerWidth >= 768) {
+      setSidebarOpen(true);
+    }
     const handleResize = () => {
       if (window.innerWidth < 768) {
         setSidebarOpen(false);
@@ -191,63 +193,72 @@ export default function SchoolAdminLayout({
 
   useEffect(() => {
     const fetchUser = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        let currentRole = user.user_metadata?.role;
-        let schoolId = user.user_metadata?.school_id || user.user_metadata?.schoolId;
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.auth.getUser();
+        if (error) {
+          console.warn('Supabase auth user check returned error:', error.message);
+          return;
+        }
+        const user = data?.user;
+        if (user) {
+          let currentRole = user.user_metadata?.role;
+          let schoolId = user.user_metadata?.school_id || user.user_metadata?.schoolId;
 
-        if (!currentRole || !schoolId) {
-          // Check if they are a school admin
-          const { data: adminProfile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
-          if (adminProfile) {
-            currentRole = 'school_admin';
-            schoolId = adminProfile.school_id;
-          } else {
-            // Check if they are a teacher
-            const { data: teacherProfile } = await supabase.from('teachers').select('school_id').eq('id', user.id).single();
-            if (teacherProfile) {
-              currentRole = 'teacher';
-              schoolId = teacherProfile.school_id;
+          if (!currentRole || !schoolId) {
+            // Check if they are a school admin
+            const { data: adminProfile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
+            if (adminProfile) {
+              currentRole = 'school_admin';
+              schoolId = adminProfile.school_id;
+            } else {
+              // Check if they are a teacher
+              const { data: teacherProfile } = await supabase.from('teachers').select('school_id').eq('id', user.id).single();
+              if (teacherProfile) {
+                currentRole = 'teacher';
+                schoolId = teacherProfile.school_id;
+              }
             }
           }
-        }
-        
-        const finalRole = currentRole || 'school_admin';
-        setRole(finalRole);
-        localStorage.setItem('user_role', finalRole);
+          
+          const finalRole = currentRole || 'school_admin';
+          setRole(finalRole);
+          localStorage.setItem('user_role', finalRole);
 
-        if (schoolId) {
-          const { data: school } = await supabase.from('schools').select('name, exam_credits, logo_url').eq('id', schoolId).single();
-          if (school) {
-            setSchoolName(school.name);
-            setTotalCredits(school.exam_credits || 0);
-            if (school.logo_url) setProfileImageUrl(school.logo_url);
+          if (schoolId) {
+            const { data: school } = await supabase.from('schools').select('name, exam_credits, logo_url').eq('id', schoolId).single();
+            if (school) {
+              setSchoolName(school.name);
+              setTotalCredits(school.exam_credits || 0);
+              if (school.logo_url) setProfileImageUrl(school.logo_url);
+            }
+          }
+
+          // Fetch notifications
+          let notifsQuery = supabase.from('system_notifications').select('*');
+          if (schoolId) {
+            notifsQuery = notifsQuery.or(`target_school_id.eq.${schoolId},target_school_id.is.null`);
+          } else {
+            notifsQuery = notifsQuery.is('target_school_id', null);
+          }
+          const { data: notifs } = await notifsQuery.order('created_at', { ascending: false });
+          if (notifs) {
+            // Filter out locally hidden notifications
+            const hiddenStr = localStorage.getItem('hidden_notifications');
+            const hiddenList: string[] = hiddenStr ? JSON.parse(hiddenStr) : [];
+            const visibleNotifs = notifs.filter(n => !hiddenList.includes(n.id));
+
+            setNotifications(visibleNotifs);
+            
+            // Use localStorage to track seen notifications
+            const lastSeenStr = localStorage.getItem('last_seen_notif_time');
+            const lastSeen = lastSeenStr ? new Date(lastSeenStr) : new Date(0);
+            const unread = visibleNotifs.filter(n => new Date(n.created_at) > lastSeen).length;
+            setUnreadNotifsCount(unread);
           }
         }
-
-        // Fetch notifications
-        let notifsQuery = supabase.from('system_notifications').select('*');
-        if (schoolId) {
-          notifsQuery = notifsQuery.or(`target_school_id.eq.${schoolId},target_school_id.is.null`);
-        } else {
-          notifsQuery = notifsQuery.is('target_school_id', null);
-        }
-        const { data: notifs } = await notifsQuery.order('created_at', { ascending: false });
-        if (notifs) {
-          // Filter out locally hidden notifications
-          const hiddenStr = localStorage.getItem('hidden_notifications');
-          const hiddenList: string[] = hiddenStr ? JSON.parse(hiddenStr) : [];
-          const visibleNotifs = notifs.filter(n => !hiddenList.includes(n.id));
-
-          setNotifications(visibleNotifs);
-          
-          // Use localStorage to track seen notifications
-          const lastSeenStr = localStorage.getItem('last_seen_notif_time');
-          const lastSeen = lastSeenStr ? new Date(lastSeenStr) : new Date(0);
-          const unread = visibleNotifs.filter(n => new Date(n.created_at) > lastSeen).length;
-          setUnreadNotifsCount(unread);
-        }
+      } catch (err) {
+        console.warn('Failed to fetch user session or notifications:', err);
       }
     };
     fetchUser();

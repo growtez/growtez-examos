@@ -41,6 +41,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
   const [timeLeft, setTimeLeft] = useState(getInitialTimeLeft());
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [showLegendModal, setShowLegendModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -602,7 +603,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                     <h2 className="text-lg font-bold text-[#1D2939]">Question {currentQuestion.question_number ?? (currentQuestionIndex + 1)}:</h2>
                   </div>
                   {currentQuestion.question_type && (
-                    <span className="font-sans text-xs font-bold text-[#008080] bg-[#EAF2F2] border border-[#008080] px-3 py-1 uppercase tracking-wider shadow-sm">
+                    <span className="font-sans text-s font-bold text-[#008080] bg-[#EAF2F2] border border-[#008080] px-3 py-1 uppercase tracking-wider shadow-sm">
                       {currentQuestion.question_type.toUpperCase()}
                     </span>
                   )}
@@ -786,7 +787,19 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         <aside className={`relative bg-[#F9FAFB] flex flex-col border-l border-[#E4E7EC] transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-[300px]' : 'w-0 border-l-0'}`}>
           <div className="w-[300px] h-full flex flex-col overflow-hidden shrink-0">
             {/* Legend Table */}
-            <div className="p-4 bg-[#F9FAFB] border-b border-[#E4E7EC]">
+            <div className="p-4 bg-[#F9FAFB] border-b border-[#E4E7EC] relative">
+              <div className="flex items-center justify-between mb-3 pb-1.5 border-b border-[#E4E7EC]/80">
+                <span className="text-[11px] font-extrabold text-[#1D2939] uppercase tracking-wider">Legend</span>
+                <button
+                  type="button"
+                  onClick={() => setShowLegendModal(true)}
+                  className="w-5 h-5 rounded-full bg-[#008080] hover:bg-[#006666] active:bg-[#004d4d] text-white flex items-center justify-center font-bold text-xs transition-all shadow-sm focus:outline-none cursor-pointer"
+                  title="Explain Color Codes"
+                  aria-label="Explain Color Codes"
+                >
+                  i
+                </button>
+              </div>
               <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-[11px] font-semibold text-[#1D2939]">
                 <div className="flex items-center gap-1.5">
                   <div className="w-8 h-7 bg-[#E4E7EC] text-[#667085] border border-[#D0D5DD] flex items-center justify-center rounded-none font-bold shadow-sm">
@@ -935,6 +948,112 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                 className="px-5 py-2.5 bg-[#008080] hover:bg-[#006666] text-white font-bold text-xs rounded-none transition-all uppercase shadow-sm"
               >
                 {submitting ? 'SUBMITTING...' : 'YES, SUBMIT'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Legend Info Modal */}
+      {showLegendModal && (
+        <div className="fixed inset-0 bg-[#1D2939]/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-[#E4E7EC] rounded-none w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-[#008080] px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-white/20 text-white flex items-center justify-center font-bold text-xs">
+                  i
+                </div>
+                <h3 className="text-sm font-extrabold text-white uppercase tracking-widest">Question Legend Guide</h3>
+              </div>
+              <button
+                onClick={() => setShowLegendModal(false)}
+                className="text-white/80 hover:text-white text-lg font-bold p-1 leading-none focus:outline-none cursor-pointer"
+                aria-label="Close"
+              >
+                &times;
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <p className="text-xs text-[#667085] leading-relaxed">
+                The question palette uses standard color codes to help you track your exam progress:
+              </p>
+
+              <div className="space-y-3.5 divide-y divide-[#E4E7EC]">
+                {/* Not Visited */}
+                <div className="pt-3.5 first:pt-0 flex items-start gap-3">
+                  <div className="w-9 h-8 bg-[#E4E7EC] text-[#667085] border border-[#D0D5DD] flex items-center justify-center rounded-none font-bold text-xs shadow-sm shrink-0 mt-0.5">
+                    01
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#1D2939] uppercase">Not Visited</h4>
+                    <p className="text-xs text-[#667085] mt-0.5 leading-relaxed">
+                      You have not visited or opened this question yet.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Not Answered */}
+                <div className="pt-3.5 flex items-start gap-3">
+                  <div className="w-9 h-8 bg-[#F04438] text-white flex items-center justify-center rounded-none font-bold text-xs shadow-sm shrink-0 mt-0.5">
+                    02
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#F04438] uppercase">Not Answered</h4>
+                    <p className="text-xs text-[#667085] mt-0.5 leading-relaxed">
+                      You have visited this question, but have not provided an answer.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Answered */}
+                <div className="pt-3.5 flex items-start gap-3">
+                  <div className="w-9 h-8 bg-[#22C55E] text-white flex items-center justify-center rounded-none font-bold text-xs shadow-sm shrink-0 mt-0.5">
+                    03
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#16A34A] uppercase">Answered</h4>
+                    <p className="text-xs text-[#667085] mt-0.5 leading-relaxed">
+                      You have answered this question. It will be evaluated for scoring.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Marked for Review */}
+                <div className="pt-3.5 flex items-start gap-3">
+                  <div className="w-9 h-8 bg-[#F59E0B] text-white flex items-center justify-center rounded-none font-bold text-xs shadow-sm shrink-0 mt-0.5">
+                    04
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#D97706] uppercase">Marked for Review</h4>
+                    <p className="text-xs text-[#667085] mt-0.5 leading-relaxed">
+                      You have marked this question for review without answering. <span className="font-semibold text-[#D97706]">(Will NOT be evaluated)</span>.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Answered & Marked for Review */}
+                <div className="pt-3.5 flex items-start gap-3">
+                  <div className="w-9 h-8 bg-[#F59E0B] text-white flex items-center justify-center rounded-none font-bold text-xs shadow-sm relative shrink-0 mt-0.5">
+                    <div className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 bg-[#22C55E] rounded-none border border-white"></div>
+                    05
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#D97706] uppercase">Answered &amp; Marked for Review</h4>
+                    <p className="text-xs text-[#667085] mt-0.5 leading-relaxed">
+                      You have answered the question and marked it for review. <span className="font-semibold text-[#16A34A]">(WILL be evaluated for scoring)</span>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-[#E4E7EC] p-4 bg-[#F9FAFB] flex justify-end">
+              <button
+                onClick={() => setShowLegendModal(false)}
+                className="px-6 py-2 bg-[#008080] hover:bg-[#006666] text-white font-bold text-xs rounded-none transition-all uppercase shadow-sm cursor-pointer"
+              >
+                GOT IT
               </button>
             </div>
           </div>

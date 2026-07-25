@@ -18,6 +18,7 @@ export const parseQuestionImages = (urlStr: string | null): string[] => {
 
 export function useExamDetailPage(paramsId: string) {
   const supabase = createClient();
+  const [mounted, setMounted] = useState(false);
   const [exam, setExam] = useState<any>(null);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -30,6 +31,10 @@ export function useExamDetailPage(paramsId: string) {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [currentStep, setCurrentStep] = useState(1);
   const [examFee, setExamFee] = useState<number | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Exam Form States
   const [title, setTitle] = useState('');
@@ -44,12 +49,13 @@ export function useExamDetailPage(paramsId: string) {
   const [msqWrong, setMsqWrong] = useState<number | string>(0);
   const [msqPartialEnabled, setMsqPartialEnabled] = useState<boolean>(false);
   const [msqEnabled, setMsqEnabled] = useState<boolean>(false);
-  const [role, setRole] = useState<string>(() => {
+  const [role, setRole] = useState<string>('school_admin');
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('user_role') || 'school_admin';
+      const savedRole = localStorage.getItem('user_role');
+      if (savedRole) setRole(savedRole);
     }
-    return 'school_admin';
-  });
+  }, []);
   const [userId, setUserId] = useState<string>('');
   const [editDurationMode, setEditDurationMode] = useState(false);
   const [inlineEditDuration, setInlineEditDuration] = useState(180);
@@ -582,7 +588,9 @@ export function useExamDetailPage(paramsId: string) {
       return subjects.length > 0 && subjects.every(s => (questionCounts[s.id] || 0) >= s.question_count);
     }
     if (step === 4) {
-      return startTime !== '' && endTime !== '';
+      const isStartTimePast = mounted && startTime ? new Date(startTime).getTime() < Date.now() - 60000 : false;
+      const isEndTimePast = mounted && endTime ? new Date(endTime).getTime() <= Date.now() : false;
+      return startTime !== '' && endTime !== '' && !isStartTimePast && !isEndTimePast && new Date(startTime) < new Date(endTime);
     }
     if (step === 5) {
       return !!exam?.is_paid;
@@ -1055,6 +1063,10 @@ export function useExamDetailPage(paramsId: string) {
   const handlePublish = async (bypassPayment = false) => {
     if (!startTime || !endTime) {
       alert('Please set a start time and end time before publishing.');
+      return;
+    }
+    if (new Date(startTime).getTime() < Date.now() - 60000) {
+      alert('Schedule start time is in the past relative to the present timestamp. Please provide a correct schedule time.');
       return;
     }
     if (new Date(startTime) >= new Date(endTime)) {

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useRef } from 'react';
-import { CalendarDays, Clock3 } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { CalendarDays, Clock3, AlertCircle } from 'lucide-react';
 
 interface Step4ScheduleProps {
   startTime: string;
@@ -26,11 +26,40 @@ export default function Step4Schedule({
 }: Step4ScheduleProps) {
   const startInputRef = useRef<HTMLInputElement>(null);
   const endInputRef = useRef<HTMLInputElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const openPicker = (input: HTMLInputElement | null) => {
     if (!input) return;
     input.focus();
     input.showPicker?.();
+  };
+
+  const getPresentTimestamp = () => {
+    const d = new Date();
+    const pad = (n: number) => (n < 10 ? '0' + n : n);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const isStartTimePast = mounted && startTime ? new Date(startTime).getTime() < Date.now() - 60000 : false;
+  const isEndTimePast = mounted && endTime ? new Date(endTime).getTime() <= Date.now() : false;
+  const isSchedulePast = mounted && (isStartTimePast || isEndTimePast);
+
+  const handleSetToPresentTimestamp = () => {
+    const nowString = getPresentTimestamp();
+    setStartTime(nowString);
+    if (durationMinutes > 0) {
+      const end = new Date(new Date(nowString).getTime() + durationMinutes * 60000);
+      const pad = (n: number) => (n < 10 ? '0' + n : n);
+      const endString = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+      setEndTime(endString);
+      void autoSaveSchedule(nowString, endString);
+    } else {
+      void autoSaveSchedule(nowString, endTime);
+    }
   };
 
   // Calculate actual gap between start and end times when both are set
@@ -47,6 +76,23 @@ export default function Step4Schedule({
       {isReadOnly && (
         <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-600">
           This exam is published — schedule is read-only.
+        </div>
+      )}
+      {isSchedulePast && !isReadOnly && (
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs font-semibold text-amber-800">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={16} className="text-amber-600 shrink-0" />
+            <span>
+              The schedule time is in the past relative to the present timestamp. Please provide a correct schedule time.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleSetToPresentTimestamp}
+            className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-amber-700 active:scale-95 shadow-sm"
+          >
+            Set to Present Timestamp
+          </button>
         </div>
       )}
       <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -86,6 +132,7 @@ export default function Step4Schedule({
           <input
             ref={startInputRef}
             type="datetime-local"
+            min={mounted ? getPresentTimestamp() : undefined}
             value={startTime}
             disabled={isReadOnly}
             onClick={(e) => openPicker(e.currentTarget)}
