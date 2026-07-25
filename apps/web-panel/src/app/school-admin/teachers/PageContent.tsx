@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { ChevronLeft, ChevronRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, Plus, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, Plus, Users, Check } from 'lucide-react';
 
 function CustomCombobox({ value, onChange, options, placeholder, className }: { value: string, onChange: (v: string) => void, options: string[], placeholder: string, className: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -83,6 +83,17 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
   const [perPage, setPerPage] = useState(8);
   const [sortBy, setSortBy] = useState('newest');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setIsFilterOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const [editTeacherId, setEditTeacherId] = useState<string | null>(null);
   const [deleteTeacherId, setDeleteTeacherId] = useState<string | null>(null);
 
@@ -259,10 +270,10 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto">
-      {/* Control Panel */}
-      <div className="flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border mb-4">
-        {/* Search Box */}
-        <div className="relative w-full md:max-w-[260px] shrink-0">
+      {/* Control Panel — matches results page structure */}
+      <div className="flex flex-row flex-wrap md:flex-nowrap items-center justify-between gap-2 md:gap-3 w-full bg-surface p-2 rounded-xl shadow-sm border border-border mb-4">
+        {/* Search Box (Row 1 Left on Mobile) */}
+        <div className="relative flex-1 md:flex-none md:w-[260px] order-1 md:order-1">
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
           <input
             type="text"
@@ -273,30 +284,109 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
           />
         </div>
 
-        {/* Inline Active Filters */}
-        <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0">
+        {/* Action Button: Filter (Row 1 Right on Mobile) */}
+        <div className="flex items-center gap-2 order-2 md:order-4 shrink-0">
+          <div className="relative" ref={filterRef}>
+            <button 
+              type="button"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-medium cursor-pointer"
+            >
+              <Filter size={14} className="text-accent-primary" /> <span className="hidden md:inline">Filter</span>
+            </button>
+            <div className={`absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col p-1.5 space-y-0.5 ${
+              isFilterOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
+            }`}>
+              <div className="px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">Filter</div>
+              <button
+                type="button"
+                onClick={() => { setSelectedDepartment('all'); setPage(1); setIsFilterOpen(false); }}
+                className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border-none flex items-center justify-between ${selectedDepartment === 'all' ? 'bg-accent-primary/10 text-accent-primary font-bold' : 'text-text-main hover:bg-surface-hover'}`}
+              >
+                <span>All Departments</span>
+                {selectedDepartment === 'all' && <Check size={14} className="text-accent-primary" />}
+              </button>
+              {uniqueDepartments.map(dep => (
+                <button
+                  key={dep}
+                  type="button"
+                  onClick={() => { setSelectedDepartment(dep); setPage(1); setIsFilterOpen(false); }}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border-none flex items-center justify-between ${selectedDepartment === dep ? 'bg-accent-primary/10 text-accent-primary font-bold' : 'text-text-main hover:bg-surface-hover'}`}
+                >
+                  <span>{dep}</span>
+                  {selectedDepartment === dep && <Check size={14} className="text-accent-primary" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons: Export, Add (Row 2 on Mobile) */}
+        <div className="flex items-center gap-2 order-3 md:order-5 w-full md:w-auto mt-2 md:mt-0">
+          <button 
+            type="button"
+            onClick={handleExport}
+            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors text-[12px] font-medium cursor-pointer border-none"
+          >
+            <Download size={14} /> <span>Export</span>
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white transition-all text-[12px] font-medium border border-accent-primary/20 cursor-pointer"
+          >
+            <Plus size={14} /> <span>Add Teacher</span>
+          </button>
+        </div>
+
+        {/* Row 3 on Mobile: Page Navigation + Items Per Page */}
+        <div className="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto order-4 md:order-3 shrink-0 md:border-x md:border-border/50 px-1 md:px-3 py-1.5 md:py-0 border-t md:border-t-0 border-border/40">
+          <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="py-1.5 px-2 rounded-lg border border-border bg-surface text-text-main text-[12px] focus:outline-none focus:ring-1 focus:ring-accent-primary cursor-pointer">
+            {[8, 20, 50, 100].map(n => <option key={n} value={n}>{n} / page</option>)}
+          </select>
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+              <ChevronLeft size={14} />
+            </button>
+            <div className="flex items-center justify-center gap-1 w-[80px]">
+              {getPaginationPages().map((p, i) => p === '...' ? (
+                <div key={`ellipsis-${i}`} className="w-6 h-6 flex items-center justify-center text-[11px] text-text-muted">…</div>
+              ) : (
+                <button type="button" key={p} onClick={() => setPage(p as number)} className={`w-6 h-6 flex items-center justify-center rounded text-[11px] font-semibold transition-colors border-none cursor-pointer ${safePage === p ? 'bg-accent-primary text-white' : 'text-text-muted hover:bg-surface-hover bg-transparent'}`}>{p as number}</button>
+              ))}
+            </div>
+            <button type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Row 4 on Mobile: Inline Active Filters */}
+        <div className={`w-full md:w-auto md:flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0 order-5 md:order-2 border-t md:border-t-0 border-border/40 ${!(searchQuery || selectedDepartment !== 'all' || sortBy !== 'newest') ? 'hidden md:flex' : ''}`}>
           {(searchQuery || selectedDepartment !== 'all' || sortBy !== 'newest') ? (
             <>
               <span className="text-[11px] text-text-muted font-medium uppercase tracking-wider shrink-0 mr-1">Active:</span>
               {searchQuery && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
                   "{searchQuery}"
-                  <button onClick={() => setSearchQuery('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                  <button type="button" onClick={() => setSearchQuery('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
                 </span>
               )}
               {selectedDepartment !== 'all' && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
                   {selectedDepartment}
-                  <button onClick={() => setSelectedDepartment('all')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                  <button type="button" onClick={() => setSelectedDepartment('all')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
                 </span>
               )}
               {sortBy !== 'newest' && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
                   {sortBy === 'oldest' ? 'Oldest' : sortBy === 'name' ? 'A-Z' : sortBy}
-                  <button onClick={() => setSortBy('newest')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                  <button type="button" onClick={() => setSortBy('newest')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
                 </span>
               )}
               <button 
+                type="button"
                 onClick={() => { setSearchQuery(''); setSelectedDepartment('all'); setSortBy('newest'); setPage(1); }}
                 className="text-[11px] text-text-muted hover:text-red-500 transition-colors ml-1 bg-transparent border-none cursor-pointer font-medium shrink-0"
               >
@@ -306,62 +396,6 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
           ) : (
             <span className="text-[11px] text-text-muted italic opacity-50">No active filters</span>
           )}
-        </div>
-
-        {/* Pagination Controls */}
-        <div className="flex items-center justify-between md:justify-start gap-1 shrink-0 md:border-x md:border-border/50 px-3 py-1.5 md:py-0 w-full md:w-auto">
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
-            <ChevronLeft size={14} />
-          </button>
-          <div className="flex items-center justify-center gap-1 w-[80px]">
-            {getPaginationPages().map((p, i) => p === '...' ? (
-              <div key={`ellipsis-${i}`} className="w-6 h-6 flex items-center justify-center text-[11px] text-text-muted">…</div>
-            ) : (
-              <button key={p} onClick={() => setPage(p as number)} className={`w-6 h-6 flex items-center justify-center rounded text-[11px] font-semibold transition-colors border-none cursor-pointer ${safePage === p ? 'bg-accent-primary text-white' : 'text-text-muted hover:bg-surface-hover bg-transparent'}`}>{p as number}</button>
-            ))}
-          </div>
-          <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
-            <ChevronRight size={14} />
-          </button>
-        </div>
-
-        {/* Controls and Actions */}
-        <div className="flex flex-wrap items-center gap-2 shrink-0 w-full md:w-auto">
-          <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="py-1.5 px-2 rounded-lg border border-border bg-surface text-text-main text-[12px] focus:outline-none focus:ring-1 focus:ring-accent-primary cursor-pointer flex-1 md:flex-none">
-            {[8, 20, 50, 100].map(n => <option key={n} value={n}>{n} / page</option>)}
-          </select>
-          <div className="relative group flex-1 md:flex-none">
-            <button 
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-medium"
-            >
-              <Filter size={14} className="text-accent-primary" /> Filter
-            </button>
-            <div className={`absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col p-3 space-y-3 ${
-              isFilterOpen ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'
-            }`}>
-              <div>
-                <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Department</label>
-                <select value={selectedDepartment} onChange={(e) => { setSelectedDepartment(e.target.value); setPage(1); }} className="w-full p-1.5 bg-surface-hover border border-border rounded-lg text-xs text-text-main focus:outline-none">
-                  <option value="all">All Departments</option>
-                  {uniqueDepartments.map(dep => <option key={dep} value={dep}>{dep}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-          
-          <button 
-            onClick={handleExport}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors text-[12px] font-medium cursor-pointer border-none flex-1 md:flex-none"
-          >
-            <Download size={14} /> Export
-          </button>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white transition-all text-[12px] font-medium border border-accent-primary/20 shrink-0 cursor-pointer flex-1 md:flex-none"
-          >
-            <Plus size={14} /> Add Teacher
-          </button>
         </div>
       </div>
 

@@ -175,6 +175,11 @@ export function useExamDetailPage(paramsId: string) {
   const handleSetStep = (step: number) => {
     if (currentStep === 1 && step > 1 && !canProceedToNextStep(1)) {
       setShowStep1Errors(true);
+      if (typeof window !== 'undefined') {
+        const mainEl = document.querySelector('main');
+        if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+        else window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
       return;
     }
     setShowStep1Errors(false);
@@ -639,7 +644,33 @@ export function useExamDetailPage(paramsId: string) {
       const { error } = await supabase.from('exams').update(updateData).eq('id', paramsId);
 
       if (error) throw error;
-      setExam((prev: any) => prev ? { ...prev, title: currentTitle, description: currentDesc, duration_minutes: currentDuration, exam_instructions: filteredInstructions, ...(updateData.end_time ? { end_time: updateData.end_time } : {}) } : null);
+
+      // Sync marking scheme to all existing questions for this exam
+      const mcqC = parseFloat(String(currentMcqCorrect)) || 0;
+      const mcqW = parseFloat(String(currentMcqWrong)) || 0;
+      const natC = parseFloat(String(currentNatCorrect)) || 0;
+      const natW = parseFloat(String(currentNatWrong)) || 0;
+      const msqC = parseFloat(String(currentMsqCorrect)) || 0;
+      const msqW = parseFloat(String(currentMsqWrong)) || 0;
+
+      await Promise.all([
+        supabase.from('questions').update({ marks: mcqC, positive_marks: mcqC, negative_marks: mcqW }).eq('exam_id', paramsId).eq('question_type', 'mcq'),
+        supabase.from('questions').update({ marks: natC, positive_marks: natC, negative_marks: natW }).eq('exam_id', paramsId).eq('question_type', 'nat'),
+        supabase.from('questions').update({ marks: msqC, positive_marks: msqC, negative_marks: msqW }).eq('exam_id', paramsId).eq('question_type', 'msq')
+      ]);
+
+      setDrawerQuestions(prev => prev.map(q => {
+        if (q.question_type === 'mcq') {
+          return { ...q, marks: mcqC, positive_marks: mcqC, negative_marks: mcqW };
+        } else if (q.question_type === 'nat') {
+          return { ...q, marks: natC, positive_marks: natC, negative_marks: natW };
+        } else if (q.question_type === 'msq') {
+          return { ...q, marks: msqC, positive_marks: msqC, negative_marks: msqW };
+        }
+        return q;
+      }));
+
+      setExam((prev: any) => prev ? { ...prev, title: currentTitle, description: currentDesc, duration_minutes: currentDuration, exam_instructions: filteredInstructions, marking_scheme: updateData.marking_scheme, ...(updateData.end_time ? { end_time: updateData.end_time } : {}) } : null);
       setSaveStatus('saved');
       window.dispatchEvent(new CustomEvent('save-status-update', { detail: { status: 'saved' } }));
       setTimeout(() => {

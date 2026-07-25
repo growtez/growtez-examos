@@ -17,3 +17,14 @@ export function getAdminBaseUrl() {
   // In production, force the custom domain
   return 'https://admin.parikshaos.com';
 }
+
+export function formatDOB(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—';
+  if (dateStr.includes('/')) return dateStr; // already formatted or wrong format
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const [y, m, d] = parts;
+    return `${d}/${m}/${y}`;
+  }
+  return dateStr;
+}

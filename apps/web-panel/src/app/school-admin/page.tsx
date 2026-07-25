@@ -58,10 +58,9 @@ export default async function SchoolAdminDashboard() {
   }
 
   const stats = [
-    { label: 'Total Students', value: studentCount, icon: GraduationCap, color: 'text-white', bg: 'bg-accent-primary', border: 'border-accent-primary', iconBg: 'bg-white/20', labelColor: 'text-white/80', iconColor: 'text-white' },
-    { label: 'Teachers', value: teacherCount, icon: Users, color: 'text-white', bg: 'bg-accent-primary', border: 'border-accent-primary', iconBg: 'bg-white/20', labelColor: 'text-white/80', iconColor: 'text-white' },
-    { label: 'Total Exams', value: examCount, icon: FileText, color: 'text-white', bg: 'bg-accent-primary', border: 'border-accent-primary', iconBg: 'bg-white/20', labelColor: 'text-white/80', iconColor: 'text-white' },
     { label: 'Active Exams', value: activeExamCount, icon: CheckCircle, color: 'text-white', bg: 'bg-accent-primary', border: 'border-accent-primary', iconBg: 'bg-white/20', labelColor: 'text-white/80', iconColor: 'text-white' },
+    { label: 'Total Exams', value: examCount, icon: FileText, color: 'text-white', bg: 'bg-accent-primary', border: 'border-accent-primary', iconBg: 'bg-white/20', labelColor: 'text-white/80', iconColor: 'text-white' },
+    { label: 'Teachers', value: teacherCount, icon: Users, color: 'text-white', bg: 'bg-accent-primary', border: 'border-accent-primary', iconBg: 'bg-white/20', labelColor: 'text-white/80', iconColor: 'text-white' },
   ];
 
   if (role === 'teacher') {
@@ -168,7 +167,7 @@ export default async function SchoolAdminDashboard() {
     <div className="max-w-6xl mx-auto space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
       {/* Stats Grid */}
-      <div className="flex overflow-x-auto pt-2 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="flex overflow-x-auto pt-2 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 gap-4 sm:gap-5 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {stats.map((stat, i) => {
           const Icon = stat.icon;
           return (
