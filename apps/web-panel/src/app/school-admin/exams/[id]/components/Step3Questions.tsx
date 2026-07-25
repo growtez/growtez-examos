@@ -211,11 +211,23 @@ export default function Step3Questions({
     D: false,
   });
 
+  const [editingQText, setEditingQText] = useState(false);
+  const [editingNat, setEditingNat] = useState(false);
+  const [editingOpt, setEditingOpt] = useState<Record<string, boolean>>({
+    A: false,
+    B: false,
+    C: false,
+    D: false,
+  });
+
   useEffect(() => {
     if (drawerView !== 'editor') {
       setShowQFormula(false);
       setShowNatFormula(false);
       setShowOptFormula({ A: false, B: false, C: false, D: false });
+      setEditingQText(false);
+      setEditingNat(false);
+      setEditingOpt({ A: false, B: false, C: false, D: false });
     }
   }, [drawerView]);
 
@@ -571,7 +583,10 @@ export default function Step3Questions({
                         </label>
                         <button
                           type="button"
-                          onClick={() => setShowQFormula(!showQFormula)}
+                          onClick={() => {
+                            setShowQFormula(!showQFormula);
+                            if (!editingQText) setEditingQText(true);
+                          }}
                           className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
                             showQFormula
                               ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
@@ -581,29 +596,70 @@ export default function Step3Questions({
                           <Sigma size={11} />
                           {showQFormula ? 'Hide Formula' : 'Formula'}
                         </button>
+                        {editingQText && (
+                          <button
+                            type="button"
+                            onClick={() => setEditingQText(false)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border bg-accent-primary text-white border-accent-primary hover:bg-accent-primary/90 transition-all cursor-pointer shadow-xs"
+                          >
+                            ✓ Done (Preview)
+                          </button>
+                        )}
                       </div>
                     </div>
 
-                    {/* Formula Toolbar for Question */}
-                    {showQFormula && (
-                      <FormulaToolbar
-                        onInsert={(latex) =>
-                          insertAtCursor(qTextRef, setQText, qText, latex)
-                        }
-                      />
+                    {!editingQText ? (
+                      /* PREVIEW MODE BY DEFAULT */
+                      <div
+                        onClick={() => setEditingQText(true)}
+                        className="w-full min-h-[64px] p-3.5 bg-bg hover:bg-surface border border-border hover:border-accent-primary/50 rounded-xl cursor-pointer transition-all flex flex-col justify-between group shadow-xs relative"
+                        title="Click to edit question text / formula"
+                      >
+                        <div className="text-xs font-semibold text-text-main leading-relaxed break-words [overflow-wrap:anywhere]">
+                          {qText ? (
+                            <MathRenderer text={qText} />
+                          ) : (
+                            <span className="text-text-muted/60 italic font-medium text-xs">
+                              Click here to enter question text / formula...
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-end mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="text-[10px] font-bold text-accent-primary flex items-center gap-1 bg-accent-primary/10 px-2 py-0.5 rounded">
+                            <Edit2 size={10} /> Click to Edit
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* EDIT BOX MODE */
+                      <div className="space-y-2">
+                        {showQFormula && (
+                          <FormulaToolbar
+                            onInsert={(latex) =>
+                              insertAtCursor(qTextRef, setQText, qText, latex)
+                            }
+                          />
+                        )}
+                        <textarea
+                          ref={(el) => {
+                            (qTextRef as any).current = el;
+                            autoGrow(el);
+                          }}
+                          value={qText}
+                          onChange={(e) => { setQText(e.target.value); autoGrow(e.target); }}
+                          rows={2}
+                          className="w-full px-3 py-2.5 bg-bg border border-accent-primary rounded-lg text-text-main focus:ring-2 focus:ring-accent-primary/15 outline-none resize-none text-sm font-medium transition-shadow overflow-hidden whitespace-pre-wrap break-words"
+                          placeholder="Enter question... Use \frac{a}{b} for fractions, \sqrt{x} for roots, $\sin(x)$ for math"
+                          autoFocus
+                        />
+                        {qText && (
+                          <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg">
+                            <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Live Formula Preview</p>
+                            <MathRenderer text={qText} className="text-sm text-text-main" />
+                          </div>
+                        )}
+                      </div>
                     )}
-
-                    <textarea
-                      ref={(el) => {
-                        (qTextRef as any).current = el;
-                        autoGrow(el);
-                      }}
-                      value={qText}
-                      onChange={(e) => { setQText(e.target.value); autoGrow(e.target); }}
-                      rows={2}
-                      className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-text-main focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/15 outline-none resize-none text-sm font-medium transition-shadow overflow-hidden whitespace-pre-wrap break-words"
-                      placeholder="Enter question... Use $\sin(x)$ for inline math or $$\int_0^1 x^2\,dx$$ for block math"
-                    />
 
                     {/* Image Preview List if present */}
                     {(() => {
@@ -629,14 +685,6 @@ export default function Step3Questions({
                         </div>
                       );
                     })()}
-
-                    {/* Live Preview */}
-                    {showQFormula && qText && (
-                      <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg mt-1">
-                        <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Preview</p>
-                        <MathRenderer text={qText} className="text-sm text-text-main" />
-                      </div>
-                    )}
                   </div>
 
                   {(qType === 'mcq' || qType === 'msq') ? (
@@ -657,6 +705,8 @@ export default function Step3Questions({
                             const isSelectedCorrect = qType === 'msq'
                               ? correctAnswer.split(',').includes(opt.id)
                               : correctAnswer === opt.id;
+                            const isEditingThisOpt = editingOpt[opt.id];
+
                             return (
                               <div
                                 key={opt.label}
@@ -673,7 +723,10 @@ export default function Step3Questions({
                                     </label>
                                     <button
                                       type="button"
-                                      onClick={() => setShowOptFormula((prev) => ({ ...prev, [opt.id]: !prev[opt.id] }))}
+                                      onClick={() => {
+                                        setShowOptFormula((prev) => ({ ...prev, [opt.id]: !prev[opt.id] }));
+                                        if (!isEditingThisOpt) setEditingOpt(prev => ({ ...prev, [opt.id]: true }));
+                                      }}
                                       className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all cursor-pointer ${
                                         showOptFormula[opt.id]
                                           ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
@@ -683,62 +736,95 @@ export default function Step3Questions({
                                       <Sigma size={10} />
                                       {showOptFormula[opt.id] ? 'Hide Formula' : 'Formula'}
                                     </button>
+                                    {isEditingThisOpt && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingOpt(prev => ({ ...prev, [opt.id]: false }))}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border bg-accent-primary text-white border-accent-primary cursor-pointer hover:bg-accent-primary/90 transition-all"
+                                      >
+                                        ✓ Done (Preview)
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               
-                              <div className="bg-surface p-3 flex flex-col">
-                                {/* Formula toolbar for option */}
-                                {showOptFormula[opt.id] && (
-                                  <div className="mb-2">
-                                    <FormulaToolbar
-                                      compact
-                                      onInsert={(latex) =>
-                                        insertAtCursor(
-                                          { current: optRefs.current[opt.id] } as any,
-                                          opt.setVal,
-                                          opt.val,
-                                          latex
-                                        )
-                                      }
-                                    />
-                                  </div>
-                                )}
-                                <textarea
-                                  ref={(el) => { optRefs.current[opt.id] = el; autoGrow(el); }}
-                                  rows={1}
-                                  value={opt.val}
-                                  onChange={(e) => { opt.setVal(e.target.value); autoGrow(e.target); }}
-                                  className="w-full bg-transparent text-sm outline-none resize-none overflow-hidden whitespace-pre-wrap break-words placeholder:text-text-muted/40"
-                                  placeholder={`Type ${opt.label} text here...`}
-                                />
-                                {/* Option Image Preview (below text) */}
-                                {(() => {
-                                  const images = opt.img ? parseQuestionImages(opt.img) : [];
-                                  if (images.length === 0) return null;
-                                  return (
-                                    <div className="flex flex-wrap gap-2 items-center pt-2">
-                                      {images.map((url, idx) => (
-                                        <div key={idx} className="relative group">
-                                          <img src={url} alt={`Preview ${idx + 1}`} className="h-14 rounded border border-border object-contain bg-white" />
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const updated = images.filter((_, i) => i !== idx);
-                                              opt.setImg(updated.length > 0 ? JSON.stringify(updated) : null);
-                                            }}
-                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm cursor-pointer hover:bg-red-600 transition-colors"
-                                          >✕</button>
-                                        </div>
-                                      ))}
+                                <div className="bg-surface p-3 flex flex-col">
+                                  {!isEditingThisOpt ? (
+                                    /* PREVIEW MODE BY DEFAULT */
+                                    <div
+                                      onClick={() => setEditingOpt(prev => ({ ...prev, [opt.id]: true }))}
+                                      className="w-full min-h-[40px] px-3 py-2 bg-bg hover:bg-surface border border-border/80 hover:border-accent-primary/50 rounded-md cursor-pointer transition-all flex items-center justify-between group"
+                                      title={`Click to edit ${opt.label} text/formula`}
+                                    >
+                                      <div className="text-xs font-semibold text-text-main break-words [overflow-wrap:anywhere]">
+                                        {opt.val ? (
+                                          <MathRenderer text={opt.val} />
+                                        ) : (
+                                          <span className="text-text-muted/50 italic text-xs">
+                                            Click to enter {opt.label} text or formula...
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-[10px] font-bold text-accent-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+                                        Edit
+                                      </span>
                                     </div>
-                                  );
-                                })()}
-                                {/* Mini preview for option */}
-                                {showOptFormula[opt.id] && opt.val && (
-                                  <div className="pt-2 mt-2 border-t border-border/50 text-[13px] text-text-main">
-                                    <MathRenderer text={opt.val} />
-                                  </div>
-                                )}
+                                  ) : (
+                                    /* EDIT BOX MODE */
+                                    <div className="space-y-2">
+                                      {showOptFormula[opt.id] && (
+                                        <FormulaToolbar
+                                          compact
+                                          onInsert={(latex) =>
+                                            insertAtCursor(
+                                              { current: optRefs.current[opt.id] } as any,
+                                              opt.setVal,
+                                              opt.val,
+                                              latex
+                                            )
+                                          }
+                                        />
+                                      )}
+                                      <textarea
+                                        ref={(el) => { optRefs.current[opt.id] = el; autoGrow(el); }}
+                                        rows={1}
+                                        value={opt.val}
+                                        onChange={(e) => { opt.setVal(e.target.value); autoGrow(e.target); }}
+                                        className="w-full bg-bg px-3 py-2 rounded border border-accent-primary text-sm outline-none resize-none overflow-hidden whitespace-pre-wrap break-words placeholder:text-text-muted/40"
+                                        placeholder={`Type ${opt.label} text or formula...`}
+                                        autoFocus
+                                      />
+                                      {opt.val && (
+                                        <div className="pt-2 border-t border-border/50 text-[13px] text-text-main">
+                                          <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Live Formula Preview</p>
+                                          <MathRenderer text={opt.val} />
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Option Image Preview (below text) */}
+                                  {(() => {
+                                    const images = opt.img ? parseQuestionImages(opt.img) : [];
+                                    if (images.length === 0) return null;
+                                    return (
+                                      <div className="flex flex-wrap gap-2 items-center pt-2">
+                                        {images.map((url, idx) => (
+                                          <div key={idx} className="relative group">
+                                            <img src={url} alt={`Preview ${idx + 1}`} className="h-14 rounded border border-border object-contain bg-white" />
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const updated = images.filter((_, i) => i !== idx);
+                                                opt.setImg(updated.length > 0 ? JSON.stringify(updated) : null);
+                                              }}
+                                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm cursor-pointer hover:bg-red-600 transition-colors"
+                                            >✕</button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             );
@@ -787,40 +873,81 @@ export default function Step3Questions({
                           <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
                           <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Correct Numerical Answer</label>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setShowNatFormula(!showNatFormula)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
-                            showNatFormula
-                              ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
-                              : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
-                          }`}
-                        >
-                          <Sigma size={11} />
-                          {showNatFormula ? 'Hide Formula' : 'Formula'}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowNatFormula(!showNatFormula);
+                              if (!editingNat) setEditingNat(true);
+                            }}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                              showNatFormula
+                                ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
+                                : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
+                            }`}
+                          >
+                            <Sigma size={11} />
+                            {showNatFormula ? 'Hide Formula' : 'Formula'}
+                          </button>
+                          {editingNat && (
+                            <button
+                              type="button"
+                              onClick={() => setEditingNat(false)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border bg-accent-primary text-white border-accent-primary hover:bg-accent-primary/90 transition-all cursor-pointer shadow-xs"
+                            >
+                              ✓ Done (Preview)
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      {showNatFormula && (
-                        <FormulaToolbar
-                          compact
-                          onInsert={(latex) =>
-                            insertAtCursor(natRef, setNatAnswer, natAnswer, latex)
-                          }
-                        />
-                      )}
-                      <textarea
-                        ref={(el) => { (natRef as any).current = el; autoGrow(el); }}
-                        rows={1}
-                        value={natAnswer}
-                        onChange={(e) => { setNatAnswer(e.target.value); autoGrow(e.target); }}
-                        required
-                        className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/15 text-sm font-medium transition-shadow resize-none overflow-hidden whitespace-pre-wrap break-words"
-                        placeholder="e.g. 42.5 or \sqrt{2}"
-                      />
-                      {showNatFormula && natAnswer && (
-                        <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg">
-                          <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Preview</p>
-                          <MathRenderer text={natAnswer} className="text-sm text-text-main" />
+
+                      {!editingNat ? (
+                        /* PREVIEW MODE BY DEFAULT */
+                        <div
+                          onClick={() => setEditingNat(true)}
+                          className="w-full min-h-[44px] p-3 bg-bg hover:bg-surface border border-border hover:border-accent-primary/50 rounded-xl cursor-pointer transition-all flex items-center justify-between group shadow-xs"
+                          title="Click to edit numerical answer"
+                        >
+                          <div className="text-xs font-semibold text-text-main break-words [overflow-wrap:anywhere]">
+                            {natAnswer ? (
+                              <MathRenderer text={natAnswer} />
+                            ) : (
+                              <span className="text-text-muted/60 italic text-xs font-medium">
+                                Click here to enter numerical answer formula (e.g. \sqrt{2} or 42.5)...
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-bold text-accent-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+                            Edit
+                          </span>
+                        </div>
+                      ) : (
+                        /* EDIT BOX MODE */
+                        <div className="space-y-2">
+                          {showNatFormula && (
+                            <FormulaToolbar
+                              compact
+                              onInsert={(latex) =>
+                                insertAtCursor(natRef, setNatAnswer, natAnswer, latex)
+                              }
+                            />
+                          )}
+                          <textarea
+                            ref={(el) => { (natRef as any).current = el; autoGrow(el); }}
+                            rows={1}
+                            value={natAnswer}
+                            onChange={(e) => { setNatAnswer(e.target.value); autoGrow(e.target); }}
+                            required
+                            className="w-full px-3 py-2.5 bg-bg border border-accent-primary rounded-lg outline-none focus:ring-2 focus:ring-accent-primary/15 text-sm font-medium transition-shadow resize-none overflow-hidden whitespace-pre-wrap break-words"
+                            placeholder="e.g. 42.5 or \sqrt{2}"
+                            autoFocus
+                          />
+                          {natAnswer && (
+                            <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg">
+                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Live Formula Preview</p>
+                              <MathRenderer text={natAnswer} className="text-sm text-text-main" />
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

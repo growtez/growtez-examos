@@ -27,6 +27,9 @@ interface Step5PublishProps {
   handlePublish: (bypassPayment: boolean) => void;
   handlePayment: () => void;
   supabase: any;
+  setStartTime?: (val: string) => void;
+  setEndTime?: (val: string) => void;
+  autoSaveSchedule?: (currentStartTime?: string, currentEndTime?: string) => Promise<void>;
 }
 
 export default function Step5Publish({
@@ -50,6 +53,9 @@ export default function Step5Publish({
   handlePublish,
   handlePayment,
   supabase,
+  setStartTime,
+  setEndTime,
+  autoSaveSchedule,
 }: Step5PublishProps) {
   if (!exam) return null;
 
@@ -267,6 +273,12 @@ export default function Step5Publish({
     });
   };
 
+  // ---- Hydration safety ----
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const isSetupComplete =
     title.trim() !== '' &&
     description.trim() !== '' &&
@@ -280,7 +292,6 @@ export default function Step5Publish({
   const isQuestionsComplete =
     subjects.length > 0 &&
     subjects.every((subject) => (questionCounts[subject.id] || 0) >= subject.question_count);
-  const isScheduleComplete = startTime !== '' && endTime !== '';
 
   const setupMissing = [
     title.trim() === '' ? 'Add exam title' : null,
@@ -306,6 +317,12 @@ export default function Step5Publish({
   });
 
   const hasSubjectWarnings = subjects.some((s) => (questionCounts[s.id] || 0) > s.question_count);
+
+  const isStartTimePast = mounted && startTime ? new Date(startTime).getTime() < Date.now() - 60000 : false;
+  const isEndTimePast = mounted && endTime ? new Date(endTime).getTime() <= Date.now() : false;
+  const isSchedulePast = mounted && (isStartTimePast || isEndTimePast);
+  const isScheduleComplete = startTime !== '' && endTime !== '';
+  const isScheduleValid = isScheduleComplete && (!mounted || !isSchedulePast) && new Date(startTime) < new Date(endTime);
 
   const requirements = [
     {
@@ -336,19 +353,23 @@ export default function Step5Publish({
     {
       step: 4,
       title: 'Schedule',
-      complete: isScheduleComplete,
-      warn: false,
-      details: isScheduleComplete
-        ? ['Complete']
-        : [
+      complete: isScheduleValid,
+      warn: isSchedulePast,
+      details: !isScheduleComplete
+        ? [
           !startTime ? 'Add start time' : null,
           !endTime ? 'Add end time' : null,
-        ].filter(Boolean) as string[],
+        ].filter(Boolean) as string[]
+        : isSchedulePast
+        ? ['Schedule time is in the past relative to present timestamp. Please set a future schedule time.']
+        : new Date(startTime) >= new Date(endTime)
+        ? ['End time must be after start time']
+        : ['Complete'],
     },
   ];
 
   const missingCount = requirements.filter((item) => !item.complete).length;
-  const canPublish = allStepsComplete && isScheduleComplete;
+  const canPublish = allStepsComplete && isScheduleValid;
   const isFeeLoaded = examFee != null;
   const isPublished = exam.status !== 'draft';
 
@@ -746,6 +767,51 @@ export default function Step5Publish({
           <div className="mb-5">
             <h4 className="text-sm font-bold text-text-main">Publish actions</h4>
           </div>
+
+          {isSchedulePast && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs font-semibold text-red-700 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle size={16} className="mt-0.5 shrink-0 text-red-600" />
+                <div>
+                  <p className="font-bold text-red-800 uppercase tracking-wide">Schedule Time In The Past</p>
+                  <p className="mt-0.5 text-red-700 font-medium">
+                    The scheduled time is in the past relative to the present timestamp. Please provide a correct schedule time to publish this exam.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {setStartTime && setEndTime && autoSaveSchedule && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = new Date();
+                      const pad = (n: number) => (n < 10 ? '0' + n : n);
+                      const nowStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                      setStartTime(nowStr);
+                      if (durationMinutes > 0) {
+                        const end = new Date(new Date(nowStr).getTime() + durationMinutes * 60000);
+                        const endStr = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
+                        setEndTime(endStr);
+                        void autoSaveSchedule(nowStr, endStr);
+                      } else {
+                        void autoSaveSchedule(nowStr, endTime);
+                      }
+                    }}
+                    className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-red-700 active:scale-95 shadow-sm"
+                  >
+                    Set to Present Timestamp
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onNavigateToStep(4)}
+                  className="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-bold text-red-700 transition-all hover:bg-red-100 active:scale-95 shadow-sm"
+                >
+                  Set Schedule (Step 4)
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-3">
             {exam.is_paid ? (
