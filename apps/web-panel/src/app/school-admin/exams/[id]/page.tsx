@@ -1145,6 +1145,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               handlePublish={handlePublish}
               handlePayment={handlePayment}
               supabase={supabase}
+              setStartTime={setStartTime}
+              setEndTime={setEndTime}
+              autoSaveSchedule={autoSaveSchedule}
             />
           )}
 
