@@ -16,6 +16,17 @@ export const parseQuestionImages = (urlStr: string | null): string[] => {
   return [trimmed];
 };
 
+export interface CsvPreviewStudent {
+  name: string;
+  roll: string;
+  dob: string;
+  course: string;
+  batch: string;
+  session: string;
+  status: 'pending' | 'success' | 'failed';
+  error?: string;
+}
+
 export function useExamDetailPage(paramsId: string) {
   const supabase = createClient();
   const [exam, setExam] = useState<any>(null);
@@ -44,12 +55,16 @@ export function useExamDetailPage(paramsId: string) {
   const [msqWrong, setMsqWrong] = useState<number | string>(0);
   const [msqPartialEnabled, setMsqPartialEnabled] = useState<boolean>(false);
   const [msqEnabled, setMsqEnabled] = useState<boolean>(false);
-  const [role, setRole] = useState<string>(() => {
+  const [role, setRole] = useState<string>('school_admin');
+  
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('user_role') || 'school_admin';
+      const savedRole = localStorage.getItem('user_role');
+      if (savedRole) {
+        setRole(savedRole);
+      }
     }
-    return 'school_admin';
-  });
+  }, []);
   const [userId, setUserId] = useState<string>('');
   const [editDurationMode, setEditDurationMode] = useState(false);
   const [inlineEditDuration, setInlineEditDuration] = useState(180);
@@ -75,6 +90,7 @@ export function useExamDetailPage(paramsId: string) {
   const [searchQuery, setSearchQuery] = useState('');
   const [addMode, setAddMode] = useState<'link' | 'search' | 'create' | 'csv'>('link');
   const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvPreviewRows, setCsvPreviewRows] = useState<CsvPreviewStudent[]>([]);
   const [linkCopied, setLinkCopied] = useState(false);
   const [filterCourse, setFilterCourse] = useState('');
   const [filterBatch, setFilterBatch] = useState('');
@@ -1320,29 +1336,88 @@ export function useExamDetailPage(paramsId: string) {
     }
   };
 
+  const handleCsvFileChange = async (file: File | null) => {
+    setCsvFile(file);
+    if (!file) {
+      setCsvPreviewRows([]);
+      return;
+    }
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(l => l.trim());
+      const headers = lines[0].toLowerCase();
+      if (!headers.includes('name') || !headers.includes('roll')) {
+        setAddError('CSV must have columns: name, roll_number, dob');
+        setCsvPreviewRows([]);
+        return;
+      }
+      const parseCsvLine = (text: string) => {
+        const ret: string[] = [];
+        let state = 0;
+        let value = "";
+        for (let i = 0; i < text.length; i++) {
+          const c = text[i];
+          if (state === 0) {
+            if (c === '"') { state = 2; }
+            else if (c === ',') { ret.push(value); value = ""; }
+            else { value += c; state = 1; }
+          } else if (state === 1) {
+            if (c === ',') { ret.push(value.trim()); value = ""; state = 0; }
+            else { value += c; }
+          } else if (state === 2) {
+            if (c === '"') { state = 3; }
+            else { value += c; }
+          } else if (state === 3) {
+            if (c === '"') { value += '"'; state = 2; }
+            else if (c === ',') { ret.push(value); value = ""; state = 0; }
+          }
+        }
+        ret.push((state === 1) ? value.trim() : value);
+        return ret;
+      };
+
+      const preview: CsvPreviewStudent[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCsvLine(lines[i]);
+        if (cols.length < 3) continue;
+        const [studentName, studentRoll, studentDob, csvCourse = '', csvBatch = '', csvSession = ''] = cols;
+        preview.push({
+          name: studentName,
+          roll: studentRoll,
+          dob: studentDob,
+          course: csvCourse,
+          batch: csvBatch,
+          session: csvSession,
+          status: 'pending'
+        });
+      }
+      setCsvPreviewRows(preview);
+      setAddError('');
+    } catch (err: any) {
+      setAddError(err.message);
+      setCsvPreviewRows([]);
+    }
+  };
+
   const handleCsvImport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!csvFile) return;
+    if (!csvFile || csvPreviewRows.length === 0) return;
     setAddError('');
     setAddSuccess('');
     setAddingStudent(true);
     try {
-      const text = await csvFile.text();
-      const lines = text.split('\n').filter(l => l.trim());
-      const headers = lines[0].toLowerCase();
-      if (!headers.includes('name') || !headers.includes('roll')) {
-        throw new Error('CSV must have columns: name, roll_number, dob');
-      }
       let imported = 0;
-      const errors: string[] = [];
+      let failed = 0;
       const newStudents: any[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(',').map(c => c.trim());
-        if (cols.length < 3) continue;
-        const [studentName, studentRoll, studentDob, csvCourse = '', csvBatch = '', csvSession = ''] = cols;
-        let formattedDob = studentDob;
-        if (studentDob.includes('/')) {
-          const [d, m, y] = studentDob.split('/');
+      const updatedPreview = [...csvPreviewRows];
+
+      for (let i = 0; i < updatedPreview.length; i++) {
+        const row = updatedPreview[i];
+        if (row.status === 'success') continue;
+
+        let formattedDob = row.dob;
+        if (row.dob.includes('/')) {
+          const [d, m, y] = row.dob.split('/');
           formattedDob = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
         }
         try {
@@ -1350,12 +1425,12 @@ export function useExamDetailPage(paramsId: string) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              full_name: studentName,
-              roll_number: studentRoll,
+              full_name: row.name,
+              roll_number: row.roll,
               date_of_birth: formattedDob,
-              course: csvCourse,
-              batch: csvBatch,
-              session: csvSession,
+              course: row.course,
+              batch: row.batch,
+              session: row.session,
               exam_id: paramsId
             }),
           });
@@ -1364,15 +1439,28 @@ export function useExamDetailPage(paramsId: string) {
             if (data.student) {
               newStudents.push(data.student);
             }
+            updatedPreview[i].status = 'success';
             imported++;
           } else {
             const d = await res.json();
-            errors.push(`${studentRoll}: ${d.error || 'Failed'}`);
+            updatedPreview[i].status = 'failed';
+            updatedPreview[i].error = d.error || 'Failed to create student';
+            failed++;
           }
-        } catch { errors.push(`${studentRoll}: Failed`); }
+        } catch (err: any) {
+          updatedPreview[i].status = 'failed';
+          updatedPreview[i].error = err.message || 'Failed';
+          failed++;
+        }
+        setCsvPreviewRows([...updatedPreview]);
       }
-      setAddSuccess(`Imported ${imported} students${errors.length ? `. ${errors.length} failed.` : '.'}`);
-      setCsvFile(null);
+      
+      if (failed === 0) {
+        setAddSuccess(`Successfully imported all ${imported} students.`);
+      } else {
+        setAddError(`Imported ${imported} students. ${failed} failed.`);
+      }
+      
       const newAssignments = newStudents.map(s => ({ id: crypto.randomUUID(), exam_id: paramsId, student_id: s.id, status: 'assigned', students: s, result: null }));
       setAssignedStudents(prev => [...prev, ...newAssignments]);
       setSchoolStudents(prev => [...prev, ...newStudents]);
@@ -1384,7 +1472,7 @@ export function useExamDetailPage(paramsId: string) {
   };
 
   const handleDownloadCsvTemplate = () => {
-    const csvContent = "name,roll_number,dob,course,batch,session\\nAarav Patel,2024001,15/06/2005,NEET,Morning,2024-25\\nPriya Singh,2024002,22/03/2005,JEE,Evening,2024-25";
+    const csvContent = "name,roll_number,dob,course,batch,session\nAarav Patel,2024001,15/06/2005,NEET,Morning,2024-25\nPriya Singh,2024002,22/03/2005,JEE,Evening,2024-25";
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -1539,6 +1627,7 @@ export function useExamDetailPage(paramsId: string) {
       if (data.teacher) {
         setTeachers(prev => [...prev, data.teacher].sort((a, b) => a.full_name.localeCompare(b.full_name)));
         setSelectedTeacherIds(prev => [...prev, data.teacher.id]);
+        setNewSubject(prev => ({ ...prev, teacherIds: [...prev.teacherIds, data.teacher.id] }));
       }
 
       if (data.teacher && manageTeachersSubject) {
@@ -1841,6 +1930,9 @@ export function useExamDetailPage(paramsId: string) {
     setAddMode,
     csvFile,
     setCsvFile,
+    csvPreviewRows,
+    setCsvPreviewRows,
+    handleCsvFileChange,
     linkCopied,
     setLinkCopied,
     filterCourse,

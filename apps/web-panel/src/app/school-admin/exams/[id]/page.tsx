@@ -245,6 +245,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setAddMode,
     csvFile,
     setCsvFile,
+    csvPreviewRows,
+    setCsvPreviewRows,
+    handleCsvFileChange,
     linkCopied,
     setLinkCopied,
     filterCourse,
@@ -1715,9 +1718,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               ) : addMode === "create" ? (
                 <form
                   onSubmit={handleAddStudent}
-                  className="flex-1 flex flex-col justify-between min-h-0 overflow-y-auto custom-scrollbar"
+                  className="flex-1 flex flex-col min-h-0"
                 >
-                  <div className="space-y-3.5 pb-3">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3.5 pb-4">
                     <div className="flex justify-between items-center mb-2">
                       <h4 className="text-text-main font-bold text-sm">
                         Create New Student
@@ -1803,7 +1806,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-3 pt-3 mt-auto sticky bottom-0 bg-surface border-t border-border/80 z-10 shrink-0">
+                  <div className="flex gap-3 pt-3 mt-auto bg-surface border-t border-border/80 z-10 shrink-0">
                     <button
                       type="button"
                       onClick={() => {
@@ -1867,33 +1870,74 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           type="file"
                           accept=".csv,.txt"
                           required
-                          onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                          onChange={(e) => handleCsvFileChange(e.target.files?.[0] || null)}
                           className="sr-only"
                         />
-                        <div className="w-9 h-9 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-2 group-hover:scale-105 transition-transform">
+                        <span className="w-9 h-9 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-2 group-hover:scale-105 transition-transform">
                           <Upload size={17} />
-                        </div>
+                        </span>
                         {csvFile ? (
-                          <div className="space-y-0.5 min-w-0 max-w-full">
-                            <p className="text-xs font-bold text-accent-primary truncate">
+                          <span className="space-y-0.5 min-w-0 max-w-full block">
+                            <span className="text-xs font-bold text-accent-primary truncate block">
                               {csvFile.name}
-                            </p>
-                            <p className="text-[10px] text-text-muted">
+                            </span>
+                            <span className="text-[10px] text-text-muted block">
                               {(csvFile.size / 1024).toFixed(1)} KB — Tap to change
-                            </p>
-                          </div>
+                            </span>
+                          </span>
                         ) : (
-                          <div className="space-y-0.5">
-                            <p className="text-xs font-bold text-text-main">
+                          <span className="space-y-0.5 block">
+                            <span className="text-xs font-bold text-text-main block">
                               Choose CSV File
-                            </p>
-                            <p className="text-[10px] text-text-muted font-medium">
+                            </span>
+                            <span className="text-[10px] text-text-muted font-medium block">
                               Tap to browse from device
-                            </p>
-                          </div>
+                            </span>
+                          </span>
                         )}
                       </label>
                     </div>
+
+                    {/* Preview Table */}
+                    {csvPreviewRows && csvPreviewRows.length > 0 && (
+                      <div className="mt-4 border border-border rounded-xl overflow-hidden max-h-[250px] flex flex-col">
+                        <div className="bg-surface px-3 py-2 border-b border-border flex justify-between items-center text-xs">
+                          <span className="font-bold text-text-main">Preview ({csvPreviewRows.length} Students)</span>
+                        </div>
+                        <div className="overflow-y-auto flex-1 custom-scrollbar">
+                          <table className="w-full text-left text-xs">
+                            <thead className="bg-surface sticky top-0 z-10 shadow-sm">
+                              <tr>
+                                <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">Name</th>
+                                <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">Roll No</th>
+                                <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">DOB</th>
+                                <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">Course</th>
+                                <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">Batch</th>
+                                <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">Session</th>
+                                <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/50">
+                              {csvPreviewRows.map((row, idx) => (
+                                <tr key={idx} className={row.status === 'failed' ? 'bg-red-50/50' : row.status === 'success' ? 'bg-emerald-50/50' : 'bg-bg'}>
+                                  <td className="px-3 py-2.5 font-medium text-text-main truncate max-w-[120px]" title={row.name}>{row.name || '-'}</td>
+                                  <td className="px-3 py-2.5 text-text-muted">{row.roll || '-'}</td>
+                                  <td className="px-3 py-2.5 text-text-muted whitespace-nowrap">{row.dob || '-'}</td>
+                                  <td className="px-3 py-2.5 text-text-muted truncate max-w-[80px]" title={row.course}>{row.course || '-'}</td>
+                                  <td className="px-3 py-2.5 text-text-muted truncate max-w-[80px]" title={row.batch}>{row.batch || '-'}</td>
+                                  <td className="px-3 py-2.5 text-text-muted whitespace-nowrap">{row.session || '-'}</td>
+                                  <td className="px-3 py-2.5">
+                                    {row.status === 'pending' && <span className="text-text-muted font-medium">Ready</span>}
+                                    {row.status === 'success' && <span className="text-emerald-600 font-bold flex items-center gap-1"><CheckCircle2 size={12}/> Success</span>}
+                                    {row.status === 'failed' && <span className="text-red-600 font-bold flex items-center gap-1 max-w-[150px] truncate" title={row.error}><AlertCircle size={12}/> {row.error}</span>}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-3 pt-3 mt-auto sticky bottom-0 bg-surface border-t border-border/80 z-10 shrink-0">
                     <button
@@ -2029,54 +2073,144 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </div>
               <div className="mb-6">
                 <label className="block text-xs font-semibold text-text-muted mb-2">
-                  Assign Teachers
+                  Assign Teachers (Optional)
                 </label>
-                <input
-                  type="text"
-                  placeholder="Search teachers..."
-                  value={newSubjectTeacherSearch}
-                  onChange={(e) => setNewSubjectTeacherSearch(e.target.value)}
-                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary mb-3"
-                />
-                <div className="max-h-60 overflow-y-auto border border-border rounded-lg custom-scrollbar">
-                  {teachers.length === 0 ? (
-                    <div className="p-6 text-center">
-                      <p className="text-text-muted text-sm font-medium">
-                        No teachers available.
-                      </p>
+                {showAddTeacherMode ? (
+                  <form onSubmit={handleCreateAndAssignTeacher} className="border border-border rounded-lg p-4 bg-surface">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="text-text-main font-bold text-sm">Create New Teacher</h4>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddTeacherMode(false);
+                          setAddTeacherError("");
+                        }}
+                        className="text-accent-primary text-xs font-bold hover:underline"
+                      >
+                        Back to List
+                      </button>
                     </div>
-                  ) : (
-                    teachers
-                      .filter(
-                        (t) =>
-                          t.full_name
-                            .toLowerCase()
-                            .includes(newSubjectTeacherSearch.toLowerCase()) ||
-                          (t.department || "")
-                            .toLowerCase()
-                            .includes(newSubjectTeacherSearch.toLowerCase()),
-                      )
-                      .map((t) => (
-                        <label
-                          key={t.id}
-                          className="flex items-center gap-3 p-3 hover:bg-bg cursor-pointer border-b border-border last:border-0 transition-colors"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={newSubject.teacherIds.includes(t.id)}
-                            onChange={() => toggleNewSubjectTeacher(t.id)}
-                            className="w-4 h-4 text-accent-primary rounded border-border focus:ring-accent-primary cursor-pointer"
-                          />
-                          <span className="text-sm font-medium text-text-main">
-                            {t.full_name}{" "}
-                            <span className="text-xs text-text-muted">
-                              ({t.department || "No Dept"})
-                            </span>
-                          </span>
-                        </label>
-                      ))
-                  )}
-                </div>
+                    <div className="space-y-3 mb-3">
+                      <div>
+                        <input
+                          type="text"
+                          value={newTeacherName}
+                          onChange={(e) => setNewTeacherName(e.target.value)}
+                          required
+                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
+                          placeholder="Full Name (e.g. Dr. Sharma)"
+                        />
+                      </div>
+                      <div>
+                        <input
+                          type="email"
+                          value={newTeacherEmail}
+                          onChange={(e) => setNewTeacherEmail(e.target.value)}
+                          required
+                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
+                          placeholder="Email Address"
+                        />
+                      </div>
+                      <div>
+                        <input
+                          type="text"
+                          value={newTeacherDepartment}
+                          onChange={(e) => setNewTeacherDepartment(e.target.value)}
+                          required
+                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
+                          placeholder="Department (e.g. Mathematics)"
+                        />
+                      </div>
+                      <div>
+                        <input
+                          type="password"
+                          value={newTeacherPassword}
+                          onChange={(e) => setNewTeacherPassword(e.target.value)}
+                          required
+                          minLength={6}
+                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
+                          placeholder="Password (Min 6 characters)"
+                        />
+                      </div>
+                    </div>
+                    {addTeacherError && (
+                      <div className="bg-red-50 border border-red-200 text-red-600 p-2 rounded-lg text-xs font-medium mb-3">
+                        {addTeacherError}
+                      </div>
+                    )}
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={addingTeacher}
+                        className="px-4 py-1.5 bg-accent-primary text-white rounded-lg hover:bg-accent-primary/80 text-sm font-semibold transition-colors disabled:opacity-50"
+                      >
+                        {addingTeacher ? "Creating..." : "Create & Select"}
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-semibold text-text-muted">Select existing:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddTeacherMode(true);
+                          setAddTeacherError("");
+                        }}
+                        className="text-accent-primary text-xs font-bold hover:underline flex items-center gap-1"
+                      >
+                        <Plus size={12} /> Add New Teacher
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search teachers..."
+                      value={newSubjectTeacherSearch}
+                      onChange={(e) => setNewSubjectTeacherSearch(e.target.value)}
+                      className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary mb-3"
+                    />
+                    <div className="max-h-60 overflow-y-auto border border-border rounded-lg custom-scrollbar">
+                      {teachers.length === 0 ? (
+                        <div className="p-6 text-center">
+                          <p className="text-text-muted text-sm font-medium">
+                            No teachers available.
+                          </p>
+                        </div>
+                      ) : (
+                        teachers
+                          .filter(
+                            (t) =>
+                              t.full_name
+                                .toLowerCase()
+                                .includes(newSubjectTeacherSearch.toLowerCase()) ||
+                              (t.department || "")
+                                .toLowerCase()
+                                .includes(newSubjectTeacherSearch.toLowerCase()),
+                          )
+                          .map((t) => (
+                            <label
+                              key={t.id}
+                              className="flex items-center gap-3 p-3 hover:bg-bg cursor-pointer border-b border-border last:border-0 transition-colors"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={newSubject.teacherIds.includes(t.id)}
+                                onChange={() => toggleNewSubjectTeacher(t.id)}
+                                className="w-4 h-4 text-accent-primary rounded border-border focus:ring-accent-primary cursor-pointer"
+                              />
+                              <span className="text-sm font-medium text-text-main">
+                                {t.full_name}{" "}
+                                <span className="text-xs text-text-muted">
+                                  ({t.department || "No Dept"})
+                                </span>
+                              </span>
+                            </label>
+                          ))
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
               <div className="flex justify-end gap-3">
                 <button

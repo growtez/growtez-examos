@@ -77,7 +77,7 @@ export default function Step5Publish({
         // 1. Fetch assigned students directly from students table
         const { data: studentsData, error: sError } = await supabase
           .from('students')
-          .select('id, full_name, roll_number, course, batch')
+          .select('id, full_name, roll_number, course, batch, date_of_birth, session')
           .eq('exam_id', exam.id);
         if (sError) throw sError;
 

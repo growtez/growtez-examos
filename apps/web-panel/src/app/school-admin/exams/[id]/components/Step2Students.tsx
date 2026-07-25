@@ -82,9 +82,38 @@ export default function Step2Students({
     });
   };
 
+  const handleDownloadStudentsCsv = () => {
+    const csvRows = [
+      "name,roll_number,dob,course,batch,session",
+      ...assignedStudents.map((r: any) => {
+        const s = r.students;
+        if (!s) return null;
+        const escapeCSV = (val: any) => {
+          if (!val) return '';
+          const str = String(val);
+          if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+          }
+          return str;
+        };
+        return `${escapeCSV(s.full_name)},${escapeCSV(s.roll_number)},${escapeCSV(s.date_of_birth)},${escapeCSV(s.course)},${escapeCSV(s.batch)},${escapeCSV(s.session)}`;
+      }).filter(Boolean)
+    ];
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${(exam?.title || 'exam').replace(/\s+/g, '_')}_students_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="mb-6 animate-in fade-in duration-300">
-      <div className={isReadOnly ? 'pointer-events-none select-none opacity-75' : ''}>
+      <div className={isReadOnly ? 'opacity-90' : ''}>
         {isReadOnly && (
           <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-600">
             This exam is published — student assignments are read-only.
@@ -211,6 +240,17 @@ export default function Step2Students({
               >
                 {generatingPDF ? <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> : <Download size={12} />}
                 {generatingPDF ? 'Generating...' : 'Download PDF'}
+              </button>
+            )}
+
+            {/* CSV Download Button */}
+            {assignedStudents.length > 0 && (
+              <button
+                onClick={handleDownloadStudentsCsv}
+                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border border-border bg-bg text-text-main hover:bg-surface-hover text-xs font-medium transition-all cursor-pointer"
+              >
+                <Download size={12} />
+                Download CSV
               </button>
             )}
 

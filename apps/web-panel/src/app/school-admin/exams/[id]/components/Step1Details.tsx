@@ -768,7 +768,7 @@ export default function Step1Details({
                       }}
                       className="text-text-muted hover:text-accent-primary text-[9px] font-bold uppercase tracking-wider border border-dashed border-border px-1.5 py-0.5 rounded flex items-center"
                     >
-                      <Plus size={8} className="mr-0.5" /> Assign Teacher
+                      <Plus size={8} className="mr-0.5" /> Assign Teacher (Optional)
                     </button>
                   </div>
                 </div>

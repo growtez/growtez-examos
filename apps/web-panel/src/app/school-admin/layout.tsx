@@ -47,12 +47,13 @@ export default function SchoolAdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      return window.innerWidth >= 768;
+      setSidebarOpen(window.innerWidth >= 768);
     }
-    return false;
-  });
+  }, []);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [role, setRole] = useState<string | null>(null);
