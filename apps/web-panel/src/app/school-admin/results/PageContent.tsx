@@ -8,11 +8,10 @@ import { FileBarChart2, Download, FileText, Loader2, Search, ChevronLeft, Chevro
 
 const CustomCalendar = ({ exams, selectedDate, onSelectDate }: { exams: any[], selectedDate: Date | null, onSelectDate: (d: Date | null) => void }) => {
   const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
-  
+
   const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
-  
-  // Set of date strings (YYYY-MM-DD) that have completed exams
+
   const examDates = new Set(exams.map(e => e.start_time ? new Date(e.start_time).toLocaleDateString('en-CA') : null).filter(Boolean));
 
   const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
@@ -28,16 +27,15 @@ const CustomCalendar = ({ exams, selectedDate, onSelectDate }: { exams: any[], s
     const hasExam = examDates.has(dateString);
     const isSelected = selectedDate && selectedDate.toLocaleDateString('en-CA') === dateString;
     const isToday = new Date().toLocaleDateString('en-CA') === dateString;
-    
+
     days.push(
       <button
         key={i}
         type="button"
         onClick={() => onSelectDate(isSelected ? null : d)}
-        className={`relative w-8 h-8 flex items-center justify-center rounded-full text-xs font-semibold transition-all border-none cursor-pointer ${
-          isSelected ? 'bg-accent-primary text-white shadow-md' : 
+        className={`relative w-8 h-8 flex items-center justify-center rounded-full text-xs font-semibold transition-all border-none cursor-pointer ${isSelected ? 'bg-accent-primary text-white shadow-md' :
           isToday ? 'bg-surface-hover text-accent-primary' : 'text-text-main hover:bg-surface-hover bg-transparent'
-        } ${hasExam && !isSelected ? 'ring-2 ring-accent-primary/60 ring-offset-1 ring-offset-surface' : ''}`}
+          } ${hasExam && !isSelected ? 'ring-2 ring-accent-primary/60 ring-offset-1 ring-offset-surface' : ''}`}
       >
         {i}
       </button>
@@ -80,7 +78,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
   const [loadingResults, setLoadingResults] = useState(false);
   const [schoolId, setSchoolId] = useState<string | null>(schoolIdProp || null);
   const [schoolName, setSchoolName] = useState<string>('');
-  
+
   // Results view filters
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -92,17 +90,42 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
   const [perPage, setPerPage] = useState(8);
   const [sortBy, setSortBy] = useState('rank');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
-  // Exams list filters
+  // Exams list filters (now mirroring the teachers-page control panel)
   const [examSearchQuery, setExamSearchQuery] = useState('');
   const [examDateFilter, setExamDateFilter] = useState<Date | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [examPage, setExamPage] = useState(1);
+  const [examPerPage, setExamPerPage] = useState(8);
+  const [examStatusFilter, setExamStatusFilter] = useState('all');
+  const [isExamFilterOpen, setIsExamFilterOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
+  const examFilterRef = useRef<HTMLDivElement>(null);
+  const resultsFilterRef = useRef<HTMLDivElement>(null);
+  const examSearchInputRef = useRef<HTMLInputElement>(null);
+  const resultsSearchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isMobileSearchOpen) {
+      if (viewMode === 'exams_list') {
+        examSearchInputRef.current?.focus();
+      } else {
+        resultsSearchInputRef.current?.focus();
+      }
+    }
+  }, [isMobileSearchOpen, viewMode]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
         setIsCalendarOpen(false);
+      }
+      if (examFilterRef.current && !examFilterRef.current.contains(event.target as Node)) {
+        setIsExamFilterOpen(false);
+      }
+      if (resultsFilterRef.current && !resultsFilterRef.current.contains(event.target as Node)) {
+        setIsFilterOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -140,17 +163,17 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
   const safePage = Math.min(page, totalPages);
   const pagedResults = filteredResults.slice((safePage - 1) * perPage, safePage * perPage);
 
-  const getPaginationPages = () => {
-    if (totalPages <= 3) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
+  const getPaginationPages = (current: number, total: number) => {
+    if (total <= 3) {
+      return Array.from({ length: total }, (_, i) => i + 1);
     }
-    if (safePage === totalPages) {
-      return [1, '...', totalPages];
+    if (current === total) {
+      return [1, '...', total];
     }
-    if (safePage === totalPages - 1) {
-      return [safePage - 1, safePage, totalPages];
+    if (current === total - 1) {
+      return [current - 1, current, total];
     }
-    return [safePage, '...', totalPages];
+    return [current, '...', total];
   };
 
   const uniqueCourses = Array.from(new Set(results.map(r => r.students?.course).filter(Boolean)));
@@ -180,7 +203,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
             if (profile?.school_id) activeSchoolId = profile.school_id;
           }
         }
-        
+
         if (!activeSchoolId) return;
       }
 
@@ -239,21 +262,18 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
   const fetchResults = async (examId: string) => {
     setLoadingResults(true);
     try {
-      // 1. Fetch assigned students directly from students table
       const { data: studentsData, error: sError } = await supabase
         .from('students')
         .select('id, full_name, roll_number, course, batch')
         .eq('exam_id', examId);
       if (sError) throw sError;
 
-      // 2. Fetch results
       const { data: resData, error: resError } = await supabase
         .from('results')
         .select('*, exams:exam_id(title, total_marks, start_time)')
         .eq('exam_id', examId);
       if (resError) throw resError;
 
-      // Get exam details from existing state or fallback
       let examDetails = exams.find(e => e.id === examId);
       if (!examDetails) {
         const { data: examData } = await supabase
@@ -264,8 +284,6 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
         examDetails = examData;
       }
 
-      // 4. Merge results with assigned students
-      // 3. Extract student IDs
       const studentIds = (studentsData || []).map((s: any) => s.id);
 
       let merged = [];
@@ -292,7 +310,6 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
           };
         });
       } else {
-        // If ongoing, only show students who have a result entry
         merged = (resData || []).map((studentResult: any) => {
           const studentInfo = studentsData.find((s: any) => s.id === studentResult.student_id);
           return {
@@ -315,7 +332,6 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
         });
       }
 
-      // Sort by total marks descending (placing absent/null at the end)
       merged.sort((a: any, b: any) => {
         if (a.isAbsent && !b.isAbsent) return 1;
         if (!a.isAbsent && b.isAbsent) return -1;
@@ -339,7 +355,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
 
   const handleDownloadAllResults = async () => {
     if (!selectedExamId) return;
-    
+
     const exam = exams.find(e => e.id === selectedExamId);
     if (!exam) return;
 
@@ -350,12 +366,12 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
 
     try {
       setIsGeneratingPdf(true);
-      
+
       let calculatedTotal = 0;
       if (questions && questions.length > 0) {
         calculatedTotal = questions.reduce((sum, q) => sum + (q.positive_marks || 0), 0);
       }
-      
+
       const formattedDate = exam.start_time ? new Date(exam.start_time).toLocaleDateString() : 'N/A';
       const totalExamMarks = calculatedTotal > 0 ? calculatedTotal : (exam.total_marks || 'N/A');
       const batchText = batchFilter ? `Batch: ${batchFilter}` : 'All Batches';
@@ -416,7 +432,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
-      
+
       await html2pdf().set(opt).from(html).save();
     } catch (err: any) {
       alert('Failed to generate results PDF: ' + err.message);
@@ -459,139 +475,288 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
     return end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // ---------------------------------------------------------------------
+  // EXAMS LIST VIEW — teachers-page control panel + table (desktop),
+  // cards (mobile)
+  // ---------------------------------------------------------------------
   if (viewMode === 'exams_list') {
     const filteredExams = exams.filter(e => {
       const matchesSearch = e.title.toLowerCase().includes(examSearchQuery.toLowerCase());
+      const matchesStatus = examStatusFilter === 'all' || e.status === examStatusFilter;
       let matchesDate = true;
       if (examDateFilter && e.start_time) {
         matchesDate = new Date(e.start_time).toLocaleDateString('en-CA') === examDateFilter.toLocaleDateString('en-CA');
       } else if (examDateFilter && !e.start_time) {
         matchesDate = false;
       }
-      return matchesSearch && matchesDate;
+      return matchesSearch && matchesStatus && matchesDate;
     });
+
+    const examTotalPages = Math.max(1, Math.ceil(filteredExams.length / examPerPage));
+    const examSafePage = Math.min(examPage, examTotalPages);
+    const pagedExams = filteredExams.slice((examSafePage - 1) * examPerPage, examSafePage * examPerPage);
 
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-7xl mx-auto">
-        <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-text-main tracking-tight">Exam Results</h1>
-            <p className="text-text-muted mt-1.5 font-medium">Select an exam to view detailed student performance and analytics.</p>
+        <div className="mb-4">
+          <p className="text-text-muted mt-1.5 font-medium">Select an exam to view analytics.</p>
+        </div>
+
+        {/* Control Panel — matches teachers page structure */}
+        <div className="flex flex-row flex-wrap md:flex-nowrap items-center justify-between gap-2 md:gap-3 w-full bg-surface p-2 rounded-xl shadow-sm border border-border mb-4">
+          {/* Search Box (Row 1 Left on Mobile) */}
+          <div className="relative flex-1 md:flex-none md:w-[260px] order-1 md:order-1">
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+            <input
+              type="text"
+              placeholder="Search Exams..."
+              value={examSearchQuery}
+              onChange={(e) => { setExamSearchQuery(e.target.value); setExamPage(1); }}
+              className="w-full py-2 pl-4 pr-10 bg-surface-hover border border-border rounded-full text-text-main text-[13px] focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all"
+            />
           </div>
-          
-          <div className="flex items-center gap-3">
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-              <input
-                type="text"
-                placeholder="Search Exams..."
-                value={examSearchQuery}
-                onChange={(e) => setExamSearchQuery(e.target.value)}
-                className="w-full py-2 pl-9 pr-4 bg-surface-hover border border-border rounded-xl text-text-main text-[13px] focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all shadow-sm"
-              />
-            </div>
-            <div className="relative" ref={calendarRef}>
-              <button 
-                onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold border transition-all cursor-pointer ${
-                  examDateFilter ? 'bg-accent-primary/10 text-accent-primary border-accent-primary/20' : 'bg-surface border-border text-text-main hover:bg-surface-hover'
-                }`}
+
+          {/* Action Buttons: Filter & Date (Row 1 Right on Mobile) */}
+          <div className="flex items-center gap-2 order-2 md:order-4 shrink-0">
+            <div className="relative" ref={examFilterRef}>
+              <button
+                type="button"
+                onClick={() => setIsExamFilterOpen(!isExamFilterOpen)}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-medium cursor-pointer"
               >
-                <CalendarDays size={16} />
-                {examDateFilter ? examDateFilter.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Filter by Date'}
+                <Filter size={14} className="text-accent-primary" /> <span className="hidden md:inline">Filter</span>
+              </button>
+              <div className={`absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col p-1.5 space-y-0.5 ${isExamFilterOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                <div className="px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">Status</div>
+                {[
+                  { id: 'all', label: 'All Statuses' },
+                  { id: 'completed', label: 'Completed' },
+                  { id: 'active', label: 'Ongoing' },
+                  { id: 'published', label: 'Published' }
+                ].map(status => (
+                  <button
+                    key={status.id}
+                    type="button"
+                    onClick={() => {
+                      setExamStatusFilter(status.id);
+                      setExamPage(1);
+                      setIsExamFilterOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border-none flex items-center justify-between ${examStatusFilter === status.id ? 'bg-accent-primary/10 text-accent-primary font-bold' : 'text-text-main hover:bg-surface-hover'
+                      }`}
+                  >
+                    <span>{status.label}</span>
+                    {examStatusFilter === status.id && <Check size={14} className="text-accent-primary" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="relative shrink-0" ref={calendarRef}>
+              <button
+                type="button"
+                onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-medium border transition-all cursor-pointer ${examDateFilter ? 'bg-accent-primary/10 text-accent-primary border-accent-primary/20' : 'bg-surface border-border text-text-main hover:bg-surface-hover'
+                  }`}
+              >
+                <CalendarDays size={14} />
+                <span className="hidden md:inline">{examDateFilter ? examDateFilter.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Date'}</span>
               </button>
               {isCalendarOpen && (
                 <div className="absolute right-0 top-full mt-2 z-50">
-                  <CustomCalendar 
-                    exams={exams} 
-                    selectedDate={examDateFilter} 
-                    onSelectDate={(d) => { setExamDateFilter(d); setIsCalendarOpen(false); }} 
+                  <CustomCalendar
+                    exams={exams}
+                    selectedDate={examDateFilter}
+                    onSelectDate={(d) => { setExamDateFilter(d); setExamPage(1); setIsCalendarOpen(false); }}
                   />
                 </div>
               )}
             </div>
           </div>
+
+          {/* Row 2 on Mobile: Page Navigation + Items Per Page Dropdown */}
+          <div className="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto order-3 md:order-3 shrink-0 md:border-x md:border-border/50 px-1 md:px-3 py-1.5 md:py-0 border-t md:border-t-0 border-border/40">
+            <select value={examPerPage} onChange={e => { setExamPerPage(Number(e.target.value)); setExamPage(1); }} className="py-1.5 px-2 rounded-lg border border-border bg-surface text-text-main text-[12px] focus:outline-none focus:ring-1 focus:ring-accent-primary cursor-pointer">
+              {[8, 20, 50, 100].map(n => <option key={n} value={n}>{n} / page</option>)}
+            </select>
+
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => setExamPage(p => Math.max(1, p - 1))} disabled={examSafePage === 1} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+                <ChevronLeft size={14} />
+              </button>
+              <div className="flex items-center justify-center gap-1 w-[80px]">
+                {getPaginationPages(examSafePage, examTotalPages).map((p, i) => p === '...' ? (
+                  <div key={`ellipsis-${i}`} className="w-6 h-6 flex items-center justify-center text-[11px] text-text-muted">…</div>
+                ) : (
+                  <button type="button" key={p} onClick={() => setExamPage(p as number)} className={`w-6 h-6 flex items-center justify-center rounded text-[11px] font-semibold transition-colors border-none cursor-pointer ${examSafePage === p ? 'bg-accent-primary text-white' : 'text-text-muted hover:bg-surface-hover bg-transparent'}`}>{p as number}</button>
+                ))}
+              </div>
+              <button type="button" onClick={() => setExamPage(p => Math.min(examTotalPages, p + 1))} disabled={examSafePage === examTotalPages} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Row 3 on Mobile: Inline Active Filters */}
+          <div className="w-full md:w-auto md:flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0 order-4 md:order-2 border-t md:border-t-0 border-border/40">
+            {(examSearchQuery || examStatusFilter !== 'all' || examDateFilter) ? (
+              <>
+                <span className="text-[11px] text-text-muted font-medium uppercase tracking-wider shrink-0 mr-1">Active:</span>
+                {examSearchQuery && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                    "{examSearchQuery}"
+                    <button type="button" onClick={() => setExamSearchQuery('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                  </span>
+                )}
+                {examStatusFilter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                    {examStatusFilter}
+                    <button type="button" onClick={() => setExamStatusFilter('all')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                  </span>
+                )}
+                {examDateFilter && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                    {examDateFilter.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    <button type="button" onClick={() => setExamDateFilter(null)} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setExamSearchQuery(''); setExamStatusFilter('all'); setExamDateFilter(null); setExamPage(1); }}
+                  className="text-[11px] text-text-muted hover:text-red-500 transition-colors ml-1 bg-transparent border-none cursor-pointer font-medium shrink-0"
+                >
+                  Clear
+                </button>
+              </>
+            ) : (
+              <span className="text-[11px] text-text-muted italic opacity-50">No active filters</span>
+            )}
+          </div>
         </div>
 
-        {loadingExams ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1,2,3,4,5,6].map(i => (
-              <div key={i} className="h-[220px] bg-surface border border-border rounded-2xl animate-pulse"></div>
-            ))}
-          </div>
-        ) : filteredExams.length === 0 ? (
-          <div className="bg-surface border border-border rounded-2xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
-            <div className="w-20 h-20 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-5">
-              <FileBarChart2 size={36} />
-            </div>
-            <h3 className="text-text-main font-bold text-2xl mb-2">No Exams Found</h3>
-            <p className="text-text-muted text-base font-medium max-w-md">Once exams are created and students submit their answers, the results will appear here.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredExams.map(exam => (
-              <div 
-                key={exam.id} 
-                onClick={() => router.push(`/results/${exam.id}`)}
-                className="bg-surface border border-border hover:border-accent-primary p-6 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer group flex flex-col justify-between min-h-[220px]"
-              >
-                <div>
-                  <div className="flex justify-between items-start mb-4">
-                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                      exam.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {exam.status === 'completed' ? 'Completed' : 'Ongoing'}
-                    </span>
-                    {exam.total_marks && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted bg-surface-hover px-2 py-1 rounded-md border border-border/50">
-                        {exam.total_marks} Marks
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-lg font-bold text-text-main group-hover:text-accent-primary transition-colors line-clamp-2 leading-snug">{exam.title}</h3>
-                  
-                  <div className="mt-5 space-y-3">
-                    <div className="flex items-center gap-2.5 text-text-muted text-xs font-semibold bg-surface-hover px-3 py-1.5 rounded-lg border border-border/50">
-                      <Calendar size={14} className="text-accent-primary/70" />
-                      {exam.start_time ? new Date(exam.start_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date set'}
-                    </div>
-                    <div className="flex items-center gap-2.5 text-text-muted text-xs font-semibold bg-surface-hover px-3 py-1.5 rounded-lg border border-border/50">
-                      <Clock size={14} className="text-accent-primary/70" />
-                      {exam.start_time ? (
-                        exam.duration_minutes ? (
-                          `${new Date(exam.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${getEndTime(exam.start_time, exam.duration_minutes)}`
-                        ) : (
-                          new Date(exam.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                        )
-                      ) : '—'}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-6 pt-5 border-t border-border flex justify-between items-center">
-                  <div className="flex items-center gap-1.5 text-text-muted">
-                    <Users size={16} />
-                    <span className="text-xs font-bold"><span className="text-text-main">{exam.submissionCount}</span> Submissions</span>
-                  </div>
-                  <span className="w-8 h-8 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary group-hover:bg-accent-primary group-hover:text-white transition-colors">
-                    <ChevronRight size={16} />
-                  </span>
-                </div>
+        {/* Table (desktop) / Cards (mobile) */}
+        <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
+          {loadingExams ? (
+            <table className="w-full animate-pulse">
+              <thead><tr className="bg-bg"><th className="px-6 py-4"></th><th className="px-6 py-4"></th><th className="px-6 py-4"></th><th className="px-6 py-4"></th><th className="px-6 py-4"></th></tr></thead>
+              <tbody>
+                {[...Array(5)].map((_, i) => (
+                  <tr key={i} className="border-b border-border">
+                    <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-48"></div></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-20"></div></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-32"></div></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-24"></div></td>
+                    <td className="px-6 py-4"><div className="h-4 bg-bg rounded w-16"></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : filteredExams.length === 0 ? (
+            <div className="p-16 flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 rounded-2xl bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-4">
+                <FileBarChart2 size={32} />
               </div>
-            ))}
-          </div>
-        )}
+              <h3 className="text-text-main font-bold text-lg">No Exams Found</h3>
+              <p className="text-text-muted mt-1 text-sm font-medium max-w-md">Once exams are created and students submit their answers, the results will appear here.</p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto w-full">
+                <table className="w-full min-w-[800px] text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[35%]">Exam Title</th>
+                      <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[12%]">Status</th>
+                      <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[18%]">Date &amp; Time</th>
+                      <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%] text-center">Marks</th>
+                      <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%] text-center">Submissions</th>
+                      <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[10%] text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedExams.map((exam) => (
+                      <tr key={exam.id} className="group even:bg-bg hover:bg-surface-hover border-b border-border/40 last:border-b-0 transition-colors cursor-pointer" onClick={() => router.push(`/results/${exam.id}`)}>
+                        <td className="py-2.5 px-4 align-middle">
+                          <span className="text-text-main font-semibold text-[13px] group-hover:text-accent-primary transition-colors">{exam.title}</span>
+                        </td>
+                        <td className="py-2.5 px-4 align-middle">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${exam.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                            {exam.status === 'completed' ? 'Completed' : 'Ongoing'}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-4 align-middle text-text-muted text-[12px]">
+                          {exam.start_time ? (
+                            <>
+                              <span className="font-medium text-text-main">{new Date(exam.start_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span><br />
+                              <span className="opacity-80">
+                                {exam.duration_minutes
+                                  ? `${new Date(exam.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${getEndTime(exam.start_time, exam.duration_minutes)}`
+                                  : new Date(exam.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </>
+                          ) : '—'}
+                        </td>
+                        <td className="py-2.5 px-4 align-middle text-center text-text-muted text-[13px]">{exam.total_marks || '—'}</td>
+                        <td className="py-2.5 px-4 align-middle text-center">
+                          <span className="inline-flex items-center gap-1 text-[12px] font-bold text-text-main"><Users size={12} className="text-text-muted" />{exam.submissionCount}</span>
+                        </td>
+                        <td className="py-2.5 px-4 align-middle text-center">
+                          <span className="w-7 h-7 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary group-hover:bg-accent-primary group-hover:text-white transition-colors mx-auto">
+                            <ChevronRight size={14} />
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="md:hidden divide-y divide-border/60">
+                {pagedExams.map(exam => (
+                  <div
+                    key={exam.id}
+                    onClick={() => router.push(`/results/${exam.id}`)}
+                    className="p-4 flex flex-col gap-2.5 active:bg-surface-hover transition-colors cursor-pointer"
+                  >
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="text-text-main font-bold text-[14px] leading-snug">{exam.title}</span>
+                      <span className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${exam.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                        {exam.status === 'completed' ? 'Completed' : 'Ongoing'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[11px] text-text-muted font-medium flex-wrap">
+                      <span className="inline-flex items-center gap-1"><Calendar size={12} className="text-accent-primary/70" />{exam.start_time ? new Date(exam.start_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'No date'}</span>
+                      <span className="inline-flex items-center gap-1"><Clock size={12} className="text-accent-primary/70" />{exam.start_time ? new Date(exam.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                      <span className="inline-flex items-center gap-1"><Users size={12} className="text-accent-primary/70" />{exam.submissionCount} submissions</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1">
+                      <span className="text-[11px] font-semibold text-text-muted">{exam.total_marks ? `${exam.total_marks} Marks` : ''}</span>
+                      <ChevronRight size={16} className="text-accent-primary" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     );
   }
 
+  // ---------------------------------------------------------------------
+  // EXAM RESULTS VIEW — teachers-page control panel + table (desktop),
+  // cards (mobile)
+  // ---------------------------------------------------------------------
   return (
     <div className="animate-in fade-in slide-in-from-right-8 duration-500 max-w-7xl mx-auto mt-4">
       {/* Control Panel */}
       {!loadingResults && (
-        <div className="flex flex-col md:flex-row md:items-center gap-3 w-full bg-surface p-3 md:p-2 rounded-xl shadow-sm border border-border mb-4">
-          {/* Search Box */}
-          <div className="relative w-full md:max-w-[260px] shrink-0">
+        <div className="flex flex-row flex-wrap md:flex-nowrap items-center justify-between gap-2 md:gap-3 w-full bg-surface p-2 rounded-xl shadow-sm border border-border mb-4">
+          {/* Search Box (Row 1 Left on Mobile) */}
+          <div className="relative flex-1 md:flex-none md:w-[260px] order-1 md:order-1">
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
             <input
               type="text"
@@ -602,8 +767,112 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
             />
           </div>
 
-          {/* Inline Active Filters */}
-          <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0">
+          {/* Action Buttons: Filter, Share & PDF (Row 1 Right on Mobile) */}
+          <div className="flex items-center gap-2 order-2 md:order-4 shrink-0">
+            <div className="relative" ref={resultsFilterRef}>
+              <button
+                type="button"
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-medium cursor-pointer"
+              >
+                <Filter size={14} className="text-accent-primary" /> <span className="hidden md:inline">Filter</span>
+              </button>
+              <div className={`absolute right-0 top-full mt-2 w-52 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col p-2 space-y-2 ${isFilterOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+                <div>
+                  <div className="px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">Course</div>
+                  <button
+                    type="button"
+                    onClick={() => { setCourseFilter(''); setPage(1); setIsFilterOpen(false); }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border-none flex items-center justify-between ${!courseFilter ? 'bg-accent-primary/10 text-accent-primary font-bold' : 'text-text-main hover:bg-surface-hover'}`}
+                  >
+                    <span>All Courses</span>
+                    {!courseFilter && <Check size={14} className="text-accent-primary" />}
+                  </button>
+                  {uniqueCourses.map((c: any) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => { setCourseFilter(c); setPage(1); setIsFilterOpen(false); }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border-none flex items-center justify-between ${courseFilter === c ? 'bg-accent-primary/10 text-accent-primary font-bold' : 'text-text-main hover:bg-surface-hover'}`}
+                    >
+                      <span>{c}</span>
+                      {courseFilter === c && <Check size={14} className="text-accent-primary" />}
+                    </button>
+                  ))}
+                </div>
+                <div>
+                  <div className="px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">Batch</div>
+                  <button
+                    type="button"
+                    onClick={() => { setBatchFilter(''); setPage(1); setIsFilterOpen(false); }}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border-none flex items-center justify-between ${!batchFilter ? 'bg-accent-primary/10 text-accent-primary font-bold' : 'text-text-main hover:bg-surface-hover'}`}
+                  >
+                    <span>All Batches</span>
+                    {!batchFilter && <Check size={14} className="text-accent-primary" />}
+                  </button>
+                  {uniqueBatches.map((b: any) => (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => { setBatchFilter(b); setPage(1); setIsFilterOpen(false); }}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border-none flex items-center justify-between ${batchFilter === b ? 'bg-accent-primary/10 text-accent-primary font-bold' : 'text-text-main hover:bg-surface-hover'}`}
+                    >
+                      <span>{b}</span>
+                      {batchFilter === b && <Check size={14} className="text-accent-primary" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {results.length > 0 && exams.find(e => e.id === selectedExamId)?.status === 'completed' && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface border border-border hover:bg-surface-hover text-text-main transition-all text-[12px] font-medium cursor-pointer shrink-0 shadow-sm"
+                >
+                  {isCopied ? <Check size={14} className="text-emerald-500" /> : <Share2 size={14} className="text-accent-primary" />}
+                  <span className="hidden md:inline">{isCopied ? 'Copied!' : 'Share Result Link'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadAllResults}
+                  disabled={isGeneratingPdf}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary hover:bg-accent-primary/80 text-white transition-all text-[12px] font-medium disabled:opacity-75 cursor-pointer border-none shrink-0 shadow-sm"
+                >
+                  {isGeneratingPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  <span className="hidden md:inline">PDF Results</span>
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Row 2 on Mobile: Page Navigation + Items Per Page Dropdown */}
+          <div className="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto order-3 md:order-3 shrink-0 md:border-x md:border-border/50 px-1 md:px-3 py-1.5 md:py-0 border-t md:border-t-0 border-border/40">
+            <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="py-1.5 px-2 rounded-lg border border-border bg-surface text-text-main text-[12px] focus:outline-none focus:ring-1 focus:ring-accent-primary cursor-pointer">
+              {[8, 20, 50, 100].map(n => <option key={n} value={n}>{n} / page</option>)}
+            </select>
+
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+                <ChevronLeft size={14} />
+              </button>
+              <div className="flex items-center justify-center gap-1 w-[80px]">
+                {getPaginationPages(safePage, totalPages).map((p, i) => p === '...' ? (
+                  <div key={`ellipsis-${i}`} className="w-6 h-6 flex items-center justify-center text-[11px] text-text-muted">…</div>
+                ) : (
+                  <button type="button" key={p} onClick={() => setPage(p as number)} className={`w-6 h-6 flex items-center justify-center rounded text-[11px] font-semibold transition-colors border-none cursor-pointer ${safePage === p ? 'bg-accent-primary text-white' : 'text-text-muted hover:bg-surface-hover bg-transparent'}`}>{p as number}</button>
+                ))}
+              </div>
+              <button type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+
+          {/* Row 3 on Mobile: Inline Active Filters */}
+          <div className="w-full md:w-auto md:flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0 order-4 md:order-2 border-t md:border-t-0 border-border/40">
             {(searchQuery || courseFilter || batchFilter || sortBy !== 'rank') ? (
               <>
                 <span className="text-[11px] text-text-muted font-medium uppercase tracking-wider shrink-0 mr-1">Active:</span>
@@ -631,7 +900,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
                     <button type="button" onClick={() => setSortBy('rank')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
                   </span>
                 )}
-                <button 
+                <button
                   type="button"
                   onClick={() => { setSearchQuery(''); setCourseFilter(''); setBatchFilter(''); setSortBy('rank'); setPage(1); }}
                   className="text-[11px] text-text-muted hover:text-red-500 transition-colors ml-1 bg-transparent border-none cursor-pointer font-medium shrink-0"
@@ -643,95 +912,17 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
               <span className="text-[11px] text-text-muted italic opacity-50">No active filters</span>
             )}
           </div>
-
-          {/* Pagination Controls */}
-          <div className="flex items-center justify-between md:justify-start gap-1 shrink-0 md:border-x md:border-border/50 px-3 py-1.5 md:py-0 w-full md:w-auto">
-            <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
-              <ChevronLeft size={14} />
-            </button>
-            <div className="flex items-center justify-center gap-1 w-[80px]">
-              {getPaginationPages().map((p, i) => p === '...' ? (
-                <div key={`ellipsis-${i}`} className="w-6 h-6 flex items-center justify-center text-[11px] text-text-muted">…</div>
-              ) : (
-                <button type="button" key={p} onClick={() => setPage(p as number)} className={`w-6 h-6 flex items-center justify-center rounded text-[11px] font-semibold transition-colors border-none cursor-pointer ${safePage === p ? 'bg-accent-primary text-white' : 'text-text-muted hover:bg-surface-hover bg-transparent'}`}>{p as number}</button>
-              ))}
-            </div>
-            <button type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
-              <ChevronRight size={14} />
-            </button>
-          </div>
-
-          {/* Controls and Actions */}
-          <div className="flex flex-wrap items-center gap-2 shrink-0 w-full md:w-auto">
-            <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }} className="py-1.5 px-2 rounded-lg border border-border bg-surface text-text-main text-[12px] focus:outline-none focus:ring-1 focus:ring-accent-primary cursor-pointer flex-1 md:flex-none">
-              {[8, 20, 50, 100].map(n => <option key={n} value={n}>{n} / page</option>)}
-            </select>
-            <div className="relative group flex-1 md:flex-none">
-              <button 
-                type="button"
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-medium"
-              >
-                <Filter size={14} className="text-accent-primary" /> Filter
-              </button>
-              <div className={`absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col p-3 space-y-3 ${
-                isFilterOpen ? 'opacity-100 visible' : 'opacity-0 invisible group-hover:opacity-100 group-hover:visible'
-              }`}>
-                <div>
-                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Course</label>
-                  <select value={courseFilter} onChange={(e) => { setCourseFilter(e.target.value); setPage(1); }} className="w-full p-1.5 bg-surface-hover border border-border rounded-lg text-xs text-text-main focus:outline-none">
-                    <option value="">All Courses</option>
-                    {uniqueCourses.map((c: any) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">Batch</label>
-                  <select value={batchFilter} onChange={(e) => { setBatchFilter(e.target.value); setPage(1); }} className="w-full p-1.5 bg-surface-hover border border-border rounded-lg text-xs text-text-main focus:outline-none">
-                    <option value="">All Batches</option>
-                    {uniqueBatches.map((b: any) => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-            
-            {results.length > 0 && exams.find(e => e.id === selectedExamId)?.status === 'completed' && (
-              <>
-                <button 
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-surface border border-border hover:bg-surface-hover text-text-main transition-all text-[12px] font-medium cursor-pointer flex-1 md:flex-none shadow-sm"
-                >
-                  {isCopied ? <Check size={14} className="text-emerald-500" /> : <Share2 size={14} className="text-accent-primary" />}
-                  {isCopied ? 'Copied!' : 'Share Result Link'}
-                </button>
-                <button 
-                  type="button"
-                  onClick={handleDownloadAllResults}
-                  disabled={isGeneratingPdf}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-accent-primary hover:bg-accent-primary/80 text-white transition-all text-[12px] font-medium disabled:opacity-75 cursor-pointer border-none flex-1 md:flex-none shadow-sm"
-                >
-                  {isGeneratingPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                  PDF Results
-                </button>
-              </>
-            )}
-          </div>
         </div>
       )}
 
-      {/* Results Table */}
+      {/* Results Table / Cards */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
         {loadingResults ? (
           <table className="w-full animate-pulse">
             <thead>
               <tr className="bg-bg">
-                <th className="px-6 py-4"></th>
-                <th className="px-6 py-4"></th>
-                <th className="px-6 py-4"></th>
-                <th className="px-6 py-4"></th>
-                <th className="px-6 py-4"></th>
-                <th className="px-6 py-4"></th>
-                <th className="px-6 py-4"></th>
+                <th className="px-6 py-4"></th><th className="px-6 py-4"></th><th className="px-6 py-4"></th>
+                <th className="px-6 py-4"></th><th className="px-6 py-4"></th><th className="px-6 py-4"></th><th className="px-6 py-4"></th>
               </tr>
             </thead>
             <tbody>
@@ -764,103 +955,165 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
             No students found matching "{searchQuery}"
           </div>
         ) : (
-          <div className="overflow-x-auto w-full">
-            <table className="w-full whitespace-nowrap min-w-[800px] text-left border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[8%]">Rank</th>
-                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[12%]">Roll No.</th>
-                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[25%]" onClick={() => toggleSort('name')}>
-                    <div className="flex items-center gap-2">Student Name {getSortIcon('name')}</div>
-                  </th>
-                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors text-center w-[10%]" onClick={() => toggleSort('score')}>
-                    <div className="flex items-center gap-2 justify-center">Score {getSortIcon('score')}</div>
-                  </th>
-                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[20%]">Subject Breakdown</th>
-                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[10%]">Time Taken</th>
-                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[15%]">Submitted At</th>
-                  <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[10%]">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedResults.map((res, index) => {
-                  const globalIndex = (safePage - 1) * perPage + index;
-                  return (
-                    <tr key={res.id} className="group even:bg-bg hover:bg-surface-hover border-b border-border/40 last:border-b-0 transition-colors">
-                      <td className="py-2.5 px-4 align-middle text-center">
-                        <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold ${
-                          globalIndex === 0 ? 'bg-amber-100 text-amber-600 border border-amber-200' :
-                          globalIndex === 1 ? 'bg-slate-100 text-slate-600 border border-slate-200' :
-                          globalIndex === 2 ? 'bg-orange-100 text-orange-600 border border-orange-200' :
-                          'text-text-muted bg-surface border border-border'
-                        }`}>
-                          #{globalIndex + 1}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-4 align-middle text-center">
-                        <span className="font-mono text-[11px] font-bold bg-surface text-accent-primary px-2 py-0.5 rounded-md border border-border">{res.students?.roll_number}</span>
-                      </td>
-                      <td className="py-2.5 px-4 align-middle">
-                        <span className="text-text-main font-semibold text-[13px]">{res.students?.full_name}</span>
-                      </td>
-                      <td className="py-2.5 px-4 align-middle text-center">
-                        {res.isAbsent ? (
-                          <span className="text-text-muted font-medium text-[13px]">—</span>
-                        ) : (
-                          <span className="text-accent-primary font-bold text-base">{res.total_marks ?? 0}</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 px-4 align-middle">
-                        <div className="flex flex-col gap-0.5 text-[11px]">
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto w-full">
+              <table className="w-full whitespace-nowrap min-w-[800px] text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[8%]">Rank</th>
+                    <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[12%]">Roll No.</th>
+                    <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[25%]" onClick={() => toggleSort('name')}>
+                      <div className="flex items-center gap-2">Student Name {getSortIcon('name')}</div>
+                    </th>
+                    <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors text-center w-[10%]" onClick={() => toggleSort('score')}>
+                      <div className="flex items-center gap-2 justify-center">Score {getSortIcon('score')}</div>
+                    </th>
+                    <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[20%]">Subject Breakdown</th>
+                    <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[10%]">Time Taken</th>
+                    <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[15%]">Submitted At</th>
+                    <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[10%]">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedResults.map((res, index) => {
+                    const globalIndex = (safePage - 1) * perPage + index;
+                    return (
+                      <tr key={res.id} className="group even:bg-bg hover:bg-surface-hover border-b border-border/40 last:border-b-0 transition-colors">
+                        <td className="py-2.5 px-4 align-middle text-center">
+                          <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold ${globalIndex === 0 ? 'bg-amber-100 text-amber-600 border border-amber-200' :
+                            globalIndex === 1 ? 'bg-slate-100 text-slate-600 border border-slate-200' :
+                              globalIndex === 2 ? 'bg-orange-100 text-orange-600 border border-orange-200' :
+                                'text-text-muted bg-surface border border-border'
+                            }`}>
+                            #{globalIndex + 1}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-4 align-middle text-center">
+                          <span className="font-mono text-[11px] font-bold bg-surface text-accent-primary px-2 py-0.5 rounded-md border border-border">{res.students?.roll_number}</span>
+                        </td>
+                        <td className="py-2.5 px-4 align-middle">
+                          <span className="text-text-main font-semibold text-[13px]">{res.students?.full_name}</span>
+                        </td>
+                        <td className="py-2.5 px-4 align-middle text-center">
                           {res.isAbsent ? (
-                            <span className="text-text-muted">—</span>
-                          ) : Array.isArray(res.section_scores) ? (
-                            res.section_scores.map((score: any, idx: number) => (
-                              <div key={idx} className="text-text-muted">
-                                <span className="font-semibold text-text-main">{score.subject_name}:</span> {score.marks} marks ({score.correct}C/{score.wrong}W)
-                              </div>
-                            ))
+                            <span className="text-text-muted font-medium text-[13px]">—</span>
+                          ) : (
+                            <span className="text-accent-primary font-bold text-base">{res.total_marks ?? 0}</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-4 align-middle">
+                          <div className="flex flex-col gap-0.5 text-[11px]">
+                            {res.isAbsent ? (
+                              <span className="text-text-muted">—</span>
+                            ) : Array.isArray(res.section_scores) ? (
+                              res.section_scores.map((score: any, idx: number) => (
+                                <div key={idx} className="text-text-muted">
+                                  <span className="font-semibold text-text-main">{score.subject_name}:</span> {score.marks} marks ({score.correct}C/{score.wrong}W)
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-text-muted">—</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-4 align-middle text-text-muted text-[13px] text-center font-medium">
+                          {res.isAbsent ? '—' : formatTime(res.time_taken_seconds)}
+                        </td>
+                        <td className="py-2.5 px-4 align-middle text-text-muted text-[11px] text-center">
+                          {res.submitted_at ? (
+                            <>
+                              <span className="font-medium text-text-main">{new Date(res.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span><br />
+                              <span className="text-text-muted opacity-80">{new Date(res.submitted_at).toLocaleDateString()}</span>
+                            </>
                           ) : (
                             <span className="text-text-muted">—</span>
                           )}
+                        </td>
+                        <td className="py-2.5 px-4 align-middle text-center">
+                          {res.submitted_at ? (
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadStudentAnswerKey(res)}
+                              disabled={generatingStudentId === res.id}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface hover:bg-accent-primary/10 text-accent-primary font-semibold text-[11px] rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:active:scale-100 border-none cursor-pointer"
+                            >
+                              {generatingStudentId === res.id ? <Loader2 size={12} className="animate-spin" /> : <FileText size={12} />}
+                              Answer Key
+                            </button>
+                          ) : res.isAbsent ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">Absent</span>
+                          ) : (
+                            <span className="text-text-muted text-[11px] font-medium">In Progress</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-border/60">
+              {pagedResults.map((res, index) => {
+                const globalIndex = (safePage - 1) * perPage + index;
+                return (
+                  <div key={res.id} className="p-4 flex flex-col gap-2.5">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold ${globalIndex === 0 ? 'bg-amber-100 text-amber-600 border border-amber-200' :
+                          globalIndex === 1 ? 'bg-slate-100 text-slate-600 border border-slate-200' :
+                            globalIndex === 2 ? 'bg-orange-100 text-orange-600 border border-orange-200' :
+                              'text-text-muted bg-surface border border-border'
+                          }`}>
+                          #{globalIndex + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="text-text-main font-bold text-[13px] truncate">{res.students?.full_name}</div>
+                          <span className="font-mono text-[10px] font-bold bg-surface text-accent-primary px-1.5 py-0.5 rounded-md border border-border">{res.students?.roll_number}</span>
                         </div>
-                      </td>
-                      <td className="py-2.5 px-4 align-middle text-text-muted text-[13px] text-center font-medium">
-                        {res.isAbsent ? '—' : formatTime(res.time_taken_seconds)}
-                      </td>
-                      <td className="py-2.5 px-4 align-middle text-text-muted text-[11px] text-center">
-                        {res.submitted_at ? (
-                          <>
-                            <span className="font-medium text-text-main">{new Date(res.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span><br/>
-                            <span className="text-text-muted opacity-80">{new Date(res.submitted_at).toLocaleDateString()}</span>
-                          </>
-                        ) : (
-                          <span className="text-text-muted">—</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 px-4 align-middle text-center">
-                        {res.submitted_at ? (
-                          <button 
-                            type="button"
-                            onClick={() => handleDownloadStudentAnswerKey(res)}
-                            disabled={generatingStudentId === res.id}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface hover:bg-accent-primary/10 text-accent-primary font-semibold text-[11px] rounded-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:active:scale-100 border-none cursor-pointer"
-                          >
-                            {generatingStudentId === res.id ? <Loader2 size={12} className="animate-spin" /> : <FileText size={12} />}
-                            Answer Key
-                          </button>
-                        ) : res.isAbsent ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">Absent</span>
-                        ) : (
-                          <span className="text-text-muted text-[11px] font-medium">In Progress</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                      {res.isAbsent ? (
+                        <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">Absent</span>
+                      ) : (
+                        <span className="shrink-0 text-accent-primary font-bold text-lg">{res.total_marks ?? 0}</span>
+                      )}
+                    </div>
+
+                    {!res.isAbsent && Array.isArray(res.section_scores) && res.section_scores.length > 0 && (
+                      <div className="flex flex-col gap-0.5 text-[11px] bg-surface-hover rounded-lg p-2">
+                        {res.section_scores.map((score: any, idx: number) => (
+                          <div key={idx} className="text-text-muted">
+                            <span className="font-semibold text-text-main">{score.subject_name}:</span> {score.marks} marks ({score.correct}C/{score.wrong}W)
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between text-[11px] text-text-muted font-medium">
+                      <span>{res.isAbsent ? '' : `Time: ${formatTime(res.time_taken_seconds)}`}</span>
+                      <span>
+                        {res.submitted_at ? `${new Date(res.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${new Date(res.submitted_at).toLocaleDateString()}` : ''}
+                      </span>
+                    </div>
+
+                    {res.submitted_at && (
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadStudentAnswerKey(res)}
+                        disabled={generatingStudentId === res.id}
+                        className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-surface hover:bg-accent-primary/10 text-accent-primary font-semibold text-[11px] rounded-lg transition-all disabled:opacity-50 border border-border cursor-pointer"
+                      >
+                        {generatingStudentId === res.id ? <Loader2 size={12} className="animate-spin" /> : <FileText size={12} />}
+                        Answer Key
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>

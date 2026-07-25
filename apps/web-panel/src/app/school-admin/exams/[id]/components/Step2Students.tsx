@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Users, Download, Plus, Trash2, RotateCcw, Search, X } from 'lucide-react';
+import { formatDOB } from '@/lib/utils';
 
 interface Step2StudentsProps {
   role: string;
@@ -284,7 +285,7 @@ export default function Step2Students({
                         <>
                           <div className="flex items-center gap-1.5 bg-surface border border-border rounded-md px-2 py-1">
                             <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">DOB</span>
-                            <span className="text-[11px] font-bold text-text-main">{as.students?.date_of_birth || '—'}</span>
+                            <span className="text-[11px] font-bold text-text-main">{formatDOB(as.students?.date_of_birth)}</span>
                           </div>
                           <div className="flex items-center gap-1.5 bg-surface border border-border rounded-md px-2 py-1">
                             <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Course</span>
@@ -398,7 +399,7 @@ export default function Step2Students({
                             {as.students?.roll_number}
                           </td>
                           <td className="py-2 px-3 align-middle text-[12px] text-text-muted font-semibold">
-                            {as.students?.date_of_birth || '—'}
+                            {formatDOB(as.students?.date_of_birth)}
                           </td>
                           {isExamOver ? (
                             <td className="py-2 px-3 align-middle font-bold text-[12px]">
