@@ -47,7 +47,12 @@ export default function SchoolAdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 768;
+    }
+    return false;
+  });
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [role, setRole] = useState<string | null>(null);
@@ -145,6 +150,8 @@ export default function SchoolAdminLayout({
          }
       }
     };
+    setSaveStatus('idle');
+    setExamStatus(null);
     fetchBreadcrumbName();
 
     const handleBreadcrumbUpdate = (e: any) => {
@@ -173,9 +180,13 @@ export default function SchoolAdminLayout({
   }, [pathname]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      setSidebarOpen(false);
-    }
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -482,7 +493,7 @@ export default function SchoolAdminLayout({
                 );
               })}
             </div>
-            {saveStatus !== 'idle' && (
+            {pathname.includes('/exams/') && saveStatus !== 'idle' && (
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ml-3 shrink-0 ${
                 saveStatus === 'saving' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' :
                 saveStatus === 'saved' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
@@ -495,7 +506,7 @@ export default function SchoolAdminLayout({
                  'Error'}
               </span>
             )}
-            {examStatus && examStatus !== 'draft' && (
+            {pathname.includes('/exams/') && examStatus && examStatus !== 'draft' && (
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ml-2 shrink-0 ${
                 examStatus === 'draft' ? 'bg-gray-100 text-gray-600 border-gray-200' :
                 examStatus === 'published' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
@@ -631,7 +642,7 @@ export default function SchoolAdminLayout({
           </div>
         </header>
 
-        <main className="flex-1 px-6 py-1 overflow-auto">
+        <main className="flex-1 px-2 sm:px-6 py-1 overflow-y-scroll [scrollbar-gutter:stable]">
           {children}
         </main>
       </div>

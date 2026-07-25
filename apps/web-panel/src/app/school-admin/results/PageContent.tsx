@@ -527,7 +527,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
                 <Filter size={14} className="text-accent-primary" /> <span className="hidden md:inline">Filter</span>
               </button>
               <div className={`absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col p-1.5 space-y-0.5 ${isExamFilterOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
-                <div className="px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">Status</div>
+                <div className="px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">Filter</div>
                 {[
                   { id: 'all', label: 'All Statuses' },
                   { id: 'completed', label: 'Completed' },
@@ -597,7 +597,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
           </div>
 
           {/* Row 3 on Mobile: Inline Active Filters */}
-          <div className="w-full md:w-auto md:flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0 order-4 md:order-2 border-t md:border-t-0 border-border/40">
+          <div className={`w-full md:w-auto md:flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0 order-4 md:order-2 border-t md:border-t-0 border-border/40 ${!(examSearchQuery || examStatusFilter !== 'all' || examDateFilter) ? 'hidden md:flex' : ''}`}>
             {(examSearchQuery || examStatusFilter !== 'all' || examDateFilter) ? (
               <>
                 <span className="text-[11px] text-text-muted font-medium uppercase tracking-wider shrink-0 mr-1">Active:</span>
@@ -872,7 +872,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
           </div>
 
           {/* Row 3 on Mobile: Inline Active Filters */}
-          <div className="w-full md:w-auto md:flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0 order-4 md:order-2 border-t md:border-t-0 border-border/40">
+          <div className={`w-full md:w-auto md:flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0 order-4 md:order-2 border-t md:border-t-0 border-border/40 ${!(searchQuery || courseFilter || batchFilter || sortBy !== 'rank') ? 'hidden md:flex' : ''}`}>
             {(searchQuery || courseFilter || batchFilter || sortBy !== 'rank') ? (
               <>
                 <span className="text-[11px] text-text-muted font-medium uppercase tracking-wider shrink-0 mr-1">Active:</span>

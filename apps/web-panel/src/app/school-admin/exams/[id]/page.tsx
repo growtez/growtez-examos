@@ -20,6 +20,7 @@ import {
   Edit2,
   Check,
   Download,
+  Upload,
   ShieldCheck,
   CreditCard,
   Save,
@@ -534,10 +535,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
           {isDraftStepperMode && (
             <>
-              <div className="sticky top-0 z-30 -mx-6 -mt-6 pt-3 px-4 sm:px-6 pb-2 bg-bg relative isolate before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-[-1] before:bg-bg">
+              <div className="sticky top-0 z-30 -mx-2 sm:-mx-6 -mt-6 pt-3 px-2 sm:px-6 pb-2 bg-bg relative isolate before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-[-1] before:bg-bg">
 
                 {/* Horizontal Stepper (Top) */}
-                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4 w-full max-w-5xl mx-auto">
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-1.5 sm:gap-4 w-full max-w-5xl mx-auto">
                   {/* Prev Button */}
                   <div className="flex justify-start sm:justify-end">
                     <button
@@ -563,7 +564,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         }
                       }
                     }}
-                    className="min-w-0 w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-accent-primary/5 border border-accent-primary rounded-2xl py-2.5 px-3 sm:px-4 shadow-sm shadow-accent-primary/5"
+                    className="min-w-0 w-full overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] bg-accent-primary/5 border border-accent-primary rounded-2xl py-2 px-2 sm:px-4 shadow-sm shadow-accent-primary/5"
                   >
                     <div className="flex min-w-max items-center justify-start sm:justify-center">
                       {STEPPER_STEPS.map((s, idx) => {
@@ -628,67 +629,67 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
 
-              {/* Scrolling Header Container */}              <div className="-mx-6 mb-2 border-b border-border bg-bg px-4 sm:px-6 pb-2 flex flex-col gap-2 relative z-10">
-                {/* Mobile Duplicate/Delete Buttons Row */}
-                {!isTeacher && (
-                  <div className="flex justify-end gap-1.5 w-full">
-                    <button
-                      onClick={() => {
-                        setDuplicateTitleInput(`${title || 'Exam'} (Copy)`);
-                        setShowDuplicateConfirm(true);
-                      }}
-                      title="Duplicate Exam"
-                      className="inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-lg text-xs font-bold text-accent-primary hover:bg-accent-primary hover:text-white transition-all shadow-sm whitespace-nowrap"
-                    >
-                      <Copy size={13} />
-                      <span>Duplicate</span>
-                    </button>
-                    <button
-                      onClick={handleTrash}
-                      title="Trash Exam"
-                      className="inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm whitespace-nowrap"
-                    >
-                      <Trash2 size={13} />
-                      <span className="hidden sm:inline">Delete</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* Step-specific Controls */}
-                {(currentStep === 1 || currentStep === 3) && (
-                  <div className="flex flex-wrap items-center gap-2 md:gap-3 min-w-0 mt-1">
-                    {/* Step 1: Template */}
-                    {currentStep === 1 && (
-                      <div className="flex w-full items-center gap-1.5">
-                        <select
+              {/* Scrolling Header Container */}
+              {(currentStep === 1 || currentStep === 3) && (
+                <div className="-mx-2 sm:-mx-6 mb-2 border-b border-border bg-bg px-2 sm:px-6 pb-2 flex flex-col gap-2 relative z-10">
+                  {/* Mobile Duplicate/Delete Buttons Row (Only on Step 1) */}
+                  {!isTeacher && currentStep === 1 && (
+                    <div className="flex flex-wrap sm:flex-nowrap justify-between items-center gap-2 w-full">
+                      {/* Use Template */}
+                      <div className="flex items-center gap-1.5 min-w-0">                        <select
                           onChange={(e) => {
-                            const selected = templates.find((t) => t.id === e.target.value);
+                            const selected = (templates || []).find((t) => t.id === e.target.value);
                             if (selected) handleTemplateApply(selected);
                             e.target.value = "";
                           }}
                           defaultValue=""
-                          disabled={applyingTemplate || templatesLoading || templates.length === 0}
-                          className="max-w-[8.5rem] sm:max-w-full px-3 py-1.5 bg-accent-primary/5 border border-accent-primary/30 rounded-lg text-accent-primary text-xs font-bold focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all disabled:opacity-50 cursor-pointer shadow-sm hover:bg-accent-primary hover:text-white"
+                          disabled={applyingTemplate || templatesLoading || !templates || templates.length === 0}
+                          className="w-full sm:w-auto max-w-[140px] sm:max-w-none text-ellipsis overflow-hidden px-2.5 py-1.5 bg-surface border border-border rounded-lg text-text-main hover:bg-surface-hover text-xs font-bold focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
                         >
-                          <option value="" disabled>
-                            {templatesLoading ? "Loading..." : templates.length === 0 ? "No templates" : "Use Template..."}
+                          <option value="" disabled className="bg-surface text-text-main">
+                            {templatesLoading ? "Loading..." : (!templates || templates.length === 0) ? "No templates" : "Use Template..."}
                           </option>
-                          {templates.map((t) => (
-                            <option key={t.id} value={t.id}>{t.title}</option>
+                          {(templates || []).map((t) => (
+                            <option key={t.id} value={t.id} className="bg-surface text-text-main">{t.title}</option>
                           ))}
                         </select>
                         {applyingTemplate && (
-                          <span className="text-[10px] text-accent-primary flex items-center gap-1 font-semibold animate-pulse">
+                          <span className="text-[10px] text-accent-primary flex items-center gap-1 font-semibold animate-pulse shrink-0">
                             <span className="w-2 h-2 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
                           </span>
                         )}
                       </div>
-                    )}
-                    {/* Step 3: Subject Pills */}
-                    {currentStep === 3 && (
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => {
+                            setDuplicateTitleInput(`${title || 'Exam'} (Copy)`);
+                            setShowDuplicateConfirm(true);
+                          }}
+                          title="Duplicate Exam"
+                          className="inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-lg text-xs font-bold text-accent-primary hover:bg-accent-primary hover:text-white transition-all shadow-sm whitespace-nowrap"
+                        >
+                          <Copy size={13} />
+                          <span>Duplicate</span>
+                        </button>
+                        <button
+                          onClick={handleTrash}
+                          title="Trash Exam"
+                          className="inline-flex items-center justify-center gap-1 px-2 sm:px-3 py-1.5 bg-red-500/10 border border-red-500/20 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm whitespace-nowrap"
+                        >
+                          <Trash2 size={13} />
+                          <span className="hidden sm:inline">Delete</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step-specific Controls (Step 3: Subject Pills) */}
+                  {currentStep === 3 && (
+                    <div className="flex flex-wrap items-center gap-2 md:gap-3 min-w-0 mt-1">
                       <div className="relative flex items-center justify-start min-w-0 -mx-4 px-4 md:mx-0 md:px-0 w-full">
                         <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar px-1 max-w-full snap-x snap-mandatory md:snap-none">
-                          {subjects.map((s, idx) => {
+                          {(subjects || []).map((s, idx) => {
                             const added = questionCounts[s.id] || 0;
                             const needed = s.question_count;
                             const complete = added >= needed;
@@ -744,10 +745,10 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         {/* mobile-only scroll hint, hidden on desktop */}
                         <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg to-transparent md:hidden" />
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Row 2: Search Filter Row (only for Step 3) */}
               {currentStep === 3 && drawerSubjectId && (
@@ -1517,7 +1518,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       {/* Add Student Modal */}
       {showAddStudentModal && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-end md:items-center md:justify-center z-[1000] p-0 md:p-4 animate-in fade-in duration-200"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) {
               setShowAddStudentModal(false);
@@ -1530,11 +1531,11 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           }}
         >
           <div
-            className="bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            className="bg-surface shadow-2xl w-full h-[100dvh] md:h-auto md:max-h-[88vh] max-w-full md:max-w-lg border-l border-border md:border md:rounded-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300 ease-out md:zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
-              <span className="text-white font-bold">Add Students to Exam</span>
+            <div className="bg-accent-primary px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between shrink-0">
+              <span className="text-white font-bold text-sm sm:text-base">Add Students to Exam</span>
               <button
                 onClick={() => {
                   setShowAddStudentModal(false);
@@ -1551,9 +1552,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </button>
             </div>
 
-            <div className="p-4 h-[500px] flex flex-col">
+            <div className="p-3 sm:p-4 flex-1 flex flex-col min-h-0 overflow-y-auto">
               {/* Tabs */}
-              <div className="flex bg-bg rounded-xl p-1 mb-4 border border-border shrink-0">
+              <div className="flex bg-bg rounded-xl p-1 mb-3.5 border border-border shrink-0">
                 <button
                   onClick={() => {
                     setAddMode("link");
@@ -1561,7 +1562,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     setAddSuccess("");
                     setLinkGenerated(false);
                   }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "link" ? "bg-surface text-accent-primary shadow-sm" : "text-text-muted hover:text-text-main"}`}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "link" ? "bg-accent-primary text-white shadow-sm" : "text-text-muted hover:text-text-main"}`}
                 >
                   Share Link
                 </button>
@@ -1573,7 +1574,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     setAddSuccess("");
                     setLinkGenerated(false);
                   }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "create" ? "bg-surface text-accent-primary shadow-sm" : "text-text-muted hover:text-text-main"}`}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "create" ? "bg-accent-primary text-white shadow-sm" : "text-text-muted hover:text-text-main"}`}
                 >
                   Add Manually
                 </button>
@@ -1585,45 +1586,45 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     setAddSuccess("");
                     setLinkGenerated(false);
                   }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "csv" ? "bg-surface text-accent-primary shadow-sm" : "text-text-muted hover:text-text-main"}`}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "csv" ? "bg-accent-primary text-white shadow-sm" : "text-text-muted hover:text-text-main"}`}
                 >
                   Import CSV
                 </button>
               </div>
 
               {addSuccess && (
-                <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-emerald-600 text-sm font-medium mb-6">
+                <div className="bg-emerald-50 border border-emerald-200 p-3 sm:p-4 rounded-xl text-emerald-600 text-xs sm:text-sm font-medium mb-4">
                   {addSuccess}
                 </div>
               )}
               {addError && (
-                <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-red-600 text-sm font-medium mb-6 flex items-center gap-2">
+                <div className="bg-red-50 border border-red-200 p-3 sm:p-4 rounded-xl text-red-600 text-xs sm:text-sm font-medium mb-4 flex items-center gap-2">
                   <AlertCircle size={16} /> {addError}
                 </div>
               )}
 
               {addMode === "link" ? (
-                <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar flex flex-col">
-                  <div className="bg-surface border border-border rounded-xl p-6">
+                <div className="space-y-3.5 flex-1 overflow-y-auto custom-scrollbar flex flex-col">
+                  <div className="bg-surface border border-border rounded-xl p-3 sm:p-6">
                     <Globe
-                      size={32}
-                      className="mx-auto text-accent-primary mb-3"
+                      size={24}
+                      className="mx-auto text-accent-primary mb-1.5"
                     />
-                    <p className="text-text-main text-base font-bold text-center mb-2">
+                    <p className="text-text-main text-xs sm:text-base font-bold text-center mb-1">
                       Public Registration Link
                     </p>
-                    <p className="text-text-muted text-sm font-medium text-center mb-5">
+                    <p className="text-text-muted text-[11px] sm:text-sm font-medium text-center mb-3">
                       Share this link with students. They will be automatically
                       added to this exam upon completing the form.
                     </p>
 
-                    <div className="bg-bg border border-border p-4 rounded-xl mb-5 space-y-3">
-                      <p className="text-xs font-bold text-accent-primary uppercase tracking-wider mb-2">
+                    <div className="bg-bg border border-border p-2.5 sm:p-4 rounded-xl mb-3 space-y-2">
+                      <p className="text-[11px] sm:text-xs font-bold text-accent-primary uppercase tracking-wider mb-1.5">
                         Optional: Pre-fill Student Details
                       </p>
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
                         <div>
-                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
                             Course
                           </label>
                           <CustomCombobox
@@ -1631,11 +1632,11 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             onChange={(val) => { setLinkCourse(val); setLinkGenerated(false); }}
                             options={uniqueCourses as string[]}
                             placeholder="e.g. NEET"
-                            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
+                            className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
                             Batch
                           </label>
                           <CustomCombobox
@@ -1643,11 +1644,11 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             onChange={(val) => { setLinkBatch(val); setLinkGenerated(false); }}
                             options={uniqueBatches as string[]}
                             placeholder="e.g. Morning"
-                            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
+                            className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
                             Session
                           </label>
                           <CustomCombobox
@@ -1655,43 +1656,25 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             onChange={(val) => { setLinkSession(val); setLinkGenerated(false); }}
                             options={uniqueSessions as string[]}
                             placeholder="e.g. 2024-25"
-                            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
+                            className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
                           />
                         </div>
                       </div>
                     </div>
 
-                    {linkGenerated ? (
-                      <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    {linkGenerated && (
+                      <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 mt-2">
                         <input
                           type="text"
                           readOnly
                           value={`${getSchoolBaseUrl()}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`}
-                          className="flex-1 px-4 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-muted font-mono focus:outline-none truncate"
+                          className="flex-1 px-3.5 py-2.5 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-muted font-mono focus:outline-none truncate"
                         />
-                        <button
-                          onClick={() => {
-                            const url = `${getSchoolBaseUrl()}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`;
-                            navigator.clipboard.writeText(url);
-                            setLinkCopied(true);
-                            setTimeout(() => setLinkCopied(false), 2000);
-                          }}
-                          className="px-4 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white text-sm font-semibold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5"
-                        >
-                          <CopyIcon size={16} />
-                          {linkCopied ? "Copied!" : "Copy"}
-                        </button>
                       </div>
-                    ) : (
-                      <button
-                        onClick={() => setLinkGenerated(true)}
-                        className="w-full py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-bold rounded-xl transition-colors shadow-sm"
-                      >
-                        Generate Link
-                      </button>
                     )}
                   </div>
-                  <div className="flex gap-3 pt-2 mt-auto">
+
+                  <div className="flex gap-3 pt-3 mt-auto sticky bottom-0 bg-surface border-t border-border/80 z-10 shrink-0">
                     <button
                       type="button"
                       onClick={() => {
@@ -1700,110 +1683,127 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         setSearchQuery("");
                         setLinkGenerated(false);
                       }}
-                      className="flex-1 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors"
+                      className="px-6 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors cursor-pointer"
                     >
                       Close
                     </button>
+                    {linkGenerated ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = `${getSchoolBaseUrl()}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`;
+                          navigator.clipboard.writeText(url);
+                          setLinkCopied(true);
+                          setTimeout(() => setLinkCopied(false), 2000);
+                        }}
+                        className="flex-1 py-3 bg-accent-primary hover:bg-accent-primary/80 text-white text-sm font-semibold rounded-xl transition-colors whitespace-nowrap flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-accent-primary/20"
+                      >
+                        <CopyIcon size={16} />
+                        {linkCopied ? "Copied!" : "Copy Link"}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setLinkGenerated(true)}
+                        className="flex-1 py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-bold rounded-xl transition-colors shadow-sm shadow-accent-primary/20 cursor-pointer text-sm"
+                      >
+                        Generate Link
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : addMode === "create" ? (
                 <form
                   onSubmit={handleAddStudent}
-                  className="space-y-4 flex-1 flex flex-col overflow-y-auto custom-scrollbar"
+                  className="flex-1 flex flex-col justify-between min-h-0 overflow-y-auto custom-scrollbar"
                 >
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="text-text-main font-bold text-sm">
-                      Create New Student
-                    </h4>
-
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      required
-                      placeholder="Aarav Patel"
-                      className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                      Roll Number
-                    </label>
-                    <input
-                      type="text"
-                      value={newRoll}
-                      onChange={(e) => setNewRoll(e.target.value)}
-                      required
-                      placeholder="2024001"
-                      className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                      Date of Birth{" "}
-                      <span className="text-text-muted font-normal">
-                        (password = DDMMYYYY)
-                      </span>
-                    </label>
-                    <input
-                      type="date"
-                      value={newDob}
-                      onChange={(e) => setNewDob(e.target.value)}
-                      required
-                      className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
-                    />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-3.5 pb-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-text-main font-bold text-sm">
+                        Create New Student
+                      </h4>
+                    </div>
                     <div>
                       <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                        Course
+                        Full Name
                       </label>
-                      <CustomCombobox
-                        value={newCourse}
-                        onChange={setNewCourse}
-                        options={uniqueCourses as string[]}
-                        placeholder="e.g. NEET"
-                        className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
+                      <input
+                        type="text"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        required
+                        placeholder="Aarav Patel"
+                        className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                        Batch
+                        Roll Number
                       </label>
-                      <CustomCombobox
-                        value={newBatch}
-                        onChange={setNewBatch}
-                        options={uniqueBatches as string[]}
-                        placeholder="e.g. Morning"
-                        className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
+                      <input
+                        type="text"
+                        value={newRoll}
+                        onChange={(e) => setNewRoll(e.target.value)}
+                        required
+                        placeholder="2024001"
+                        className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                        Session
+                        Date of Birth{" "}
+                        <span className="text-text-muted font-normal">
+                          (password = DDMMYYYY)
+                        </span>
                       </label>
-                      <CustomCombobox
-                        value={newSession}
-                        onChange={setNewSession}
-                        options={uniqueSessions as string[]}
-                        placeholder="e.g. 2024-25"
-                        className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
+                      <input
+                        type="date"
+                        value={newDob}
+                        onChange={(e) => setNewDob(e.target.value)}
+                        required
+                        className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
                       />
                     </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                          Course <span className="text-text-muted/60 font-normal">(optional)</span>
+                        </label>
+                        <CustomCombobox
+                          value={newCourse}
+                          onChange={setNewCourse}
+                          options={uniqueCourses as string[]}
+                          placeholder="e.g. NEET"
+                          className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                          Batch <span className="text-text-muted/60 font-normal">(optional)</span>
+                        </label>
+                        <CustomCombobox
+                          value={newBatch}
+                          onChange={setNewBatch}
+                          options={uniqueBatches as string[]}
+                          placeholder="e.g. Morning"
+                          className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                          Session <span className="text-text-muted/60 font-normal">(optional)</span>
+                        </label>
+                        <CustomCombobox
+                          value={newSession}
+                          onChange={setNewSession}
+                          options={uniqueSessions as string[]}
+                          placeholder="e.g. 2024-25"
+                          className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      type="submit"
-                      disabled={addingStudent}
-                      className="flex-1 py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl disabled:opacity-50 text-sm transition-colors shadow-sm shadow-accent-primary/20"
-                    >
-                      {addingStudent ? "Creating..." : "Create & Assign"}
-                    </button>
+                  <div className="flex gap-3 pt-3 mt-auto sticky bottom-0 bg-surface border-t border-border/80 z-10 shrink-0">
                     <button
                       type="button"
                       onClick={() => {
@@ -1811,64 +1811,107 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         setAddError("");
                         setSearchQuery("");
                       }}
-                      className="px-6 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors"
+                      className="px-6 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors cursor-pointer"
                     >
                       Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={addingStudent}
+                      className="flex-1 py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl disabled:opacity-50 text-sm transition-colors shadow-sm shadow-accent-primary/20 cursor-pointer"
+                    >
+                      {addingStudent ? "Creating..." : "Create & Assign"}
                     </button>
                   </div>
                 </form>
               ) : (
-                <form onSubmit={handleCsvImport} className="space-y-4">
-                  <div className="bg-bg border border-border rounded-xl p-5">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-text-main text-sm font-bold">
-                        CSV Format:
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleDownloadCsvTemplate}
-                        className="inline-flex items-center gap-1.5 text-xs font-bold text-accent-primary hover:underline bg-surface px-2 py-1 rounded border border-accent-primary/20 shadow-sm hover:bg-surface-hover transition-colors"
-                      >
-                        <Download size={12} /> Download Template
-                      </button>
+                <form onSubmit={handleCsvImport} className="flex-1 flex flex-col justify-between min-h-0 overflow-y-auto custom-scrollbar">
+                  <div className="space-y-4 pb-3">
+                    <div className="bg-bg border border-border rounded-xl p-3.5 sm:p-5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-text-main text-xs sm:text-sm font-bold">
+                          CSV Format:
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleDownloadCsvTemplate}
+                          className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-accent-primary hover:underline bg-surface px-2.5 py-1 rounded-lg border border-accent-primary/20 shadow-sm hover:bg-surface-hover transition-colors cursor-pointer"
+                        >
+                          <Download size={12} /> Download Template
+                        </button>
+                      </div>
+                      <code className="text-[11px] sm:text-xs text-accent-primary bg-surface px-3 py-2.5 block border border-border rounded-lg font-mono overflow-x-auto whitespace-nowrap">
+                        name, roll_number, dob, course, batch, session
+                        <br />
+                        Aarav Patel, 2024001, 15/06/2005, NEET, Morning, 2024-25
+                        <br />
+                        Priya Singh, 2024002, 22/03/2005, JEE, Evening, 2024-25
+                      </code>
+                      <div className="sm:hidden pt-0.5">
+                        <button
+                          type="button"
+                          onClick={handleDownloadCsvTemplate}
+                          className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-bold text-accent-primary bg-surface px-3 py-2 rounded-lg border border-accent-primary/20 shadow-sm hover:bg-surface-hover transition-colors cursor-pointer"
+                        >
+                          <Download size={13} /> Download Template
+                        </button>
+                      </div>
                     </div>
-                    <code className="text-xs text-accent-primary bg-surface px-4 py-3 block border border-border rounded-lg font-mono overflow-x-auto whitespace-nowrap">
-                      name, roll_number, dob, course, batch, session
-                      <br />
-                      Aarav Patel, 2024001, 15/06/2005, NEET, Morning, 2024-25
-                      <br />
-                      Priya Singh, 2024002, 22/03/2005, JEE, Evening, 2024-25
-                    </code>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-text-muted mb-1.5">
+                        Select CSV File
+                      </label>
+                      <label className="relative flex flex-col items-center justify-center p-4 sm:p-5 border-2 border-dashed border-border rounded-xl bg-surface hover:border-accent-primary/50 transition-all cursor-pointer group text-center">
+                        <input
+                          type="file"
+                          accept=".csv,.txt"
+                          required
+                          onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                          className="sr-only"
+                        />
+                        <div className="w-9 h-9 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary mb-2 group-hover:scale-105 transition-transform">
+                          <Upload size={17} />
+                        </div>
+                        {csvFile ? (
+                          <div className="space-y-0.5 min-w-0 max-w-full">
+                            <p className="text-xs font-bold text-accent-primary truncate">
+                              {csvFile.name}
+                            </p>
+                            <p className="text-[10px] text-text-muted">
+                              {(csvFile.size / 1024).toFixed(1)} KB — Tap to change
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-0.5">
+                            <p className="text-xs font-bold text-text-main">
+                              Choose CSV File
+                            </p>
+                            <p className="text-[10px] text-text-muted font-medium">
+                              Tap to browse from device
+                            </p>
+                          </div>
+                        )}
+                      </label>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                      Select CSV File
-                    </label>
-                    <input
-                      type="file"
-                      accept=".csv,.txt"
-                      required
-                      onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
-                      className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main file:mr-4 file:py-2 file:px-4 file:border-0 file:rounded-lg file:bg-accent-primary/10 file:text-accent-primary file:font-semibold hover:file:bg-accent-primary/20 transition-all text-sm"
-                    />
-                  </div>
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      type="submit"
-                      disabled={addingStudent || !csvFile}
-                      className="flex-1 py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl disabled:opacity-50 text-sm transition-colors shadow-sm shadow-accent-primary/20"
-                    >
-                      {addingStudent ? "Importing..." : "Import CSV"}
-                    </button>
+                  <div className="flex gap-3 pt-3 mt-auto sticky bottom-0 bg-surface border-t border-border/80 z-10 shrink-0">
                     <button
                       type="button"
                       onClick={() => {
                         setShowAddStudentModal(false);
                         setAddError("");
                       }}
-                      className="px-6 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors"
+                      className="px-6 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-bg text-sm transition-colors cursor-pointer"
                     >
                       Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={addingStudent || !csvFile}
+                      className="flex-1 py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl disabled:opacity-50 text-sm transition-colors shadow-sm shadow-accent-primary/20 cursor-pointer"
+                    >
+                      {addingStudent ? "Importing..." : "Import CSV"}
                     </button>
                   </div>
                 </form>

@@ -61,6 +61,7 @@ function CollapsibleCard({
   onToggle,
   className,
   children,
+  hasError = false,
 }: {
   title: string;
   headerExtra?: React.ReactNode;
@@ -68,14 +69,22 @@ function CollapsibleCard({
   onToggle: () => void;
   className?: string;
   children: React.ReactNode;
+  hasError?: boolean;
 }) {
   return (
-    <div className={`bg-surface border-2 border-border/50 rounded-xl p-3.5 sm:p-4 shadow-sm h-full hover:border-accent-primary/30 hover:shadow-md transition-all group ${className || ''}`}>
+    <div className={`bg-surface border-2 rounded-xl p-3.5 sm:p-4 shadow-sm h-full transition-all group ${
+      hasError ? 'border-red-500 bg-red-50/10 shadow-red-500/10' : 'border-border/50 hover:border-accent-primary/30 hover:shadow-md'
+    } ${className || ''}`}>
       <div
         className="w-full flex items-center justify-between gap-2 mb-3 border-b border-[#f0f7f7] pb-1.5"
       >
         <span className="flex items-center gap-1.5">
-          <h3 className="text-sm font-bold text-text-main">{title}</h3>
+          <h3 className={`text-sm font-bold ${hasError ? 'text-red-600' : 'text-text-main'}`}>{title}</h3>
+          {hasError && (
+            <span className="text-[10px] bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full border border-red-200 shrink-0">
+              Required Fields Missing
+            </span>
+          )}
         </span>
         {headerExtra && (
           <span>{headerExtra}</span>
@@ -251,40 +260,11 @@ export default function Step1Details({
   useEffect(() => {
     if (showStep1Errors) {
       setExpandedCards({ details: true, marking: true, subjects: true, instructions: true });
-
-      setTimeout(() => {
-        let targetEl: HTMLElement | null = null;
-        if (!title.trim()) {
-          targetEl = document.getElementById('exam-title-input');
-        } else if (durationMinutes < 1) {
-          targetEl = document.getElementById('exam-duration-input');
-        } else if (String(mcqCorrect).trim() === '') {
-          targetEl = document.getElementById('mcq-correct-input');
-        } else if (String(mcqWrong).trim() === '') {
-          targetEl = document.getElementById('mcq-wrong-input');
-        } else if (String(natCorrect).trim() === '') {
-          targetEl = document.getElementById('nat-correct-input');
-        } else if (String(natWrong).trim() === '') {
-          targetEl = document.getElementById('nat-wrong-input');
-        } else if (msqEnabled && String(msqCorrect).trim() === '') {
-          targetEl = document.getElementById('msq-correct-input');
-        } else if (msqEnabled && String(msqWrong).trim() === '') {
-          targetEl = document.getElementById('msq-wrong-input');
-        } else if (msqEnabled && msqPartialEnabled && String(msqPartial).trim() === '') {
-          targetEl = document.getElementById('msq-partial-input');
-        } else if (subjects.length === 0) {
-          targetEl = document.getElementById('subjects-section-card');
-        }
-
-        if (targetEl) {
-          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          if ('focus' in targetEl && typeof targetEl.focus === 'function') {
-            targetEl.focus();
-          }
-        }
-      }, 150);
+      const mainEl = document.querySelector('main');
+      if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+      else window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [showStep1Errors, title, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqWrong, msqPartial, msqEnabled, msqPartialEnabled, subjects.length]);
+  }, [showStep1Errors]);
 
   return (
     <form
@@ -300,7 +280,7 @@ export default function Step1Details({
         </div>
       )}
       {showStep1Errors && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 flex items-center gap-3 text-xs font-semibold text-red-600 shadow-sm animate-pulse">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 flex items-center gap-3 text-xs font-semibold text-red-600 shadow-sm">
           <AlertCircle size={18} className="shrink-0 text-red-500" />
           <span>Please fill in all required fields marked in red (and add at least 1 subject) before proceeding.</span>
         </div>
@@ -311,6 +291,7 @@ export default function Step1Details({
           title="Exam Details"
           expanded={expandedCards.details}
           onToggle={() => toggleCard('details')}
+          hasError={showStep1Errors && (title.trim() === '' || !durationMinutes || durationMinutes < 1)}
           className="order-1"
         >
           <div className="space-y-2">
@@ -328,8 +309,13 @@ export default function Step1Details({
                 }}
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
                 required
-                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && title.trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
+                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && title.trim() === '' ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/10' : 'border-border'} rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
               />
+              {showStep1Errors && title.trim() === '' && (
+                <p className="text-[11px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} /> Exam title is required
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-text-muted mb-1">Description</label>
@@ -359,8 +345,13 @@ export default function Step1Details({
                 onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
                 min={1}
                 required
-                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && durationMinutes < 1 ? 'border-red-500 shadow-red-500/20' : 'border-border'} rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
+                className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && (!durationMinutes || durationMinutes < 1) ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/10' : 'border-border'} rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
               />
+              {showStep1Errors && (!durationMinutes || durationMinutes < 1) && (
+                <p className="text-[11px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} /> Duration must be at least 1 minute
+                </p>
+              )}
             </div>
           </div>
         </CollapsibleCard>
@@ -370,6 +361,17 @@ export default function Step1Details({
           title="Marking Scheme"
           expanded={expandedCards.marking}
           onToggle={() => toggleCard('marking')}
+          hasError={showStep1Errors && (
+            String(mcqCorrect).trim() === '' ||
+            String(mcqWrong).trim() === '' ||
+            String(natCorrect).trim() === '' ||
+            String(natWrong).trim() === '' ||
+            (msqEnabled && (
+              String(msqCorrect).trim() === '' ||
+              String(msqWrong).trim() === '' ||
+              (msqPartialEnabled && String(msqPartial).trim() === '')
+            ))
+          )}
           className="order-2"
         >
           <div className="flex flex-col gap-4">
@@ -560,42 +562,49 @@ export default function Step1Details({
         <div id="subjects-section-card" className="lg:col-span-2 order-3">
           <CollapsibleCard
             title="Subjects"
-          expanded={expandedCards.subjects}
-          onToggle={() => toggleCard('subjects')}
-          className="mb-4"
-          headerExtra={
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setShowAddSubjectModal(true);
-              }}
-              className="text-[11px] font-bold text-accent-primary hover:underline flex items-center gap-1"
-            >
-              <Plus size={12} /> Add Subject
-            </button>
-          }
-        >
-          {subjects.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 px-4 text-center bg-bg/50 border border-dashed border-border rounded-xl">
-              <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-2">
-                <AlertCircle size={20} className="text-amber-500" />
-              </div>
-              <p className="text-xs font-bold text-text-main mb-1">No Subjects Added Yet</p>
-              <p className="text-[11px] text-text-muted max-w-xs mb-3">
-                Click below to add your first subject to this exam.
-              </p>
+            expanded={expandedCards.subjects}
+            onToggle={() => toggleCard('subjects')}
+            hasError={showStep1Errors && subjects.length === 0}
+            className="mb-4"
+            headerExtra={
               <button
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
                   setShowAddSubjectModal(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-accent-primary text-white text-xs font-bold hover:bg-accent-primary/90 transition-all shadow-sm cursor-pointer active:scale-95"
+                className="text-[11px] font-bold text-accent-primary hover:underline flex items-center gap-1"
               >
-                <Plus size={14} /> Add Subject Now
+                <Plus size={12} /> Add Subject
               </button>
-            </div>
+            }
+          >
+            {subjects.length === 0 ? (
+              <div className={`flex flex-col items-center justify-center py-8 px-4 text-center ${
+                showStep1Errors ? 'bg-red-50/50 border-2 border-red-500/80 shadow-red-500/10' : 'bg-bg/50 border border-dashed border-border'
+              } rounded-xl transition-all`}>
+                <div className={`w-10 h-10 rounded-full ${showStep1Errors ? 'bg-red-500/10 border border-red-500/30' : 'bg-amber-500/10 border border-amber-500/20'} flex items-center justify-center mb-2`}>
+                  <AlertCircle size={20} className={showStep1Errors ? 'text-red-500' : 'text-amber-500'} />
+                </div>
+                <p className={`text-xs font-bold mb-1 ${showStep1Errors ? 'text-red-600' : 'text-text-main'}`}>
+                  {showStep1Errors ? 'At Least 1 Subject Required' : 'No Subjects Added Yet'}
+                </p>
+                <p className="text-[11px] text-text-muted max-w-xs mb-3">
+                  {showStep1Errors ? 'Please add at least one subject to this exam before proceeding.' : 'Click below to add your first subject to this exam.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowAddSubjectModal(true);
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg ${
+                    showStep1Errors ? 'bg-red-600 hover:bg-red-700' : 'bg-accent-primary hover:bg-accent-primary/90'
+                  } text-white text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95`}
+                >
+                  <Plus size={14} /> Add Subject Now
+                </button>
+              </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {subjects.map((s, index) => {

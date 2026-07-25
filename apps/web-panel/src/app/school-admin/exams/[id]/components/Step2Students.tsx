@@ -94,114 +94,131 @@ export default function Step2Students({
         {addSuccess && <div className="bg-emerald-50 text-emerald-600 border border-emerald-200 p-4 rounded-xl text-sm font-medium mb-6">{addSuccess}</div>}
 
         {/* Toolbar: heading + search + filters + create */}
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          {/* Title */}
-          <div className="flex flex-col shrink-0 justify-center mr-1">
-            <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider inline-flex items-center gap-1.5">
-              Students
-              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent-primary/10 text-accent-primary text-[10px] font-bold normal-case tracking-normal">
-                {assignedStudents.length}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 mb-3.5 bg-surface p-2.5 rounded-xl border border-border shadow-sm">
+          {/* Title & Mobile Add Button Header */}
+          <div className="flex items-center justify-between gap-2 w-full md:w-auto">
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm font-bold text-text-main flex items-center gap-1.5 whitespace-nowrap">
+                Students
+                <span className="inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-accent-primary/10 text-accent-primary text-[11px] font-bold">
+                  {assignedStudents.length}
+                </span>
               </span>
-            </span>
-            <span className="text-[10px] text-text-muted font-medium mt-0.5">Students are specific to this exam</span>
-          </div>
+              <span className="hidden lg:inline-block text-[11px] text-text-muted font-normal border-l border-border pl-2 whitespace-nowrap">
+                Specific to this exam
+              </span>
+            </div>
 
-          <div className="h-4 w-px bg-border mx-1" />
-
-          {/* Search */}
-          <div className="relative flex-1 min-w-[140px] max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" size={12} />
-            <input
-              type="text"
-              placeholder="Search students..."
-              value={assignedSearchQuery}
-              onChange={(e) => setAssignedSearchQuery(e.target.value)}
-              className="w-full h-8 pl-7 pr-6 bg-surface border border-border rounded-lg text-text-main text-[12px] focus:outline-none focus:border-accent-primary transition-all"
-            />
-            {assignedSearchQuery && (
-              <button type="button" onClick={() => setAssignedSearchQuery('')}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-red-500 bg-transparent border-none cursor-pointer flex items-center p-0.5">
-                <X size={10} />
+            {/* Mobile Add Students Button (Top Right on Mobile) */}
+            {!isExamOver && role !== 'teacher' && !isReadOnly && (
+              <button
+                type="button"
+                onClick={onAddStudentsClick}
+                className="md:hidden inline-flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent-primary text-white text-xs font-bold shadow-sm active:scale-95 transition-all shrink-0 cursor-pointer"
+              >
+                <Plus size={13} /> Add Students
               </button>
             )}
           </div>
 
-          <div className="relative">
+          {/* Search, Filters & Actions Container */}
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[150px] md:w-[220px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" size={14} />
+              <input
+                type="text"
+                placeholder={`Search Students (${filteredAssignedStudents.length})...`}
+                value={assignedSearchQuery}
+                onChange={(e) => setAssignedSearchQuery(e.target.value)}
+                className="w-full h-8 pl-8 pr-7 bg-bg border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all shadow-sm"
+              />
+              {assignedSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setAssignedSearchQuery('')}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-red-500 bg-transparent border-none cursor-pointer flex items-center p-1"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Courses Filter */}
             <select
               value={assignedCourseFilter}
               onChange={(e) => setAssignedCourseFilter(e.target.value)}
-              className={`inline-flex items-center gap-1.5 px-2 h-8 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover text-[12px] font-medium transition-all cursor-pointer focus:outline-none focus:border-accent-primary ${uniqueAssignedCourses.length === 0 ? 'appearance-none bg-none cursor-default opacity-50' : ''}`}
+              className={`h-8 px-2 rounded-lg border border-border bg-bg text-text-main text-xs font-medium focus:outline-none focus:border-accent-primary transition-all cursor-pointer ${uniqueAssignedCourses.length === 0 ? 'opacity-50' : ''}`}
             >
               <option value="">All Courses</option>
               {uniqueAssignedCourses.map((course: any) => (
                 <option key={course} value={course}>{course}</option>
               ))}
             </select>
-          </div>
 
-          <div className="relative">
+            {/* Batches Filter */}
             <select
               value={assignedBatchFilter}
               onChange={(e) => setAssignedBatchFilter(e.target.value)}
-              className={`inline-flex items-center gap-1.5 px-2 h-8 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover text-[12px] font-medium transition-all cursor-pointer focus:outline-none focus:border-accent-primary ${uniqueAssignedBatches.length === 0 ? 'appearance-none bg-none cursor-default opacity-50' : ''}`}
+              className={`h-8 px-2 rounded-lg border border-border bg-bg text-text-main text-xs font-medium focus:outline-none focus:border-accent-primary transition-all cursor-pointer ${uniqueAssignedBatches.length === 0 ? 'opacity-50' : ''}`}
             >
               <option value="">All Batches</option>
               {uniqueAssignedBatches.map((batch: any) => (
                 <option key={batch} value={batch}>{batch}</option>
               ))}
             </select>
-          </div>
 
-          {/* Active filter chips */}
-          {(assignedSearchQuery || assignedCourseFilter !== '' || assignedBatchFilter !== '') && (
-            <button
-              onClick={() => { setAssignedSearchQuery(''); setAssignedCourseFilter(''); setAssignedBatchFilter(''); }}
-              className="inline-flex items-center gap-1 px-2 h-8 rounded-lg text-[11px] text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer bg-transparent border-none"
-            >
-              <X size={10} /> Clear
-            </button>
-          )}
+            {/* Active filter clear button */}
+            {(assignedSearchQuery || assignedCourseFilter !== '' || assignedBatchFilter !== '') && (
+              <button
+                onClick={() => { setAssignedSearchQuery(''); setAssignedCourseFilter(''); setAssignedBatchFilter(''); }}
+                className="inline-flex items-center gap-1 px-2 h-8 rounded-lg text-xs font-bold text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer bg-transparent border-none"
+              >
+                <X size={12} /> Clear
+              </button>
+            )}
 
-          {/* Bulk Delete */}
-          {!isExamOver && role !== 'teacher' && !isReadOnly && selectedStudents.length > 0 && (
-            <button
-              onClick={() => {
-                setConfirmDialog({
-                  isOpen: true,
-                  title: 'Remove Students',
-                  message: `Are you sure you want to remove ${selectedStudents.length} students?`,
-                  confirmText: 'Remove',
-                  confirmColor: 'bg-red-600 hover:bg-red-700 border-red-800 text-white',
-                  onConfirm: async () => {
-                    setConfirmDialog((prev: any) => ({ ...prev, isOpen: false }));
-                    setAssignedStudents(prev => prev.filter(as => !selectedStudents.includes(as.student_id)));
-                    await supabase.from('students').delete().in('id', selectedStudents);
-                    setSelectedStudents([]);
-                  }
-                });
-              }}
-              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-red-500 text-white text-[12px] font-medium transition-all cursor-pointer shadow-sm hover:bg-red-600 animate-in fade-in ml-1"
-            >
-              <Trash2 size={12} /> Remove ({selectedStudents.length})
-            </button>
-          )}
+            {/* Bulk Delete */}
+            {!isExamOver && role !== 'teacher' && !isReadOnly && selectedStudents.length > 0 && (
+              <button
+                onClick={() => {
+                  setConfirmDialog({
+                    isOpen: true,
+                    title: 'Remove Students',
+                    message: `Are you sure you want to remove ${selectedStudents.length} students?`,
+                    confirmText: 'Remove',
+                    confirmColor: 'bg-red-600 hover:bg-red-700 border-red-800 text-white',
+                    onConfirm: async () => {
+                      setConfirmDialog((prev: any) => ({ ...prev, isOpen: false }));
+                      setAssignedStudents(prev => prev.filter(as => !selectedStudents.includes(as.student_id)));
+                      await supabase.from('students').delete().in('id', selectedStudents);
+                      setSelectedStudents([]);
+                    }
+                  });
+                }}
+                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-red-500 text-white text-xs font-medium transition-all cursor-pointer shadow-sm hover:bg-red-600 animate-in fade-in"
+              >
+                <Trash2 size={12} /> Remove ({selectedStudents.length})
+              </button>
+            )}
 
-          <div className="ml-auto flex items-center gap-1.5">
+            {/* PDF Button */}
             {isExamOver && (
               <button
                 onClick={downloadResultsPDF}
                 disabled={generatingPDF}
-                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover text-[12px] font-medium transition-all cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border border-border bg-bg text-text-main hover:bg-surface-hover text-xs font-medium transition-all cursor-pointer disabled:opacity-50"
               >
                 {generatingPDF ? <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" /> : <Download size={12} />}
                 {generatingPDF ? 'Generating...' : 'Download PDF'}
               </button>
             )}
 
+            {/* Desktop Add Students Button */}
             {!isExamOver && role !== "teacher" && !isReadOnly && (
               <button
                 onClick={onAddStudentsClick}
-                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-accent-primary text-white text-[12px] font-bold hover:bg-accent-primary/80 transition-all shrink-0 cursor-pointer"
+                className="hidden md:inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-accent-primary text-white text-xs font-bold hover:bg-accent-primary/90 transition-all shrink-0 cursor-pointer shadow-sm ml-auto"
               >
                 <Plus size={12} />
                 Add Students
@@ -224,7 +241,7 @@ export default function Step2Students({
           <>
             {/* Mobile: Select All */}
             {!isExamOver && role !== 'teacher' && !isReadOnly && filteredAssignedStudents.length > 0 && (
-              <div className="sm:hidden mb-3 flex items-center justify-between bg-surface border border-border p-3 rounded-xl">
+              <div className="sm:hidden mb-2.5 flex items-center justify-between px-1">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input 
                     type="checkbox" 
@@ -262,63 +279,55 @@ export default function Step2Students({
                             />
                           </div>
                         )}
-                        <div className="min-w-0 flex items-baseline gap-1.5">
-                          <h4 className="text-text-main text-xs font-bold truncate max-w-[140px]" title={as.students?.full_name}>
+                        <div className="min-w-0 flex flex-col">
+                          <h4 className="text-text-main text-xs font-bold break-words" title={as.students?.full_name}>
                             {as.students?.full_name}
                           </h4>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0 text-xs text-text-muted font-semibold">
-                        Roll: {as.students?.roll_number}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2 mb-4">
-                      {isExamOver ? (
-                        <div className="flex items-center gap-1.5 bg-surface border border-border rounded-md px-2 py-1">
-                          <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Score</span>
-                          <span className="text-[11px] font-bold text-text-main">
-                            {as.result ? <span className="text-accent-primary">{as.result.total_marks}</span> : <span className="text-gray-400">Absent</span>}
+                          <span className="text-[11px] text-text-muted font-semibold">
+                            Roll: {as.students?.roll_number}
                           </span>
                         </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-1.5 bg-surface border border-border rounded-md px-2 py-1">
-                            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">DOB</span>
-                            <span className="text-[11px] font-bold text-text-main">{formatDOB(as.students?.date_of_birth)}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 bg-surface border border-border rounded-md px-2 py-1">
-                            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Course</span>
-                            <span className="text-[11px] font-bold text-text-main">{as.students?.course || '—'}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 bg-surface border border-border rounded-md px-2 py-1">
-                            <span className="text-[10px] text-text-muted font-bold uppercase tracking-wider">Batch</span>
-                            <span className="text-[11px] font-bold text-text-main">{as.students?.batch || '—'}</span>
-                          </div>
-                        </>
+                      </div>
+
+                      {!isExamOver && role !== 'teacher' && !isReadOnly && (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {(as.status === 'in_progress' || as.status === 'submitted') && (
+                            <button
+                              onClick={() => handleResetClick(as)}
+                              className="inline-flex items-center gap-1 text-amber-600 bg-amber-500/10 hover:bg-amber-500 hover:text-white px-2 py-1 rounded-md text-[11px] font-bold transition-all border border-amber-500/20"
+                            >
+                              <RotateCcw size={12} /> Reset
+                            </button>
+                          )}
+                          {as.status === 'assigned' && (
+                            <button
+                              onClick={() => handleRemoveStudent(as.id, as.student_id)}
+                              aria-label="Remove student"
+                              title="Remove student"
+                              className="w-7 h-7 flex items-center justify-center rounded-lg text-red-500 bg-red-500/10 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 cursor-pointer"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
-                    
-                    {!isExamOver && role !== 'teacher' && !isReadOnly && (
-                      <div className="flex items-center justify-end gap-2">
-                        {(as.status === 'in_progress' || as.status === 'submitted') && (
-                          <button
-                            onClick={() => handleResetClick(as)}
-                            className="inline-flex items-center gap-1 text-amber-600 bg-amber-500/10 hover:bg-amber-500 hover:text-white px-2 py-1 rounded-md text-[11px] font-bold transition-all border border-amber-500/20"
-                          >
-                            <RotateCcw size={12} /> Reset
-                          </button>
-                        )}
-                        {as.status === 'assigned' && (
-                          <button
-                            onClick={() => handleRemoveStudent(as.id, as.student_id)}
-                            className="inline-flex items-center gap-1 text-red-500 bg-red-500/10 hover:bg-red-500 hover:text-white px-2 py-1 rounded-md text-[11px] font-bold transition-all border border-red-500/20"
-                          >
-                            <Trash2 size={12} /> Remove
-                          </button>
-                        )}
-                      </div>
-                    )}
+
+                    <div className="mt-2">
+                      {isExamOver ? (
+                        <div className="text-[11px] text-text-muted font-medium">
+                          Score: {as.result ? <span className="text-accent-primary font-bold">{as.result.total_marks}</span> : <span className="text-gray-400 font-semibold">Absent</span>}
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-text-muted font-medium">
+                          <span>DOB: <span className="text-text-main font-semibold">{formatDOB(as.students?.date_of_birth)}</span></span>
+                          <span className="text-text-muted/40">•</span>
+                          <span>Course: <span className="text-text-main font-semibold">{as.students?.course || '—'}</span></span>
+                          <span className="text-text-muted/40">•</span>
+                          <span>Batch: <span className="text-text-main font-semibold">{as.students?.batch || '—'}</span></span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -388,9 +397,9 @@ export default function Step2Students({
                               />
                             </td>
                           )}
-                          <td className="py-2 px-3 align-middle">
+                          <td className="py-2 px-3 align-middle whitespace-normal">
                             <div className="flex flex-col min-w-0">
-                              <span className="font-semibold text-text-main text-[12px] truncate group-hover:text-accent-primary transition-colors max-w-[240px]" title={as.students?.full_name}>
+                              <span className="font-semibold text-text-main text-[12px] break-words group-hover:text-accent-primary transition-colors" title={as.students?.full_name}>
                                 {as.students?.full_name}
                               </span>
                             </div>

@@ -175,6 +175,11 @@ export function useExamDetailPage(paramsId: string) {
   const handleSetStep = (step: number) => {
     if (currentStep === 1 && step > 1 && !canProceedToNextStep(1)) {
       setShowStep1Errors(true);
+      if (typeof window !== 'undefined') {
+        const mainEl = document.querySelector('main');
+        if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+        else window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
       return;
     }
     setShowStep1Errors(false);

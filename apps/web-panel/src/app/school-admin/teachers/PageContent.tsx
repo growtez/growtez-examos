@@ -297,7 +297,7 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
             <div className={`absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col p-1.5 space-y-0.5 ${
               isFilterOpen ? 'opacity-100 visible' : 'opacity-0 invisible'
             }`}>
-              <div className="px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">Department</div>
+              <div className="px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">Filter</div>
               <button
                 type="button"
                 onClick={() => { setSelectedDepartment('all'); setPage(1); setIsFilterOpen(false); }}
@@ -363,7 +363,7 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
         </div>
 
         {/* Row 4 on Mobile: Inline Active Filters */}
-        <div className="w-full md:w-auto md:flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0 order-5 md:order-2 border-t md:border-t-0 border-border/40">
+        <div className={`w-full md:w-auto md:flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0 order-5 md:order-2 border-t md:border-t-0 border-border/40 ${!(searchQuery || selectedDepartment !== 'all' || sortBy !== 'newest') ? 'hidden md:flex' : ''}`}>
           {(searchQuery || selectedDepartment !== 'all' || sortBy !== 'newest') ? (
             <>
               <span className="text-[11px] text-text-muted font-medium uppercase tracking-wider shrink-0 mr-1">Active:</span>

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, Download, X, Clock, Play, AlertCircle, FileText, BarChart, Users, CheckCircle2, Copy, BookOpen, User, Trash2, Pencil } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, Download, X, Clock, Play, AlertCircle, FileText, BarChart, Users, CheckCircle2, Copy, BookOpen, User, Trash2, Pencil, Check } from 'lucide-react';
 
 const statusColors: Record<string, string> = {
   draft: 'bg-surface-hover text-text-muted border-border',
@@ -25,8 +25,8 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   const [sortBy, setSortBy] = useState('newest');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(8);
-  const [isPerPageOpen, setIsPerPageOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -37,15 +37,15 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   const [confirmBulkDialog, setConfirmBulkDialog] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
-  const perPageRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
         setIsFilterOpen(false);
       }
-      if (perPageRef.current && !perPageRef.current.contains(event.target as Node)) {
-        setIsPerPageOpen(false);
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+        setIsSortOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -238,19 +238,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
       return 0;
     });
 
-  useEffect(() => {
-    const updateMobilePageSize = () => {
-      if (window.innerWidth < 768) {
-        setPerPage(Math.max(filteredExams.length, 1));
-      } else if (perPage > 100) {
-        setPerPage(8);
-      }
-    };
 
-    updateMobilePageSize();
-    window.addEventListener('resize', updateMobilePageSize);
-    return () => window.removeEventListener('resize', updateMobilePageSize);
-  }, [filteredExams.length, perPage]);
 
   const totalPages = Math.max(1, Math.ceil(filteredExams.length / perPage));
   const safePage = Math.min(page, totalPages);
@@ -337,7 +325,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
 
   const handleSelectExam = (id: string, e: React.MouseEvent | React.ChangeEvent) => {
     e.stopPropagation();
-    setSelectedExams(prev => 
+    setSelectedExams(prev =>
       prev.includes(id) ? prev.filter(eId => eId !== id) : [...prev, id]
     );
   };
@@ -358,191 +346,228 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-[1400px] mx-auto">
 
-
-      {/* Modern Toolbar */}
-      <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm mb-6 flex flex-col gap-4 relative z-10">
-        
-        {/* Top Row: Title, Search & Main Action */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          
-          {/* Title Area */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center text-accent-primary shrink-0">
-              <BookOpen size={20} />
-            </div>
-            <div>
-              <h1 className="text-lg font-extrabold text-text-main tracking-tight">
-                {role === 'teacher' ? 'Assigned Exams' : 'Exams Management'}
-              </h1>
-              <p className="text-xs text-text-muted mt-0.5">
-                Showing {filteredExams.length} {filteredExams.length === 1 ? 'exam' : 'exams'}
-              </p>
-            </div>
+      <div className="mb-4 hidden md:flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center text-accent-primary shrink-0">
+            <BookOpen size={20} />
           </div>
-          
-          {/* Search & Create */}
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            {/* Search */}
-            <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
-              <input
-                type="text"
-                placeholder="Search exams by title..."
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); setSelectedExams([]); }}
-                className="w-full h-10 pl-9 pr-8 bg-bg border border-border rounded-xl text-text-main text-sm focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all"
-              />
-              {searchQuery && (
-                <button type="button" onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-red-500 bg-surface hover:bg-red-50 p-1 rounded-md transition-colors">
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-
-            {/* Create button */}
-            {role !== 'teacher' && (
-              <button onClick={() => handleCreateExam()} disabled={creatingId !== null}
-                className="h-10 px-4 rounded-xl bg-accent-primary text-white text-sm font-bold hover:bg-accent-primary/90 hover:shadow-md hover:shadow-accent-primary/20 transition-all shrink-0 disabled:opacity-50 flex items-center gap-2">
-                <Plus size={16} />
-                <span className="hidden sm:inline">{creatingId === 'blank' ? 'Creating...' : 'New Exam'}</span>
-              </button>
-            )}
+          <div>
+            <h1 className="text-lg font-extrabold text-text-main tracking-tight">
+              {role === 'teacher' ? 'Assigned Exams' : 'Exams Management'}
+            </h1>
+            <p className="text-xs text-text-muted mt-0.5">
+              Total exams: {filteredExams.length}
+            </p>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="h-px w-full bg-border" />
-
-        {/* Bottom Row: Filters, Sort & Actions */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          
-          {/* Left Side: Filters & Bulk Actions */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Filter dropdown */}
-            <div className="relative" ref={filterRef}>
-              <button
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border text-sm font-medium transition-all ${
-                  filterStatus !== 'all'
-                    ? 'bg-accent-primary text-white border-accent-primary shadow-sm shadow-accent-primary/20'
-                    : 'bg-surface border-border text-text-main hover:bg-surface-hover hover:border-accent-primary/30'
-                }`}
-              >
-                <Filter size={14} />
-                {filterStatus === 'all' ? 'All Status' : filterStatus.charAt(0).toUpperCase() + filterStatus.slice(1)}
-              </button>
-              {isFilterOpen && (
-                <div className="absolute left-0 top-full mt-1 w-36 bg-surface border border-border rounded-xl shadow-lg z-50 flex flex-col overflow-hidden py-1">
-                  {['all', 'draft', 'published', 'active', 'completed'].map(status => (
-                    <button key={status}
-                      onClick={() => { setFilterStatus(status); setPage(1); setIsFilterOpen(false); setSelectedExams([]); }}
-                      className={`px-3 py-2 text-left text-sm hover:bg-surface-hover transition-colors ${
-                        filterStatus === status ? 'text-accent-primary font-bold bg-accent-primary/5' : 'text-text-main'
-                      }`}>
-                      {status === 'all' ? 'All Status' : status.charAt(0).toUpperCase() + status.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Sort button */}
+        <div className="flex items-center gap-2">
+          {role !== 'teacher' && (
             <button
-              onClick={() => toggleSort('newest')}
-              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-surface text-text-main text-sm font-medium hover:bg-surface-hover hover:border-accent-primary/30 transition-all"
+              onClick={() => setIsTemplatesOpen(true)}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover hover:border-accent-primary/30 text-sm font-medium transition-all cursor-pointer"
             >
-              {getSortIcon('newest')}
-              {sortBy === 'oldest' ? 'Oldest First' : sortBy === 'title' ? 'A-Z' : 'Newest First'}
-            </button>
-
-            {/* Templates button */}
-            {role !== 'teacher' && (
-              <button
-                onClick={() => setIsTemplatesOpen(true)}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover hover:border-accent-primary/30 text-sm font-medium transition-all"
-              >
-                <FileText size={14} className="text-accent-primary" />
-                Templates
-                {templates.length > 0 && (
-                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent-primary/10 text-accent-primary text-[10px] font-bold">
-                    {templates.length}
-                  </span>
-                )}
-              </button>
-            )}
-
-            {/* Trash */}
-            {role !== 'teacher' && (
-              <Link href="/exams/trash"
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-surface text-text-muted hover:bg-surface-hover hover:text-text-main text-sm font-medium transition-all">
-                <Trash2 size={14} /> Trash
-              </Link>
-            )}
-
-            {/* Bulk Delete */}
-            {role !== 'teacher' && selectedExams.length > 0 && (
-              <button
-                onClick={() => setConfirmBulkDialog(true)}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-red-50 text-red-600 border border-red-200 text-sm font-bold hover:bg-red-500 hover:text-white transition-all shadow-sm animate-in fade-in"
-              >
-                <Trash2 size={14} /> Delete ({selectedExams.length})
-              </button>
-            )}
-
-            {/* Clear filters chip */}
-            {(searchQuery || filterStatus !== 'all' || sortBy !== 'newest') && (
-              <button
-                onClick={() => { setSearchQuery(''); setFilterStatus('all'); setSortBy('newest'); setPage(1); }}
-                className="inline-flex items-center gap-1 h-9 px-2 rounded-lg text-xs font-bold text-red-500 hover:bg-red-50 transition-colors"
-              >
-                <X size={12} /> Clear Filters
-              </button>
-            )}
-          </div>
-
-          {/* Right Side: Pagination */}
-          <div className="flex items-center gap-2 md:ml-auto w-full md:w-auto justify-end">
-            <div className="flex items-center bg-bg border border-border rounded-lg p-1">
-              <button onClick={() => { setPage(p => Math.max(1, p - 1)); setSelectedExams([]); }} disabled={safePage === 1}
-                className="w-7 h-7 flex items-center justify-center rounded-md bg-surface text-text-main hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm">
-                <ChevronLeft size={14} />
-              </button>
-              <span className="text-xs font-bold text-text-main px-3 whitespace-nowrap">
-                {safePage} / {totalPages}
-              </span>
-              <button onClick={() => { setPage(p => Math.min(totalPages, p + 1)); setSelectedExams([]); }} disabled={safePage === totalPages}
-                className="w-7 h-7 flex items-center justify-center rounded-md bg-surface text-text-main hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm">
-                <ChevronRight size={14} />
-              </button>
-            </div>
-
-            {/* Per page */}
-            <div className="relative" ref={perPageRef}>
-              <button
-                onClick={() => setIsPerPageOpen(!isPerPageOpen)}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border bg-surface text-text-main text-xs font-bold hover:bg-surface-hover transition-all"
-              >
-                {perPage}/page
-                <ChevronRight size={12} className={`text-text-muted transition-transform duration-200 ${isPerPageOpen ? '-rotate-90' : 'rotate-90'}`} />
-              </button>
-              {isPerPageOpen && (
-                <div className="absolute right-0 bottom-full mb-1 w-24 bg-surface border border-border rounded-xl shadow-lg z-50 flex flex-col overflow-hidden py-1">
-                  {[8, 20, 50, 100].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => { setPerPage(n); setPage(1); setIsPerPageOpen(false); setSelectedExams([]); }}
-                      className={`px-4 py-2 text-left text-xs hover:bg-surface-hover transition-colors ${
-                        perPage === n ? 'text-accent-primary font-bold bg-accent-primary/5' : 'text-text-main font-medium'
-                      }`}
-                    >
-                      {n} items
-                    </button>
-                  ))}
-                </div>
+              <FileText size={14} className="text-accent-primary" />
+              Templates
+              {templates.length > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent-primary/10 text-accent-primary text-[10px] font-bold">
+                  {templates.length}
+                </span>
               )}
+            </button>
+          )}
+          {role !== 'teacher' && (
+            <button onClick={() => handleCreateExam()} disabled={creatingId !== null}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-full bg-accent-primary text-white text-[12px] font-bold hover:bg-accent-primary/90 hover:shadow-md hover:shadow-accent-primary/20 transition-all shrink-0 disabled:opacity-50 cursor-pointer border-none">
+              <Plus size={14} />
+              {creatingId === 'blank' ? 'Creating...' : 'New Exam'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Control Panel — matches teachers/results page structure */}
+      <div className="flex flex-row flex-wrap md:flex-nowrap items-center justify-between gap-2 md:gap-3 w-full bg-surface p-2 rounded-xl shadow-sm border border-border mb-4">
+        {/* Search Box (Row 1 Left on Mobile) */}
+        <div className="relative flex-1 md:flex-none md:w-[260px] order-1 md:order-1">
+          <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
+          <input
+            type="text"
+            placeholder={`Search Exams (${filteredExams.length})...`}
+            value={searchQuery}
+            onChange={(e) => { setSearchQuery(e.target.value); setPage(1); setSelectedExams([]); }}
+            className="w-full py-2 pl-4 pr-10 bg-surface-hover border border-border rounded-full text-text-main text-[13px] focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all"
+          />
+          {searchQuery && (
+            <button type="button" onClick={() => { setSearchQuery(''); setPage(1); setSelectedExams([]); }}
+              className="absolute right-10 top-1/2 -translate-y-1/2 text-text-muted hover:text-red-500 bg-transparent p-1 rounded-md transition-colors border-none cursor-pointer flex items-center justify-center">
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        {/* Action Buttons: Sort & Filter (Row 1 Right on Mobile) */}
+        <div className="flex items-center gap-2 order-2 md:order-4 shrink-0">
+          <div className="relative" ref={sortRef}>
+            <button
+              type="button"
+              onClick={() => setIsSortOpen(!isSortOpen)}
+              className="flex md:hidden items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-medium cursor-pointer"
+            >
+              <ArrowUpDown size={14} className="text-accent-primary" />
+            </button>
+            <div className={`absolute right-0 top-full mt-2 w-40 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col p-1.5 space-y-0.5 md:hidden ${isSortOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+              <div className="px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">Sort By</div>
+              {[
+                { id: 'newest', label: 'Newest First' },
+                { id: 'oldest', label: 'Oldest First' },
+                { id: 'title', label: 'Title (A-Z)' }
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => { setSortBy(opt.id); setPage(1); setIsSortOpen(false); }}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border-none flex items-center justify-between ${sortBy === opt.id ? 'bg-accent-primary/10 text-accent-primary font-bold' : 'text-text-main hover:bg-surface-hover'}`}
+                >
+                  <span>{opt.label}</span>
+                  {sortBy === opt.id && <Check size={14} className="text-accent-primary" />}
+                </button>
+              ))}
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => toggleSort('newest')}
+            className="hidden md:flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-medium cursor-pointer"
+          >
+            {getSortIcon('newest')}
+            <span>{sortBy === 'oldest' ? 'Oldest' : sortBy === 'title' ? 'A-Z' : 'Newest'}</span>
+          </button>
+          <div className="relative" ref={filterRef}>
+            <button
+              type="button"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover transition-colors text-[12px] font-medium cursor-pointer"
+            >
+              <Filter size={14} className="text-accent-primary" /> <span className="hidden md:inline">Filter</span>
+            </button>
+            <div className={`absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-lg transition-all z-50 flex flex-col p-1.5 space-y-0.5 ${isFilterOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}>
+              <div className="px-2 py-1 text-[10px] font-bold text-text-muted uppercase tracking-wider">Filter</div>
+              {[
+                { id: 'all', label: 'All Status' },
+                { id: 'draft', label: 'Draft' },
+                { id: 'published', label: 'Published' },
+                { id: 'active', label: 'Active' },
+                { id: 'completed', label: 'Completed' }
+              ].map(status => (
+                <button
+                  key={status.id}
+                  type="button"
+                  onClick={() => { setFilterStatus(status.id); setPage(1); setSelectedExams([]); setIsFilterOpen(false); }}
+                  className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border-none flex items-center justify-between ${filterStatus === status.id ? 'bg-accent-primary/10 text-accent-primary font-bold' : 'text-text-main hover:bg-surface-hover'}`}
+                >
+                  <span>{status.label}</span>
+                  {filterStatus === status.id && <Check size={14} className="text-accent-primary" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2 on Mobile: Templates & New Exam Buttons */}
+        {role !== 'teacher' && (
+          <div className="w-full flex md:hidden items-center justify-between gap-2 order-3 border-t border-border/40 pt-2 pb-0.5 px-1">
+            <button
+              type="button"
+              onClick={() => setIsTemplatesOpen(true)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border border-border bg-surface text-text-main hover:bg-surface-hover text-[12px] font-medium transition-all cursor-pointer"
+            >
+              <FileText size={14} className="text-accent-primary" />
+              Templates
+              {templates.length > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent-primary/10 text-accent-primary text-[10px] font-bold">
+                  {templates.length}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleCreateExam()}
+              disabled={creatingId !== null}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-accent-primary text-white text-[12px] font-bold hover:bg-accent-primary/90 transition-all disabled:opacity-50 cursor-pointer border-none"
+            >
+              <Plus size={14} />
+              {creatingId === 'blank' ? 'Creating...' : 'New Exam'}
+            </button>
+          </div>
+        )}
+
+        {/* Row 3 on Mobile: Page Navigation + Items Per Page Dropdown */}
+        <div className="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto order-4 md:order-3 shrink-0 md:border-x md:border-border/50 px-1 md:px-3 py-1.5 md:py-0 border-t md:border-t-0 border-border/40">
+          <select value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); setSelectedExams([]); }} className="py-1.5 px-2 rounded-lg border border-border bg-surface text-text-main text-[12px] focus:outline-none focus:ring-1 focus:ring-accent-primary cursor-pointer">
+            {[8, 20, 50, 100].map(n => <option key={n} value={n}>{n} / page</option>)}
+          </select>
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={() => { setPage(p => Math.max(1, p - 1)); setSelectedExams([]); }} disabled={safePage === 1} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+              <ChevronLeft size={14} />
+            </button>
+            <div className="flex items-center justify-center gap-1 w-[80px]">
+              {getPaginationPages().map((p, i) => p === '...' ? (
+                <div key={`ellipsis-${i}`} className="w-6 h-6 flex items-center justify-center text-[11px] text-text-muted">…</div>
+              ) : (
+                <button type="button" key={p} onClick={() => { setPage(p as number); setSelectedExams([]); }} className={`w-6 h-6 flex items-center justify-center rounded text-[11px] font-semibold transition-colors border-none cursor-pointer ${safePage === p ? 'bg-accent-primary text-white' : 'text-text-muted hover:bg-surface-hover bg-transparent'}`}>{p as number}</button>
+              ))}
+            </div>
+            <button type="button" onClick={() => { setPage(p => Math.min(totalPages, p + 1)); setSelectedExams([]); }} disabled={safePage === totalPages} className="w-6 h-6 flex items-center justify-center rounded text-text-muted hover:bg-surface-hover disabled:opacity-30 disabled:cursor-not-allowed transition-colors bg-transparent border-none cursor-pointer">
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Row 4 on Mobile: Inline Active Filters */}
+        <div className={`w-full md:w-auto md:flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar min-w-0 px-2 md:border-x md:border-border/50 py-1 md:py-0 order-5 md:order-2 border-t md:border-t-0 border-border/40 ${!(searchQuery || filterStatus !== 'all' || sortBy !== 'newest' || selectedExams.length > 0) ? 'hidden md:flex' : ''}`}>
+          {(searchQuery || filterStatus !== 'all' || sortBy !== 'newest' || selectedExams.length > 0) ? (
+            <>
+              <span className="text-[11px] text-text-muted font-medium uppercase tracking-wider shrink-0 mr-1">Active:</span>
+              {searchQuery && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                  "{searchQuery}"
+                  <button type="button" onClick={() => setSearchQuery('')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                </span>
+              )}
+              {filterStatus !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                  {filterStatus}
+                  <button type="button" onClick={() => setFilterStatus('all')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                </span>
+              )}
+              {sortBy !== 'newest' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[11px] font-medium border border-blue-500/20 shrink-0">
+                  {sortBy === 'oldest' ? 'Oldest' : sortBy === 'title' ? 'A-Z' : sortBy}
+                  <button type="button" onClick={() => setSortBy('newest')} className="hover:text-blue-700 focus:outline-none flex items-center justify-center bg-transparent border-none cursor-pointer p-0 ml-1"><X size={10} /></button>
+                </span>
+              )}
+              {selectedExams.length > 0 && role !== 'teacher' && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmBulkDialog(true)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/10 text-red-600 text-[11px] font-bold border border-red-500/20 shrink-0 cursor-pointer"
+                >
+                  <Trash2 size={10} /> Delete ({selectedExams.length})
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => { setSearchQuery(''); setFilterStatus('all'); setSortBy('newest'); setPage(1); setSelectedExams([]); }}
+                className="text-[11px] text-text-muted hover:text-red-500 transition-colors ml-1 bg-transparent border-none cursor-pointer font-medium shrink-0"
+              >
+                Clear
+              </button>
+            </>
+          ) : (
+            <span className="text-[11px] text-text-muted italic opacity-50">No active filters</span>
+          )}
         </div>
       </div>
 
@@ -591,17 +616,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
         </div>
       ) : (
         <>
-          <div className="md:hidden mb-3 flex items-center justify-between bg-surface border border-border p-3 rounded-xl">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="checkbox" 
-                className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary"
-                checked={pagedExams.length > 0 && selectedExams.length === pagedExams.length}
-                onChange={handleSelectAll}
-              />
-              <span className="text-[12px] font-bold text-text-main">Select All</span>
-            </label>
-          </div>
+
           <div className="md:hidden space-y-3">
             {pagedExams.map((exam) => (
               <div
@@ -612,8 +627,8 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-start gap-3 min-w-0 flex-1">
                     <div onClick={(e) => e.stopPropagation()} className="pt-1 cursor-pointer">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary cursor-pointer"
                         checked={selectedExams.includes(exam.id)}
                         onChange={(e) => handleSelectExam(exam.id, e)}
@@ -674,8 +689,8 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-2">
                           <div onClick={(e) => e.stopPropagation()} className="cursor-pointer flex items-center">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary cursor-pointer"
                               checked={selectedExams.includes(exam.id)}
                               onChange={(e) => handleSelectExam(exam.id, e)}
@@ -727,8 +742,8 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                     <thead>
                       <tr className="border-b border-border bg-surface-hover/50">
                         <th className="py-2 px-3 w-[40px] text-center">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary cursor-pointer"
                             checked={pagedExams.length > 0 && selectedExams.length === pagedExams.length}
                             onChange={handleSelectAll}
@@ -750,8 +765,8 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                       {pagedExams.map((exam) => (
                         <tr key={exam.id} onClick={() => router.push(`/exams/${exam.id}`)} className={`group border-b border-border/40 last:border-b-0 transition-colors cursor-pointer ${selectedExams.includes(exam.id) ? 'bg-accent-primary/5' : 'even:bg-bg hover:bg-surface-hover'}`}>
                           <td className="py-2 px-3 align-middle text-center" onClick={(e) => e.stopPropagation()}>
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary cursor-pointer"
                               checked={selectedExams.includes(exam.id)}
                               onChange={(e) => handleSelectExam(exam.id, e)}
@@ -813,152 +828,152 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
             style={{ maxHeight: 'calc(100vh - 64px)' }}
             onClick={(e) => e.stopPropagation()}
           >
-          {/* Top Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4 sm:px-6 sm:py-5 border-b border-border shrink-0 bg-surface z-10 rounded-t-3xl sm:rounded-t-2xl relative">
-            
-            {/* Mobile drag handle (visual only) */}
-            <div className="w-12 h-1.5 bg-border rounded-full mx-auto mb-1 sm:hidden" />
+            {/* Top Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-5 py-4 sm:px-6 sm:py-5 border-b border-border shrink-0 bg-surface z-10 rounded-t-3xl sm:rounded-t-2xl relative">
 
-            <div className="flex justify-between items-center w-full sm:w-auto">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center text-accent-primary hidden sm:flex">
-                  <FileText size={20} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-extrabold text-text-main leading-tight">Choose a Template</h2>
-                  <p className="text-xs text-text-muted mt-0.5">{templates.length} templates available</p>
-                </div>
-              </div>
-              <button
-                onClick={() => { setIsTemplatesOpen(false); setExpandedTemplateId(null); setTemplateSearchQuery(''); }}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-hover text-text-muted hover:text-text-main hover:bg-border transition-all cursor-pointer sm:hidden"
-              >
-                <X size={18} />
-              </button>
-            </div>
+              {/* Mobile drag handle (visual only) */}
+              <div className="w-12 h-1.5 bg-border rounded-full mx-auto mb-1 sm:hidden" />
 
-            <div className="sm:ml-auto flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
-              {/* Search */}
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
-                <input
-                  type="text"
-                  placeholder="Search templates..."
-                  value={templateSearchQuery}
-                  onChange={(e) => setTemplateSearchQuery(e.target.value)}
-                  className="w-full h-10 pl-9 pr-8 bg-bg border border-border rounded-xl text-sm focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-text-main"
-                />
-                {templateSearchQuery && (
-                  <button type="button" onClick={() => setTemplateSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-red-500 bg-surface p-1 rounded-md cursor-pointer transition-colors">
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-              <button
-                onClick={() => { setIsTemplatesOpen(false); setExpandedTemplateId(null); setTemplateSearchQuery(''); }}
-                className="w-10 h-10 items-center justify-center rounded-xl border border-border text-text-muted hover:bg-surface-hover hover:text-text-main transition-all cursor-pointer hidden sm:flex shrink-0"
-              >
-                <X size={18} />
-              </button>
-            </div>
-          </div>
-
-          {/* Template Grid */}
-          <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6 bg-bg/50 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border">
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="bg-surface border border-border rounded-2xl p-5 flex flex-col gap-3 animate-pulse shadow-sm">
-                    <div className="h-5 bg-surface-hover rounded w-2/3" />
-                    <div className="h-3 bg-surface-hover rounded w-full" />
-                    <div className="h-3 bg-surface-hover rounded w-3/4" />
-                    <div className="h-9 bg-surface-hover rounded-xl w-full mt-2" />
+              <div className="flex justify-between items-center w-full sm:w-auto">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center text-accent-primary hidden sm:flex">
+                    <FileText size={20} />
                   </div>
-                ))}
-              </div>
-            ) : filteredTemplates.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center py-20 px-4">
-                <div className="w-16 h-16 rounded-2xl bg-surface-hover flex items-center justify-center text-text-muted mb-4 shadow-inner">
-                  <Search size={28} />
+                  <div>
+                    <h2 className="text-lg font-extrabold text-text-main leading-tight">Choose a Template</h2>
+                    <p className="text-xs text-text-muted mt-0.5">{templates.length} templates available</p>
+                  </div>
                 </div>
-                <p className="text-base font-bold text-text-main">No templates found</p>
-                <p className="text-sm text-text-muted mt-1 max-w-xs">We couldn't find any templates matching "{templateSearchQuery}"</p>
-                <button onClick={() => setTemplateSearchQuery('')}
-                  className="mt-5 px-5 h-9 rounded-xl bg-accent-primary/10 text-accent-primary text-sm font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer shadow-sm">
-                  Clear search
+                <button
+                  onClick={() => { setIsTemplatesOpen(false); setExpandedTemplateId(null); setTemplateSearchQuery(''); }}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-hover text-text-muted hover:text-text-main hover:bg-border transition-all cursor-pointer sm:hidden"
+                >
+                  <X size={18} />
                 </button>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20 sm:pb-0">
-                {filteredTemplates.map(template => (
-                  <div key={template.id} className="bg-surface border border-border rounded-2xl p-5 flex flex-col hover:border-accent-primary/50 hover:shadow-lg hover:shadow-accent-primary/5 transition-all group relative overflow-hidden">
-                    {/* Decorative accent top line */}
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent-primary/40 to-accent-secondary/40 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    
-                    {/* Title */}
-                    <div className="mb-4">
-                      <h3 className="text-base font-extrabold text-text-main group-hover:text-accent-primary transition-colors leading-tight mb-1">{template.title}</h3>
-                      {template.description && (
-                        <p className="text-xs text-text-muted leading-relaxed line-clamp-2">{template.description}</p>
-                      )}
+
+              <div className="sm:ml-auto flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                {/* Search */}
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={14} />
+                  <input
+                    type="text"
+                    placeholder="Search templates..."
+                    value={templateSearchQuery}
+                    onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                    className="w-full h-10 pl-9 pr-8 bg-bg border border-border rounded-xl text-sm focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-text-main"
+                  />
+                  {templateSearchQuery && (
+                    <button type="button" onClick={() => setTemplateSearchQuery('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-red-500 bg-surface p-1 rounded-md cursor-pointer transition-colors">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => { setIsTemplatesOpen(false); setExpandedTemplateId(null); setTemplateSearchQuery(''); }}
+                  className="w-10 h-10 items-center justify-center rounded-xl border border-border text-text-muted hover:bg-surface-hover hover:text-text-main transition-all cursor-pointer hidden sm:flex shrink-0"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Template Grid */}
+            <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6 bg-bg/50 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border">
+              {loading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="bg-surface border border-border rounded-2xl p-5 flex flex-col gap-3 animate-pulse shadow-sm">
+                      <div className="h-5 bg-surface-hover rounded w-2/3" />
+                      <div className="h-3 bg-surface-hover rounded w-full" />
+                      <div className="h-3 bg-surface-hover rounded w-3/4" />
+                      <div className="h-9 bg-surface-hover rounded-xl w-full mt-2" />
                     </div>
-                    
-                    {/* Stats */}
-                    <div className="flex flex-col gap-2.5 text-xs bg-bg/50 rounded-xl p-3 mb-4 border border-border/50 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-text-muted flex items-center gap-1.5"><Clock size={12} /> Duration</span>
-                        <span className="font-bold text-text-main">{template.duration_minutes} min</span>
+                  ))}
+                </div>
+              ) : filteredTemplates.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center py-20 px-4">
+                  <div className="w-16 h-16 rounded-2xl bg-surface-hover flex items-center justify-center text-text-muted mb-4 shadow-inner">
+                    <Search size={28} />
+                  </div>
+                  <p className="text-base font-bold text-text-main">No templates found</p>
+                  <p className="text-sm text-text-muted mt-1 max-w-xs">We couldn't find any templates matching "{templateSearchQuery}"</p>
+                  <button onClick={() => setTemplateSearchQuery('')}
+                    className="mt-5 px-5 h-9 rounded-xl bg-accent-primary/10 text-accent-primary text-sm font-bold hover:bg-accent-primary hover:text-white transition-all border border-accent-primary/20 cursor-pointer shadow-sm">
+                    Clear search
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20 sm:pb-0">
+                  {filteredTemplates.map(template => (
+                    <div key={template.id} className="bg-surface border border-border rounded-2xl p-5 flex flex-col hover:border-accent-primary/50 hover:shadow-lg hover:shadow-accent-primary/5 transition-all group relative overflow-hidden">
+                      {/* Decorative accent top line */}
+                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent-primary/40 to-accent-secondary/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                      {/* Title */}
+                      <div className="mb-4">
+                        <h3 className="text-base font-extrabold text-text-main group-hover:text-accent-primary transition-colors leading-tight mb-1">{template.title}</h3>
+                        {template.description && (
+                          <p className="text-xs text-text-muted leading-relaxed line-clamp-2">{template.description}</p>
+                        )}
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-text-muted flex items-center gap-1.5"><CheckCircle2 size={12} /> Marking</span>
-                        <span className="font-bold text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded-md">+{template.marking_scheme?.mcq_correct || 0} / {template.marking_scheme?.mcq_wrong || 0}</span>
-                      </div>
-                      <div className="flex flex-col gap-2 pt-2 mt-0.5 border-t border-border/50">
-                        <span className="text-text-muted flex items-center gap-1.5"><BookOpen size={12} /> Subjects</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          {template.exam_template_subjects && template.exam_template_subjects.length > 0 ? (
-                            template.exam_template_subjects.map((s: any, idx: number) => (
-                              <span key={idx} className="bg-surface shadow-sm border border-border/60 text-text-main px-2 py-1 rounded-md text-[10px] font-bold leading-none">
-                                {s.subject_name}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="font-bold text-text-main">—</span>
-                          )}
+
+                      {/* Stats */}
+                      <div className="flex flex-col gap-2.5 text-xs bg-bg/50 rounded-xl p-3 mb-4 border border-border/50 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-text-muted flex items-center gap-1.5"><Clock size={12} /> Duration</span>
+                          <span className="font-bold text-text-main">{template.duration_minutes} min</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-text-muted flex items-center gap-1.5"><CheckCircle2 size={12} /> Marking</span>
+                          <span className="font-bold text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 rounded-md">+{template.marking_scheme?.mcq_correct || 0} / {template.marking_scheme?.mcq_wrong || 0}</span>
+                        </div>
+                        <div className="flex flex-col gap-2 pt-2 mt-0.5 border-t border-border/50">
+                          <span className="text-text-muted flex items-center gap-1.5"><BookOpen size={12} /> Subjects</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {template.exam_template_subjects && template.exam_template_subjects.length > 0 ? (
+                              template.exam_template_subjects.map((s: any, idx: number) => (
+                                <span key={idx} className="bg-surface shadow-sm border border-border/60 text-text-main px-2 py-1 rounded-md text-[10px] font-bold leading-none">
+                                  {s.subject_name}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="font-bold text-text-main">—</span>
+                            )}
+                          </div>
                         </div>
                       </div>
+
+                      {/* CTA */}
+                      <button
+                        onClick={() => { handleCreateExam(template.id); setIsTemplatesOpen(false); }}
+                        disabled={creatingId !== null}
+                        className="mt-auto flex items-center justify-center gap-2 w-full h-10 rounded-xl bg-accent-primary text-white text-sm font-bold hover:bg-accent-primary/90 transition-all shadow-sm cursor-pointer disabled:opacity-50 hover:shadow-accent-primary/20 hover:-translate-y-0.5"
+                      >
+                        <Copy size={14} /> {creatingId === template.id ? 'Creating...' : 'Use Template'}
+                      </button>
                     </div>
-
-                    {/* CTA */}
-                    <button
-                      onClick={() => { handleCreateExam(template.id); setIsTemplatesOpen(false); }}
-                      disabled={creatingId !== null}
-                      className="mt-auto flex items-center justify-center gap-2 w-full h-10 rounded-xl bg-accent-primary text-white text-sm font-bold hover:bg-accent-primary/90 transition-all shadow-sm cursor-pointer disabled:opacity-50 hover:shadow-accent-primary/20 hover:-translate-y-0.5"
-                    >
-                      <Copy size={14} /> {creatingId === template.id ? 'Creating...' : 'Use Template'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Footer (Start Fresh) */}
-          <div className="px-5 py-4 sm:px-6 sm:py-5 border-t border-border shrink-0 bg-surface rounded-b-3xl sm:rounded-b-2xl">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent to-border" />
-              <span className="text-[10px] font-extrabold text-text-muted uppercase tracking-[0.2em]">OR START FRESH</span>
-              <div className="flex-1 h-px bg-gradient-to-l from-transparent to-border" />
+                  ))}
+                </div>
+              )}
             </div>
-            <button
-              onClick={() => { handleCreateExam(); setIsTemplatesOpen(false); }}
-              disabled={creatingId !== null}
-              className="w-full sm:w-1/2 mx-auto flex items-center justify-center gap-2 h-12 rounded-xl bg-bg border-2 border-border text-text-main text-sm font-extrabold hover:border-text-main hover:bg-text-main hover:text-bg transition-all cursor-pointer disabled:opacity-50"
-            >
-              <Plus size={16} /> {creatingId === 'blank' ? 'Creating...' : 'Create Blank Exam'}
-            </button>
-          </div>
+
+            {/* Footer (Start Fresh) */}
+            <div className="px-5 py-4 sm:px-6 sm:py-5 border-t border-border shrink-0 bg-surface rounded-b-3xl sm:rounded-b-2xl">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent to-border" />
+                <span className="text-[10px] font-extrabold text-text-muted uppercase tracking-[0.2em]">OR START FRESH</span>
+                <div className="flex-1 h-px bg-gradient-to-l from-transparent to-border" />
+              </div>
+              <button
+                onClick={() => { handleCreateExam(); setIsTemplatesOpen(false); }}
+                disabled={creatingId !== null}
+                className="w-full sm:w-1/2 mx-auto flex items-center justify-center gap-2 h-12 rounded-xl bg-bg border-2 border-border text-text-main text-sm font-extrabold hover:border-text-main hover:bg-text-main hover:text-bg transition-all cursor-pointer disabled:opacity-50"
+              >
+                <Plus size={16} /> {creatingId === 'blank' ? 'Creating...' : 'Create Blank Exam'}
+              </button>
+            </div>
           </div>
         </div>
       )}

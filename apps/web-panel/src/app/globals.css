@@ -6,6 +6,10 @@
 @tailwind utilities;
 
 @layer base {
+  html, body {
+    scrollbar-gutter: stable;
+  }
+
   :root {
     --color-bg: #FFFFFF;
     --color-surface: #F7F8FA;

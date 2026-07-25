@@ -370,75 +370,75 @@ export default function Step5Publish({
   if (isPublished) {
     const statusLabel = exam.status.charAt(0).toUpperCase() + exam.status.slice(1);
     return (
-      <div className="bg-bg border border-border rounded-2xl p-6 shadow-sm">
-        <div className="flex items-start gap-4 mb-6">
-          <span className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="text-emerald-600" size={24} />
+      <div className="bg-bg border border-border rounded-2xl p-3.5 sm:p-6 shadow-sm">
+        <div className="flex items-start gap-3 sm:gap-4 mb-3.5 sm:mb-6">
+          <span className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="text-emerald-600" size={20} />
           </span>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-lg font-bold text-text-main">Exam Published</h3>
+              <h3 className="text-base sm:text-lg font-bold text-text-main">Exam Published</h3>
               <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-emerald-100 text-emerald-700">
                 {statusLabel}
               </span>
             </div>
-            <p className="text-text-muted text-sm font-medium mt-1">
+            <p className="text-text-muted text-xs sm:text-sm font-medium mt-0.5">
               {title} is set up and ready. Students will take it on the lockdown desktop app during the scheduled window — no link to share.
             </p>
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <div className="rounded-2xl border border-border bg-surface p-4">
-            <div className="flex items-center gap-2 text-text-muted mb-1.5">
-              <Calendar size={15} />
-              <p className="text-[11px] font-bold uppercase tracking-wide">Starts</p>
+        <div className="grid gap-2.5 sm:gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="rounded-xl sm:rounded-2xl border border-border bg-surface p-3 sm:p-4">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-text-muted mb-1">
+              <Calendar size={14} />
+              <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wide">Starts</p>
             </div>
-            <p className="text-sm font-bold text-text-main">{formatDateTime(startTime)}</p>
+            <p className="text-xs sm:text-sm font-bold text-text-main">{formatDateTime(startTime)}</p>
           </div>
 
-          <div className="rounded-2xl border border-border bg-surface p-4">
-            <div className="flex items-center gap-2 text-text-muted mb-1.5">
-              <Calendar size={15} />
-              <p className="text-[11px] font-bold uppercase tracking-wide">Ends</p>
+          <div className="rounded-xl sm:rounded-2xl border border-border bg-surface p-3 sm:p-4">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-text-muted mb-1">
+              <Calendar size={14} />
+              <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wide">Ends</p>
             </div>
-            <p className="text-sm font-bold text-text-main">{formatDateTime(endTime)}</p>
+            <p className="text-xs sm:text-sm font-bold text-text-main">{formatDateTime(endTime)}</p>
           </div>
 
-          <div className="rounded-2xl border border-border bg-surface p-4">
-            <div className="flex items-center gap-2 text-text-muted mb-1.5">
-              <Clock size={15} />
-              <p className="text-[11px] font-bold uppercase tracking-wide">Duration</p>
+          <div className="rounded-xl sm:rounded-2xl border border-border bg-surface p-3 sm:p-4">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-text-muted mb-1">
+              <Clock size={14} />
+              <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wide">Duration</p>
             </div>
-            <p className="text-sm font-bold text-text-main">{durationMinutes} min</p>
+            <p className="text-xs sm:text-sm font-bold text-text-main">{durationMinutes} min</p>
           </div>
 
-          <div className="rounded-2xl border border-border bg-surface p-4">
-            <div className="flex items-center gap-2 text-text-muted mb-1.5">
-              <BookOpen size={15} />
-              <p className="text-[11px] font-bold uppercase tracking-wide">Subjects &amp; Questions</p>
+          <div className="rounded-xl sm:rounded-2xl border border-border bg-surface p-3 sm:p-4">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-text-muted mb-1">
+              <BookOpen size={14} />
+              <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wide">Subjects &amp; Questions</p>
             </div>
-            <p className="text-sm font-bold text-text-main">{subjects.length} subjects · {totalQuestions} questions</p>
+            <p className="text-xs sm:text-sm font-bold text-text-main">{subjects.length} subjects · {totalQuestions} questions</p>
           </div>
 
-          <div className="rounded-2xl border border-border bg-surface p-4">
-            <div className="flex items-center gap-2 text-text-muted mb-1.5">
-              <Users size={15} />
-              <p className="text-[11px] font-bold uppercase tracking-wide">Students</p>
+          <div className="rounded-xl sm:rounded-2xl border border-border bg-surface p-3 sm:p-4">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-text-muted mb-1">
+              <Users size={14} />
+              <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wide">Students</p>
             </div>
-            <p className="text-sm font-bold text-text-main">{assignedStudentsCount} assigned</p>
+            <p className="text-xs sm:text-sm font-bold text-text-main">{assignedStudentsCount} assigned</p>
           </div>
 
-          <div className="rounded-2xl border border-border bg-surface p-4">
-            <div className="flex items-center gap-2 text-text-muted mb-1.5">
-              <Award size={15} />
-              <p className="text-[11px] font-bold uppercase tracking-wide">Marking</p>
+          <div className="rounded-xl sm:rounded-2xl border border-border bg-surface p-3 sm:p-4">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-text-muted mb-1">
+              <Award size={14} />
+              <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wide">Marking</p>
             </div>
-            <p className="text-sm font-bold text-text-main">MCQ +{mcqCorrect}/{mcqWrong} · NAT +{natCorrect}/{natWrong}</p>
+            <p className="text-xs sm:text-sm font-bold text-text-main">MCQ +{mcqCorrect}/{mcqWrong} · NAT +{natCorrect}/{natWrong}</p>
           </div>
         </div>
 
-        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-border bg-surface px-4 py-3 text-text-muted">
+        <div className="mt-3 sm:mt-4 flex items-start gap-2.5 rounded-xl border border-border bg-surface px-3 py-2.5 sm:px-4 sm:py-3 text-text-muted">
           <Monitor size={15} className="mt-0.5 shrink-0" />
           <p className="text-xs font-semibold">
             Exams run through the lockdown desktop app. Assigned students will see this exam there once the scheduled window opens.
@@ -686,7 +686,7 @@ export default function Step5Publish({
   }
 
   return (
-    <div className="bg-bg border border-border rounded-2xl p-6 shadow-sm">
+    <div className="bg-bg border border-border rounded-2xl p-3.5 sm:p-6 shadow-sm">
       <h3 className="text-lg font-bold text-text-main mb-2">Publish Exam</h3>
       <p className="text-text-muted text-sm font-medium mb-6">
         {canPublish
@@ -695,7 +695,7 @@ export default function Step5Publish({
       </p>
 
       <div className="grid gap-5 xl:grid-cols-[1.35fr_0.95fr]">
-        <div className="rounded-2xl border border-border bg-surface p-5">
+        <div className="rounded-2xl border border-border bg-surface p-3.5 sm:p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h4 className="text-sm font-bold text-text-main">Checklist</h4>
             <span
@@ -742,7 +742,7 @@ export default function Step5Publish({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-surface p-5">
+        <div className="rounded-2xl border border-border bg-surface p-3.5 sm:p-5">
           <div className="mb-5">
             <h4 className="text-sm font-bold text-text-main">Publish actions</h4>
           </div>
