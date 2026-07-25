@@ -62,16 +62,6 @@ export default function Step2Students({
     return matchesSearch && matchesBatch && matchesCourse;
   });
 
-  const getStatusBadge = (as: any) => {
-    if (isExamOver) {
-      if (as.status === 'assigned') return { colorClass: 'bg-red-500/10 text-red-500 border-red-500/20', text: 'Absent' };
-      return { colorClass: 'bg-accent-primary/10 text-accent-primary border-accent-primary/20', text: 'Completed' };
-    }
-    if (as.status === 'submitted') return { colorClass: 'bg-accent-primary/10 text-accent-primary border-accent-primary/20', text: 'Submitted' };
-    if (as.status === 'in_progress') return { colorClass: 'bg-amber-500/10 text-amber-600 border-amber-500/20', text: 'In Progress' };
-    return { colorClass: 'bg-surface-hover text-text-muted border-border', text: '' }; // assigned gets no text as requested previously
-  };
-
   const handleResetClick = (as: any) => {
     setConfirmDialog({
       isOpen: true,
@@ -252,7 +242,6 @@ export default function Step2Students({
             {/* Mobile: cards */}
             <div className="sm:hidden space-y-3 mb-6">
               {filteredAssignedStudents.map((as: any) => {
-                const badge = getStatusBadge(as);
                 return (
                   <div key={as.id} className={`bg-surface rounded-xl border p-4 shadow-sm relative ${selectedStudents.includes(as.student_id) ? 'border-accent-primary ring-1 ring-accent-primary/20' : 'border-border hover:border-accent-primary/30'}`}>
                     <div className="flex items-start justify-between gap-3 mb-3">
@@ -278,10 +267,8 @@ export default function Step2Students({
                           </h4>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="font-mono text-text-muted bg-surface border border-border px-1.5 py-0.5 rounded text-[10px] font-bold uppercase">
-                          Roll {as.students?.roll_number}
-                        </span>
+                      <div className="flex items-center gap-1.5 shrink-0 text-xs text-text-muted font-semibold">
+                        Roll: {as.students?.roll_number}
                       </div>
                     </div>
 
@@ -311,35 +298,26 @@ export default function Step2Students({
                       )}
                     </div>
                     
-                    <div className="flex items-center justify-between">
-                      <div>
-                        {badge.text && (
-                          <span className={`inline-flex px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md border whitespace-nowrap ${badge.colorClass}`}>
-                            {badge.text}
-                          </span>
+                    {!isExamOver && role !== 'teacher' && !isReadOnly && (
+                      <div className="flex items-center justify-end gap-2">
+                        {(as.status === 'in_progress' || as.status === 'submitted') && (
+                          <button
+                            onClick={() => handleResetClick(as)}
+                            className="inline-flex items-center gap-1 text-amber-600 bg-amber-500/10 hover:bg-amber-500 hover:text-white px-2 py-1 rounded-md text-[11px] font-bold transition-all border border-amber-500/20"
+                          >
+                            <RotateCcw size={12} /> Reset
+                          </button>
+                        )}
+                        {as.status === 'assigned' && (
+                          <button
+                            onClick={() => handleRemoveStudent(as.id, as.student_id)}
+                            className="inline-flex items-center gap-1 text-red-500 bg-red-500/10 hover:bg-red-500 hover:text-white px-2 py-1 rounded-md text-[11px] font-bold transition-all border border-red-500/20"
+                          >
+                            <Trash2 size={12} /> Remove
+                          </button>
                         )}
                       </div>
-                      {!isExamOver && role !== 'teacher' && !isReadOnly && (
-                        <div className="flex items-center gap-2">
-                          {(as.status === 'in_progress' || as.status === 'submitted') && (
-                            <button
-                              onClick={() => handleResetClick(as)}
-                              className="inline-flex items-center gap-1 text-amber-600 bg-amber-500/10 hover:bg-amber-500 hover:text-white px-2 py-1 rounded-md text-[11px] font-bold transition-all border border-amber-500/20"
-                            >
-                              <RotateCcw size={12} /> Reset
-                            </button>
-                          )}
-                          {as.status === 'assigned' && (
-                            <button
-                              onClick={() => handleRemoveStudent(as.id, as.student_id)}
-                              className="inline-flex items-center gap-1 text-red-500 bg-red-500/10 hover:bg-red-500 hover:text-white px-2 py-1 rounded-md text-[11px] font-bold transition-all border border-red-500/20"
-                            >
-                              <Trash2 size={12} /> Remove
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 );
               })}
@@ -375,7 +353,6 @@ export default function Step2Students({
                           <th className="py-2 px-3 text-[11px] font-bold text-text-muted uppercase tracking-wide">Batch</th>
                         </>
                       )}
-                      <th className="py-2 px-3 text-[11px] font-bold text-text-muted uppercase tracking-wide">Status</th>
                       {!isExamOver && role !== 'teacher' && (
                         <th className="py-2 px-3 text-[11px] font-bold text-text-muted uppercase tracking-wide text-right">Actions</th>
                       )}
@@ -383,7 +360,6 @@ export default function Step2Students({
                   </thead>
                   <tbody>
                     {filteredAssignedStudents.map((as: any) => {
-                      const badge = getStatusBadge(as);
                       return (
                         <tr
                           key={as.id}
@@ -418,15 +394,11 @@ export default function Step2Students({
                               </span>
                             </div>
                           </td>
-                          <td className="py-2 px-3 align-middle">
-                            <span className="font-mono text-text-muted bg-bg border border-border px-1.5 py-0.5 rounded text-[11px] font-bold whitespace-nowrap">
-                              {as.students?.roll_number}
-                            </span>
+                          <td className="py-2 px-3 align-middle text-[12px] text-text-muted font-semibold">
+                            {as.students?.roll_number}
                           </td>
-                          <td className="py-2 px-3 align-middle">
-                            <span className="font-mono text-text-muted bg-bg border border-border px-1.5 py-0.5 rounded text-[11px] font-bold whitespace-nowrap">
-                              {as.students?.date_of_birth || '—'}
-                            </span>
+                          <td className="py-2 px-3 align-middle text-[12px] text-text-muted font-semibold">
+                            {as.students?.date_of_birth || '—'}
                           </td>
                           {isExamOver ? (
                             <td className="py-2 px-3 align-middle font-bold text-[12px]">
@@ -442,15 +414,6 @@ export default function Step2Students({
                               <td className="py-2 px-3 align-middle text-[12px] text-text-muted font-semibold">{as.students?.batch || '—'}</td>
                             </>
                           )}
-                          <td className="py-2 px-3 align-middle">
-                            {badge.text ? (
-                              <span className={`inline-flex px-1.5 py-0.5 text-[10px] font-bold uppercase rounded border ${badge.colorClass}`}>
-                                {badge.text}
-                              </span>
-                            ) : (
-                              <span className="text-text-muted text-[12px]">—</span>
-                            )}
-                          </td>
                           {!isExamOver && role !== 'teacher' && !isReadOnly && (
                             <td className="py-2 px-3 align-middle text-right">
                               <div className="flex items-center justify-end gap-1">

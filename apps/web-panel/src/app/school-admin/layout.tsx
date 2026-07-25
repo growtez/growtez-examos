@@ -351,7 +351,7 @@ export default function SchoolAdminLayout({
             </div>
             {sidebarOpen && (
               <div className="overflow-hidden flex flex-col justify-center">
-                <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-sidebar-text to-sidebar-text-muted font-extrabold text-lg tracking-wide leading-tight truncate drop-shadow-sm" title="ParikshaOS">
+                <h1 className="text-white font-extrabold text-lg tracking-wide leading-tight truncate drop-shadow-sm" title="ParikshaOS">
                   ParikshaOS
                 </h1>
                 {totalCredits !== null && role === 'school_admin' && (
@@ -379,8 +379,8 @@ export default function SchoolAdminLayout({
               }
               return true;
             }).map((item) => {
-            const activeClass = "bg-accent-primary/15 text-sidebar-text rounded-lg shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border-accent-primary font-semibold";
-            const inactiveClass = "text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text rounded-lg border-transparent";
+            const activeClass = "bg-accent-primary/20 text-white rounded-lg shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border-accent-primary font-bold";
+            const inactiveClass = "text-white/90 hover:bg-sidebar-hover hover:text-white rounded-lg border-transparent";
             return (
               <Link
                 key={item.href}
@@ -394,7 +394,7 @@ export default function SchoolAdminLayout({
                   }
                 }}
               >
-                <div className={`flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 ${isActive(item.href) ? 'text-accent-secondary' : 'text-sidebar-text-muted group-hover:text-sidebar-text group-hover:scale-110'}`}>
+                <div className={`flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 ${isActive(item.href) ? 'text-accent-secondary' : 'text-white/80 group-hover:text-white group-hover:scale-110'}`}>
                   <div className="scale-90 flex">{item.icon}</div>
                 </div>
                 <div className={`ml-2.5 h-full flex items-center overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out ${!sidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100'}`}>
@@ -408,10 +408,10 @@ export default function SchoolAdminLayout({
         <div className="px-3 py-4 border-t border-sidebar-border">
           <button
             onClick={toggleDarkMode}
-            className="w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg mb-1 border border-transparent text-sidebar-text-muted hover:text-sidebar-text hover:bg-sidebar-hover transition-colors group"
+            className="w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg mb-1 border border-transparent text-white/90 hover:text-white hover:bg-sidebar-hover transition-colors group"
             title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
           >
-            <div className="flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 group-hover:scale-110">
+            <div className="flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 text-white/80 group-hover:text-white group-hover:scale-110">
               <div className="scale-90 flex">{isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}</div>
             </div>
             <div className={`ml-2.5 h-full flex items-center overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out ${!sidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100'}`}>
@@ -423,8 +423,8 @@ export default function SchoolAdminLayout({
               href="/profile"
               className={`w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg border transition-colors group ${
                 isActive('/profile') 
-                  ? "bg-accent-primary/15 text-sidebar-text shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border-accent-primary font-semibold" 
-                  : "text-sidebar-text-muted hover:bg-sidebar-hover hover:text-sidebar-text border-transparent"
+                  ? "bg-accent-primary/20 text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border-accent-primary font-bold" 
+                  : "text-white/90 hover:bg-sidebar-hover hover:text-white border-transparent"
               }`}
               onClick={() => {
                 if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -432,7 +432,7 @@ export default function SchoolAdminLayout({
                 }
               }}
             >
-              <div className={`flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 ${isActive('/profile') ? 'text-accent-secondary' : 'text-sidebar-text-muted group-hover:text-sidebar-text group-hover:scale-110'}`}>
+              <div className={`flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 ${isActive('/profile') ? 'text-accent-secondary' : 'text-white/80 group-hover:text-white group-hover:scale-110'}`}>
                 <div className="scale-90 flex"><User className="w-5 h-5" /></div>
               </div>
               <div className={`ml-2.5 h-full flex items-center overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out ${!sidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100'}`}>
@@ -443,9 +443,9 @@ export default function SchoolAdminLayout({
           {role === 'teacher' && (
             <button
               onClick={() => setShowSignoutConfirm(true)}
-              className="w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg border border-transparent text-sidebar-text-muted hover:text-red-400 hover:bg-red-400/10 transition-colors group"
+              className="w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg border border-transparent text-white/90 hover:text-red-400 hover:bg-red-400/10 transition-colors group"
             >
-              <div className="flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 group-hover:scale-110">
+              <div className="flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 text-white/80 group-hover:text-white group-hover:scale-110">
                 <div className="scale-90 flex"><LogOut className="w-5 h-5" /></div>
               </div>
               <div className={`ml-2.5 h-full flex items-center overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out ${!sidebarOpen ? 'max-w-0 opacity-0' : 'max-w-[140px] opacity-100'}`}>
@@ -471,13 +471,13 @@ export default function SchoolAdminLayout({
                 return (
                   <span key={index} className={`items-center min-w-0 ${isLast ? 'flex flex-1' : 'hidden md:inline-flex shrink-0'}`}>
                     {crumb.href ? (
-                      <Link href={crumb.href} className="hover:text-accent-primary text-text-muted transition-colors font-semibold truncate max-w-xs xl:max-w-md">
+                      <Link href={crumb.href} className="text-text-main font-bold hover:opacity-80 transition-opacity truncate max-w-xs xl:max-w-md">
                         {crumb.label}
                       </Link>
                     ) : (
-                      <span className="text-accent-primary font-bold truncate">{crumb.label}</span>
+                      <span className="text-text-main font-bold truncate">{crumb.label}</span>
                     )}
-                    {index < breadcrumbs.length - 1 && <span className="text-border mx-2">/</span>}
+                    {index < breadcrumbs.length - 1 && <span className="text-text-main font-bold opacity-50 mx-2">/</span>}
                   </span>
                 );
               })}
