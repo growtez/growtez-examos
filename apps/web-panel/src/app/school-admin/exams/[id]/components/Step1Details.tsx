@@ -232,6 +232,7 @@ export default function Step1Details({
 
   const [draggedSubjectIndex, setDraggedSubjectIndex] = useState<number | null>(null);
   const [draggedOverSubjectIndex, setDraggedOverSubjectIndex] = useState<number | null>(null);
+  const [showPartialTooltip, setShowPartialTooltip] = useState(false);
   const allExpanded = Object.values(expandedCards).every(Boolean);
   const toggleCard = (key: keyof typeof expandedCards) =>
     setExpandedCards((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -497,13 +498,45 @@ export default function Step1Details({
 
                 <div className="pt-1">
                   <div className={`relative border ${showStep1Errors && msqEnabled && msqPartialEnabled && String(msqPartial).trim() === '' ? 'border-red-500 shadow-red-500/20' : 'border-border'} ${!msqEnabled || !msqPartialEnabled ? 'opacity-50 bg-gray-50' : 'bg-bg'} rounded-md focus-within:border-accent-primary focus-within:ring-1 focus-within:ring-accent-primary/20 transition-all shadow-sm`}>
-                    <label className="absolute -top-2 left-2 bg-surface px-1 text-[10px] font-semibold text-text-muted whitespace-nowrap z-10 flex items-center gap-1">
+                    <label className="absolute -top-2 left-2 bg-surface px-1 text-[10px] font-semibold text-text-muted whitespace-nowrap z-20 flex items-center gap-1 overflow-visible">
                       <span>Partial (+)</span>
                       <span 
-                        className="cursor-pointer pointer-events-auto"
-                        title="• 1 correct → +1 mark&#10;• 2 correct → +2 marks&#10;• All correct → Full Marks&#10;• Any wrong → Wrong Marks"
+                        className="relative cursor-help pointer-events-auto flex items-center"
+                        onMouseEnter={() => setShowPartialTooltip(true)}
+                        onMouseLeave={() => setShowPartialTooltip(false)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShowPartialTooltip(!showPartialTooltip);
+                        }}
                       >
-                        <Info className="w-3 h-3 text-text-muted hover:text-accent-primary transition-colors" />
+                        <Info className={`w-3.5 h-3.5 transition-colors ${showPartialTooltip ? 'text-accent-primary' : 'text-text-muted'}`} />
+                        
+                        <div className={`absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 p-3 bg-surface border border-border rounded-xl shadow-xl transition-all duration-200 z-50 transform origin-bottom font-normal ${showPartialTooltip ? 'opacity-100 visible scale-100' : 'opacity-0 invisible scale-95'}`}>
+                          <div className="text-xs font-bold text-text-main mb-2 border-b border-border pb-1.5 flex items-center gap-1.5 whitespace-normal">
+                            <Info size={14} className="text-accent-primary" />
+                            Partial Marking Rules
+                          </div>
+                          <ul className="text-[11px] text-text-muted space-y-1.5 leading-relaxed font-medium whitespace-normal">
+                            <li className="flex items-start gap-1.5">
+                              <span className="text-accent-primary mt-0.5">•</span>
+                              <span><strong className="text-text-main">1 correct</strong> option chosen → <strong className="text-accent-primary">+1 mark</strong></span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <span className="text-accent-primary mt-0.5">•</span>
+                              <span><strong className="text-text-main">2 correct</strong> options chosen → <strong className="text-accent-primary">+2 marks</strong></span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <span className="text-emerald-500 mt-0.5">•</span>
+                              <span><strong className="text-text-main">All correct</strong> options chosen → <strong className="text-emerald-600">Full Marks</strong></span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <span className="text-red-400 mt-0.5">•</span>
+                              <span><strong className="text-text-main">Any wrong</strong> option chosen → <strong className="text-red-500">Negative Marks</strong> penalty</span>
+                            </li>
+                          </ul>
+                          <div className="absolute left-1/2 -translate-x-1/2 -bottom-1.5 w-3 h-3 bg-surface border-b border-r border-border rotate-45"></div>
+                        </div>
                       </span>
                     </label>
                     <input
