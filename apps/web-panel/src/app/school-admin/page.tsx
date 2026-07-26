@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Users, GraduationCap, FileText, CheckCircle, Users2, Layers } from 'lucide-react';
 import CreateExamButton from '@/components/CreateExamButton';
+import MonthlyCleanupReminder from '@/components/MonthlyCleanupReminder';
 
 export default async function SchoolAdminDashboard() {
   const supabase = createClient();
@@ -165,6 +166,7 @@ export default async function SchoolAdminDashboard() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <MonthlyCleanupReminder />
 
       {/* Stats Grid */}
       <div className="flex overflow-x-auto pt-2 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 gap-4 sm:gap-5 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
