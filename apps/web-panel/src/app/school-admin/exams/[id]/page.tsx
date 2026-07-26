@@ -1418,17 +1418,17 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       {/* Instruction Preview Modal */}
       {showInstructionPreview && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-2 sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setShowInstructionPreview(false);
           }}
         >
           <div
-            className="bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]"
+            className="bg-surface rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-accent-primary px-6 py-4 flex items-center justify-between shrink-0">
-              <span className="text-white font-bold">
+            <div className="bg-accent-primary px-4 sm:px-6 py-4 flex items-center justify-between shrink-0">
+              <span className="text-white font-bold text-sm sm:text-base">
                 Exam Instructions Preview
               </span>
               <button
@@ -1438,13 +1438,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 ✕
               </button>
             </div>
-            <div className="p-6 overflow-y-auto bg-[#F9FAFB]">
-              <p className="text-sm text-text-muted mb-4 text-center font-medium">
+            <div className="p-3 sm:p-6 overflow-y-auto bg-[#F9FAFB]">
+              <p className="text-xs sm:text-sm text-text-muted mb-4 text-center font-medium">
                 This is how the instructions will appear to the student in the
                 exam app.
               </p>
 
-              <div className="border border-[#E4E7EC] rounded-xl p-8 bg-surface shadow-sm max-w-2xl mx-auto">
+              <div className="border border-[#E4E7EC] rounded-xl p-4 sm:p-8 bg-surface shadow-sm w-full mx-auto">
                 <div className="border-l-4 border-[#008080] pl-3 mb-4">
                   <h3 className="text-sm font-extrabold text-[#1D2939] uppercase tracking-wider">
                     Important Instructions
@@ -1508,15 +1508,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 </ul>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-border shrink-0 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setShowInstructionPreview(false)}
-                className="px-6 py-2.5 bg-accent-primary text-white font-semibold rounded-xl hover:bg-accent-primary/80 text-sm transition-colors shadow-sm"
-              >
-                Close Preview
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -1537,7 +1528,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           }}
         >
           <div
-            className="bg-surface shadow-2xl w-full h-[100dvh] md:h-auto md:max-h-[88vh] max-w-full md:max-w-lg border-l border-border md:border md:rounded-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300 ease-out md:zoom-in-95"
+            className="bg-surface shadow-2xl w-full h-[100dvh] md:min-h-[75vh] md:max-h-[90vh] max-w-full md:max-w-2xl border-l border-border md:border md:rounded-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300 ease-out md:zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-accent-primary px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between shrink-0">
@@ -1558,7 +1549,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </button>
             </div>
 
-            <div className="p-3 sm:p-4 flex-1 flex flex-col min-h-0 overflow-y-auto">
+            <div className="p-3 sm:p-4 flex-1 flex flex-col min-h-0">
               {/* Tabs */}
               <div className="flex bg-bg rounded-xl p-1 mb-3.5 border border-border shrink-0">
                 <button
@@ -1610,8 +1601,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               )}
 
               {addMode === "link" ? (
-                <div className="space-y-3.5 flex-1 overflow-y-auto custom-scrollbar flex flex-col">
-                  <div className="bg-surface border border-border rounded-xl p-3 sm:p-6">
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col space-y-3.5 pb-2">
+                    <div className="bg-surface border border-border rounded-xl p-3 sm:p-6">
                     <Globe
                       size={24}
                       className="mx-auto text-accent-primary mb-1.5"
@@ -1679,8 +1671,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                   </div>
+                  </div>
 
-                  <div className="flex gap-3 pt-3 mt-auto sticky bottom-0 bg-surface border-t border-border/80 z-10 shrink-0">
+                  <div className="flex gap-3 pt-3 mt-auto bg-surface border-t border-border/80 z-10 shrink-0">
                     <button
                       type="button"
                       onClick={() => {
@@ -1831,8 +1824,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </form>
               ) : (
-                <form onSubmit={handleCsvImport} className="flex-1 flex flex-col justify-between min-h-0 overflow-y-auto custom-scrollbar">
-                  <div className="space-y-4 pb-3">
+                <form onSubmit={handleCsvImport} className="flex-1 flex flex-col min-h-0">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pb-3 pr-1">
                     <div className="bg-bg border border-border rounded-xl p-3.5 sm:p-5 space-y-2.5">
                       <div className="flex items-center justify-between">
                         <p className="text-text-main text-xs sm:text-sm font-bold">
@@ -1942,7 +1935,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-3 pt-3 mt-auto sticky bottom-0 bg-surface border-t border-border/80 z-10 shrink-0">
+                  <div className="flex gap-3 pt-3 mt-auto bg-surface border-t border-border/80 z-10 shrink-0">
                     <button
                       type="button"
                       onClick={() => {
