@@ -58,9 +58,9 @@ function SchoolRegistrationForm({ params, school, onSuccess }: { params: { schoo
           school_id: params.school_id,
           roll_number: rollNumber,
           date_of_birth: dob,
-          course: courseParam || 'General',
-          batch: batchParam || 'Main',
-          session: sessionParam || '2026-27',
+          course: courseParam || null,
+          batch: batchParam || null,
+          session: sessionParam || null,
         }),
       });
       

@@ -873,83 +873,24 @@ export default function Step3Questions({
                           <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
                           <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Correct Numerical Answer</label>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowNatFormula(!showNatFormula);
-                              if (!editingNat) setEditingNat(true);
-                            }}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
-                              showNatFormula
-                                ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
-                                : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
-                            }`}
-                          >
-                            <Sigma size={11} />
-                            {showNatFormula ? 'Hide Formula' : 'Formula'}
-                          </button>
-                          {editingNat && (
-                            <button
-                              type="button"
-                              onClick={() => setEditingNat(false)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border bg-accent-primary text-white border-accent-primary hover:bg-accent-primary/90 transition-all cursor-pointer shadow-xs"
-                            >
-                              ✓ Done (Preview)
-                            </button>
-                          )}
-                        </div>
                       </div>
 
-                      {!editingNat ? (
-                        /* PREVIEW MODE BY DEFAULT */
-                        <div
-                          onClick={() => setEditingNat(true)}
-                          className="w-full min-h-[44px] p-3 bg-bg hover:bg-surface border border-border hover:border-accent-primary/50 rounded-xl cursor-pointer transition-all flex items-center justify-between group shadow-xs"
-                          title="Click to edit numerical answer"
-                        >
-                          <div className="text-xs font-semibold text-text-main break-words [overflow-wrap:anywhere]">
-                            {natAnswer ? (
-                              <MathRenderer text={natAnswer} />
-                            ) : (
-                              <span className="text-text-muted/60 italic text-xs font-medium">
-                                Click here to enter numerical answer formula (e.g. \sqrt{2} or 42.5)...
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[10px] font-bold text-accent-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
-                            Edit
-                          </span>
-                        </div>
-                      ) : (
-                        /* EDIT BOX MODE */
-                        <div className="space-y-2">
-                          {showNatFormula && (
-                            <FormulaToolbar
-                              compact
-                              onInsert={(latex) =>
-                                insertAtCursor(natRef, setNatAnswer, natAnswer, latex)
-                              }
-                            />
-                          )}
-                          <textarea
-                            ref={(el) => { (natRef as any).current = el; autoGrow(el); }}
-                            rows={1}
-                            value={natAnswer}
-                            onChange={(e) => { setNatAnswer(e.target.value); autoGrow(e.target); }}
-                            required
-                            className="w-full px-3 py-2.5 bg-bg border border-accent-primary rounded-lg outline-none focus:ring-2 focus:ring-accent-primary/15 text-sm font-medium transition-shadow resize-none overflow-hidden whitespace-pre-wrap break-words"
-                            placeholder="e.g. 42.5 or \sqrt{2}"
-                            autoFocus
-                          />
-                          {natAnswer && (
-                            <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg">
-                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Live Formula Preview</p>
-                              <MathRenderer text={natAnswer} className="text-sm text-text-main" />
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      <div className="space-y-2">
+                        <input
+                          type="number"
+                          step="any"
+                          value={natAnswer}
+                          onChange={(e) => setNatAnswer(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (['e', 'E', '+'].includes(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          required
+                          className="w-full px-3 py-2.5 bg-bg border border-accent-primary rounded-lg outline-none focus:ring-2 focus:ring-accent-primary/15 text-sm font-medium transition-shadow"
+                          placeholder="e.g. 42.5 or -3"
+                        />
+                      </div>
                     </div>
                   )}
 
