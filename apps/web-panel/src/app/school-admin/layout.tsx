@@ -231,36 +231,52 @@ export default function SchoolAdminLayout({
           setRole(finalRole);
           localStorage.setItem('user_role', finalRole);
 
+          const protocol = window.location.protocol;
+          const host = window.location.host;
+          let baseDomain = host;
+          if (host.startsWith('school.')) baseDomain = host.replace('school.', '');
+
           if (schoolId) {
-            const { data: school } = await supabase.from('schools').select('name, exam_credits, logo_url').eq('id', schoolId).single();
-            if (school) {
+            const { data: school } = await supabase.from('schools').select('name, exam_credits, logo_url, is_active').eq('id', schoolId).single();
+            if (school && school.is_active !== false) {
               setSchoolName(school.name);
               setTotalCredits(school.exam_credits || 0);
               if (school.logo_url) setProfileImageUrl(school.logo_url);
+            } else {
+              // School deleted or inactive - tell them their account is invalid.
+              window.location.href = `${protocol}//${baseDomain}/login?error=Your+school+account+is+suspended+or+deleted.`;
+              return;
             }
-          }
 
-          // Fetch notifications
-          let notifsQuery = supabase.from('system_notifications').select('*');
-          if (schoolId) {
-            notifsQuery = notifsQuery.or(`target_school_id.eq.${schoolId},target_school_id.is.null`);
+            // Fetch notifications
+            let notifsQuery = supabase.from('system_notifications').select('*');
+            if (schoolId) {
+              notifsQuery = notifsQuery.or(`target_school_id.eq.${schoolId},target_school_id.is.null`);
+            } else {
+              notifsQuery = notifsQuery.is('target_school_id', null);
+            }
+            if (user.created_at) {
+              notifsQuery = notifsQuery.gte('created_at', user.created_at);
+            }
+            const { data: notifs } = await notifsQuery.order('created_at', { ascending: false });
+            if (notifs) {
+              // Filter out locally hidden notifications
+              const hiddenStr = localStorage.getItem('hidden_notifications');
+              const hiddenList: string[] = hiddenStr ? JSON.parse(hiddenStr) : [];
+              const visibleNotifs = notifs.filter(n => !hiddenList.includes(n.id));
+
+              setNotifications(visibleNotifs);
+              
+              // Use localStorage to track seen notifications
+              const lastSeenStr = localStorage.getItem('last_seen_notif_time');
+              const lastSeen = lastSeenStr ? new Date(lastSeenStr) : new Date(0);
+              const unread = visibleNotifs.filter(n => new Date(n.created_at) > lastSeen).length;
+              setUnreadNotifsCount(unread);
+            }
           } else {
-            notifsQuery = notifsQuery.is('target_school_id', null);
-          }
-          const { data: notifs } = await notifsQuery.order('created_at', { ascending: false });
-          if (notifs) {
-            // Filter out locally hidden notifications
-            const hiddenStr = localStorage.getItem('hidden_notifications');
-            const hiddenList: string[] = hiddenStr ? JSON.parse(hiddenStr) : [];
-            const visibleNotifs = notifs.filter(n => !hiddenList.includes(n.id));
-
-            setNotifications(visibleNotifs);
-            
-            // Use localStorage to track seen notifications
-            const lastSeenStr = localStorage.getItem('last_seen_notif_time');
-            const lastSeen = lastSeenStr ? new Date(lastSeenStr) : new Date(0);
-            const unread = visibleNotifs.filter(n => new Date(n.created_at) > lastSeen).length;
-            setUnreadNotifsCount(unread);
+            // No school ID found - we don't log them out forcefully anymore to prevent loops.
+            window.location.href = `${protocol}//${baseDomain}/login?error=Profile+setup+incomplete.+Please+try+logging+in+again.`;
+            return;
           }
         }
       } catch (err) {

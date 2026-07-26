@@ -30,6 +30,18 @@ export default function CreateExamButton() {
 
       if (!schoolId) throw new Error('School not found');
 
+      // Check current active exam count
+      const { count: activeExamCount, error: countError } = await supabase
+        .from('exams')
+        .select('*', { count: 'exact', head: true })
+        .eq('school_id', schoolId)
+        .eq('is_trashed', false);
+
+      if (countError) throw countError;
+      if (activeExamCount !== null && activeExamCount >= 20) {
+        throw new Error('You have reached the maximum limit of 20 exams. Please delete old exams to clear space before creating a new one.');
+      }
+
       const { data: exam, error } = await supabase.from('exams').insert({
         school_id: schoolId,
         title: 'Untitled Exam',

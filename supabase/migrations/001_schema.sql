@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.super_admins (
 
 CREATE TABLE IF NOT EXISTS public.school_admins (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE NOT NULL,
+    school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE,
     full_name TEXT NOT NULL,
     email TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS public.students (
     active_device_id TEXT,
     last_active_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(exam_id, roll_number)
+    UNIQUE(exam_id, roll_number, date_of_birth, course, batch, session)
 );
 
 
@@ -445,8 +445,12 @@ BEGIN
     INSERT INTO public.super_admins (id, full_name, email)
     VALUES (new.id, v_full_name, new.email);
   ELSIF v_role = 'school_admin' THEN
-    INSERT INTO public.school_admins (id, school_id, full_name, email)
-    VALUES (new.id, v_school_id, v_full_name, new.email);
+    -- ONLY create the profile if school_id exists (meaning they were created by Super Admin)
+    -- Otherwise, wait for the OTP verification to finish creating the school and profile!
+    IF v_school_id IS NOT NULL THEN
+      INSERT INTO public.school_admins (id, school_id, full_name, email)
+      VALUES (new.id, v_school_id, v_full_name, new.email);
+    END IF;
   ELSIF v_role = 'teacher' THEN
     INSERT INTO public.teachers (id, school_id, full_name, email, department)
     VALUES (new.id, v_school_id, v_full_name, new.email, v_department);
