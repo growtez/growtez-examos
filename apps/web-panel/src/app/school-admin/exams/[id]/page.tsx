@@ -1418,17 +1418,17 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
       {/* Instruction Preview Modal */}
       {showInstructionPreview && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-2 sm:p-6"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setShowInstructionPreview(false);
           }}
         >
           <div
-            className="bg-surface rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]"
+            className="bg-surface rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-accent-primary px-6 py-4 flex items-center justify-between shrink-0">
-              <span className="text-white font-bold">
+            <div className="bg-accent-primary px-4 sm:px-6 py-4 flex items-center justify-between shrink-0">
+              <span className="text-white font-bold text-sm sm:text-base">
                 Exam Instructions Preview
               </span>
               <button
@@ -1438,13 +1438,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 ✕
               </button>
             </div>
-            <div className="p-6 overflow-y-auto bg-[#F9FAFB]">
-              <p className="text-sm text-text-muted mb-4 text-center font-medium">
+            <div className="p-3 sm:p-6 overflow-y-auto bg-[#F9FAFB]">
+              <p className="text-xs sm:text-sm text-text-muted mb-4 text-center font-medium">
                 This is how the instructions will appear to the student in the
                 exam app.
               </p>
 
-              <div className="border border-[#E4E7EC] rounded-xl p-8 bg-surface shadow-sm max-w-2xl mx-auto">
+              <div className="border border-[#E4E7EC] rounded-xl p-4 sm:p-8 bg-surface shadow-sm w-full mx-auto">
                 <div className="border-l-4 border-[#008080] pl-3 mb-4">
                   <h3 className="text-sm font-extrabold text-[#1D2939] uppercase tracking-wider">
                     Important Instructions
@@ -1507,15 +1507,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   )}
                 </ul>
               </div>
-            </div>
-            <div className="px-6 py-4 border-t border-border shrink-0 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setShowInstructionPreview(false)}
-                className="px-6 py-2.5 bg-accent-primary text-white font-semibold rounded-xl hover:bg-accent-primary/80 text-sm transition-colors shadow-sm"
-              >
-                Close Preview
-              </button>
             </div>
           </div>
         </div>

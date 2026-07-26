@@ -46,9 +46,9 @@ function RegistrationForm({ params, exam, school, onSuccess }: { params: { exam_
           full_name: name,
           roll_number: rollNumber,
           date_of_birth: dob,
-          course: courseParam || 'General',
-          batch: batchParam || 'Main',
-          session: sessionParam || '2026-27',
+          course: courseParam || null,
+          batch: batchParam || null,
+          session: sessionParam || null,
           exam_id: params.exam_id,
         }),
       });

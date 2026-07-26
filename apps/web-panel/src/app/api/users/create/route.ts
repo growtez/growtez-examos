@@ -35,9 +35,9 @@ export async function POST(req: Request) {
         .select('id')
         .eq('school_id', school_id)
         .eq('roll_number', roll_number)
-        .eq('course', course || 'General')
-        .eq('batch', batch || 'Main')
-        .eq('session', session || '2024-25')
+        .eq('course', course || null)
+        .eq('batch', batch || null)
+        .eq('session', session || null)
         .single();
         
       if (existingStudent) {
@@ -60,9 +60,9 @@ export async function POST(req: Request) {
         school_id: school_id || null,
         roll_number: roll_number || null,
         date_of_birth: date_of_birth || null,
-        course: course || 'General',
-        batch: batch || 'Main',
-        session: session || '2024-25',
+        course: course || null,
+        batch: batch || null,
+        session: session || null,
         department: department || null,
       }
     });

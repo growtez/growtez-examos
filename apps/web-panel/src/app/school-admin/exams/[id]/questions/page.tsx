@@ -719,27 +719,21 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">Correct Numerical Answer</label>
                     </div>
-                    <FormulaToolbar
-                      compact
-                      onInsert={(latex) =>
-                        insertAtCursor(natRef, setNatAnswer, natAnswer, latex)
-                      }
-                    />
-                    <textarea
-                      ref={(el) => { (natRef as any).current = el; autoGrow(el); }}
-                      rows={1}
+                    <input
+                      type="number"
+                      step="any"
                       value={natAnswer}
-                      onChange={(e) => { setNatAnswer(e.target.value); autoGrow(e.target); }}
+                      onChange={(e) => setNatAnswer(e.target.value)}
+                      onKeyDown={(e) => {
+                        // Prevent entering 'e', 'E', '+', etc. if strictly just numbers, minus, and decimals
+                        if (['e', 'E', '+'].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
                       required
-                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium resize-none overflow-hidden whitespace-pre-wrap break-words"
-                      placeholder="e.g. 42.5 or \sqrt{2}"
+                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium"
+                      placeholder="e.g. 42.5 or -5"
                     />
-                    {natAnswer && (
-                      <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg mt-2">
-                        <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Preview</p>
-                        <MathRenderer text={natAnswer} className="text-sm text-text-main" />
-                      </div>
-                    )}
                   </div>
                 )}
 
