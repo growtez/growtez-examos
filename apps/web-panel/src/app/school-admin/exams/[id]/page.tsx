@@ -50,12 +50,14 @@ function CustomCombobox({
   options,
   placeholder,
   className,
+  required,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: string[];
   placeholder: string;
   className: string;
+  required?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [filteredOptions, setFilteredOptions] = useState(options);
@@ -91,6 +93,7 @@ function CustomCombobox({
         }}
         onFocus={() => setIsOpen(true)}
         placeholder={placeholder}
+        required={required}
         className={`${className} text-ellipsis overflow-hidden whitespace-nowrap`}
         style={{ paddingRight: "1.75rem" }}
       />
@@ -1233,9 +1236,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   </button>
                 </div>
 
-                <div className="space-y-3 mb-4">
+                <div className="space-y-4 mb-4">
                   <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1">
+                    <label className="block text-sm font-semibold text-text-main mb-1.5">
                       Full Name
                     </label>
                     <input
@@ -1243,12 +1246,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       value={newTeacherName}
                       onChange={(e) => setNewTeacherName(e.target.value)}
                       required
-                      className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
+                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                       placeholder="e.g. Dr. Sharma"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1">
+                    <label className="block text-sm font-semibold text-text-main mb-1.5">
                       Email
                     </label>
                     <input
@@ -1256,25 +1259,25 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       value={newTeacherEmail}
                       onChange={(e) => setNewTeacherEmail(e.target.value)}
                       required
-                      className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
+                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                       placeholder="sharma@school.com"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1">
+                    <label className="block text-sm font-semibold text-text-main mb-1.5">
                       Department
                     </label>
-                    <input
-                      type="text"
+                    <CustomCombobox
                       value={newTeacherDepartment}
-                      onChange={(e) => setNewTeacherDepartment(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
+                      onChange={setNewTeacherDepartment}
+                      options={Array.from(new Set(teachers.map((t: any) => t.department).filter(Boolean))) as string[]}
                       placeholder="e.g. Mathematics"
+                      required
+                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-text-muted mb-1">
+                    <label className="block text-sm font-semibold text-text-main mb-1.5">
                       Password
                     </label>
                     <input
@@ -1283,7 +1286,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       onChange={(e) => setNewTeacherPassword(e.target.value)}
                       required
                       minLength={6}
-                      className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
+                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                       placeholder="Min 6 characters"
                     />
                   </div>
@@ -2084,46 +2087,50 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         Back to List
                       </button>
                     </div>
-                    <div className="space-y-3 mb-3">
+                    <div className="space-y-4 mb-3">
                       <div>
+                        <label className="block text-sm font-semibold text-text-main mb-1.5">Full Name</label>
                         <input
                           type="text"
                           value={newTeacherName}
                           onChange={(e) => setNewTeacherName(e.target.value)}
                           required
-                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
-                          placeholder="Full Name (e.g. Dr. Sharma)"
+                          className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
+                          placeholder="e.g. Dr. Sharma"
                         />
                       </div>
                       <div>
+                        <label className="block text-sm font-semibold text-text-main mb-1.5">Email Address</label>
                         <input
                           type="email"
                           value={newTeacherEmail}
                           onChange={(e) => setNewTeacherEmail(e.target.value)}
                           required
-                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
-                          placeholder="Email Address"
+                          className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
+                          placeholder="sharma@school.com"
                         />
                       </div>
                       <div>
-                        <input
-                          type="text"
+                        <label className="block text-sm font-semibold text-text-main mb-1.5">Department</label>
+                        <CustomCombobox
                           value={newTeacherDepartment}
-                          onChange={(e) => setNewTeacherDepartment(e.target.value)}
+                          onChange={setNewTeacherDepartment}
+                          options={Array.from(new Set(teachers.map((t: any) => t.department).filter(Boolean))) as string[]}
+                          placeholder="e.g. Mathematics"
                           required
-                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
-                          placeholder="Department (e.g. Mathematics)"
+                          className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                         />
                       </div>
                       <div>
+                        <label className="block text-sm font-semibold text-text-main mb-1.5">Password</label>
                         <input
                           type="password"
                           value={newTeacherPassword}
                           onChange={(e) => setNewTeacherPassword(e.target.value)}
                           required
                           minLength={6}
-                          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary"
-                          placeholder="Password (Min 6 characters)"
+                          className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
+                          placeholder="Min 6 characters"
                         />
                       </div>
                     </div>

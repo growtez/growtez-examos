@@ -129,6 +129,10 @@ function LoginContent() {
           throw new Error(signUpError.message);
         }
 
+        if (signUpData?.user?.identities && signUpData.user.identities.length === 0) {
+          throw new Error('This email is already registered. Please sign in instead.');
+        }
+
         // Enter OTP Verification Mode
         setIsVerifyingOtp(true);
         setLoading(false);
