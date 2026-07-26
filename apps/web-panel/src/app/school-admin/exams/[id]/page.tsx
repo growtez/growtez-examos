@@ -1528,7 +1528,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           }}
         >
           <div
-            className="bg-surface shadow-2xl w-full h-[100dvh] md:h-auto md:max-h-[88vh] max-w-full md:max-w-lg border-l border-border md:border md:rounded-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300 ease-out md:zoom-in-95"
+            className="bg-surface shadow-2xl w-full h-[100dvh] md:min-h-[75vh] md:max-h-[90vh] max-w-full md:max-w-2xl border-l border-border md:border md:rounded-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300 ease-out md:zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-accent-primary px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between shrink-0">
@@ -1549,7 +1549,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </button>
             </div>
 
-            <div className="p-3 sm:p-4 flex-1 flex flex-col min-h-0 overflow-y-auto">
+            <div className="p-3 sm:p-4 flex-1 flex flex-col min-h-0">
               {/* Tabs */}
               <div className="flex bg-bg rounded-xl p-1 mb-3.5 border border-border shrink-0">
                 <button
@@ -1601,8 +1601,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               )}
 
               {addMode === "link" ? (
-                <div className="space-y-3.5 flex-1 overflow-y-auto custom-scrollbar flex flex-col">
-                  <div className="bg-surface border border-border rounded-xl p-3 sm:p-6">
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col space-y-3.5 pb-2">
+                    <div className="bg-surface border border-border rounded-xl p-3 sm:p-6">
                     <Globe
                       size={24}
                       className="mx-auto text-accent-primary mb-1.5"
@@ -1670,8 +1671,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                   </div>
+                  </div>
 
-                  <div className="flex gap-3 pt-3 mt-auto sticky bottom-0 bg-surface border-t border-border/80 z-10 shrink-0">
+                  <div className="flex gap-3 pt-3 mt-auto bg-surface border-t border-border/80 z-10 shrink-0">
                     <button
                       type="button"
                       onClick={() => {
@@ -1822,8 +1824,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 </form>
               ) : (
-                <form onSubmit={handleCsvImport} className="flex-1 flex flex-col justify-between min-h-0 overflow-y-auto custom-scrollbar">
-                  <div className="space-y-4 pb-3">
+                <form onSubmit={handleCsvImport} className="flex-1 flex flex-col min-h-0">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar space-y-4 pb-3 pr-1">
                     <div className="bg-bg border border-border rounded-xl p-3.5 sm:p-5 space-y-2.5">
                       <div className="flex items-center justify-between">
                         <p className="text-text-main text-xs sm:text-sm font-bold">
@@ -1933,7 +1935,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-3 pt-3 mt-auto sticky bottom-0 bg-surface border-t border-border/80 z-10 shrink-0">
+                  <div className="flex gap-3 pt-3 mt-auto bg-surface border-t border-border/80 z-10 shrink-0">
                     <button
                       type="button"
                       onClick={() => {

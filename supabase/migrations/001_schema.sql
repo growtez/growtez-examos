@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS public.students (
     active_device_id TEXT,
     last_active_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(exam_id, roll_number)
+    UNIQUE(exam_id, roll_number, date_of_birth, course, batch, session)
 );
 
 

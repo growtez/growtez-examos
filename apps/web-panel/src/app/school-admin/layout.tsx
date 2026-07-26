@@ -247,6 +247,9 @@ export default function SchoolAdminLayout({
           } else {
             notifsQuery = notifsQuery.is('target_school_id', null);
           }
+          if (user.created_at) {
+            notifsQuery = notifsQuery.gte('created_at', user.created_at);
+          }
           const { data: notifs } = await notifsQuery.order('created_at', { ascending: false });
           if (notifs) {
             // Filter out locally hidden notifications
