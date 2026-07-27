@@ -104,7 +104,7 @@ function LoginContent() {
       try {
         // We no longer create the school first. 
         // We sign up the user, which triggers the OTP and creates their school_admins record (with a null school_id).
-        const { error: signUpError } = await supabase.auth.signUp({
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
