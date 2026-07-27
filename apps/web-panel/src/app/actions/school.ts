@@ -11,32 +11,40 @@ export async function deleteSchool(id: string) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-  
-  // Fetch all users associated with this school using admin client to bypass RLS
-  const [{ data: admins }, { data: teachers }, { data: students }] = await Promise.all([
+
+  // Fetch school_admins and teachers — these are the only roles that have
+  // Supabase auth.users entries and need to be explicitly deleted from auth.
+  // NOTE: Students are NOT Supabase auth users (they use custom JWTs) and the
+  // students table has no school_id column — their rows are cascade-deleted
+  // automatically via: schools → exams (school_id) → students (exam_id).
+  const [{ data: admins }, { data: teachers }] = await Promise.all([
     supabaseAdmin.from('school_admins').select('id').eq('school_id', id),
     supabaseAdmin.from('teachers').select('id').eq('school_id', id),
-    supabaseAdmin.from('students').select('id').eq('school_id', id)
   ]);
 
   const userIds = [
     ...(admins?.map(a => a.id) || []),
     ...(teachers?.map(t => t.id) || []),
-    ...(students?.map(s => s.id) || [])
   ];
 
-  // Delete all associated users from auth.users
-  for (const userId of userIds) {
-    await supabaseAdmin.auth.admin.deleteUser(userId);
-  }
-  
-  // Now delete the school (which will cascade delete public records like exams, etc)
+  // Delete all associated auth users. This also cascade-deletes their
+  // school_admins / teachers DB rows via the auth.users(id) ON DELETE CASCADE FK.
+  const deleteResults = await Promise.all(
+    userIds.map(userId => supabaseAdmin.auth.admin.deleteUser(userId))
+  );
+
+  // Log any auth deletion errors but don't abort — proceed to delete the school
+  deleteResults.forEach(({ error }, i) => {
+    if (error) console.error(`Failed to delete auth user ${userIds[i]}:`, error.message);
+  });
+
+  // Delete the school — cascades to exams, questions, results, students, etc.
   const { error } = await supabase.from('schools').delete().eq('id', id);
-  
+
   if (error) {
     return { success: false, error: error.message };
   }
-  
+
   revalidatePath('/super-admin/schools');
   return { success: true };
 }

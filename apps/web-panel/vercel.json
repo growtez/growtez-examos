@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/clean-unconfirmed-users",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/clean-trash",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}
