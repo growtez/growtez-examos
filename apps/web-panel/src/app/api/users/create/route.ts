@@ -9,12 +9,11 @@ export async function POST(req: Request) {
     const { password, full_name, role, school_id, roll_number, date_of_birth, course, batch, session, department } = body;
 
     if (!email || !password || !full_name || !role) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required fields: email, password, full_name, role' }, { status: 400 });
     }
 
-    if (role === 'teacher' && !department) {
-      return NextResponse.json({ error: 'Department is required for teachers' }, { status: 400 });
-    }
+    // Trim email to prevent whitespace issues
+    email = email.trim().toLowerCase();
 
     // 1. Initialize admin client to create user securely and bypass email confirmation
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -68,6 +67,11 @@ export async function POST(req: Request) {
     });
 
     if (authError) {
+      // Give a friendly message for duplicate email
+      const msg = authError.message.toLowerCase();
+      if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('email address is already')) {
+        return NextResponse.json({ error: `An account with the email "${email}" already exists.` }, { status: 400 });
+      }
       return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
