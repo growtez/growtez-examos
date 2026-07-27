@@ -680,11 +680,11 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                             className={`w-4 h-4 text-[#008080] border-[#E4E7EC] focus:ring-[#008080] cursor-pointer mt-1 ${isMsq ? 'rounded' : ''}`}
                           />
                           <span className="flex items-start gap-3 font-serif text-[14px] w-full">
-                            <span className="font-bold mt-0.5">({opt})</span>
-                            <span className="flex flex-col gap-2">
+                            <span className="font-bold shrink-0 mt-0.5">({opt})</span>
+                            <span className="flex flex-col gap-2 flex-1 min-w-0">
                               {currentQuestion.options[opt] && (
-                                <span>
-                                  <MathRenderer text={currentQuestion.options[opt]} />
+                                <span className="inline-block align-middle">
+                                  <MathRenderer text={currentQuestion.options[opt]} inline />
                                 </span>
                               )}
                               {currentQuestion.options[`${opt}_image`] && (
