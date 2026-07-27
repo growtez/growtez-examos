@@ -121,8 +121,10 @@ function LoginContent() {
           throw new Error(signUpError.message);
         }
 
-        if (signUpData?.user?.identities && signUpData.user.identities.length === 0) {
-          throw new Error('This email is already registered. Please sign in instead.');
+        // Supabase silently "succeeds" for existing emails — returns empty identities array.
+        // This prevents email enumeration but we still need to catch it for UX.
+        if (!signUpData?.user || (signUpData.user.identities && signUpData.user.identities.length === 0)) {
+          throw new Error('An account with this email already exists. Please sign in instead.');
         }
 
         // Enter OTP Verification Mode
