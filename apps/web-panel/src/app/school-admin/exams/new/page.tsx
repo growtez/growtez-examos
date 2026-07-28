@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, FileText, LayoutTemplate, ChevronDown, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, LayoutTemplate, ChevronDown, Eye, EyeOff, Trash2, Save } from 'lucide-react';
 
 export default function NewExamPage() {
   const router = useRouter();
@@ -14,6 +14,9 @@ export default function NewExamPage() {
   const [teachers, setTeachers] = useState<any[]>([]);
   const [schoolId, setSchoolId] = useState<string | null>(null);
   const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null);
 
   // Add Teacher Modal State
   const [showTeacherModal, setShowTeacherModal] = useState(false);
@@ -73,7 +76,7 @@ export default function NewExamPage() {
 
       const [teachersRes, templatesRes] = await Promise.all([
         supabase.from('teachers').select('*').eq('school_id', profile.school_id).order('department', { ascending: true }).order('full_name', { ascending: true }),
-        supabase.from('exam_templates').select('*, exam_template_subjects(*)').order('created_at', { ascending: false })
+        supabase.from('exam_templates').select('*, exam_template_subjects(*)').or(`school_id.is.null,school_id.eq.${profile.school_id}`).order('created_at', { ascending: false })
       ]);
 
       setTeachers(teachersRes.data || []);
@@ -91,6 +94,7 @@ export default function NewExamPage() {
   }, []);
 
   const handleTemplateSelect = (template: any) => {
+    setSelectedTemplateId(template.id);
     setTitle(template.title || '');
     setDescription(template.description || '');
     setDurationMinutes(template.duration_minutes || 180);
@@ -173,6 +177,59 @@ export default function NewExamPage() {
     setSubjects(updated);
   };
 
+  const handleSaveCustomTemplate = async () => {
+    if (!title.trim() || !schoolId) {
+      alert('Title is required to save a template.');
+      return;
+    }
+    setSavingTemplate(true);
+    try {
+      const { data: template, error } = await supabase.from('exam_templates').insert({
+        title: title.trim(),
+        description: description?.trim() || null,
+        duration_minutes: durationMinutes,
+        marking_scheme: { mcq_correct: mcqCorrect, mcq_wrong: mcqWrong, nat_correct: natCorrect, nat_wrong: natWrong },
+        school_id: schoolId
+      }).select().single();
+      if (error) throw error;
+      
+      if (subjects.length > 0) {
+        const templateSubjects = subjects.map((s, i) => ({
+          template_id: template.id,
+          subject_name: s.name,
+          question_count: s.questionCount,
+          sort_order: i
+        }));
+        await supabase.from('exam_template_subjects').insert(templateSubjects);
+      }
+      
+      const { data: updatedTemplates } = await supabase.from('exam_templates').select('*, exam_template_subjects(*)').or(`school_id.is.null,school_id.eq.${schoolId}`).order('created_at', { ascending: false });
+      setTemplates(updatedTemplates || []);
+      setSelectedTemplateId(template.id);
+      alert('Custom template saved successfully!');
+    } catch (err: any) {
+      alert('Failed to save template: ' + err.message);
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (!confirm('Are you sure you want to delete this custom template?')) return;
+    setDeletingTemplate(templateId);
+    try {
+      const { error } = await supabase.from('exam_templates').delete().eq('id', templateId);
+      if (error) throw error;
+      const { data: updatedTemplates } = await supabase.from('exam_templates').select('*, exam_template_subjects(*)').or(`school_id.is.null,school_id.eq.${schoolId}`).order('created_at', { ascending: false });
+      setTemplates(updatedTemplates || []);
+      if (selectedTemplateId === templateId) setSelectedTemplateId('');
+    } catch (err: any) {
+      alert('Failed to delete template: ' + err.message);
+    } finally {
+      setDeletingTemplate(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -241,20 +298,31 @@ export default function NewExamPage() {
           <h2 className="text-xl font-bold text-text-main">Create New Exam</h2>
         </div>
         {templates.length > 0 && (
-          <div>
+          <div className="flex items-center gap-2">
             <select
+              value={selectedTemplateId}
               onChange={(e) => {
                 const selected = templates.find(t => t.id === e.target.value);
                 if (selected) handleTemplateSelect(selected);
               }}
-              defaultValue=""
               className="w-full sm:w-auto px-3 py-2 bg-surface border border-border rounded-lg text-xs font-bold text-accent-primary focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all cursor-pointer hover:bg-bg"
             >
               <option value="" disabled>Load Template</option>
               {templates.map(t => (
-                <option key={t.id} value={t.id}>{t.title}</option>
+                <option key={t.id} value={t.id}>{t.title} {t.school_id ? '(Custom)' : ''}</option>
               ))}
             </select>
+            {selectedTemplateId && templates.find(t => t.id === selectedTemplateId)?.school_id === schoolId && (
+              <button
+                type="button"
+                onClick={() => handleDeleteTemplate(selectedTemplateId)}
+                disabled={deletingTemplate === selectedTemplateId}
+                className="p-1.5 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors border border-transparent hover:border-red-100 disabled:opacity-50"
+                title="Delete Custom Template"
+              >
+                {deletingTemplate === selectedTemplateId ? <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div> : <Trash2 size={16} />}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -442,10 +510,18 @@ export default function NewExamPage() {
 
         {error && <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-xs font-bold">{error}</div>}
 
-        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
-          <Link href="/exams" className="w-full sm:w-auto text-center px-5 py-2.5 bg-surface border border-border text-text-muted font-bold rounded-lg hover:bg-bg transition-colors text-xs">
+        <div className="pt-2 flex flex-col sm:flex-row justify-end items-center gap-3">
+          <Link href="/school-admin/exams" className="w-full sm:w-auto text-center px-5 py-2.5 bg-surface border border-border text-text-muted font-bold rounded-lg hover:bg-bg transition-colors text-xs">
             Cancel
           </Link>
+          <button
+            type="button"
+            onClick={handleSaveCustomTemplate}
+            disabled={savingTemplate || !title.trim()}
+            className="w-full sm:w-auto px-4 py-2.5 bg-surface text-text-main border border-border font-bold rounded-lg hover:bg-surface-hover transition-all disabled:opacity-50 shadow-sm text-xs flex items-center justify-center gap-2">
+            <Save size={14} />
+            {savingTemplate ? 'Saving...' : 'Save as Custom Template'}
+          </button>
           <button type="submit" disabled={loading}
             className="w-full sm:w-auto px-6 py-2.5 bg-accent-primary text-white font-bold rounded-lg hover:bg-accent-primary/80 transition-all disabled:opacity-50 shadow-md shadow-accent-primary/20 text-xs">
             {loading ? 'Creating...' : 'Create Exam'}

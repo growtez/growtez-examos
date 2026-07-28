@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, Download, X, Clock, Play, AlertCircle, FileText, BarChart, Users, CheckCircle2, Copy, BookOpen, User, Trash2, Pencil, Check } from 'lucide-react';
+import QuickCreateDrawer from '@/components/QuickCreateDrawer';
 
 const statusColors: Record<string, string> = {
   draft: 'bg-surface-hover text-text-muted border-border',
@@ -35,6 +36,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   const [selectedExams, setSelectedExams] = useState<string[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [confirmBulkDialog, setConfirmBulkDialog] = useState(false);
+  const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
@@ -883,6 +885,15 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
                   )}
                 </div>
                 <button
+                  type="button"
+                  onClick={() => setIsQuickCreateOpen(true)}
+                  className="flex items-center gap-2 h-10 px-4 rounded-xl bg-accent-primary text-white font-bold hover:bg-accent-primary/90 transition-all text-sm shrink-0"
+                >
+                  <Plus size={16} />
+                  <span className="hidden sm:inline">Create Custom Template</span>
+                  <span className="sm:hidden">Create</span>
+                </button>
+                <button
                   onClick={() => { setIsTemplatesOpen(false); setExpandedTemplateId(null); setTemplateSearchQuery(''); }}
                   className="w-10 h-10 items-center justify-center rounded-xl border border-border text-text-muted hover:bg-surface-hover hover:text-text-main transition-all cursor-pointer hidden sm:flex shrink-0"
                 >
@@ -1063,6 +1074,16 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
           </div>
         </div>
       )}
+
+      <QuickCreateDrawer
+        isOpen={isQuickCreateOpen}
+        onClose={() => setIsQuickCreateOpen(false)}
+        activeForm="template"
+        setActiveForm={() => {}}
+        onRefresh={fetchExams}
+        examPrefill={{ schoolId: schoolIdProp }}
+        hideTabs={true}
+      />
     </div>
   );
 }

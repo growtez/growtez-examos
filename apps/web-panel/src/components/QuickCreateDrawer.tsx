@@ -12,9 +12,10 @@ interface QuickCreateDrawerProps {
   setActiveForm: (form: 'school' | 'user' | 'exam' | 'template') => void;
   onRefresh?: () => void;
   examPrefill?: ExamPrefill;
+  hideTabs?: boolean;
 }
 
-export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActiveForm, onRefresh, examPrefill }: QuickCreateDrawerProps) {
+export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActiveForm, onRefresh, examPrefill, hideTabs = false }: QuickCreateDrawerProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -301,6 +302,7 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
             nat_correct: examFormData.natCorrect,
             nat_wrong: examFormData.natWrong,
           },
+          school_id: examPrefill?.schoolId || examFormData.schoolId || null,
         })
         .select()
         .single();
@@ -367,7 +369,7 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
               {activeForm === 'user' && 'Add New User'}
               {activeForm === 'school' && 'Onboard School'}
               {activeForm === 'exam' && 'Create Exam'}
-              {activeForm === 'template' && 'Create Exam'}
+              {activeForm === 'template' && 'Create Exam Template'}
             </h3>
           </div>
           <button className="w-8 h-8 rounded-full bg-surface-hover flex items-center justify-center text-text-muted transition-all hover:bg-border hover:text-text-main hover:rotate-90 border-none cursor-pointer" onClick={onClose}>
@@ -375,27 +377,29 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col">
-          <div className="flex bg-surface-hover p-1 rounded-lg mb-8 border border-slate-300 dark:border-zinc-700 gap-1">
-            <button
-              className={`flex-1 p-2 rounded text-sm font-semibold transition-all border-none cursor-pointer ${activeForm === 'school' ? 'bg-accent-primary text-white shadow-sm' : 'bg-transparent text-text-muted hover:bg-surface hover:text-text-main'}`}
-              onClick={() => setActiveForm('school')}
-            >
-              School
-            </button>
-            <button
-              className={`flex-1 p-2 rounded text-sm font-semibold transition-all border-none cursor-pointer ${activeForm === 'user' ? 'bg-accent-primary text-white shadow-sm' : 'bg-transparent text-text-muted hover:bg-surface hover:text-text-main'}`}
-              onClick={() => setActiveForm('user')}
-            >
-              User
-            </button>
-            <button
-              className={`flex-1 p-2 rounded text-sm font-semibold transition-all border-none cursor-pointer ${activeForm === 'exam' ? 'bg-accent-primary text-white shadow-sm' : 'bg-transparent text-text-muted hover:bg-surface hover:text-text-main'}`}
-              onClick={() => setActiveForm('exam')}
-            >
-              Exam
-            </button>
-          </div>
+        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-6 pb-24 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border">
+          {!hideTabs && (
+            <div className="flex bg-surface-hover p-1 rounded-lg mb-8 border border-slate-300 dark:border-zinc-700 gap-1">
+              <button
+                className={`flex-1 p-2 rounded text-sm font-semibold transition-all border-none cursor-pointer ${activeForm === 'school' ? 'bg-accent-primary text-white shadow-sm' : 'bg-transparent text-text-muted hover:bg-surface hover:text-text-main'}`}
+                onClick={() => setActiveForm('school')}
+              >
+                School
+              </button>
+              <button
+                className={`flex-1 p-2 rounded text-sm font-semibold transition-all border-none cursor-pointer ${activeForm === 'user' ? 'bg-accent-primary text-white shadow-sm' : 'bg-transparent text-text-muted hover:bg-surface hover:text-text-main'}`}
+                onClick={() => setActiveForm('user')}
+              >
+                User
+              </button>
+              <button
+                className={`flex-1 p-2 rounded text-sm font-semibold transition-all border-none cursor-pointer ${activeForm === 'exam' ? 'bg-accent-primary text-white shadow-sm' : 'bg-transparent text-text-muted hover:bg-surface hover:text-text-main'}`}
+                onClick={() => setActiveForm('exam')}
+              >
+                Exam
+              </button>
+            </div>
+          )}
 
           <form onSubmit={handleFormSubmit} className="flex-1 flex flex-col gap-5 pb-24">
             {activeForm === 'user' && (
@@ -695,9 +699,11 @@ export default function QuickCreateDrawer({ isOpen, onClose, activeForm, setActi
                   {activeForm === 'user' && <UserPlus size={18} />}
                   {activeForm === 'school' && <School size={18} />}
                   {activeForm === 'exam' && <FileText size={18} />}
+                  {activeForm === 'template' && <FileText size={18} />}
                   {activeForm === 'user' && 'Add User Account'}
                   {activeForm === 'school' && 'Onboard School'}
                   {activeForm === 'exam' && 'Create Exam'}
+                  {activeForm === 'template' && 'Create Custom Template'}
                 </>
               )}
             </button>
