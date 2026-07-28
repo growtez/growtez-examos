@@ -63,7 +63,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid login credentials or not assigned to any active exam.' }, { status: 401, headers: corsHeaders });
     }
 
-    // 3. Generate Custom JWT for Supabase RLS
+    // 3. Guard: check if this student already submitted this exam.
+    // If a result row exists, the exam is done — re-login must be blocked
+    // to prevent answer overrides. Late-comers who haven't submitted yet
+    // will have no result row and can still log in normally.
+    const { data: existingResult } = await adminSupabase
+      .from('results')
+      .select('id')
+      .eq('student_id', student.id)
+      .eq('exam_id', student.exam_id)
+      .maybeSingle();
+
+    if (existingResult) {
+      return NextResponse.json(
+        { error: 'You have already submitted this exam. Re-entry is not allowed.' },
+        { status: 403, headers: corsHeaders }
+      );
+    }
+
     const payload = {
       role: 'authenticated', // Gives them authenticated access in Postgres
       iss: 'supabase',

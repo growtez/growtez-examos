@@ -286,7 +286,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         } else if (q.question_type === 'msq') {
           const selectedOpts = String(studentAns).split(',').filter(Boolean).sort();
           const correctOpts = String(q.correct_option).split(',').filter(Boolean).sort();
-          
+
           let hasWrong = false;
           let correctCount = 0;
           selectedOpts.forEach(opt => {
@@ -295,25 +295,30 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           });
 
           const msqCorrect = exam?.marking_scheme?.msq_correct ?? 4;
-          const msqPartial = exam?.marking_scheme?.msq_partial ?? 1;
+          const msqPartialPerQ = exam?.marking_scheme?.msq_partial ?? 1;
           const msqWrong = exam?.marking_scheme?.msq_wrong ?? 0;
-          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? true;
+          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? false;
 
           if (hasWrong) {
+            // Any wrong selection → wrong (always, regardless of partial setting)
             section.wrong++;
             section.marks += msqWrong;
             finalScore += msqWrong;
           } else if (correctCount === correctOpts.length) {
+            // All correct, none wrong → full marks
             section.correct++;
             section.marks += msqCorrect;
             finalScore += msqCorrect;
           } else {
+            // Partial: some correct, none wrong
             if (msqPartialEnabled) {
-              section.correct++; // Consider partially correct as correct for count, or maybe a separate bucket. We'll count as correct for now, or just leave it.
-              const partialScore = msqPartial * correctCount;
+              // Award msq_partial per correctly selected option
+              const partialScore = Math.round(msqPartialPerQ * correctCount * 100) / 100;
+              section.partial = (section.partial || 0) + 1;
               section.marks += partialScore;
               finalScore += partialScore;
             } else {
+              // Partial marking disabled → treat as wrong
               section.wrong++;
               section.marks += msqWrong;
               finalScore += msqWrong;
@@ -395,7 +400,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         } else if (q.question_type === 'msq') {
           const selectedOpts = String(studentAns).split(',').filter(Boolean).sort();
           const correctOpts = String(q.correct_option).split(',').filter(Boolean).sort();
-          
+
           let hasWrong = false;
           let correctCount = 0;
           selectedOpts.forEach(opt => {
@@ -404,22 +409,33 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           });
 
           const msqCorrect = exam?.marking_scheme?.msq_correct ?? 4;
-          const msqPartial = exam?.marking_scheme?.msq_partial ?? 1;
-          const msqWrong = exam?.marking_scheme?.msq_wrong ?? -2;
+          const msqPartialPerQ = exam?.marking_scheme?.msq_partial ?? 1;
+          const msqWrong = exam?.marking_scheme?.msq_wrong ?? 0;
+          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? false;
 
           if (hasWrong) {
+            // Any wrong selection → wrong (always)
             section.wrong++;
             section.marks += msqWrong;
             finalScore += msqWrong;
           } else if (correctCount === correctOpts.length) {
+            // All correct → full marks
             section.correct++;
             section.marks += msqCorrect;
             finalScore += msqCorrect;
           } else {
-            section.correct++;
-            const partialScore = msqPartial * correctCount;
-            section.marks += partialScore;
-            finalScore += partialScore;
+            // Partial: some correct, none wrong
+            if (msqPartialEnabled) {
+              const partialScore = Math.round(msqPartialPerQ * correctCount * 100) / 100;
+              section.partial = (section.partial || 0) + 1;
+              section.marks += partialScore;
+              finalScore += partialScore;
+            } else {
+              // Partial marking disabled → treat as wrong
+              section.wrong++;
+              section.marks += msqWrong;
+              finalScore += msqWrong;
+            }
           }
         } else if (studentAns === q.correct_option) {
           section.correct++;
