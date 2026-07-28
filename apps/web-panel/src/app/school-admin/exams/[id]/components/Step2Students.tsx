@@ -116,7 +116,7 @@ export default function Step2Students({
       <div className={isReadOnly ? 'opacity-90' : ''}>
         {isReadOnly && (
           <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-600">
-            This exam is published — student assignments are read-only.
+            This exam is completed — student assignments are read-only.
           </div>
         )}
 

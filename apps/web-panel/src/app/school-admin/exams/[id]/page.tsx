@@ -1012,7 +1012,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               handleRemoveStudent={handleRemoveStudent}
               supabase={supabase}
               paramsId={params.id}
-              isReadOnly={isReadOnly}
+              isReadOnly={isExamOver}
               onAddStudentsClick={() => { setShowAddStudentModal(true); setAddMode('link'); setAddError(''); setAddSuccess(''); }}
             />
           )}
