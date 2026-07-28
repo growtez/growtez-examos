@@ -312,13 +312,13 @@ function LoginContent() {
               )}
               
               {success && (
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/5 border border-green-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-emerald-950/40 dark:bg-emerald-950/60 border border-emerald-700/50 shadow-[0_0_15px_rgba(4,120,87,0.25)]">
                   <div className="mt-0.5">
-                    <svg className="w-5 h-5 text-green-500 drop-shadow-[0_0_5px_rgba(34,197,94,0.4)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400 drop-shadow-[0_0_5px_rgba(5,150,105,0.4)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                   </div>
                   <div>
-                    <h4 className="text-green-400 font-bold text-[13px] tracking-wide">Action Successful</h4>
-                    <p className="text-green-500/90 text-xs mt-0.5 font-medium leading-relaxed">{success}</p>
+                    <h4 className="text-emerald-800 dark:text-emerald-300 font-bold text-[13px] tracking-wide">Action Successful</h4>
+                    <p className="text-emerald-700 dark:text-emerald-400 text-xs mt-0.5 font-medium leading-relaxed">{success}</p>
                   </div>
                 </div>
               )}
