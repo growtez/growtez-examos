@@ -67,6 +67,29 @@ function ForgotPasswordContent() {
       }
     );
 
+    try {
+      const checkRes = await fetch('/api/auth/check-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      
+      const checkData = await checkRes.json();
+      if (checkRes.ok && !checkData.exists) {
+        setError('No account found with this email address.');
+        setLoading(false);
+        return;
+      } else if (!checkRes.ok) {
+        setError(checkData.error || 'Failed to verify account.');
+        setLoading(false);
+        return;
+      }
+    } catch (err) {
+      setError('An error occurred while verifying the account.');
+      setLoading(false);
+      return;
+    }
+
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
