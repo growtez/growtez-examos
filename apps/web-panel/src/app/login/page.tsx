@@ -92,6 +92,7 @@ function LoginContent() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submitted. isRegistering:', isRegistering);
     setError('');
     setSuccess('');
     setLoading(true);
@@ -101,18 +102,8 @@ function LoginContent() {
     if (isRegistering) {
       // REGISTRATION FLOW
       try {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, schoolName, fullName })
-        });
-        
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || 'Failed to register account');
-        }
-
-        // Successfully created school, now trigger Supabase Auth signup to send OTP
+        // We no longer create the school first. 
+        // We sign up the user, which triggers the OTP and creates their school_admins record (with a null school_id).
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -120,7 +111,8 @@ function LoginContent() {
             data: {
               role: 'school_admin',
               full_name: fullName,
-              school_id: data.school_id,
+              // We pass the school_name so we can read it later to create the school post-verification
+              school_name: schoolName,
             }
           }
         });
@@ -129,11 +121,18 @@ function LoginContent() {
           throw new Error(signUpError.message);
         }
 
+        // Supabase silently "succeeds" for existing emails — returns empty identities array.
+        // This prevents email enumeration but we still need to catch it for UX.
+        if (!signUpData?.user || (signUpData.user.identities && signUpData.user.identities.length === 0)) {
+          throw new Error('An account with this email already exists. Please sign in instead.');
+        }
+
         // Enter OTP Verification Mode
         setIsVerifyingOtp(true);
         setLoading(false);
         return;
       } catch (err: any) {
+        console.error('Sign up error details:', err);
         setError(getFriendlyError(err.message));
         setLoading(false);
         return;
@@ -164,6 +163,14 @@ function LoginContent() {
         return;
       }
 
+      // If email is not confirmed, sign out and show OTP screen
+      if (!user.email_confirmed_at) {
+        await supabase.auth.signOut();
+        setIsVerifyingOtp(true);
+        setLoading(false);
+        return;
+      }
+
       const role = user.user_metadata?.role || (user.email === 'growtezexamos@gmail.com' ? 'super_admin' : 'student');
 
       // Redirect based on role
@@ -178,6 +185,17 @@ function LoginContent() {
       if (role === 'super_admin') {
         window.location.href = `${protocol}//admin.${baseDomain}/`;
       } else if (role === 'school_admin' || role === 'teacher') {
+        // As requested: Only check auth.users table. We skip profile/school checks on login.
+        
+        // If this is a school admin with pending registration, attempt to complete it before redirecting
+        if (role === 'school_admin' && user.user_metadata?.school_name) {
+          try {
+            await fetch('/api/auth/complete-registration', { method: 'POST' });
+          } catch (err) {
+            console.error('Failed to complete pending registration on login:', err);
+          }
+        }
+
         window.location.href = `${protocol}//school.${baseDomain}/`;
       } else {
         // Sign the user out first (they don't belong here), then show error
@@ -207,9 +225,52 @@ function LoginContent() {
       return;
     }
 
+    // Get user to determine role and redirect correctly
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setError('Verification succeeded but failed to load your account. Please log in.');
+      setLoading(false);
+      return;
+    }
+
+    const role = user.user_metadata?.role || 'student';
+
+    // If this is a school admin completing registration, we need to create their school now
+    if (role === 'school_admin' && user.user_metadata?.school_name) {
+      try {
+        const completeRes = await fetch('/api/auth/complete-registration', {
+          method: 'POST',
+        });
+        
+        if (!completeRes.ok) {
+          const completeData = await completeRes.json();
+          setError(`Warning: Email verified but failed to link school: ${completeData.error}`);
+          setLoading(false);
+          return;
+        }
+      } catch (err: any) {
+        setError(`Warning: Email verified but setup failed: ${err.message}`);
+        setLoading(false);
+        return;
+      }
+    }
+
     setSuccess('Email verified successfully! Redirecting...');
+
+    const protocol = window.location.protocol;
+    const host = window.location.host;
+    let baseDomain = host;
+    if (host.startsWith('admin.')) baseDomain = host.replace('admin.', '');
+    else if (host.startsWith('school.')) baseDomain = host.replace('school.', '');
+
     setTimeout(() => {
-      window.location.href = '/';
+      if (role === 'super_admin') {
+        window.location.href = `${protocol}//admin.${baseDomain}/`;
+      } else if (role === 'school_admin' || role === 'teacher') {
+        window.location.href = `${protocol}//school.${baseDomain}/`;
+      } else {
+        window.location.href = '/';
+      }
     }, 1500);
   };
 
@@ -463,6 +524,7 @@ function LoginContent() {
             <button
               type="button"
               onClick={() => {
+                console.log('Toggle button clicked');
                 if (isVerifyingOtp) {
                   setIsVerifyingOtp(false);
                 } else {

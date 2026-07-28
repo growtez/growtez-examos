@@ -48,20 +48,6 @@ export default function Step4Schedule({
   const isEndTimePast = mounted && endTime ? new Date(endTime).getTime() <= Date.now() : false;
   const isSchedulePast = mounted && (isStartTimePast || isEndTimePast);
 
-  const handleSetToPresentTimestamp = () => {
-    const nowString = getPresentTimestamp();
-    setStartTime(nowString);
-    if (durationMinutes > 0) {
-      const end = new Date(new Date(nowString).getTime() + durationMinutes * 60000);
-      const pad = (n: number) => (n < 10 ? '0' + n : n);
-      const endString = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
-      setEndTime(endString);
-      void autoSaveSchedule(nowString, endString);
-    } else {
-      void autoSaveSchedule(nowString, endTime);
-    }
-  };
-
   // Calculate actual gap between start and end times when both are set
   const actualGapMinutes = (startTime && endTime)
     ? Math.round((new Date(endTime).getTime() - new Date(startTime).getTime()) / 60000)
@@ -86,13 +72,6 @@ export default function Step4Schedule({
               The schedule time is in the past relative to the present timestamp. Please provide a correct schedule time.
             </span>
           </div>
-          <button
-            type="button"
-            onClick={handleSetToPresentTimestamp}
-            className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-amber-700 active:scale-95 shadow-sm"
-          >
-            Set to Present Timestamp
-          </button>
         </div>
       )}
       <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { ChevronLeft, ChevronRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, Plus, Users, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Filter, ArrowUpDown, ArrowUp, ArrowDown, Download, X, Plus, Users, Check, Edit2, Loader2, Mail, Calendar, Eye, FileText, ChevronDown, Trash2 } from 'lucide-react';
+import { deleteTeacher } from '@/app/actions/teacher';
 
 function CustomCombobox({ value, onChange, options, placeholder, className }: { value: string, onChange: (v: string) => void, options: string[], placeholder: string, className: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -194,13 +195,9 @@ export function TeachersListContent({ schoolIdProp }: { schoolIdProp?: string })
   const handleDeleteTeacher = async () => {
     if (!deleteTeacherId) return;
     try {
-      const res = await fetch('/api/students/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: deleteTeacherId })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to delete teacher');
+      const res = await deleteTeacher(deleteTeacherId);
+      
+      if (!res.success) throw new Error(res.error || 'Failed to delete teacher');
       
       setDeleteTeacherId(null);
       fetchTeachers();

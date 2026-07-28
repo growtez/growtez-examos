@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { getExamForResult, fetchStudentResult } from '@/app/actions/exam';
 import { Loader2, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function StudentResultPage({ params }: { params: { exam_id: string } }) {
@@ -23,16 +24,13 @@ export default function StudentResultPage({ params }: { params: { exam_id: strin
   useEffect(() => {
     const fetchExam = async () => {
       try {
-        const { data, error: examError } = await supabase
-          .from('exams')
-          .select('*, schools(name)')
-          .eq('id', params.exam_id)
-          .single();
+        const res = await getExamForResult(params.exam_id);
 
-        if (examError || !data) throw new Error('Exam not found');
-        if (data.status !== 'completed') throw new Error('Results for this exam are not yet published');
+        if (!res.success) {
+          throw new Error(res.error || 'Exam not found');
+        }
         
-        setExam(data);
+        setExam(res.exam);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -40,7 +38,7 @@ export default function StudentResultPage({ params }: { params: { exam_id: strin
       }
     };
     fetchExam();
-  }, [params.exam_id, supabase]);
+  }, [params.exam_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,32 +52,13 @@ export default function StudentResultPage({ params }: { params: { exam_id: strin
     setResult(null);
 
     try {
-      // 1. Find the student
-      const { data: student, error: studentError } = await supabase
-        .from('students')
-        .select('id, full_name')
-        .eq('roll_number', rollNumber.trim())
-        .eq('date_of_birth', dob)
-        .eq('school_id', exam.school_id)
-        .single();
-
-      if (studentError || !student) {
-        throw new Error('Invalid Roll Number or Date of Birth');
+      const res = await fetchStudentResult(params.exam_id, exam.school_id, rollNumber, dob);
+      
+      if (!res.success) {
+        throw new Error(res.error || 'Invalid details or no result found');
       }
 
-      // 2. Find the result
-      const { data: res, error: resultError } = await supabase
-        .from('results')
-        .select('*')
-        .eq('exam_id', params.exam_id)
-        .eq('student_id', student.id)
-        .single();
-
-      if (resultError || !res) {
-        throw new Error('No result found for this student in this exam');
-      }
-
-      setResult({ ...res, studentName: student.full_name });
+      setResult(res.result);
     } catch (err: any) {
       setSubmitError(err.message);
     } finally {

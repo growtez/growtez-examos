@@ -43,11 +43,15 @@ export async function middleware(req: NextRequest) {
     }
   );
 
-  // Refresh session
-  const { data: { session } } = await supabase.auth.getSession();
+  // Validate the session server-side. getUser() contacts the Supabase auth server
+  // so deleted users are rejected immediately rather than after JWT expiry (~1hr).
+  const { data: { user } } = await supabase.auth.getUser();
 
-  // Extract role
-  const role = session?.user?.user_metadata?.role || (session?.user?.email === 'growtezexamos@gmail.com' ? 'super_admin' : 'student');
+  // Extract role from validated user
+  const role = user?.user_metadata?.role || (user?.email === 'growtezexamos@gmail.com' ? 'super_admin' : 'student');
+
+  // Helper: is the user authenticated and authorised?
+  const isAuthenticated = !!user;
 
   // Bypass subdomain rewrite for internal Next.js assets, API routes, and static files
   if (
@@ -67,7 +71,7 @@ export async function middleware(req: NextRequest) {
     }
 
     // Protect super-admin routes (ensure user has super_admin role)
-    if (!session || role !== 'super_admin') {
+    if (!isAuthenticated || role !== 'super_admin') {
       return NextResponse.redirect(new URL('/login', req.url));
     }
 
@@ -87,7 +91,7 @@ export async function middleware(req: NextRequest) {
     }
 
     // Protect school-admin routes (ensure user has school_admin or teacher role)
-    if (!session || (role !== 'school_admin' && role !== 'teacher')) {
+    if (!isAuthenticated || (role !== 'school_admin' && role !== 'teacher')) {
       return NextResponse.redirect(new URL('/login', req.url));
     }
 

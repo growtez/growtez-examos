@@ -439,8 +439,8 @@ export default function Step3Questions({
                                   <span className="mr-2 shrink-0">{opt}.</span>
                                   <div className="flex flex-col gap-1.5 min-w-0 flex-1">
                                     {q.options[opt] && (
-                                      <span className="break-words [overflow-wrap:anywhere]">
-                                        <MathRenderer text={q.options[opt]} />
+                                      <span className="break-words [overflow-wrap:anywhere] inline-block align-middle">
+                                        <MathRenderer text={q.options[opt]} inline />
                                       </span>
                                     )}
                                     {q.options[`${opt}_image`] && (

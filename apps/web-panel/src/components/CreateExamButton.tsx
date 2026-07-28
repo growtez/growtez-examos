@@ -30,6 +30,7 @@ export default function CreateExamButton() {
 
       if (!schoolId) throw new Error('School not found');
 
+
       const { data: exam, error } = await supabase.from('exams').insert({
         school_id: schoolId,
         title: 'Untitled Exam',
