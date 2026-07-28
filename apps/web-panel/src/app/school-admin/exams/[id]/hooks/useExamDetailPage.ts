@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { openRazorpayCheckout } from '@/components/RazorpayCheckout';
 import { type Crop } from 'react-image-crop';
+import * as XLSX from 'xlsx';
 
 export const parseQuestionImages = (urlStr: string | null): string[] => {
   if (!urlStr) return [];
@@ -1354,54 +1355,101 @@ export function useExamDetailPage(paramsId: string) {
       return;
     }
     try {
-      const text = await file.text();
-      const lines = text.split('\n').filter(l => l.trim());
-      const headers = lines[0].toLowerCase();
-      if (!headers.includes('name') || !headers.includes('roll')) {
-        setAddError('CSV must have columns: name, roll_number, dob');
-        setCsvPreviewRows([]);
-        return;
-      }
-      const parseCsvLine = (text: string) => {
-        const ret: string[] = [];
-        let state = 0;
-        let value = "";
-        for (let i = 0; i < text.length; i++) {
-          const c = text[i];
-          if (state === 0) {
-            if (c === '"') { state = 2; }
-            else if (c === ',') { ret.push(value); value = ""; }
-            else { value += c; state = 1; }
-          } else if (state === 1) {
-            if (c === ',') { ret.push(value.trim()); value = ""; state = 0; }
-            else { value += c; }
-          } else if (state === 2) {
-            if (c === '"') { state = 3; }
-            else { value += c; }
-          } else if (state === 3) {
-            if (c === '"') { value += '"'; state = 2; }
-            else if (c === ',') { ret.push(value); value = ""; state = 0; }
-          }
-        }
-        ret.push((state === 1) ? value.trim() : value);
-        return ret;
-      };
+      let preview: CsvPreviewStudent[] = [];
 
-      const preview: CsvPreviewStudent[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = parseCsvLine(lines[i]);
-        if (cols.length < 3) continue;
-        const [studentName, studentRoll, studentDob, csvCourse = '', csvBatch = '', csvSession = ''] = cols;
-        preview.push({
-          name: studentName,
-          roll: studentRoll,
-          dob: studentDob,
-          course: csvCourse,
-          batch: csvBatch,
-          session: csvSession,
-          status: 'pending'
-        });
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        
+        // Read the excel file as array of arrays with raw: false to get formatted date strings
+        const data = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false });
+        
+        if (data.length === 0) {
+          setAddError('Excel file is empty');
+          setCsvPreviewRows([]);
+          return;
+        }
+
+        const headers = (data[0] || []).map(h => String(h || '').toLowerCase().trim());
+        if (!headers.includes('name') || !headers.includes('roll_number')) {
+          setAddError('Excel must have columns: name, roll_number, dob');
+          setCsvPreviewRows([]);
+          return;
+        }
+
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          if (!row || row.length < 3) continue;
+
+          const studentName = String(row[0] || '').trim();
+          const studentRoll = String(row[1] || '').trim();
+          const studentDob = String(row[2] || '').trim();
+          const csvCourse = String(row[3] || '').trim();
+          const csvBatch = String(row[4] || '').trim();
+          const csvSession = String(row[5] || '').trim();
+
+          preview.push({
+            name: studentName,
+            roll: studentRoll,
+            dob: studentDob,
+            course: csvCourse,
+            batch: csvBatch,
+            session: csvSession,
+            status: 'pending'
+          });
+        }
+      } else {
+        const text = await file.text();
+        const lines = text.split('\n').filter(l => l.trim());
+        const headers = lines[0].toLowerCase();
+        if (!headers.includes('name') || !headers.includes('roll')) {
+          setAddError('CSV must have columns: name, roll_number, dob');
+          setCsvPreviewRows([]);
+          return;
+        }
+        const parseCsvLine = (text: string) => {
+          const ret: string[] = [];
+          let state = 0;
+          let value = "";
+          for (let i = 0; i < text.length; i++) {
+            const c = text[i];
+            if (state === 0) {
+              if (c === '"') { state = 2; }
+              else if (c === ',') { ret.push(value); value = ""; }
+              else { value += c; state = 1; }
+            } else if (state === 1) {
+              if (c === ',') { ret.push(value.trim()); value = ""; state = 0; }
+              else { value += c; }
+            } else if (state === 2) {
+              if (c === '"') { state = 3; }
+              else { value += c; }
+            } else if (state === 3) {
+              if (c === '"') { value += '"'; state = 2; }
+              else if (c === ',') { ret.push(value); value = ""; state = 0; }
+            }
+          }
+          ret.push((state === 1) ? value.trim() : value);
+          return ret;
+        };
+
+        for (let i = 1; i < lines.length; i++) {
+          const cols = parseCsvLine(lines[i]);
+          if (cols.length < 3) continue;
+          const [studentName = '', studentRoll = '', studentDob = '', csvCourse = '', csvBatch = '', csvSession = ''] = cols.map(c => c ? c.trim() : '');
+          preview.push({
+            name: studentName,
+            roll: studentRoll,
+            dob: studentDob,
+            course: csvCourse,
+            batch: csvBatch,
+            session: csvSession,
+            status: 'pending'
+          });
+        }
       }
+
       setCsvPreviewRows(preview);
       setAddError('');
     } catch (err: any) {
@@ -1483,15 +1531,23 @@ export function useExamDetailPage(paramsId: string) {
   };
 
   const handleDownloadCsvTemplate = () => {
-    const csvContent = "name,roll_number,dob,course,batch,session\nAarav Patel,2024001,15/06/2005,NEET,Morning,2024-25\nPriya Singh,2024002,22/03/2005,JEE,Evening,2024-25";
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "student_import_template.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const data = [
+      ["name", "roll_number", "dob", "course", "batch", "session"],
+      ["Aarav Patel", "2024001", "15/06/2005", "NEET", "Morning", "2024-25"],
+      ["Priya Singh", "2024002", "22/03/2005", "JEE", "Evening", "2024-25"]
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [
+      { wch: 25 }, // name
+      { wch: 15 }, // roll_number
+      { wch: 15 }, // dob
+      { wch: 15 }, // course
+      { wch: 15 }, // batch
+      { wch: 15 }  // session
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, "student_import_template.xlsx");
   };
 
   const handleRemoveStudent = (examStudentId: string, studentId: string) => {

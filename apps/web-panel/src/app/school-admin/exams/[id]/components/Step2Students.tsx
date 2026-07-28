@@ -3,6 +3,7 @@
 import React from 'react';
 import { Users, Download, Plus, Trash2, RotateCcw, Search, X } from 'lucide-react';
 import { formatDOB } from '@/lib/utils';
+import * as XLSX from 'xlsx';
 
 interface Step2StudentsProps {
   role: string;
@@ -83,32 +84,34 @@ export default function Step2Students({
   };
 
   const handleDownloadStudentsCsv = () => {
-    const csvRows = [
-      "name,roll_number,dob,course,batch,session",
+    const data = [
+      ["name", "roll_number", "dob", "course", "batch", "session"],
       ...assignedStudents.map((r: any) => {
         const s = r.students;
         if (!s) return null;
-        const escapeCSV = (val: any) => {
-          if (!val) return '';
-          const str = String(val);
-          if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-            return `"${str.replace(/"/g, '""')}"`;
-          }
-          return str;
-        };
-        return `${escapeCSV(s.full_name)},${escapeCSV(s.roll_number)},${escapeCSV(s.date_of_birth)},${escapeCSV(s.course)},${escapeCSV(s.batch)},${escapeCSV(s.session)}`;
+        return [
+          s.full_name || '',
+          s.roll_number || '',
+          s.date_of_birth || '',
+          s.course || '',
+          s.batch || '',
+          s.session || ''
+        ];
       }).filter(Boolean)
     ];
 
-    const csvContent = csvRows.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${(exam?.title || 'exam').replace(/\s+/g, '_')}_students_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!cols'] = [
+      { wch: 25 }, // name
+      { wch: 15 }, // roll_number
+      { wch: 15 }, // dob
+      { wch: 15 }, // course
+      { wch: 15 }, // batch
+      { wch: 15 }  // session
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Students");
+    XLSX.writeFile(wb, `${(exam?.title || 'exam').replace(/\s+/g, '_')}_students_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   return (
@@ -243,14 +246,14 @@ export default function Step2Students({
               </button>
             )}
 
-            {/* CSV Download Button */}
+            {/* Excel Download Button */}
             {assignedStudents.length > 0 && (
               <button
                 onClick={handleDownloadStudentsCsv}
                 className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg border border-border bg-bg text-text-main hover:bg-surface-hover text-xs font-medium transition-all cursor-pointer"
               >
                 <Download size={12} />
-                Download CSV
+                Download Excel
               </button>
             )}
 

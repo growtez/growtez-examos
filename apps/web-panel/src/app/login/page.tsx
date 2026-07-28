@@ -118,7 +118,11 @@ function LoginContent() {
         });
 
         if (signUpError) {
-          throw new Error(signUpError.message);
+          let errMsg = signUpError.message;
+          if (errMsg === '{}' || !errMsg) {
+            errMsg = 'Unable to complete sign up due to a server error. Please try again later.';
+          }
+          throw new Error(errMsg);
         }
 
         // Supabase silently "succeeds" for existing emails — returns empty identities array.
