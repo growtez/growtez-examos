@@ -6,6 +6,21 @@ import Numpad from './Numpad';
 import MathRenderer from './MathRenderer';
 import parikshaLogo from '../../public/ParikshaOS_logo.png';
 
+// Parses image_url / option image fields which may be stored as JSON arrays or plain URLs/data-URIs
+const parseQuestionImages = (urlStr: string | null | undefined): string[] => {
+  if (!urlStr) return [];
+  const trimmed = urlStr.trim();
+  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {
+      // fall through to single-value return
+    }
+  }
+  return [trimmed];
+};
+
 interface ExamInterfaceProps {
   studentProfile: any;
   exam: any;
@@ -48,6 +63,26 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const [headerOpen, setHeaderOpen] = useState(true);
   // Prevent double auto-submit
   const autoSubmittedRef = useRef(false);
+  const questionContentRef = useRef<HTMLDivElement>(null);
+
+  const scrollToTop = () => {
+    questionContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const scrollToBottom = () => {
+    if (questionContentRef.current) {
+      questionContentRef.current.scrollTo({
+        top: questionContentRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (questionContentRef.current) {
+      questionContentRef.current.scrollTop = 0;
+    }
+  }, [currentQuestionIndex, currentSubjectIndex]);
 
   useEffect(() => {
     const fetchSchoolData = async () => {
@@ -609,9 +644,9 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       <div className="flex flex-1 overflow-hidden">
 
         {/* Left Area - Question Panel */}
-        <div className="flex-1 flex flex-col bg-[#FFFFFF] border-r border-[#E4E7EC] overflow-hidden">
+        <div className="flex-1 flex flex-col bg-[#FFFFFF] border-r border-[#E4E7EC] overflow-hidden relative">
 
-          <div className="flex-1 overflow-y-auto p-8">
+          <div ref={questionContentRef} className="flex-1 overflow-y-auto p-8">
             {currentQuestion ? (
               <div className="font-serif" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
                 <div className="flex items-center justify-between border-b border-[#E4E7EC] pb-3 mb-6">
@@ -632,30 +667,6 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                     </div>
                   )}
                   {(() => {
-                    if (!currentQuestion.image_url) return null;
-                    const parseQuestionImages = (urlStr: string | null): string[] => {
-                      if (!urlStr) return [];
-                      const trimmed = urlStr.trim();
-                      try {
-                        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-                          let parsed = JSON.parse(trimmed);
-                          if (typeof parsed === 'string') {
-                             parsed = JSON.parse(parsed);
-                          }
-                          if (Array.isArray(parsed)) return parsed;
-                        }
-                      } catch (e) {
-                        // Ignore parse errors and fallback to regex extraction
-                      }
-                      
-                      // Fallback: extract any data URIs using regex
-                      const matches = trimmed.match(/data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+/g);
-                      if (matches && matches.length > 0) {
-                        return matches;
-                      }
-                      
-                      return [trimmed];
-                    };
                     const images = parseQuestionImages(currentQuestion.image_url);
                     if (images.length === 0) return null;
                     return (
@@ -664,7 +675,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                           <img
                             key={idx}
                             src={url}
-                            alt={`Question ${idx + 1}`}
+                            alt={`Question image ${idx + 1}`}
                             className="max-w-full max-h-80 object-contain rounded-none border border-[#E4E7EC] shadow-sm"
                           />
                         ))}
@@ -703,13 +714,14 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                                   <MathRenderer text={currentQuestion.options[opt]} inline />
                                 </span>
                               )}
-                              {currentQuestion.options[`${opt}_image`] && (
+                              {parseQuestionImages(currentQuestion.options[`${opt}_image`]).map((imgUrl, imgIdx) => (
                                 <img
-                                  src={currentQuestion.options[`${opt}_image`]}
-                                  alt={`Option ${opt}`}
+                                  key={imgIdx}
+                                  src={imgUrl}
+                                  alt={`Option ${opt} image ${imgIdx + 1}`}
                                   className="max-w-[200px] max-h-[200px] object-contain rounded-none border border-[#E4E7EC]"
                                 />
-                              )}
+                              ))}
                             </span>
                           </span>
                         </label>
@@ -795,6 +807,30 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
               className="bg-[#008080] hover:bg-[#006666] text-white px-6 py-1.5 rounded-none font-bold text-sm shadow-sm transition-all uppercase"
             >
               SUBMIT
+            </button>
+          </div>
+
+          {/* Floating Back to Top / Back to Bottom Buttons */}
+          <div className="absolute right-6 bottom-24 flex flex-col gap-2 z-20">
+            <button
+              onClick={scrollToTop}
+              className="w-10 h-10 rounded-full bg-[#008080] hover:bg-[#006666] text-white flex items-center justify-center shadow-md hover:shadow-lg transition-all focus:outline-none cursor-pointer active:scale-95 opacity-85 hover:opacity-100"
+              title="Back to Top"
+              aria-label="Back to Top"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+            <button
+              onClick={scrollToBottom}
+              className="w-10 h-10 rounded-full bg-[#008080] hover:bg-[#006666] text-white flex items-center justify-center shadow-md hover:shadow-lg transition-all focus:outline-none cursor-pointer active:scale-95 opacity-85 hover:opacity-100"
+              title="Back to Bottom"
+              aria-label="Back to Bottom"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
           </div>
         </div>
