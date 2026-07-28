@@ -53,7 +53,7 @@ export default function MonthlyCleanupReminder() {
           </div>
           <h2 className="text-xl font-bold text-text-main mb-2">Monthly Dashboard Cleanup</h2>
           <p className="text-sm font-medium text-text-muted mb-6 leading-relaxed">
-            It's the end of the month! To keep your dashboard clean and ensure you don't hit the maximum limit of 20 active exams, please review and delete any old or completed exams.
+            It's the end of the month! Please review your exams and delete any old or unneeded ones to keep your dashboard clean and organised.
           </p>
           
           <div className="flex w-full gap-3">

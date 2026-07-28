@@ -66,6 +66,21 @@ export async function GET(request: NextRequest) {
     doc.text(`Total Marks: ${totalExamMarks}`, 40, 90);
     if (filterText) doc.text(filterText, 40, 105);
 
+    // Marking scheme summary
+    let yPos = filterText ? 120 : 105;
+    const ms = exam.marking_scheme;
+    if (ms) {
+      const msqPartialEnabled = ms.msq_partial_enabled ?? false;
+      doc.setFontSize(9);
+      doc.setTextColor(120, 120, 120);
+      const schemeText = `Marking: MCQ +${ms.mcq_correct}/${ms.mcq_wrong} | NAT +${ms.nat_correct}/${ms.nat_wrong}` +
+        (ms.msq_enabled ? ` | MSQ +${ms.msq_correct}/${ms.msq_wrong}` + (msqPartialEnabled ? ` (partial +${ms.msq_partial}/correct opt)` : ' (no partial)') : '');
+      doc.text(schemeText, 40, yPos);
+      yPos += 13;
+      doc.text('Subject columns: Marks (C=Correct, P=Partial, W=Wrong)', 40, yPos);
+      yPos += 8;
+    }
+
     // Collect all unique subjects from the results
     const subjectSet = new Set<string>();
     results.forEach(r => {
@@ -75,25 +90,35 @@ export async function GET(request: NextRequest) {
     });
     const subjects = Array.from(subjectSet);
 
-    const tableColumn = ["Sl No", "Roll No", "Student Name", "Total Score", ...subjects.map(s => `${s} (Correct)`)];
+    const tableColumn = [
+      "Sl No", "Roll No", "Student Name", "Total Score",
+      ...subjects.map(s => s)
+    ];
     const tableRows: any[] = [];
 
     results.forEach((res, index) => {
-      const rowData = [
+      const rowData: any[] = [
         index + 1,
         res.students?.roll_number || 'N/A',
         res.students?.full_name || 'Unknown',
         `${res.total_marks ?? 0} / ${totalExamMarks}`
       ];
 
-      // Subject wise correct answers
+      // Subject-wise: show marks scored and correct count
       subjects.forEach(sub => {
-        let correctAnswers = 0;
         if (Array.isArray(res.section_scores)) {
-            const score = res.section_scores.find((s: any) => s.subject_name === sub);
-            if (score) correctAnswers = score.correct;
+          const score = res.section_scores.find((s: any) => s.subject_name === sub);
+          if (score) {
+            const parts = [`${score.correct ?? 0}C`];
+            if (score.partial) parts.push(`${score.partial}P`);
+            if (score.wrong) parts.push(`${score.wrong}W`);
+            rowData.push(`${score.marks ?? 0} (${parts.join('/')})`);
+          } else {
+            rowData.push('—');
+          }
+        } else {
+          rowData.push('—');
         }
-        rowData.push(correctAnswers);
       });
 
       tableRows.push(rowData);
@@ -102,7 +127,7 @@ export async function GET(request: NextRequest) {
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: filterText ? 115 : 100,
+      startY: yPos + 5,
       styles: { fontSize: 9, cellPadding: 5 },
       headStyles: { fillColor: [0, 128, 128], textColor: 255 },
       alternateRowStyles: { fillColor: [245, 249, 249] },

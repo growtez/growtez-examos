@@ -114,7 +114,8 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
 
           const msqCorrect = q.positive_marks || q.marks || exam?.marking_scheme?.msq_correct || 4;
           const msqWrong = q.negative_marks ? -Math.abs(q.negative_marks) : (exam?.marking_scheme?.msq_wrong ?? 0);
-          
+          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? false;
+
           const configuredPartial = exam?.marking_scheme?.msq_partial;
           const msqPartialVal = (configuredPartial !== undefined && configuredPartial !== null && Number(configuredPartial) > 0)
             ? Number(configuredPartial)
@@ -127,9 +128,15 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
             subjectMap[sName].marks += msqCorrect;
             subjectMap[sName].correct++;
           } else if (correctCount > 0) {
-            const partialMarks = Math.round(msqPartialVal * correctCount * 100) / 100;
-            subjectMap[sName].marks += partialMarks;
-            subjectMap[sName].partial++;
+            if (msqPartialEnabled) {
+              const partialMarks = Math.round(msqPartialVal * correctCount * 100) / 100;
+              subjectMap[sName].marks += partialMarks;
+              subjectMap[sName].partial++;
+            } else {
+              // Partial marking disabled → treat as wrong
+              subjectMap[sName].marks += msqWrong;
+              subjectMap[sName].wrong++;
+            }
           } else {
             subjectMap[sName].unattempted++;
           }
@@ -170,7 +177,8 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
 
           const msqCorrect = q.positive_marks || q.marks || exam?.marking_scheme?.msq_correct || 4;
           const msqWrong = q.negative_marks ? -Math.abs(q.negative_marks) : (exam?.marking_scheme?.msq_wrong ?? 0);
-          
+          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? false;
+
           const configuredPartial = exam?.marking_scheme?.msq_partial;
           const msqPartialVal = (configuredPartial !== undefined && configuredPartial !== null && Number(configuredPartial) > 0)
             ? Number(configuredPartial)
@@ -181,8 +189,13 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
           } else if (correctCount === correctOpts.length) {
             marksAwarded = msqCorrect;
           } else if (correctCount > 0) {
-            marksAwarded = Math.round(msqPartialVal * correctCount * 100) / 100;
-            isPartialMatch = true;
+            if (msqPartialEnabled) {
+              marksAwarded = Math.round(msqPartialVal * correctCount * 100) / 100;
+              isPartialMatch = true;
+            } else {
+              // Partial marking disabled → treat as wrong
+              marksAwarded = msqWrong;
+            }
           }
         } else if (String(studentAns).trim().toLowerCase() === String(correctAns).trim().toLowerCase()) {
           marksAwarded = q.positive_marks || q.marks || 1;
@@ -219,19 +232,6 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
         else userAnswerColor = '#d97706';
       }
 
-      const answerSummaryHtml = `
-        <div style="margin-top: 8px; margin-bottom: 12px; padding: 8px 12px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px;">
-          <div>
-            <span style="font-weight: 700; color: #475569; margin-right: 4px;">Your Answer:</span>
-            <span style="font-weight: 700; color: ${userAnswerColor};">${escapeHtml(userAnswerText)}</span>
-          </div>
-          <div>
-            <span style="font-weight: 700; color: #475569; margin-right: 4px;">Correct Answer:</span>
-            <span style="font-weight: 700; color: #22c55e;">${escapeHtml(correctAnswerText)}</span>
-          </div>
-        </div>
-      `;
-
       // Parse question images
       let imagesHtml = '';
       if (q.image_url) {
@@ -250,8 +250,8 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
         const images = parseQuestionImages(q.image_url);
         images.forEach((url) => {
           imagesHtml += `
-            <div style="margin-top: 10px; margin-bottom: 10px;">
-              <img src="${url}" style="max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 4px;" />
+            <div style="margin-top: 6px; margin-bottom: 6px;">
+              <img src="${url}" style="max-width: 100%; max-height: 140px; object-fit: contain; border-radius: 4px;" />
             </div>
           `;
         });
@@ -261,7 +261,7 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
       let optionsHtml = '';
 
       if (hasOptions) {
-        optionsHtml += `<div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">`;
+        optionsHtml += `<div style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px;">`;
         
         ['A', 'B', 'C', 'D'].forEach((key) => {
           const val = q.options[key];
@@ -276,59 +276,51 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
           const isWrong = isStudentAns && !isCorrect;
 
           let boxStyle = `
-            padding: 10px 12px;
-            border-radius: 6px;
-            border: 1px solid #e0f2f2;
+            padding: 4px 6px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 2px;
+            font-size: 11px;
             page-break-inside: avoid;
           `;
           
           if (isCorrect && isStudentAns && isPartialMatch) {
-            boxStyle += `
-              border: 2px solid #f59e0b;
-              background-color: #fffbeb;
-            `;
+            boxStyle += `border: 1.5px solid #f59e0b; background-color: #fffbeb;`;
           } else if (isCorrect) {
-            boxStyle += `
-              border: 2px solid #22c55e;
-              background-color: #f0fdf4;
-            `;
+            boxStyle += `border: 1.5px solid #22c55e; background-color: #f0fdf4;`;
           } else if (isWrong) {
-            boxStyle += `
-              border: 2px solid #ef4444;
-              background-color: #fef2f2;
-            `;
+            boxStyle += `border: 1.5px solid #ef4444; background-color: #fef2f2;`;
           }
 
           let optionTextHtml = renderLatexToHtml(val || '', katex);
           let optionImageHtml = imgVal ? `
-            <div style="margin-top: 6px;">
-              <img src="${imgVal}" style="max-width: 200px; max-height: 120px; object-fit: contain; border-radius: 4px;" />
+            <div style="margin-top: 4px;">
+              <img src="${imgVal}" style="max-width: 140px; max-height: 80px; object-fit: contain; border-radius: 4px;" />
             </div>
           ` : '';
 
           let badgeHtml = '';
           if (isCorrect && isStudentAns && isPartialMatch) {
-            badgeHtml = `<span style="color: #d97706; font-weight: bold; font-size: 11px;">✓ Partial &amp; Your Answer</span>`;
+            badgeHtml = `<span style="color: #d97706; font-weight: bold; font-size: 10px;">✓ Partial (Your Ans)</span>`;
           } else if (isCorrect && isStudentAns) {
-            badgeHtml = `<span style="color: #22c55e; font-weight: bold; font-size: 11px;">✓ Correct &amp; Your Answer</span>`;
+            badgeHtml = `<span style="color: #22c55e; font-weight: bold; font-size: 10px;">✓ Correct (Your Ans)</span>`;
           } else if (isCorrect) {
-            badgeHtml = `<span style="color: #22c55e; font-weight: bold; font-size: 11px;">✓ Correct Answer</span>`;
+            badgeHtml = `<span style="color: #22c55e; font-weight: bold; font-size: 10px;">✓ Correct</span>`;
           } else if (isWrong) {
-            badgeHtml = `<span style="color: #ef4444; font-weight: bold; font-size: 11px;">✗ Your Answer (Incorrect)</span>`;
+            badgeHtml = `<span style="color: #ef4444; font-weight: bold; font-size: 10px;">✗ Your Ans (Wrong)</span>`;
           }
 
           optionsHtml += `
             <div style="${boxStyle}">
-              <div style="flex: 1; min-width: 0; padding-right: 15px;">
-                <span style="font-weight: bold; margin-right: 4px; font-size: 13px;">${key})</span>
-                <span style="font-size: 13px; line-height: 1.4;">${optionTextHtml}</span>
+              <div style="flex: 1; min-width: 0; padding-right: 6px;">
+                <span style="font-weight: bold; margin-right: 3px;">${key})</span>
+                <span style="line-height: 1.3;">${optionTextHtml}</span>
                 ${optionImageHtml}
               </div>
-              <div style="flex-shrink: 0; text-align: right; width: 150px;">
+              <div style="flex-shrink: 0; text-align: right;">
                 ${badgeHtml}
               </div>
             </div>
@@ -337,56 +329,43 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
 
         optionsHtml += `</div>`;
       } else {
-        // Handle NAT or other types without options
-        let boxStyle = `
-          padding: 12px;
-          border-radius: 6px;
-          border: 1px solid #e0f2f2;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          margin-top: 12px;
-          background-color: #f8fafc;
-          page-break-inside: avoid;
-        `;
-
+        // Handle NAT or other types without options - compact single summary line
         optionsHtml += `
-          <div style="${boxStyle}">
-            <div style="font-size: 13px; color: #334155;">
-              <span style="font-weight: 600; margin-right: 8px;">Your Answer:</span>
-              <span style="color: ${userAnswerColor}; font-weight: 700;">${escapeHtml(userAnswerText)}</span>
+          <div style="padding: 6px 8px; border-radius: 4px; border: 1px solid #e2e8f0; background-color: #f8fafc; margin-top: 6px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; page-break-inside: avoid;">
+            <div>
+              <span style="font-weight: 600; color: #475569; margin-right: 4px;">Your Ans:</span>
+              <span style="font-weight: 700; color: ${userAnswerColor};">${escapeHtml(userAnswerText)}</span>
             </div>
-            <div style="font-size: 13px; color: #334155;">
-              <span style="font-weight: 600; margin-right: 8px;">Correct Answer:</span>
-              <span style="color: #22c55e; font-weight: 700;">${escapeHtml(correctAnswerText)}</span>
+            <div>
+              <span style="font-weight: 600; color: #475569; margin-right: 4px;">Correct:</span>
+              <span style="font-weight: 700; color: #22c55e;">${escapeHtml(correctAnswerText)}</span>
             </div>
           </div>
         `;
       }
 
-      // Combine Question HTML
+      // Combine Question HTML (2-column item)
       const questionTextHtml = renderLatexToHtml(q.question_text || '', katex);
       const marksColor = isPartialMatch
         ? '#d97706'
-        : (marksAwarded > 0 ? '#22c55e' : (marksAwarded < 0 ? '#ef4444' : '#8ab8b8'));
+        : (marksAwarded > 0 ? '#22c55e' : (marksAwarded < 0 ? '#ef4444' : '#64748b'));
       const marksText = isPartialMatch
-        ? `Marks: +${marksAwarded} (Partial)`
-        : `Marks: ${marksAwarded > 0 ? '+' : ''}${marksAwarded}`;
+        ? `+${marksAwarded} (Partial)`
+        : `${marksAwarded > 0 ? '+' : ''}${marksAwarded}`;
 
       questionsHtml += `
-        <div style="margin-bottom: 25px; padding: 15px; border: 1px solid #e0f2f2; border-radius: 8px; background-color: #ffffff; page-break-inside: avoid;">
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f5f9f9; padding-bottom: 8px; margin-bottom: 10px;">
-            <span style="font-weight: bold; color: #008080; font-size: 13px;">
+        <div style="width: calc(50% - 5px); box-sizing: border-box; margin-bottom: 10px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background-color: #ffffff; page-break-inside: avoid; break-inside: avoid;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 6px;">
+            <span style="font-weight: bold; color: #008080; font-size: 11px;">
               Q.${q.question_number || index + 1} | ${q.exam_subjects?.subject_name || 'General'}
             </span>
-            <span style="font-weight: bold; color: ${marksColor}; font-size: 13px;">
-              ${marksText}
+            <span style="font-weight: bold; color: ${marksColor}; font-size: 11px;">
+              Marks: ${marksText}
             </span>
           </div>
-          <div style="font-size: 14px; line-height: 1.5; color: #333333; margin-bottom: 10px;">
+          <div style="font-size: 12px; line-height: 1.35; color: #1e293b; margin-bottom: 6px;">
             ${questionTextHtml}
           </div>
-          ${answerSummaryHtml}
           ${imagesHtml}
           ${optionsHtml}
         </div>
@@ -400,43 +379,40 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
     });
 
     const fullHtml = `
-      <div style="font-family: system-ui, -apple-system, sans-serif; color: #1a2e2e; padding: 20px; max-width: 800px; margin: 0 auto; background-color: #ffffff;">
-        <div style="text-align: center; border-bottom: 2px solid #e0f2f2; padding-bottom: 15px; margin-bottom: 20px;">
-          <h1 style="color: #008080; font-size: 26px; margin: 0 0 5px 0; font-weight: 800;">${schoolName || 'Student Answer Key'}</h1>
-          <h3 style="color: #555555; font-size: 16px; margin: 0 0 10px 0; font-weight: 600;">Answer Key &amp; Detailed Report</h3>
+      <div style="font-family: system-ui, -apple-system, sans-serif; color: #1a2e2e; padding: 15px; max-width: 800px; margin: 0 auto; background-color: #ffffff;">
+        <div style="text-align: center; border-bottom: 2px solid #e0f2f2; padding-bottom: 10px; margin-bottom: 15px;">
+          <h1 style="color: #008080; font-size: 22px; margin: 0 0 4px 0; font-weight: 800;">${schoolName || 'Student Answer Key'}</h1>
+          <h3 style="color: #555555; font-size: 14px; margin: 0; font-weight: 600;">Answer Key &amp; Detailed Report</h3>
         </div>
 
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 25px;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 15px;">
-            <div style="display: flex; flex-direction: column; gap: 6px;">
-              <div style="font-size: 13px; color: #475569;"><strong style="color: #1e293b;">Test Name:</strong> ${testName}</div>
-              <div style="font-size: 13px; color: #475569;"><strong style="color: #1e293b;">Student Name:</strong> ${studentName}</div>
-              <div style="font-size: 13px; color: #475569;"><strong style="color: #1e293b;">Roll Number:</strong> ${rollNo}</div>
-              <div style="font-size: 13px; color: #475569;"><strong style="color: #1e293b;">Date Generated:</strong> ${formattedDate}</div>
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px 20px; font-size: 12px; color: #475569;">
+              <div><strong style="color: #1e293b;">Test:</strong> ${testName}</div>
+              <div><strong style="color: #1e293b;">Student:</strong> ${studentName}</div>
+              <div><strong style="color: #1e293b;">Roll No:</strong> ${rollNo}</div>
+              <div><strong style="color: #1e293b;">Date:</strong> ${formattedDate}</div>
             </div>
-            <div style="text-align: right; display: flex; flex-direction: column; justify-content: center; height: 100%;">
-              <div style="font-size: 11px; text-transform: uppercase; font-weight: bold; color: #64748b; letter-spacing: 0.05em; margin-bottom: 4px;">Total Score</div>
-              <div style="font-size: 32px; font-weight: 900; color: #008080; line-height: 1;">${marks}</div>
+            <div style="text-align: right; flex-shrink: 0;">
+              <span style="font-size: 10px; text-transform: uppercase; font-weight: bold; color: #64748b; margin-right: 6px;">Total Score:</span>
+              <span style="font-size: 24px; font-weight: 900; color: #008080;">${marks}</span>
             </div>
           </div>
 
           ${subjectBreakdownList.length > 0 ? `
-            <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid #e2e8f0;">
-              <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.05em; margin-bottom: 8px;">
-                Subject Marks Breakdown
-              </div>
-              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid #e2e8f0;">
+              <div style="display: flex; flex-wrap: wrap; gap: 6px;">
                 ${subjectBreakdownList.map(sb => `
-                  <div style="flex: 1; min-width: 140px; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 14px;">
-                    <div style="font-size: 13px; font-weight: 700; color: #008080; line-height: 1.4; padding-bottom: 2px; margin-bottom: 4px; word-break: break-word;">${escapeHtml(sb.subjectName)}</div>
-                    <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 2px 0 4px 0;">
-                      ${sb.marks} <span style="font-size: 11px; font-weight: 500; color: #64748b;">/ ${sb.maxMarks} marks</span>
+                  <div style="flex: 1; min-width: 120px; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 6px 10px;">
+                    <div style="font-size: 11px; font-weight: 700; color: #008080; margin-bottom: 2px;">${escapeHtml(sb.subjectName)}</div>
+                    <div style="font-size: 13px; font-weight: 800; color: #0f172a;">
+                      ${sb.marks} <span style="font-size: 10px; font-weight: 500; color: #64748b;">/ ${sb.maxMarks} mks</span>
                     </div>
-                    <div style="font-size: 10px; color: #475569; font-weight: 500; line-height: 1.4;">
-                      <span style="color: #22c55e; font-weight: 700;">${sb.correct} Correct</span> • 
-                      ${sb.partial > 0 ? `<span style="color: #d97706; font-weight: 700;">${sb.partial} Partial</span> • ` : ''}
-                      <span style="color: #ef4444; font-weight: 700;">${sb.wrong} Wrong</span> • 
-                      <span style="color: #64748b;">${sb.unattempted} Unattempted</span>
+                    <div style="font-size: 9px; color: #475569; font-weight: 500; margin-top: 2px;">
+                      <span style="color: #22c55e; font-weight: 700;">${sb.correct}C</span> • 
+                      ${sb.partial > 0 ? `<span style="color: #d97706; font-weight: 700;">${sb.partial}P</span> • ` : ''}
+                      <span style="color: #ef4444; font-weight: 700;">${sb.wrong}W</span> • 
+                      <span style="color: #64748b;">${sb.unattempted}U</span>
                     </div>
                   </div>
                 `).join('')}
@@ -445,7 +421,7 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
           ` : ''}
         </div>
 
-        <div style="margin-top: 20px;">
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; width: 100%;">
           ${questionsHtml}
         </div>
       </div>
