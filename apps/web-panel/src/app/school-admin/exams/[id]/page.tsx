@@ -1151,6 +1151,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setStartTime={setStartTime}
               setEndTime={setEndTime}
               autoSaveSchedule={autoSaveSchedule}
+              fetchExamData={fetchExamData}
             />
           )}
 

@@ -98,7 +98,7 @@ export default function Step2Students({
           s.session || ''
         ];
       }).filter(Boolean)
-    ];
+    ] as any[][];
 
     const ws = XLSX.utils.aoa_to_sheet(data);
     ws['!cols'] = [
