@@ -780,28 +780,6 @@ export default function Step5Publish({
                 </div>
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
-                {setStartTime && setEndTime && autoSaveSchedule && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const d = new Date();
-                      const pad = (n: number) => (n < 10 ? '0' + n : n);
-                      const nowStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-                      setStartTime(nowStr);
-                      if (durationMinutes > 0) {
-                        const end = new Date(new Date(nowStr).getTime() + durationMinutes * 60000);
-                        const endStr = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}T${pad(end.getHours())}:${pad(end.getMinutes())}`;
-                        setEndTime(endStr);
-                        void autoSaveSchedule(nowStr, endStr);
-                      } else {
-                        void autoSaveSchedule(nowStr, endTime);
-                      }
-                    }}
-                    className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-red-700 active:scale-95 shadow-sm"
-                  >
-                    Set to Present Timestamp
-                  </button>
-                )}
                 <button
                   type="button"
                   onClick={() => onNavigateToStep(4)}

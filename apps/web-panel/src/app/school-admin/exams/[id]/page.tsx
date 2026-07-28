@@ -1265,14 +1265,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-text-main mb-1.5">
-                      Department
+                      Department <span className="text-text-muted font-normal">(optional)</span>
                     </label>
                     <CustomCombobox
                       value={newTeacherDepartment}
                       onChange={setNewTeacherDepartment}
                       options={Array.from(new Set(teachers.map((t: any) => t.department).filter(Boolean))) as string[]}
                       placeholder="e.g. Mathematics"
-                      required
                       className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                     />
                   </div>
@@ -2113,13 +2112,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-text-main mb-1.5">Department</label>
+                        <label className="block text-sm font-semibold text-text-main mb-1.5">Department <span className="text-text-muted font-normal">(optional)</span></label>
                         <CustomCombobox
                           value={newTeacherDepartment}
                           onChange={setNewTeacherDepartment}
                           options={Array.from(new Set(teachers.map((t: any) => t.department).filter(Boolean))) as string[]}
                           placeholder="e.g. Mathematics"
-                          required
                           className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                         />
                       </div>

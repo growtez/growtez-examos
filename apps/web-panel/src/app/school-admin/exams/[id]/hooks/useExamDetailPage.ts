@@ -1613,75 +1613,85 @@ export function useExamDetailPage(paramsId: string) {
     setAddTeacherError('');
     setAddingTeacher(true);
     try {
+      // Resolve the school_id from the current user's profile
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
       const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
       const schoolIdToUse = profile?.school_id || exam?.school_id;
       if (!schoolIdToUse) throw new Error('No school found');
 
+      // Create the teacher via the admin API
       const res = await fetch('/api/users/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: newTeacherEmail,
+          email: newTeacherEmail.trim(),
           password: newTeacherPassword,
-          full_name: newTeacherName,
+          full_name: newTeacherName.trim(),
           role: 'teacher',
           school_id: schoolIdToUse,
-          department: newTeacherDepartment || null
+          department: newTeacherDepartment.trim() || null,
         })
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to add teacher');
+      if (!res.ok) throw new Error(data.error || 'Failed to create teacher');
+      if (!data.teacher) throw new Error('Teacher was created but profile data is missing. Please refresh.');
 
-      if (data.teacher) {
-        setTeachers(prev => [...prev, data.teacher].sort((a, b) => a.full_name.localeCompare(b.full_name)));
-        setSelectedTeacherIds(prev => [...prev, data.teacher.id]);
-        setNewSubject(prev => ({ ...prev, teacherIds: [...prev.teacherIds, data.teacher.id] }));
-      }
+      const newTeacher = data.teacher;
 
-      if (data.teacher && manageTeachersSubject) {
-        const { data: insertedAssignment, error: assignError } = await supabase
+      // Add to the local teachers list immediately
+      setTeachers(prev => [...prev, newTeacher].sort((a, b) => a.full_name.localeCompare(b.full_name)));
+
+      // Context A: "Manage Teachers" modal for an existing subject
+      if (manageTeachersSubject) {
+        // Insert the assignment into exam_subject_teachers
+        const { data: assignment, error: assignError } = await supabase
           .from('exam_subject_teachers')
-          .insert({
-            exam_subject_id: manageTeachersSubject.id,
-            teacher_id: data.teacher.id
-          })
+          .insert({ exam_subject_id: manageTeachersSubject.id, teacher_id: newTeacher.id })
           .select()
           .single();
 
-        if (assignError) throw new Error(assignError.message || 'Teacher was created, but failed to assign to this subject.');
+        if (assignError) throw new Error('Teacher account created, but failed to assign to this subject: ' + assignError.message);
 
+        // Update local subjects state to show the new assignment
         setSubjects(prev => prev.map(s =>
           s.id === manageTeachersSubject.id
-            ? { ...s, exam_subject_teachers: [...(s.exam_subject_teachers || []), { id: insertedAssignment.id, teacher_id: data.teacher.id, teachers: data.teacher }] }
+            ? { ...s, exam_subject_teachers: [...(s.exam_subject_teachers || []), { id: assignment.id, teacher_id: newTeacher.id, teachers: newTeacher }] }
             : s
         ));
+
+        // Mark as selected in the checkbox list
+        setSelectedTeacherIds(prev => [...prev, newTeacher.id]);
+
+        // Close the "create" form and go back to the teacher list in the modal
+        setShowAddTeacherMode(false);
+
+      } else {
+        // Context B: "Add New Subject" panel — just add to the selection, don't assign yet
+        // The assignment will happen when handleAddSubject is called.
+        setNewSubject(prev => ({
+          ...prev,
+          teacherIds: [...prev.teacherIds, newTeacher.id]
+        }));
+        setSelectedTeacherIds(prev => [...prev, newTeacher.id]);
+        setShowAddTeacherMode(false);
       }
 
-      setManageTeachersSubject(null);
-      setShowAddTeacherMode(false);
+      // Reset the form fields
       setNewTeacherName('');
       setNewTeacherEmail('');
       setNewTeacherPassword('');
       setNewTeacherDepartment('');
       setAddTeacherError('');
 
-      const { data: updatedTeachers } = await supabase
-        .from('teachers')
-        .select('*')
-        .eq('school_id', schoolIdToUse)
-        .order('full_name', { ascending: true });
-      if (updatedTeachers) {
-        setTeachers(updatedTeachers);
-      }
     } catch (err: any) {
       setAddTeacherError(err.message);
     } finally {
       setAddingTeacher(false);
     }
   };
+
 
   const handleUnpublish = () => {
     setConfirmDialog({

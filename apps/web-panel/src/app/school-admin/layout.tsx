@@ -243,8 +243,10 @@ export default function SchoolAdminLayout({
               setTotalCredits(school.exam_credits || 0);
               if (school.logo_url) setProfileImageUrl(school.logo_url);
             } else {
-              // School deleted or inactive - tell them their account is invalid.
-              window.location.href = `${protocol}//${baseDomain}/login?error=Your+school+account+is+suspended+or+deleted.`;
+              // School deleted or inactive — sign out cleanly then redirect.
+              await supabase.auth.signOut();
+              localStorage.removeItem('user_role');
+              window.location.href = `${protocol}//${baseDomain}/login?error=Your+school+account+has+been+suspended+or+deleted.`;
               return;
             }
 
@@ -274,7 +276,9 @@ export default function SchoolAdminLayout({
               setUnreadNotifsCount(unread);
             }
           } else {
-            // No school ID found - we don't log them out forcefully anymore to prevent loops.
+            // No school ID found — sign out cleanly then redirect.
+            await supabase.auth.signOut();
+            localStorage.removeItem('user_role');
             window.location.href = `${protocol}//${baseDomain}/login?error=Profile+setup+incomplete.+Please+try+logging+in+again.`;
             return;
           }

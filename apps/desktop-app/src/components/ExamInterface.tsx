@@ -6,6 +6,21 @@ import Numpad from './Numpad';
 import MathRenderer from './MathRenderer';
 import parikshaLogo from '../../public/ParikshaOS_logo.png';
 
+// Parses image_url / option image fields which may be stored as JSON arrays or plain URLs/data-URIs
+const parseQuestionImages = (urlStr: string | null | undefined): string[] => {
+  if (!urlStr) return [];
+  const trimmed = urlStr.trim();
+  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {
+      // fall through to single-value return
+    }
+  }
+  return [trimmed];
+};
+
 interface ExamInterfaceProps {
   studentProfile: any;
   exam: any;
@@ -18,7 +33,8 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const [questions, setQuestions] = useState<any[]>([]);
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, { answer: string | null; marked: boolean; visited: boolean }>>({});
+  const [answers, setAnswers] = useState<Record<string, { answer: string | null; marked: boolean; visited: boolean; saved: boolean }>>({});
+  const savingRef = useRef(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [school, setSchool] = useState<{ name: string; logo_url: string | null } | null>(null);
   
@@ -48,6 +64,26 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const [headerOpen, setHeaderOpen] = useState(true);
   // Prevent double auto-submit
   const autoSubmittedRef = useRef(false);
+  const questionContentRef = useRef<HTMLDivElement>(null);
+
+  const scrollToTop = () => {
+    questionContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const scrollToBottom = () => {
+    if (questionContentRef.current) {
+      questionContentRef.current.scrollTo({
+        top: questionContentRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (questionContentRef.current) {
+      questionContentRef.current.scrollTop = 0;
+    }
+  }, [currentQuestionIndex, currentSubjectIndex]);
 
   useEffect(() => {
     const fetchSchoolData = async () => {
@@ -106,9 +142,9 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
     };
 
     const initializeAnswers = (loadedQuestions: any[]) => {
-      const initialAnswers: Record<string, { answer: string | null; marked: boolean; visited: boolean }> = {};
+      const initialAnswers: Record<string, { answer: string | null; marked: boolean; visited: boolean; saved: boolean }> = {};
       loadedQuestions.forEach((q) => {
-        initialAnswers[q.id] = { answer: null, marked: false, visited: false };
+        initialAnswers[q.id] = { answer: null, marked: false, visited: false, saved: false };
       });
       if (loadedQuestions.length > 0) {
         initialAnswers[loadedQuestions[0].id].visited = true;
@@ -183,21 +219,96 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
     setAnswers(prev => ({ ...prev, [qId]: { ...prev[qId], answer: val } }));
   };
 
+  // Upserts all currently-saved answers to the DB as a draft (fire-and-forget during exam)
+  const upsertAnswersToDB = async (updatedAnswers: Record<string, { answer: string | null; marked: boolean; visited: boolean; saved: boolean }>) => {
+    if (!exam.id || savingRef.current) return;
+    savingRef.current = true;
+    try {
+      // Only send answers that were explicitly saved (Save & Next / Save & Mark for Review)
+      const savedAnswers: Record<string, any> = {};
+      Object.keys(updatedAnswers).forEach(qId => {
+        const a = updatedAnswers[qId];
+        if (a.saved) {
+          savedAnswers[qId] = {
+            question_id: qId,
+            answer: a.answer,
+            marked_for_review: a.marked,
+            time_spent_seconds: 0,
+          };
+        }
+      });
+
+      if (Object.keys(savedAnswers).length === 0) return;
+
+      // Calculate a running score for the saved answers only
+      let runningScore = 0;
+      const sectionScores: any[] = subjects.map(sub => ({ subject_name: sub.subject_name, correct: 0, wrong: 0, unanswered: 0, marks: 0 }));
+      questions.forEach(q => {
+        const a = updatedAnswers[q.id];
+        if (!a?.saved) return;
+        const studentAns = a.answer;
+        const subIdx = subjects.findIndex(s => s.id === q.exam_subject_id);
+        const section = sectionScores[subIdx];
+        if (!section) return;
+        if (studentAns === null || studentAns === '' || studentAns === undefined) {
+          section.unanswered++;
+        } else if (q.question_type === 'msq') {
+          const selectedOpts = String(studentAns).split(',').filter(Boolean).sort();
+          const correctOpts = String(q.correct_option).split(',').filter(Boolean).sort();
+          let hasWrong = false;
+          let correctCount = 0;
+          selectedOpts.forEach((opt: string) => { if (correctOpts.includes(opt)) correctCount++; else hasWrong = true; });
+          const msqCorrect = exam?.marking_scheme?.msq_correct ?? 4;
+          const msqPartialPerQ = exam?.marking_scheme?.msq_partial ?? 1;
+          const msqWrong = exam?.marking_scheme?.msq_wrong ?? 0;
+          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? false;
+          if (hasWrong) { section.wrong++; section.marks += msqWrong; runningScore += msqWrong; }
+          else if (correctCount === correctOpts.length) { section.correct++; section.marks += msqCorrect; runningScore += msqCorrect; }
+          else if (msqPartialEnabled) { const p = Math.round(msqPartialPerQ * correctCount * 100) / 100; section.marks += p; runningScore += p; }
+          else { section.wrong++; section.marks += msqWrong; runningScore += msqWrong; }
+        } else if (studentAns === q.correct_option) {
+          section.correct++; section.marks += q.positive_marks ?? 4; runningScore += q.positive_marks ?? 4;
+        } else {
+          section.wrong++; section.marks += q.negative_marks ?? 0; runningScore += q.negative_marks ?? 0;
+        }
+      });
+
+      await supabase.rpc('submit_exam', {
+        p_exam_id: exam.id,
+        p_school_id: exam.school_id,
+        p_answers: savedAnswers,
+        p_total_marks: runningScore,
+        p_section_scores: sectionScores,
+        p_time_taken_seconds: 0,
+      });
+    } catch (err) {
+      console.error('Failed to save answer to DB:', err);
+    } finally {
+      savingRef.current = false;
+    }
+  };
+
   const handleSaveAndNext = () => {
     if (!currentQuestion) return;
-    setAnswers(prev => ({ ...prev, [currentQuestion.id]: { ...prev[currentQuestion.id], marked: false, visited: true } }));
+    const updatedAnswers = { ...answers, [currentQuestion.id]: { ...answers[currentQuestion.id], marked: false, visited: true, saved: true } };
+    setAnswers(updatedAnswers);
+    upsertAnswersToDB(updatedAnswers);
     moveToNext();
   };
 
   const handleSaveAndMarkForReview = () => {
     if (!currentQuestion) return;
-    setAnswers(prev => ({ ...prev, [currentQuestion.id]: { ...prev[currentQuestion.id], marked: true, visited: true } }));
+    const updatedAnswers = { ...answers, [currentQuestion.id]: { ...answers[currentQuestion.id], marked: true, visited: true, saved: true } };
+    setAnswers(updatedAnswers);
+    upsertAnswersToDB(updatedAnswers);
     moveToNext();
   };
 
   const handleMarkForReviewAndNext = () => {
     if (!currentQuestion) return;
-    setAnswers(prev => ({ ...prev, [currentQuestion.id]: { ...prev[currentQuestion.id], answer: null, marked: true, visited: true } }));
+    // Preserve the selected answer locally but do NOT save to DB
+    // The marked: true flag keeps it categorized as 'review' in the palette
+    setAnswers(prev => ({ ...prev, [currentQuestion.id]: { ...prev[currentQuestion.id], marked: true, visited: true, saved: false } }));
     moveToNext();
   };
 
@@ -249,9 +360,13 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const getQuestionStatus = (qId: string) => {
     const state = answers[qId];
     if (!state) return 'not_visited';
-    if (state.marked && state.answer !== null && state.answer !== '') return 'answered_review';
+    // Answered & marked for review (Save & Mark for Review)
+    if (state.saved && state.marked && state.answer !== null && state.answer !== '') return 'answered_review';
+    // Marked for review only — answer may exist locally but was not confirmed (Mark for Review & Next)
     if (state.marked) return 'review';
-    if (state.answer !== null && state.answer !== '') return 'answered';
+    // Confirmed answer (Save & Next)
+    if (state.saved && state.answer !== null && state.answer !== '') return 'answered';
+    // Answer selected but not confirmed via any button (navigated with Next >>) → Not Answered
     if (state.visited) return 'not_answered';
     return 'not_visited';
   };
@@ -276,44 +391,57 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       let finalScore = 0;
       const sectionScores: any[] = subjects.map(sub => ({ subject_name: sub.subject_name, correct: 0, wrong: 0, unanswered: 0, marks: 0 }));
 
+      // Only include answers that were explicitly saved (Save & Next / Save & Mark for Review)
+      // Exclude answers that were only "Mark for Review & Next" (saved: false)
+      const formattedAnswers: Record<string, any> = {};
       questions.forEach((q) => {
-        const studentAns = answers[q.id]?.answer;
+        const a = answers[q.id];
+        if (!a?.saved) return; // Skip mark-for-review-only answers
+
+        const studentAns = a.answer;
         const subIdx = subjects.findIndex(s => s.id === q.exam_subject_id);
         const section = sectionScores[subIdx];
+
+        formattedAnswers[q.id] = { question_id: q.id, answer: studentAns, marked_for_review: a.marked, time_spent_seconds: 0 };
 
         if (studentAns === null || studentAns === '' || studentAns === undefined) {
           section.unanswered++;
         } else if (q.question_type === 'msq') {
           const selectedOpts = String(studentAns).split(',').filter(Boolean).sort();
           const correctOpts = String(q.correct_option).split(',').filter(Boolean).sort();
-          
+
           let hasWrong = false;
           let correctCount = 0;
-          selectedOpts.forEach(opt => {
+          selectedOpts.forEach((opt: string) => {
             if (correctOpts.includes(opt)) correctCount++;
             else hasWrong = true;
           });
 
           const msqCorrect = exam?.marking_scheme?.msq_correct ?? 4;
-          const msqPartial = exam?.marking_scheme?.msq_partial ?? 1;
+          const msqPartialPerQ = exam?.marking_scheme?.msq_partial ?? 1;
           const msqWrong = exam?.marking_scheme?.msq_wrong ?? 0;
-          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? true;
+          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? false;
 
           if (hasWrong) {
+            // Any wrong selection → wrong (always, regardless of partial setting)
             section.wrong++;
             section.marks += msqWrong;
             finalScore += msqWrong;
           } else if (correctCount === correctOpts.length) {
+            // All correct, none wrong → full marks
             section.correct++;
             section.marks += msqCorrect;
             finalScore += msqCorrect;
           } else {
+            // Partial: some correct, none wrong
             if (msqPartialEnabled) {
-              section.correct++; // Consider partially correct as correct for count, or maybe a separate bucket. We'll count as correct for now, or just leave it.
-              const partialScore = msqPartial * correctCount;
+              // Award msq_partial per correctly selected option
+              const partialScore = Math.round(msqPartialPerQ * correctCount * 100) / 100;
+              section.partial = (section.partial || 0) + 1;
               section.marks += partialScore;
               finalScore += partialScore;
             } else {
+              // Partial marking disabled → treat as wrong
               section.wrong++;
               section.marks += msqWrong;
               finalScore += msqWrong;
@@ -328,11 +456,6 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           section.marks += q.negative_marks ?? 0;
           finalScore += q.negative_marks ?? 0;
         }
-      });
-
-      const formattedAnswers: Record<string, any> = {};
-      Object.keys(answers).forEach(qId => {
-        formattedAnswers[qId] = { question_id: qId, answer: answers[qId].answer, marked_for_review: answers[qId].marked, time_spent_seconds: 0 };
       });
 
       if (exam.id) {
@@ -385,41 +508,65 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       let finalScore = 0;
       const sectionScores: any[] = subjects.map(sub => ({ subject_name: sub.subject_name, correct: 0, wrong: 0, unanswered: 0, marks: 0 }));
 
+      // Only include answers that were explicitly saved (Save & Next / Save & Mark for Review)
+      // Exclude answers that were only "Mark for Review & Next" (saved: false)
+      const formattedAnswers: Record<string, any> = {};
       questions.forEach((q) => {
-        const studentAns = answers[q.id]?.answer;
+        const a = answers[q.id];
+        if (!a?.saved) return; // Skip mark-for-review-only answers
+
+        const studentAns = a.answer;
         const subIdx = subjects.findIndex(s => s.id === q.exam_subject_id);
         const section = sectionScores[subIdx];
+
+        formattedAnswers[q.id] = {
+          question_id: q.id,
+          answer: studentAns,
+          marked_for_review: a.marked,
+          time_spent_seconds: 0
+        };
 
         if (studentAns === null || studentAns === '' || studentAns === undefined) {
           section.unanswered++;
         } else if (q.question_type === 'msq') {
           const selectedOpts = String(studentAns).split(',').filter(Boolean).sort();
           const correctOpts = String(q.correct_option).split(',').filter(Boolean).sort();
-          
+
           let hasWrong = false;
           let correctCount = 0;
-          selectedOpts.forEach(opt => {
+          selectedOpts.forEach((opt: string) => {
             if (correctOpts.includes(opt)) correctCount++;
             else hasWrong = true;
           });
 
           const msqCorrect = exam?.marking_scheme?.msq_correct ?? 4;
-          const msqPartial = exam?.marking_scheme?.msq_partial ?? 1;
-          const msqWrong = exam?.marking_scheme?.msq_wrong ?? -2;
+          const msqPartialPerQ = exam?.marking_scheme?.msq_partial ?? 1;
+          const msqWrong = exam?.marking_scheme?.msq_wrong ?? 0;
+          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? false;
 
           if (hasWrong) {
+            // Any wrong selection → wrong (always)
             section.wrong++;
             section.marks += msqWrong;
             finalScore += msqWrong;
           } else if (correctCount === correctOpts.length) {
+            // All correct → full marks
             section.correct++;
             section.marks += msqCorrect;
             finalScore += msqCorrect;
           } else {
-            section.correct++;
-            const partialScore = msqPartial * correctCount;
-            section.marks += partialScore;
-            finalScore += partialScore;
+            // Partial: some correct, none wrong
+            if (msqPartialEnabled) {
+              const partialScore = Math.round(msqPartialPerQ * correctCount * 100) / 100;
+              section.partial = (section.partial || 0) + 1;
+              section.marks += partialScore;
+              finalScore += partialScore;
+            } else {
+              // Partial marking disabled → treat as wrong
+              section.wrong++;
+              section.marks += msqWrong;
+              finalScore += msqWrong;
+            }
           }
         } else if (studentAns === q.correct_option) {
           section.correct++;
@@ -430,16 +577,6 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           section.marks += q.negative_marks ?? 0;
           finalScore += q.negative_marks ?? 0;
         }
-      });
-
-      const formattedAnswers: Record<string, any> = {};
-      Object.keys(answers).forEach(qId => {
-        formattedAnswers[qId] = {
-          question_id: qId,
-          answer: answers[qId].answer,
-          marked_for_review: answers[qId].marked,
-          time_spent_seconds: 0
-        };
       });
 
       if (exam.id) {
@@ -593,9 +730,9 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       <div className="flex flex-1 overflow-hidden">
 
         {/* Left Area - Question Panel */}
-        <div className="flex-1 flex flex-col bg-[#FFFFFF] border-r border-[#E4E7EC] overflow-hidden">
+        <div className="flex-1 flex flex-col bg-[#FFFFFF] border-r border-[#E4E7EC] overflow-hidden relative">
 
-          <div className="flex-1 overflow-y-auto p-8">
+          <div ref={questionContentRef} className="flex-1 overflow-y-auto p-8">
             {currentQuestion ? (
               <div className="font-serif" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
                 <div className="flex items-center justify-between border-b border-[#E4E7EC] pb-3 mb-6">
@@ -616,30 +753,6 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                     </div>
                   )}
                   {(() => {
-                    if (!currentQuestion.image_url) return null;
-                    const parseQuestionImages = (urlStr: string | null): string[] => {
-                      if (!urlStr) return [];
-                      const trimmed = urlStr.trim();
-                      try {
-                        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-                          let parsed = JSON.parse(trimmed);
-                          if (typeof parsed === 'string') {
-                             parsed = JSON.parse(parsed);
-                          }
-                          if (Array.isArray(parsed)) return parsed;
-                        }
-                      } catch (e) {
-                        // Ignore parse errors and fallback to regex extraction
-                      }
-                      
-                      // Fallback: extract any data URIs using regex
-                      const matches = trimmed.match(/data:image\/[^;]+;base64,[a-zA-Z0-9+/=]+/g);
-                      if (matches && matches.length > 0) {
-                        return matches;
-                      }
-                      
-                      return [trimmed];
-                    };
                     const images = parseQuestionImages(currentQuestion.image_url);
                     if (images.length === 0) return null;
                     return (
@@ -648,7 +761,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                           <img
                             key={idx}
                             src={url}
-                            alt={`Question ${idx + 1}`}
+                            alt={`Question image ${idx + 1}`}
                             className="max-w-full max-h-80 object-contain rounded-none border border-[#E4E7EC] shadow-sm"
                           />
                         ))}
@@ -680,20 +793,21 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                             className={`w-4 h-4 text-[#008080] border-[#E4E7EC] focus:ring-[#008080] cursor-pointer mt-1 ${isMsq ? 'rounded' : ''}`}
                           />
                           <span className="flex items-start gap-3 font-serif text-[14px] w-full">
-                            <span className="font-bold mt-0.5">({opt})</span>
-                            <span className="flex flex-col gap-2">
+                            <span className="font-bold shrink-0 mt-0.5">({opt})</span>
+                            <span className="flex flex-col gap-2 flex-1 min-w-0">
                               {currentQuestion.options[opt] && (
-                                <span>
-                                  <MathRenderer text={currentQuestion.options[opt]} />
+                                <span className="inline-block align-middle">
+                                  <MathRenderer text={currentQuestion.options[opt]} inline />
                                 </span>
                               )}
-                              {currentQuestion.options[`${opt}_image`] && (
+                              {parseQuestionImages(currentQuestion.options[`${opt}_image`]).map((imgUrl, imgIdx) => (
                                 <img
-                                  src={currentQuestion.options[`${opt}_image`]}
-                                  alt={`Option ${opt}`}
+                                  key={imgIdx}
+                                  src={imgUrl}
+                                  alt={`Option ${opt} image ${imgIdx + 1}`}
                                   className="max-w-[200px] max-h-[200px] object-contain rounded-none border border-[#E4E7EC]"
                                 />
-                              )}
+                              ))}
                             </span>
                           </span>
                         </label>
@@ -779,6 +893,30 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
               className="bg-[#008080] hover:bg-[#006666] text-white px-6 py-1.5 rounded-none font-bold text-sm shadow-sm transition-all uppercase"
             >
               SUBMIT
+            </button>
+          </div>
+
+          {/* Floating Back to Top / Back to Bottom Buttons */}
+          <div className="absolute right-6 bottom-24 flex flex-col gap-2 z-20">
+            <button
+              onClick={scrollToTop}
+              className="w-10 h-10 rounded-full bg-[#008080] hover:bg-[#006666] text-white flex items-center justify-center shadow-md hover:shadow-lg transition-all focus:outline-none cursor-pointer active:scale-95 opacity-85 hover:opacity-100"
+              title="Back to Top"
+              aria-label="Back to Top"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+            <button
+              onClick={scrollToBottom}
+              className="w-10 h-10 rounded-full bg-[#008080] hover:bg-[#006666] text-white flex items-center justify-center shadow-md hover:shadow-lg transition-all focus:outline-none cursor-pointer active:scale-95 opacity-85 hover:opacity-100"
+              title="Back to Bottom"
+              aria-label="Back to Bottom"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
           </div>
         </div>
