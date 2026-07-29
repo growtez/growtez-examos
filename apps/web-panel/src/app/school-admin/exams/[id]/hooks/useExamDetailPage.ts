@@ -146,6 +146,7 @@ export function useExamDetailPage(paramsId: string) {
   const [qType, setQType] = useState<'mcq' | 'msq' | 'nat'>('mcq');
   const [qText, setQText] = useState('');
   const [qImage, setQImage] = useState<string | null>(null);
+  const [qExplanation, setQExplanation] = useState('');
 
   const [rawImageToCrop, setRawImageToCrop] = useState<string | null>(null);
   const [cropTarget, setCropTarget] = useState<'question' | 'A' | 'B' | 'C' | 'D' | null>(null);
@@ -278,7 +279,7 @@ export function useExamDetailPage(paramsId: string) {
 
   const clearDraft = () => {
     setEditingQuestionId(null);
-    setQType('mcq'); setQText(''); setQImage(null);
+    setQType('mcq'); setQText(''); setQImage(null); setQExplanation('');
     setOptA(''); setOptAImg(null); setOptB(''); setOptBImg(null);
     setOptC(''); setOptCImg(null); setOptD(''); setOptDImg(null);
     setCorrectAnswer(''); setNatAnswer(''); setDrawerError('');
@@ -450,6 +451,7 @@ export function useExamDetailPage(paramsId: string) {
         exam_subject_id: drawerSubjectId,
         question_type: qType,
         question_text: qText,
+        explanation: qExplanation || null,
         question_number: editingQuestionId ? undefined : drawerQuestions.length + 1,
         image_url: qImage,
         marks: qType === 'nat' ? (markingScheme.nat_correct || 4) : (markingScheme[`${qType}_correct`] || markingScheme.mcq_correct || 4),
@@ -493,6 +495,7 @@ export function useExamDetailPage(paramsId: string) {
     setQType(q.question_type);
     setQText(q.question_text || '');
     setQImage(q.image_url || null);
+    setQExplanation(q.explanation || '');
     if (q.question_type === 'mcq' || q.question_type === 'msq') {
       setOptA(q.options?.A || ''); setOptAImg(q.options?.A_image || null);
       setOptB(q.options?.B || ''); setOptBImg(q.options?.B_image || null);
@@ -2087,6 +2090,8 @@ export function useExamDetailPage(paramsId: string) {
     setQText,
     qImage,
     setQImage,
+    qExplanation,
+    setQExplanation,
     rawImageToCrop,
     setRawImageToCrop,
     cropTarget,

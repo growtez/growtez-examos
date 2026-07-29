@@ -512,6 +512,12 @@ export const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
                   </Text>
                 </View>
               )}
+              {q.explanation && (
+                <View style={{ marginTop: 6, padding: 6, borderRadius: 4, borderWidth: 1, borderColor: '#bfdbfe', backgroundColor: '#eff6ff' }}>
+                  <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 9, color: '#1d4ed8', marginBottom: 2 }}>Explanation / Solution:</Text>
+                  <Text style={{ fontSize: 9, color: '#1e293b' }}>{q.explanation}</Text>
+                </View>
+              )}
             </View>
           );
         })}

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BookOpen, Edit2, Trash2, Search, AlertCircle, Sigma, Plus, ArrowUp } from 'lucide-react';
+import { BookOpen, Edit2, Trash2, Search, AlertCircle, Sigma, Plus, ArrowUp, ChevronDown } from 'lucide-react';
 import FormulaToolbar from '@/components/FormulaToolbar';
 import MathRenderer from '@/components/MathRenderer';
 import { parseQuestionImages } from '../hooks/useExamDetailPage';
@@ -26,6 +26,8 @@ interface Step3QuestionsProps {
   setQText: (val: string) => void;
   qImage: string | null;
   setQImage: (val: string | null) => void;
+  qExplanation?: string;
+  setQExplanation?: (val: string) => void;
   optA: string;
   setOptA: (val: string) => void;
   optAImg: string | null;
@@ -92,6 +94,8 @@ export default function Step3Questions({
   setQText,
   qImage,
   setQImage,
+  qExplanation = '',
+  setQExplanation = () => {},
   optA,
   setOptA,
   optAImg,
@@ -139,22 +143,30 @@ export default function Step3Questions({
   const [showTopBtn, setShowTopBtn] = useState(false);
 
   useEffect(() => {
-    const mainEl = document.querySelector('main.overflow-auto');
-    if (!mainEl) return;
-    
     const handleScroll = () => {
-      if (mainEl.scrollTop > 300) setShowTopBtn(true);
-      else setShowTopBtn(false);
+      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      const mainEl = document.querySelector("main");
+      const mainScroll = mainEl ? mainEl.scrollTop : 0;
+      setShowTopBtn(scrollY > 150 || mainScroll > 150);
     };
-    
-    mainEl.addEventListener('scroll', handleScroll);
-    return () => mainEl.removeEventListener('scroll', handleScroll);
+
+    window.addEventListener("scroll", handleScroll, true);
+    return () => {
+      window.removeEventListener("scroll", handleScroll, true);
+    };
   }, []);
 
   const scrollToTop = () => {
-    const mainEl = document.querySelector('main.overflow-auto');
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+    const mainEl = document.querySelector("main");
     if (mainEl) {
-      mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+      mainEl.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
     }
   };
 
@@ -255,33 +267,32 @@ export default function Step3Questions({
               return true;
             })
             .map((s) => {
-            const added = questionCounts[s.id] || 0;
-            const needed = s.question_count;
-            const exact = added === needed;
-            const over = added > needed;
-            const under = added < needed;
-            const isSelected = drawerSubjectId === s.id;
+              const added = questionCounts[s.id] || 0;
+              const needed = s.question_count;
+              const exact = added === needed;
+              const over = added > needed;
+              const under = added < needed;
+              const isSelected = drawerSubjectId === s.id;
 
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => openManageQuestions(s.id)}
-                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${
-                  isSelected
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => openManageQuestions(s.id)}
+                  className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${isSelected
                     ? 'bg-accent-primary text-white border-accent-primary shadow-sm'
                     : over
                       ? 'bg-amber-50 border-amber-300 text-amber-700'
                       : 'bg-surface border-border text-text-main hover:border-accent-primary/50'
-                }`}
-              >
-                {s.subject_name}
-                <span className={isSelected ? 'text-white/80' : exact ? 'text-emerald-600' : over ? 'text-amber-600' : 'text-red-500'}>
-                  {added}/{needed}{over ? ' ⚠' : ''}
-                </span>
-              </button>
-            );
-          })}
+                    }`}
+                >
+                  {s.subject_name}
+                  <span className={isSelected ? 'text-white/80' : exact ? 'text-emerald-600' : over ? 'text-amber-600' : 'text-red-500'}>
+                    {added}/{needed}{over ? ' ⚠' : ''}
+                  </span>
+                </button>
+              );
+            })}
         </div>
       )}
 
@@ -301,13 +312,12 @@ export default function Step3Questions({
                 <h3 className="text-lg font-bold text-text-main">
                   {activeSubject?.subject_name}
                 </h3>
-                <span className={`text-sm font-semibold px-2.5 py-1 rounded-md ${
-                  isExact
-                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                    : isOver
-                      ? 'bg-amber-50 text-amber-600 border border-amber-200'
-                      : 'bg-red-50 text-red-500 border border-red-200'
-                }`}>
+                <span className={`text-sm font-semibold px-2.5 py-1 rounded-md ${isExact
+                  ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+                  : isOver
+                    ? 'bg-amber-50 text-amber-600 border border-amber-200'
+                    : 'bg-red-50 text-red-500 border border-red-200'
+                  }`}>
                   {added}/{needed} Added
                 </span>
               </div>
@@ -405,7 +415,7 @@ export default function Step3Questions({
                       <div key={q.id} className="p-4 bg-surface border border-border rounded-xl shadow-sm group relative overflow-hidden">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2 min-w-0 flex-wrap">
-<span className="min-w-7 h-7 px-1.5 rounded bg-surface border border-border flex items-center justify-center text-xs text-text-main font-bold shrink-0">{originalNumber}</span>
+                            <span className="min-w-7 h-7 px-1.5 rounded bg-surface border border-border flex items-center justify-center text-xs text-text-main font-bold shrink-0">{originalNumber}</span>
                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border shrink-0 ${q.question_type === 'mcq' ? 'bg-blue-50 text-blue-600 border-blue-200' : q.question_type === 'msq' ? 'bg-purple-50 text-purple-600 border-purple-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
                               {q.question_type}
                             </span>
@@ -460,6 +470,17 @@ export default function Step3Questions({
                           <div className="inline-flex max-w-full px-3 py-1.5 bg-accent-primary/5 border border-accent-primary rounded-lg text-xs text-accent-primary font-bold mt-2 break-words [overflow-wrap:anywhere]">
                             Answer: <MathRenderer text={q.correct_option ?? ''} className="ml-1" />
                           </div>
+                        )}
+                        {q.explanation && (
+                          <details className="group mt-3 bg-surface border border-border rounded-lg text-xs">
+                            <summary className="px-3 py-2 font-bold text-text-main cursor-pointer flex items-center justify-between select-none hover:bg-surface-hover transition-colors [&::-webkit-details-marker]:hidden list-none">
+                              <span>Explanation / Solution</span>
+                              <ChevronDown size={14} className="transition-transform group-open:rotate-180 text-text-muted shrink-0" />
+                            </summary>
+                            <div className="px-3 pb-3 pt-1 border-t border-border">
+                              <MathRenderer text={q.explanation} className="text-text-main" />
+                            </div>
+                          </details>
                         )}
                       </div>
                     )
@@ -518,17 +539,17 @@ export default function Step3Questions({
       {drawerSubjectId && (
         <>
           <div
-            className={`fixed inset-0 bg-black/50 backdrop-blur-[2px] z-[1000] flex justify-end md:items-center md:justify-center transition-opacity duration-300 ${drawerView === 'editor' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+            className={`fixed inset-0 bg-bg z-[1000] flex flex-col w-full h-[100dvh] transition-opacity duration-300 ${drawerView === 'editor' ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
             onMouseDown={(e) => {
               if (e.target === e.currentTarget) setDrawerView('list');
             }}
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              className={`h-[100dvh] md:h-auto md:max-h-[88vh] w-full max-w-[680px] md:max-w-4xl bg-bg shadow-[-8px_0_40px_-12px_rgba(0,0,0,0.25)] md:shadow-2xl flex flex-col border-l border-border md:border md:rounded-2xl md:m-4 transition-all duration-500 ease-out transform ${drawerView === 'editor' ? 'translate-x-0 md:translate-y-0 md:scale-100 opacity-100' : 'translate-x-full md:translate-x-0 md:translate-y-4 md:scale-95 opacity-100 md:opacity-0'}`}
+              className={`w-full h-full bg-bg flex flex-col transition-all duration-300 ease-out transform ${drawerView === 'editor' ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
             >
               {/* Drawer Header - pinned */}
-              <div className="px-5 py-3 border-b border-border flex justify-between items-center bg-surface shrink-0">
+              <div className="relative px-5 py-3 border-b border-border flex justify-between items-center bg-surface shrink-0">
                 <div className="flex items-center gap-3">
                   <span className="w-9 h-9 rounded-lg bg-accent-primary/10 flex items-center justify-center shrink-0">
                     <BookOpen size={17} className="text-accent-primary" />
@@ -542,96 +563,79 @@ export default function Step3Questions({
                     </p>
                   </div>
                 </div>
-                <button
-                  className="w-8 h-8 rounded-full bg-bg border border-border flex items-center justify-center text-text-muted transition-all hover:bg-red-50 hover:border-red-200 hover:text-red-500 cursor-pointer text-sm"
-                  onClick={handleDrawerCancel}
-                >
-                  ✕
-                </button>
-              </div>
 
-              {/* Drawer Body - scrollable */}
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-5 bg-surface">
-                <form id="drawer-question-form" onSubmit={(e) => doSaveQuestion(e, false)} className="space-y-5">
+                {/* Question type toggle - centered horizontally */}
+                <div className="hidden sm:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 bg-bg rounded-xl p-1 border border-border shadow-sm">
+                  <button type="button" onClick={() => setQType('mcq')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${qType === 'mcq' ? 'bg-accent-primary text-white shadow-sm' : 'text-text-muted hover:text-text-main'}`}>
+                    MCQ
+                  </button>
+                  {msqEnabled && (
+                    <button type="button" onClick={() => setQType('msq')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${qType === 'msq' ? 'bg-accent-primary text-white shadow-sm' : 'text-text-muted hover:text-text-main'}`}>
+                      MSQ
+                    </button>
+                  )}
+                  <button type="button" onClick={() => setQType('nat')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${qType === 'nat' ? 'bg-accent-primary text-white shadow-sm' : 'text-text-muted hover:text-text-main'}`}>
+                    NAT
+                  </button>
+                </div>
 
-                  {/* Question type toggle */}
-                  <div className="flex bg-surface rounded-xl p-1 border border-border shadow-sm">
-                    <button type="button" onClick={() => setQType('mcq')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${qType === 'mcq' ? 'bg-accent-primary text-white shadow-sm' : 'text-text-muted hover:text-text-main'}`}>
+                <div className="flex items-center gap-3">
+                  {/* Mobile toggle */}
+                  <div className="flex sm:hidden bg-bg rounded-xl p-1 border border-border shadow-sm">
+                    <button type="button" onClick={() => setQType('mcq')} className={`px-2 py-1 text-xs font-bold rounded-lg transition-all ${qType === 'mcq' ? 'bg-accent-primary text-white shadow-sm' : 'text-text-muted hover:text-text-main'}`}>
                       MCQ
                     </button>
                     {msqEnabled && (
-                      <button type="button" onClick={() => setQType('msq')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${qType === 'msq' ? 'bg-accent-primary text-white shadow-sm' : 'text-text-muted hover:text-text-main'}`}>
+                      <button type="button" onClick={() => setQType('msq')} className={`px-2 py-1 text-xs font-bold rounded-lg transition-all ${qType === 'msq' ? 'bg-accent-primary text-white shadow-sm' : 'text-text-muted hover:text-text-main'}`}>
                         MSQ
                       </button>
                     )}
-                    <button type="button" onClick={() => setQType('nat')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${qType === 'nat' ? 'bg-accent-primary text-white shadow-sm' : 'text-text-muted hover:text-text-main'}`}>
-                      Numerical
+                    <button type="button" onClick={() => setQType('nat')} className={`px-2 py-1 text-xs font-bold rounded-lg transition-all ${qType === 'nat' ? 'bg-accent-primary text-white shadow-sm' : 'text-text-muted hover:text-text-main'}`}>
+                      NAT
                     </button>
                   </div>
 
-                  {/* Question text + image section */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
-                        <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Question</label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input type="file" accept="image/*" onChange={(e) => handleDrawerImageUpload(e, 'question')} className="hidden" id="q-img" />
-                        <label htmlFor="q-img" className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 bg-bg border border-border text-accent-primary font-bold text-[11px] rounded-lg hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors">
-                          + Image
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowQFormula(!showQFormula);
-                            if (!editingQText) setEditingQText(true);
-                          }}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
-                            showQFormula
-                              ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
-                              : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
-                          }`}
-                        >
-                          <Sigma size={11} />
-                          {showQFormula ? 'Hide Formula' : 'Formula'}
-                        </button>
-                        {editingQText && (
+                  <button
+                    className="w-8 h-8 rounded-full bg-bg border border-border flex items-center justify-center text-text-muted transition-all hover:bg-red-50 hover:border-red-200 hover:text-red-500 cursor-pointer text-sm shrink-0"
+                    onClick={handleDrawerCancel}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Drawer Body - scrollable */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 bg-surface">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto items-start">
+                  
+                  {/* Left Column: Form Fields */}
+                  <form id="drawer-question-form" onSubmit={(e) => doSaveQuestion(e, false)} className="space-y-6">
+                    {/* Question text + image section */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
+                          <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Question</label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input type="file" accept="image/*" onChange={(e) => handleDrawerImageUpload(e, 'question')} className="hidden" id="q-img" />
+                          <label htmlFor="q-img" className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 bg-bg border border-border text-accent-primary font-bold text-[11px] rounded-lg hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors">
+                            + Image
+                          </label>
                           <button
                             type="button"
-                            onClick={() => setEditingQText(false)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border bg-accent-primary text-white border-accent-primary hover:bg-accent-primary/90 transition-all cursor-pointer shadow-xs"
+                            onClick={() => setShowQFormula(!showQFormula)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${showQFormula
+                              ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
+                              : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
+                              }`}
                           >
-                            ✓ Done (Preview)
+                            <Sigma size={11} />
+                            {showQFormula ? 'Hide Formula' : 'Formula'}
                           </button>
-                        )}
+                        </div>
                       </div>
-                    </div>
 
-                    {!editingQText ? (
-                      /* PREVIEW MODE BY DEFAULT */
-                      <div
-                        onClick={() => setEditingQText(true)}
-                        className="w-full min-h-[64px] p-3.5 bg-bg hover:bg-surface border border-border hover:border-accent-primary/50 rounded-xl cursor-pointer transition-all flex flex-col justify-between group shadow-xs relative"
-                        title="Click to edit question text / formula"
-                      >
-                        <div className="text-xs font-semibold text-text-main leading-relaxed break-words [overflow-wrap:anywhere]">
-                          {qText ? (
-                            <MathRenderer text={qText} />
-                          ) : (
-                            <span className="text-text-muted/60 italic font-medium text-xs">
-                              Click here to enter question text / formula...
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-end mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <span className="text-[10px] font-bold text-accent-primary flex items-center gap-1 bg-accent-primary/10 px-2 py-0.5 rounded">
-                            <Edit2 size={10} /> Click to Edit
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      /* EDIT BOX MODE */
                       <div className="space-y-2">
                         {showQFormula && (
                           <FormulaToolbar
@@ -647,260 +651,352 @@ export default function Step3Questions({
                           }}
                           value={qText}
                           onChange={(e) => { setQText(e.target.value); autoGrow(e.target); }}
-                          rows={2}
-                          className="w-full px-3 py-2.5 bg-bg border border-accent-primary rounded-lg text-text-main focus:ring-2 focus:ring-accent-primary/15 outline-none resize-none text-sm font-medium transition-shadow overflow-hidden whitespace-pre-wrap break-words"
-                          placeholder="Enter question... Use \frac{a}{b} for fractions, \sqrt{x} for roots, $\sin(x)$ for math"
-                          autoFocus
+                          rows={3}
+                          className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-accent-primary/15 outline-none resize-y min-h-[90px] text-sm font-medium transition-shadow whitespace-pre-wrap break-words"
+                          placeholder="Enter question text... Use \frac{a}{b} for fractions, \sqrt{x} for roots, $\sin(x)$ for math"
                         />
                         {qText && (
-                          <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg">
+                          <div className="lg:hidden px-3 py-2 bg-bg border border-dashed border-border rounded-lg mt-2">
                             <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Live Formula Preview</p>
                             <MathRenderer text={qText} className="text-sm text-text-main" />
                           </div>
                         )}
                       </div>
+
+                      {/* Image Preview List if present */}
+                      {(() => {
+                        const images = qImage ? parseQuestionImages(qImage) : [];
+                        if (images.length === 0) return null;
+                        return (
+                          <div className="flex flex-wrap gap-2 items-center pt-1">
+                            {images.map((url, idx) => (
+                              <div key={idx} className="relative group">
+                                <img src={url} alt={`Preview ${idx + 1}`} className="h-14 rounded-lg border border-border object-contain bg-white" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = images.filter((_, i) => i !== idx);
+                                    setQImage(updated.length > 0 ? JSON.stringify(updated) : null);
+                                  }}
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm cursor-pointer hover:bg-red-600 transition-colors"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {(qType === 'mcq' || qType === 'msq') ? (
+                      <>
+                        {/* Options section */}
+                        <div className="space-y-3 pt-2 border-t border-border">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
+                            <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Options</label>
+                          </div>
+                          <div className="flex flex-col gap-3">
+                            {[
+                              { label: 'Option A', val: optA, setVal: setOptA, img: optAImg, setImg: setOptAImg, id: 'A' },
+                              { label: 'Option B', val: optB, setVal: setOptB, img: optBImg, setImg: setOptBImg, id: 'B' },
+                              { label: 'Option C', val: optC, setVal: setOptC, img: optCImg, setImg: setOptCImg, id: 'C' },
+                              { label: 'Option D', val: optD, setVal: setOptD, img: optDImg, setImg: setOptDImg, id: 'D' }
+                            ].map((opt) => {
+                              const isSelectedCorrect = qType === 'msq'
+                                ? correctAnswer.split(',').includes(opt.id)
+                                : correctAnswer === opt.id;
+
+                              return (
+                                <div
+                                  key={opt.label}
+                                  className={`rounded-lg border transition-colors overflow-hidden flex flex-col ${isSelectedCorrect ? 'border-emerald-500 ring-1 ring-emerald-500/20' : 'border-border'}`}
+                                >
+                                  <div className="bg-bg px-3 py-1.5 border-b border-border flex items-center justify-between">
+                                    <label className="flex items-center gap-1.5 text-xs font-bold text-text-muted">
+                                      {opt.label}
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                      <input type="file" accept="image/*" onChange={(e) => handleDrawerImageUpload(e, opt.id as any)} className="hidden" id={`img-${opt.id}`} />
+                                      <label htmlFor={`img-${opt.id}`} className="cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border text-accent-primary font-bold text-[10px] rounded hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors">
+                                        + Image
+                                      </label>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setShowOptFormula((prev) => ({ ...prev, [opt.id]: !prev[opt.id] }));
+                                        }}
+                                        className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all cursor-pointer ${showOptFormula[opt.id]
+                                          ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
+                                          : 'bg-surface border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
+                                          }`}
+                                      >
+                                        <Sigma size={10} />
+                                        {showOptFormula[opt.id] ? 'Hide Formula' : 'Formula'}
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div className="bg-surface p-2.5 flex flex-col space-y-2">
+                                    {showOptFormula[opt.id] && (
+                                      <FormulaToolbar
+                                        compact
+                                        onInsert={(latex) =>
+                                          insertAtCursor(
+                                            { current: optRefs.current[opt.id] } as any,
+                                            opt.setVal,
+                                            opt.val,
+                                            latex
+                                          )
+                                        }
+                                      />
+                                    )}
+                                    <textarea
+                                      ref={(el) => { optRefs.current[opt.id] = el; autoGrow(el); }}
+                                      rows={2}
+                                      value={opt.val}
+                                      onChange={(e) => { opt.setVal(e.target.value); autoGrow(e.target); }}
+                                      className="w-full bg-bg px-3 py-2 rounded border border-border text-xs text-text-main outline-none focus:border-accent-primary resize-y min-h-[50px] whitespace-pre-wrap break-words placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                                      placeholder={`Type ${opt.label} text or formula...`}
+                                    />
+                                    {opt.val && (
+                                      <div className="lg:hidden pt-2 border-t border-border/50 text-[13px] text-text-main">
+                                        <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Live Formula Preview</p>
+                                        <MathRenderer text={opt.val} />
+                                      </div>
+                                    )}
+
+                                    {/* Option Image Preview */}
+                                    {(() => {
+                                      const images = opt.img ? parseQuestionImages(opt.img) : [];
+                                      if (images.length === 0) return null;
+                                      return (
+                                        <div className="flex flex-wrap gap-2 items-center pt-1">
+                                          {images.map((url, idx) => (
+                                            <div key={idx} className="relative group">
+                                              <img src={url} alt={`Preview ${idx + 1}`} className="h-12 rounded border border-border object-contain bg-white" />
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  const updated = images.filter((_, i) => i !== idx);
+                                                  opt.setImg(updated.length > 0 ? JSON.stringify(updated) : null);
+                                                }}
+                                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm cursor-pointer hover:bg-red-600 transition-colors"
+                                              >✕</button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Correct answer section */}
+                        <div className="space-y-2 pt-2 border-t border-border">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
+                            <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">
+                              {qType === 'msq' ? 'Correct Answers (select multiple)' : 'Correct Answer'}
+                            </label>
+                          </div>
+                          <div className="flex gap-2">
+                            {['A', 'B', 'C', 'D'].map((opt) => {
+                              const isSelected = qType === 'msq'
+                                ? correctAnswer.split(',').includes(opt)
+                                : correctAnswer === opt;
+                              return (
+                                <button key={opt} type="button" onClick={() => {
+                                  if (qType === 'msq') {
+                                    const selected = correctAnswer ? correctAnswer.split(',') : [];
+                                    if (selected.includes(opt)) {
+                                      setCorrectAnswer(selected.filter(s => s !== opt).join(','));
+                                    } else {
+                                      setCorrectAnswer([...selected, opt].sort().join(','));
+                                    }
+                                  } else {
+                                    setCorrectAnswer(opt);
+                                  }
+                                }}
+                                  className={`flex-1 h-10 rounded-lg text-sm font-bold border-2 transition-all ${isSelected ? 'bg-accent-primary border-accent-primary text-white shadow-sm' : 'bg-bg border-border text-text-muted hover:border-accent-primary/50 hover:text-accent-primary'}`}>
+                                  {opt}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-3 pt-2 border-t border-border">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
+                            <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Correct Numerical Answer</label>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <input
+                            type="number"
+                            step="any"
+                            value={natAnswer}
+                            onChange={(e) => setNatAnswer(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (['e', 'E', '+'].includes(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
+                            required
+                            className="w-full px-3 py-2.5 bg-bg border border-accent-primary rounded-lg outline-none focus:ring-2 focus:ring-accent-primary/15 text-sm font-medium transition-shadow placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                            placeholder="e.g. 42.5 or -3"
+                          />
+                        </div>
+                      </div>
                     )}
 
-                    {/* Image Preview List if present */}
-                    {(() => {
-                      const images = qImage ? parseQuestionImages(qImage) : [];
-                      if (images.length === 0) return null;
-                      return (
-                        <div className="flex flex-wrap gap-2 items-center pt-1">
-                          {images.map((url, idx) => (
-                            <div key={idx} className="relative group">
-                              <img src={url} alt={`Preview ${idx + 1}`} className="h-14 rounded-lg border border-border object-contain bg-white" />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = images.filter((_, i) => i !== idx);
-                                  setQImage(updated.length > 0 ? JSON.stringify(updated) : null);
-                                }}
-                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm cursor-pointer hover:bg-red-600 transition-colors"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
+                    <div className="space-y-2 pt-3 border-t border-border">
+                      <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">
+                        Explanation / Solution <span className="text-text-muted font-normal lowercase">(optional)</span>
+                      </label>
+                      <textarea
+                        rows={5}
+                        value={qExplanation}
+                        onChange={(e) => setQExplanation(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-xs font-medium resize-y min-h-[120px] placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                        placeholder="Enter explanation or step-by-step solution for students..."
+                      />
+                      {qExplanation && (
+                        <div className="lg:hidden px-3 py-2 bg-bg border border-dashed border-border rounded-lg mt-2">
+                          <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Explanation Preview</p>
+                          <MathRenderer text={qExplanation} className="text-xs text-text-main" />
                         </div>
-                      );
-                    })()}
-                  </div>
+                      )}
+                    </div>
 
-                  {(qType === 'mcq' || qType === 'msq') ? (
-                    <>
-                      {/* Options section */}
-                      <div className="space-y-3 pt-2 border-t border-border">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
-                          <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Options</label>
-                        </div>
-                        <div className="flex flex-col gap-3">
+                    {drawerError && (
+                      <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-xs font-semibold flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+                        {drawerError}
+                      </div>
+                    )}
+                  </form>
+
+                  {/* Right Column: Dedicated Live Preview Panel (Desktop only) */}
+                  <div className="hidden lg:block lg:sticky lg:top-0 bg-bg border border-border rounded-2xl p-5 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between border-b border-border pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-text-main">Live Question Preview</h4>
+                      </div>
+                      <span className="text-[10px] font-bold uppercase text-accent-primary bg-accent-primary/10 px-2.5 py-0.5 rounded-full border border-accent-primary/20">
+                        {qType.toUpperCase()}
+                      </span>
+                    </div>
+
+                    {/* Question Content */}
+                    <div className="space-y-3">
+                      <div className="text-sm font-semibold text-text-main leading-relaxed break-words [overflow-wrap:anywhere] min-h-[40px]">
+                        {qText ? (
+                          <MathRenderer text={qText} />
+                        ) : (
+                          <span className="text-text-muted/60 italic text-xs">Question text preview will appear here live...</span>
+                        )}
+                      </div>
+
+                      {/* Question Images */}
+                      {(() => {
+                        const images = qImage ? parseQuestionImages(qImage) : [];
+                        if (images.length === 0) return null;
+                        return (
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {images.map((url, idx) => (
+                              <img key={idx} src={url} alt={`Question preview ${idx + 1}`} className="h-24 rounded-lg border border-border object-contain bg-white" />
+                            ))}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Options (MCQ / MSQ) */}
+                    {(qType === 'mcq' || qType === 'msq') && (
+                      <div className="space-y-2 pt-3 border-t border-border">
+                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Options</p>
+                        <div className="grid grid-cols-1 gap-2">
                           {[
-                            { label: 'Option A', val: optA, setVal: setOptA, img: optAImg, setImg: setOptAImg, id: 'A' },
-                            { label: 'Option B', val: optB, setVal: setOptB, img: optBImg, setImg: setOptBImg, id: 'B' },
-                            { label: 'Option C', val: optC, setVal: setOptC, img: optCImg, setImg: setOptCImg, id: 'C' },
-                            { label: 'Option D', val: optD, setVal: setOptD, img: optDImg, setImg: setOptDImg, id: 'D' }
+                            { id: 'A', val: optA, img: optAImg },
+                            { id: 'B', val: optB, img: optBImg },
+                            { id: 'C', val: optC, img: optCImg },
+                            { id: 'D', val: optD, img: optDImg },
                           ].map((opt) => {
-                            const isSelectedCorrect = qType === 'msq'
+                            const isCorrect = qType === 'msq'
                               ? correctAnswer.split(',').includes(opt.id)
                               : correctAnswer === opt.id;
-                            const isEditingThisOpt = editingOpt[opt.id];
+                            const optImages = opt.img ? parseQuestionImages(opt.img) : [];
 
                             return (
                               <div
-                                key={opt.label}
-                                className={`rounded-lg border transition-colors overflow-hidden flex flex-col ${isSelectedCorrect ? 'border-emerald-500 ring-1 ring-emerald-500/20' : 'border-gray-300 dark:border-gray-700'}`}
+                                key={opt.id}
+                                className={`p-3 rounded-xl border transition-all flex flex-col gap-1.5 ${
+                                  isCorrect
+                                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-950 dark:text-emerald-200'
+                                    : 'bg-surface border-border text-text-main'
+                                }`}
                               >
-                                <div className="bg-bg px-3 py-2 border-b border-border flex items-center justify-between">
-                                  <label className="flex items-center gap-1.5 text-xs font-bold text-text-muted">
-                                    {opt.label}
-                                  </label>
-                                  <div className="flex items-center gap-2">
-                                    <input type="file" accept="image/*" onChange={(e) => handleDrawerImageUpload(e, opt.id as any)} className="hidden" id={`img-${opt.id}`} />
-                                    <label htmlFor={`img-${opt.id}`} className="cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border text-accent-primary font-bold text-[10px] rounded hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors">
-                                      + Image
-                                    </label>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setShowOptFormula((prev) => ({ ...prev, [opt.id]: !prev[opt.id] }));
-                                        if (!isEditingThisOpt) setEditingOpt(prev => ({ ...prev, [opt.id]: true }));
-                                      }}
-                                      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border transition-all cursor-pointer ${
-                                        showOptFormula[opt.id]
-                                          ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
-                                          : 'bg-surface border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
-                                      }`}
-                                    >
-                                      <Sigma size={10} />
-                                      {showOptFormula[opt.id] ? 'Hide Formula' : 'Formula'}
-                                    </button>
-                                    {isEditingThisOpt && (
-                                      <button
-                                        type="button"
-                                        onClick={() => setEditingOpt(prev => ({ ...prev, [opt.id]: false }))}
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded border bg-accent-primary text-white border-accent-primary cursor-pointer hover:bg-accent-primary/90 transition-all"
-                                      >
-                                        ✓ Done (Preview)
-                                      </button>
+                                <div className="flex items-start gap-2.5 text-xs font-medium">
+                                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
+                                    isCorrect ? 'bg-emerald-500 text-white' : 'bg-bg border border-border text-text-muted'
+                                  }`}>
+                                    {opt.id}
+                                  </span>
+                                  <div className="flex-1 break-words [overflow-wrap:anywhere]">
+                                    {opt.val ? (
+                                      <MathRenderer text={opt.val} />
+                                    ) : (
+                                      <span className="text-text-muted/60 italic text-xs">Option {opt.id}...</span>
                                     )}
                                   </div>
                                 </div>
-                              
-                                <div className="bg-surface p-3 flex flex-col">
-                                  {!isEditingThisOpt ? (
-                                    /* PREVIEW MODE BY DEFAULT */
-                                    <div
-                                      onClick={() => setEditingOpt(prev => ({ ...prev, [opt.id]: true }))}
-                                      className="w-full min-h-[40px] px-3 py-2 bg-bg hover:bg-surface border border-border/80 hover:border-accent-primary/50 rounded-md cursor-pointer transition-all flex items-center justify-between group"
-                                      title={`Click to edit ${opt.label} text/formula`}
-                                    >
-                                      <div className="text-xs font-semibold text-text-main break-words [overflow-wrap:anywhere]">
-                                        {opt.val ? (
-                                          <MathRenderer text={opt.val} />
-                                        ) : (
-                                          <span className="text-text-muted/50 italic text-xs">
-                                            Click to enter {opt.label} text or formula...
-                                          </span>
-                                        )}
-                                      </div>
-                                      <span className="text-[10px] font-bold text-accent-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
-                                        Edit
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    /* EDIT BOX MODE */
-                                    <div className="space-y-2">
-                                      {showOptFormula[opt.id] && (
-                                        <FormulaToolbar
-                                          compact
-                                          onInsert={(latex) =>
-                                            insertAtCursor(
-                                              { current: optRefs.current[opt.id] } as any,
-                                              opt.setVal,
-                                              opt.val,
-                                              latex
-                                            )
-                                          }
-                                        />
-                                      )}
-                                      <textarea
-                                        ref={(el) => { optRefs.current[opt.id] = el; autoGrow(el); }}
-                                        rows={1}
-                                        value={opt.val}
-                                        onChange={(e) => { opt.setVal(e.target.value); autoGrow(e.target); }}
-                                        className="w-full bg-bg px-3 py-2 rounded border border-accent-primary text-sm outline-none resize-none overflow-hidden whitespace-pre-wrap break-words placeholder:text-text-muted/40"
-                                        placeholder={`Type ${opt.label} text or formula...`}
-                                        autoFocus
-                                      />
-                                      {opt.val && (
-                                        <div className="pt-2 border-t border-border/50 text-[13px] text-text-main">
-                                          <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Live Formula Preview</p>
-                                          <MathRenderer text={opt.val} />
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {/* Option Image Preview (below text) */}
-                                  {(() => {
-                                    const images = opt.img ? parseQuestionImages(opt.img) : [];
-                                    if (images.length === 0) return null;
-                                    return (
-                                      <div className="flex flex-wrap gap-2 items-center pt-2">
-                                        {images.map((url, idx) => (
-                                          <div key={idx} className="relative group">
-                                            <img src={url} alt={`Preview ${idx + 1}`} className="h-14 rounded border border-border object-contain bg-white" />
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                const updated = images.filter((_, i) => i !== idx);
-                                                opt.setImg(updated.length > 0 ? JSON.stringify(updated) : null);
-                                              }}
-                                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm cursor-pointer hover:bg-red-600 transition-colors"
-                                            >✕</button>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
+                                {optImages.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 pl-7 pt-1">
+                                    {optImages.map((url, idx) => (
+                                      <img key={idx} src={url} alt={`Opt ${opt.id} preview ${idx + 1}`} className="h-16 rounded border border-border object-contain bg-white" />
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
                         </div>
                       </div>
+                    )}
 
-                      {/* Correct answer section */}
-                      <div className="space-y-2 pt-2 border-t border-border">
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
-                          <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">
-                            {qType === 'msq' ? 'Correct Answers (select multiple)' : 'Correct Answer'}
-                          </label>
-                        </div>
-                        <div className="flex gap-2">
-                          {['A', 'B', 'C', 'D'].map((opt) => {
-                            const isSelected = qType === 'msq'
-                              ? correctAnswer.split(',').includes(opt)
-                              : correctAnswer === opt;
-                            return (
-                              <button key={opt} type="button" onClick={() => {
-                                if (qType === 'msq') {
-                                  const selected = correctAnswer ? correctAnswer.split(',') : [];
-                                  if (selected.includes(opt)) {
-                                    setCorrectAnswer(selected.filter(s => s !== opt).join(','));
-                                  } else {
-                                    setCorrectAnswer([...selected, opt].sort().join(','));
-                                  }
-                                } else {
-                                  setCorrectAnswer(opt);
-                                }
-                              }}
-                                className={`flex-1 h-10 rounded-lg text-sm font-bold border-2 transition-all ${isSelected ? 'bg-accent-primary border-accent-primary text-white shadow-sm' : 'bg-bg border-border text-text-muted hover:border-accent-primary/50 hover:text-accent-primary'}`}>
-                                {opt}
-                              </button>
-                            );
-                          })}
+                    {/* NAT Answer */}
+                    {qType === 'nat' && (
+                      <div className="pt-3 border-t border-border">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/30 rounded-lg text-xs font-bold text-accent-primary">
+                          <span>Correct Answer:</span>
+                          <span>{natAnswer || '—'}</span>
                         </div>
                       </div>
-                    </>
-                  ) : (
-                    <div className="space-y-3 pt-2 border-t border-border">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
-                          <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Correct Numerical Answer</label>
-                        </div>
-                      </div>
+                    )}
 
-                      <div className="space-y-2">
-                        <input
-                          type="number"
-                          step="any"
-                          value={natAnswer}
-                          onChange={(e) => setNatAnswer(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (['e', 'E', '+'].includes(e.key)) {
-                              e.preventDefault();
-                            }
-                          }}
-                          required
-                          className="w-full px-3 py-2.5 bg-bg border border-accent-primary rounded-lg outline-none focus:ring-2 focus:ring-accent-primary/15 text-sm font-medium transition-shadow"
-                          placeholder="e.g. 42.5 or -3"
-                        />
+                    {/* Explanation Preview */}
+                    <div className="pt-3 border-t border-border space-y-1.5">
+                      <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Explanation / Solution</p>
+                      <div className="p-3 bg-surface border border-border rounded-xl text-xs">
+                        {qExplanation ? (
+                          <MathRenderer text={qExplanation} className="text-text-main" />
+                        ) : (
+                          <span className="text-text-muted/60 italic text-xs">Explanation preview will appear here live...</span>
+                        )}
                       </div>
                     </div>
-                  )}
-
-                  {drawerError && (
-                    <div className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-xs font-semibold flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-                      {drawerError}
-                    </div>
-                  )}
-                </form>
+                  </div>
+                </div>
               </div>
 
               {/* Drawer Footer - pinned at bottom */}
@@ -924,7 +1020,7 @@ export default function Step3Questions({
 
       {/* Question Preview Modal */}
       {showQuestionPreview && (
-        <div 
+        <div
           className="fixed inset-0 z-[1100] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setShowQuestionPreview(false);

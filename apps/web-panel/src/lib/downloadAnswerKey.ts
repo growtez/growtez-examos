@@ -353,6 +353,17 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
         ? `+${marksAwarded} (Partial)`
         : `${marksAwarded > 0 ? '+' : ''}${marksAwarded}`;
 
+      let explanationHtml = '';
+      if (q.explanation) {
+        const explanationTextHtml = renderLatexToHtml(q.explanation, katex);
+        explanationHtml = `
+          <div style="margin-top: 6px; padding: 6px 8px; border-radius: 4px; border: 1px solid #bfdbfe; background-color: #eff6ff; font-size: 10.5px; line-height: 1.3;">
+            <div style="font-weight: bold; color: #1d4ed8; margin-bottom: 2px;">Explanation:</div>
+            <div style="color: #1e293b;">${explanationTextHtml}</div>
+          </div>
+        `;
+      }
+
       questionsHtml += `
         <div style="width: calc(50% - 5px); box-sizing: border-box; margin-bottom: 10px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; background-color: #ffffff; page-break-inside: avoid; break-inside: avoid;">
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 6px;">
@@ -368,6 +379,7 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
           </div>
           ${imagesHtml}
           ${optionsHtml}
+          ${explanationHtml}
         </div>
       `;
     });

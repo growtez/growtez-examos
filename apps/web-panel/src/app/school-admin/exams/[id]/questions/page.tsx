@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ReactCrop, { type Crop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { AlertCircle, CheckCircle2, Sigma } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Sigma, ArrowUp, ChevronDown } from 'lucide-react';
 import FormulaToolbar from '@/components/FormulaToolbar';
 import MathRenderer from '@/components/MathRenderer';
 
@@ -26,6 +26,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [previewQuestionId, setPreviewQuestionId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [showTopBtn, setShowTopBtn] = useState(false);
   
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
@@ -40,6 +41,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
   const [questionType, setQuestionType] = useState<'mcq' | 'nat'>('mcq');
   const [questionText, setQuestionText] = useState('');
   const [questionImage, setQuestionImage] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState('');
   
   // Crop states
   const [rawImageToCrop, setRawImageToCrop] = useState<string | null>(null);
@@ -133,6 +135,28 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
     setLoading(false);
   };
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      const mainEl = document.querySelector('main');
+      const mainScroll = mainEl ? mainEl.scrollTop : 0;
+      setShowTopBtn(scrollY > 150 || mainScroll > 150);
+    };
+
+    window.addEventListener('scroll', handleScroll, true);
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+      mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const fetchQuestions = async () => {
     if (!selectedSubject) return;
     const { data } = await supabase
@@ -167,6 +191,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
         exam_subject_id: selectedSubject,
         question_type: questionType,
         question_text: questionText,
+        explanation: explanation || null,
         question_number: questionNumber,
         image_url: questionImage,
         marks: questionType === 'mcq' ? (markingScheme.mcq_correct || 4) : (markingScheme.nat_correct || 4),
@@ -198,7 +223,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
       }
 
       // Reset form
-      setQuestionText(''); setQuestionImage(null); 
+      setQuestionText(''); setQuestionImage(null); setExplanation('');
       setOptionA(''); setOptionAImage(null);
       setOptionB(''); setOptionBImage(null);
       setOptionC(''); setOptionCImage(null);
@@ -303,6 +328,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
     setQuestionType(q.question_type);
     setQuestionText(q.question_text || '');
     setQuestionImage(q.image_url || null);
+    setExplanation(q.explanation || '');
     if (q.question_type === 'mcq') {
       setOptionA(q.options?.A || '');
       setOptionAImage(q.options?.A_image || null);
@@ -484,6 +510,17 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                 {q.question_type === 'nat' && (
                   <div className="inline-flex px-4 py-2 bg-accent-primary/5 border border-accent-primary rounded-xl text-sm text-accent-primary font-bold mt-2">Answer: {q.correct_option}</div>
                 )}
+                {q.explanation && (
+                  <details className="group mt-3 bg-surface border border-border rounded-lg text-xs">
+                    <summary className="px-3 py-2 font-bold text-text-main cursor-pointer flex items-center justify-between select-none hover:bg-surface-hover transition-colors [&::-webkit-details-marker]:hidden list-none">
+                      <span>Explanation / Solution</span>
+                      <ChevronDown size={14} className="transition-transform group-open:rotate-180 text-text-muted shrink-0" />
+                    </summary>
+                    <div className="px-3 pb-3 pt-1 border-t border-border">
+                      <MathRenderer text={q.explanation} className="text-text-main" />
+                    </div>
+                  </details>
+                )}
               </div>
             )}
           </div>
@@ -502,253 +539,389 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
 
       {/* Add/Edit Question Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4" onClick={() => setShowForm(false)}>
-          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-accent-primary px-4 sm:px-6 py-4 flex items-center justify-between">
-              <span className="text-white font-bold text-sm sm:text-base">{editingQuestionId ? 'Edit Question' : 'Add Question'} — {currentSubject?.subject_name}</span>
-              <button onClick={() => setShowForm(false)} className="text-white/70 hover:text-white transition-colors">✕</button>
-            </div>
-            
-            <div className="p-4 sm:p-6 max-h-[85vh] sm:max-h-[80vh] overflow-y-auto custom-scrollbar">
-              <form onSubmit={handleAddQuestion} className="space-y-6">
-                {/* Question Type */}
-                <div className="flex bg-bg rounded-xl p-1 border border-border">
+        <div className="fixed inset-0 bg-bg z-[1000] flex flex-col w-full h-[100dvh] animate-in fade-in duration-200" onClick={() => setShowForm(false)}>
+          <div className="w-full h-full bg-bg flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="relative bg-accent-primary px-4 sm:px-6 py-3.5 flex items-center justify-between shrink-0 shadow-md">
+              <span className="text-white font-bold text-base sm:text-lg">{editingQuestionId ? 'Edit Question' : 'Add Question'} — {currentSubject?.subject_name}</span>
+              
+              {/* Question type toggle - centered horizontally */}
+              <div className="hidden sm:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 bg-white/10 rounded-xl p-1 border border-white/20">
+                <button type="button" onClick={() => setQuestionType('mcq')}
+                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${questionType === 'mcq' ? 'bg-white text-accent-primary shadow-sm' : 'text-white/80 hover:text-white'}`}>
+                  MCQ (Multiple Choice)
+                </button>
+                <button type="button" onClick={() => setQuestionType('nat')}
+                  className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${questionType === 'nat' ? 'bg-white text-accent-primary shadow-sm' : 'text-white/80 hover:text-white'}`}>
+                  NAT (Numerical)
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* Mobile toggle */}
+                <div className="flex sm:hidden bg-white/10 rounded-xl p-1 border border-white/20">
                   <button type="button" onClick={() => setQuestionType('mcq')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${questionType === 'mcq' ? 'bg-surface text-accent-primary shadow-sm' : 'text-text-muted hover:text-text-main'}`}>
-                    MCQ (Multiple Choice)
+                    className={`px-2 py-1 text-xs font-bold rounded-lg transition-all ${questionType === 'mcq' ? 'bg-white text-accent-primary shadow-sm' : 'text-white/80 hover:text-white'}`}>
+                    MCQ
                   </button>
                   <button type="button" onClick={() => setQuestionType('nat')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${questionType === 'nat' ? 'bg-surface text-accent-primary shadow-sm' : 'text-text-muted hover:text-text-main'}`}>
-                    NAT (Numerical)
+                    className={`px-2 py-1 text-xs font-bold rounded-lg transition-all ${questionType === 'nat' ? 'bg-white text-accent-primary shadow-sm' : 'text-white/80 hover:text-white'}`}>
+                    NAT
                   </button>
                 </div>
 
-                {/* Question Text and Image */}
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">Question Text (Optional if image provided)</label>
-                      <button
-                        type="button"
-                        onClick={() => setShowQFormula(!showQFormula)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
-                          showQFormula
-                            ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
-                            : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
-                        }`}
-                      >
-                        <Sigma size={11} />
-                        {showQFormula ? 'Hide Formula' : 'Add Formula'}
-                      </button>
-                    </div>
-                    {showQFormula && (
-                      <FormulaToolbar
-                        onInsert={(latex) =>
-                          insertAtCursor(qTextRef, setQuestionText, questionText, latex)
-                        }
-                      />
-                    )}
-                    <textarea 
-                      ref={(el) => {
-                        (qTextRef as any).current = el;
-                        autoGrow(el);
-                      }}
-                      value={questionText} 
-                      onChange={(e) => { setQuestionText(e.target.value); autoGrow(e.target); }} 
-                      rows={3}
-                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all resize-none text-sm font-medium whitespace-pre-wrap break-words"
-                      placeholder="Enter question text... Use $\sin(x)$ for inline math or $$\int_0^1 x^2\,dx$$ for block math" />
-                    {showQFormula && questionText && (
-                      <div className="px-3 py-2 bg-bg border border-dashed border-border rounded-lg mt-2">
-                        <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Preview</p>
-                        <MathRenderer text={questionText} className="text-sm text-text-main" />
+                <button onClick={() => setShowForm(false)} className="text-white/80 hover:text-white transition-colors text-lg font-bold w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center">✕</button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto items-start">
+                
+                {/* Left Column: Form Controls */}
+                <form onSubmit={handleAddQuestion} className="space-y-6">
+
+                  {/* Question Text and Image */}
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">Question Text (Optional if image provided)</label>
+                        <button
+                          type="button"
+                          onClick={() => setShowQFormula(!showQFormula)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                            showQFormula
+                              ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
+                              : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
+                          }`}
+                        >
+                          <Sigma size={11} />
+                          {showQFormula ? 'Hide Formula' : 'Add Formula'}
+                        </button>
                       </div>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-text-main mb-1.5 uppercase tracking-wider">Add Image (Optional)</label>
-                    <div className="flex items-center gap-4">
-                      <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'question')} className="hidden" id="image-upload" />
-                      <label htmlFor="image-upload" className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-bg border border-border text-accent-primary font-semibold text-sm rounded-xl hover:bg-surface-hover transition-colors">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                        Upload Image
-                      </label>
-                      {questionImage && (
-                        <div className="relative group">
-                          <img src={questionImage} alt="Preview" className="h-16 rounded border border-border object-contain" />
-                          <button type="button" onClick={() => setQuestionImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">✕</button>
+                      {showQFormula && (
+                        <FormulaToolbar
+                          onInsert={(latex) =>
+                            insertAtCursor(qTextRef, setQuestionText, questionText, latex)
+                          }
+                        />
+                      )}
+                      <textarea 
+                        ref={(el) => {
+                          (qTextRef as any).current = el;
+                          autoGrow(el);
+                        }}
+                        value={questionText} 
+                        onChange={(e) => { setQuestionText(e.target.value); autoGrow(e.target); }} 
+                        rows={3}
+                        className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all resize-y min-h-[90px] text-sm font-medium whitespace-pre-wrap break-words"
+                        placeholder="Enter question text... Use $\sin(x)$ for inline math or $$\int_0^1 x^2\,dx$$ for block math" />
+                      {questionText && (
+                        <div className="lg:hidden px-3 py-2 bg-bg border border-dashed border-border rounded-lg mt-2">
+                          <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Live Formula Preview</p>
+                          <MathRenderer text={questionText} className="text-sm text-text-main" />
                         </div>
                       )}
                     </div>
-                    <p className="text-[10px] text-text-muted mt-1 font-medium">Image will be automatically resized and compressed to save space.</p>
-                  </div>
-                </div>
-
-                {/* Cropping Modal Overlay inside Form */}
-                {rawImageToCrop && (
-                  <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-4 animate-in fade-in">
-                    <div className="bg-surface rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
-                      <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
-                        <span className="text-white font-bold">Crop Image</span>
-                        <button type="button" onClick={() => setRawImageToCrop(null)} className="text-white/70 hover:text-white transition-colors">✕</button>
+                    <div>
+                      <label className="block text-xs font-semibold text-text-main mb-1.5 uppercase tracking-wider">Add Image (Optional)</label>
+                      <div className="flex items-center gap-4">
+                        <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'question')} className="hidden" id="image-upload" />
+                        <label htmlFor="image-upload" className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-bg border border-border text-accent-primary font-semibold text-sm rounded-xl hover:bg-surface-hover transition-colors">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          Upload Image
+                        </label>
+                        {questionImage && (
+                          <div className="relative group">
+                            <img src={questionImage} alt="Preview" className="h-16 rounded border border-border object-contain" />
+                            <button type="button" onClick={() => setQuestionImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">✕</button>
+                          </div>
+                        )}
                       </div>
-                      <div className="p-6 flex-1 overflow-auto bg-bg flex justify-center items-center">
-                        <ReactCrop
-                          crop={crop}
-                          onChange={(c) => setCrop(c)}
-                          onComplete={(c) => setCompletedCrop(c)}
-                          className="max-h-full"
-                        >
-                          <img
-                            src={rawImageToCrop}
-                            onLoad={(e) => {
-                              const img = e.currentTarget;
-                              setImageRef(img);
-                              const defaultCrop: Crop = { unit: '%', x: 0, y: 0, width: 100, height: 100 };
-                              setCrop(defaultCrop);
-                              setCompletedCrop({
-                                unit: 'px',
-                                x: 0,
-                                y: 0,
-                                width: img.naturalWidth,
-                                height: img.naturalHeight,
-                              });
-                            }}
-                            alt="Crop preview"
-                            className="max-h-[60vh] object-contain"
-                          />
-                        </ReactCrop>
-                      </div>
-                      <div className="p-6 border-t border-border bg-surface flex justify-end gap-3">
-                        <button type="button" onClick={() => setRawImageToCrop(null)}
-                          className="px-5 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors">
-                          Cancel
-                        </button>
-                        <button type="button" onClick={handleCropAndSave}
-                          className="px-5 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm">
-                          Crop & Apply
-                        </button>
-                      </div>
+                      <p className="text-[10px] text-text-muted mt-1 font-medium">Image will be automatically resized and compressed to save space.</p>
                     </div>
                   </div>
-                )}
 
-                {questionType === 'mcq' ? (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {[
-                        { label: 'Option A', val: optionA, setVal: setOptionA, img: optionAImage, setImg: setOptionAImage, id: 'A' }, 
-                        { label: 'Option B', val: optionB, setVal: setOptionB, img: optionBImage, setImg: setOptionBImage, id: 'B' }, 
-                        { label: 'Option C', val: optionC, setVal: setOptionC, img: optionCImage, setImg: setOptionCImage, id: 'C' }, 
-                        { label: 'Option D', val: optionD, setVal: setOptionD, img: optionDImage, setImg: setOptionDImage, id: 'D' }
-                      ].map((opt) => (
-                        <div key={opt.label} className="bg-bg p-4 rounded-xl border border-border">
-                          <div className="flex items-center justify-between mb-2">
-                            <label className="block text-xs font-semibold text-text-muted">{opt.label}</label>
-                            <button
-                              type="button"
-                              onClick={() => setShowOptFormula(prev => ({ ...prev, [opt.id]: !prev[opt.id] }))}
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-lg border transition-all cursor-pointer ${
-                                showOptFormula[opt.id]
-                                  ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
-                                  : 'bg-surface border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
-                              }`}
-                            >
-                              <Sigma size={10} />
-                              {showOptFormula[opt.id] ? 'Hide Formula' : 'Add Formula'}
-                            </button>
-                          </div>
-                          {showOptFormula[opt.id] && (
-                            <div className="mb-1.5">
-                              <FormulaToolbar
-                                compact
-                                onInsert={(latex) =>
-                                  insertAtCursor(
-                                    { current: optRefs.current[opt.id] } as any,
-                                    opt.setVal,
-                                    opt.val,
-                                    latex
-                                  )
-                                }
-                              />
+                  {/* Cropping Modal Overlay inside Form */}
+                  {rawImageToCrop && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-[60] p-4 animate-in fade-in">
+                      <div className="bg-surface rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="bg-accent-primary px-6 py-4 flex items-center justify-between">
+                          <span className="text-white font-bold">Crop Image</span>
+                          <button type="button" onClick={() => setRawImageToCrop(null)} className="text-white/70 hover:text-white transition-colors">✕</button>
+                        </div>
+                        <div className="p-6 flex-1 overflow-auto bg-bg flex justify-center items-center">
+                          <ReactCrop
+                            crop={crop}
+                            onChange={(c) => setCrop(c)}
+                            onComplete={(c) => setCompletedCrop(c)}
+                            className="max-h-full"
+                          >
+                            <img
+                              src={rawImageToCrop}
+                              onLoad={(e) => {
+                                const img = e.currentTarget;
+                                setImageRef(img);
+                                const defaultCrop: Crop = { unit: '%', x: 0, y: 0, width: 100, height: 100 };
+                                setCrop(defaultCrop);
+                                setCompletedCrop({
+                                  unit: 'px',
+                                  x: 0,
+                                  y: 0,
+                                  width: img.naturalWidth,
+                                  height: img.naturalHeight,
+                                });
+                              }}
+                              alt="Crop preview"
+                              className="max-h-[60vh] object-contain"
+                            />
+                          </ReactCrop>
+                        </div>
+                        <div className="p-6 border-t border-border bg-surface flex justify-end gap-3">
+                          <button type="button" onClick={() => setRawImageToCrop(null)}
+                            className="px-5 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors">
+                            Cancel
+                          </button>
+                          <button type="button" onClick={handleCropAndSave}
+                            className="px-5 py-2.5 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm">
+                            Crop & Apply
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {questionType === 'mcq' ? (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {[
+                          { label: 'Option A', val: optionA, setVal: setOptionA, img: optionAImage, setImg: setOptionAImage, id: 'A' }, 
+                          { label: 'Option B', val: optionB, setVal: setOptionB, img: optionBImage, setImg: setOptionBImage, id: 'B' }, 
+                          { label: 'Option C', val: optionC, setVal: setOptionC, img: optionCImage, setImg: setOptionCImage, id: 'C' }, 
+                          { label: 'Option D', val: optionD, setVal: setOptionD, img: optionDImage, setImg: setOptionDImage, id: 'D' }
+                        ].map((opt) => (
+                          <div key={opt.label} className="bg-bg p-4 rounded-xl border border-border">
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="block text-xs font-semibold text-text-muted">{opt.label}</label>
+                              <button
+                                type="button"
+                                onClick={() => setShowOptFormula(prev => ({ ...prev, [opt.id]: !prev[opt.id] }))}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-lg border transition-all cursor-pointer ${
+                                  showOptFormula[opt.id]
+                                    ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
+                                    : 'bg-surface border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
+                                }`}
+                              >
+                                <Sigma size={10} />
+                                {showOptFormula[opt.id] ? 'Hide Formula' : 'Add Formula'}
+                              </button>
                             </div>
-                          )}
-                          <textarea 
-                            ref={(el) => { optRefs.current[opt.id] = el; autoGrow(el); }}
-                            rows={1}
-                            value={opt.val} 
-                            onChange={(e) => { opt.setVal(e.target.value); autoGrow(e.target); }} 
-                            placeholder="Option text (optional if image)"
-                            className="w-full px-4 py-2.5 bg-surface border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all resize-none text-sm font-medium mb-3 whitespace-pre-wrap break-words" />
-                          {showOptFormula[opt.id] && opt.val && (
-                            <div className="px-2 py-1 bg-bg border border-dashed border-border rounded text-[13px] text-text-main mb-3">
-                              <MathRenderer text={opt.val} />
-                            </div>
-                          )}
-                          
-                          <div className="flex items-center gap-3">
-                            <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, opt.id as any)} className="hidden" id={`image-upload-${opt.id}`} />
-                            <label htmlFor={`image-upload-${opt.id}`} className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border text-accent-primary font-semibold text-xs rounded-lg hover:bg-surface-hover transition-colors">
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                              Add Image
-                            </label>
-                            {opt.img && (
-                              <div className="relative group">
-                                <img src={opt.img} alt="Preview" className="h-8 rounded border border-border object-contain" />
-                                <button type="button" onClick={() => opt.setImg(null)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">✕</button>
+                            {showOptFormula[opt.id] && (
+                              <div className="mb-1.5">
+                                <FormulaToolbar
+                                  compact
+                                  onInsert={(latex) =>
+                                    insertAtCursor(
+                                      { current: optRefs.current[opt.id] } as any,
+                                      opt.setVal,
+                                      opt.val,
+                                      latex
+                                    )
+                                  }
+                                />
                               </div>
                             )}
+                            <textarea 
+                              ref={(el) => { optRefs.current[opt.id] = el; autoGrow(el); }}
+                              rows={2}
+                              value={opt.val} 
+                              onChange={(e) => { opt.setVal(e.target.value); autoGrow(e.target); }} 
+                              placeholder="Option text (optional if image)"
+                              className="w-full px-4 py-2.5 bg-surface border border-border rounded-lg text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all resize-y min-h-[50px] text-sm font-medium mb-3 whitespace-pre-wrap break-words" />
+                            {opt.val && (
+                              <div className="lg:hidden px-2 py-1 bg-bg border border-dashed border-border rounded text-[13px] text-text-main mb-3">
+                                <MathRenderer text={opt.val} />
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center gap-3">
+                              <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, opt.id as any)} className="hidden" id={`image-upload-${opt.id}`} />
+                              <label htmlFor={`image-upload-${opt.id}`} className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-border text-accent-primary font-semibold text-xs rounded-lg hover:bg-surface-hover transition-colors">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                Add Image
+                              </label>
+                              {opt.img && (
+                                <div className="relative group">
+                                  <img src={opt.img} alt="Preview" className="h-8 rounded border border-border object-contain" />
+                                  <button type="button" onClick={() => opt.setImg(null)} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">✕</button>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-text-main mb-2 uppercase tracking-wider">Correct Answer</label>
-                      <div className="flex gap-3">
-                        {['A', 'B', 'C', 'D'].map((opt) => (
-                          <button key={opt} type="button" onClick={() => setCorrectAnswer(opt)}
-                            className={`w-12 h-12 rounded-xl text-sm font-bold border-2 transition-all ${correctAnswer === opt ? 'bg-accent-primary border-accent-primary text-white shadow-md' : 'bg-bg border-border text-text-muted hover:border-accent-primary hover:text-accent-primary'}`}>
-                            {opt}
-                          </button>
                         ))}
                       </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-text-main mb-2 uppercase tracking-wider">Correct Answer</label>
+                        <div className="flex gap-3">
+                          {['A', 'B', 'C', 'D'].map((opt) => (
+                            <button key={opt} type="button" onClick={() => setCorrectAnswer(opt)}
+                              className={`w-12 h-12 rounded-xl text-sm font-bold border-2 transition-all ${correctAnswer === opt ? 'bg-accent-primary border-accent-primary text-white shadow-md' : 'bg-bg border-border text-text-muted hover:border-accent-primary hover:text-accent-primary'}`}>
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">Correct Numerical Answer</label>
+                      </div>
+                      <input
+                        type="number"
+                        step="any"
+                        value={natAnswer}
+                        onChange={(e) => setNatAnswer(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (['e', 'E', '+'].includes(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                        required
+                        className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium"
+                        placeholder="e.g. 42.5 or -5"
+                      />
                     </div>
-                  </>
-                ) : (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">Correct Numerical Answer</label>
-                    </div>
-                    <input
-                      type="number"
-                      step="any"
-                      value={natAnswer}
-                      onChange={(e) => setNatAnswer(e.target.value)}
-                      onKeyDown={(e) => {
-                        // Prevent entering 'e', 'E', '+', etc. if strictly just numbers, minus, and decimals
-                        if (['e', 'E', '+'].includes(e.key)) {
-                          e.preventDefault();
-                        }
-                      }}
-                      required
-                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium"
-                      placeholder="e.g. 42.5 or -5"
-                    />
-                  </div>
-                )}
+                  )}
 
-                {error && <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-semibold">{error}</div>}
-                <div className="flex gap-3 pt-4 border-t border-border">
-                  <button type="button" onClick={() => setShowForm(false)}
-                    className="flex-1 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors">
-                    Cancel
-                  </button>
-                  <button type="submit" disabled={formLoading}
-                    className="flex-1 py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl disabled:opacity-50 text-sm transition-colors shadow-sm">
-                    {formLoading ? 'Saving...' : (editingQuestionId ? 'Update Question' : 'Add Question')}
-                  </button>
+                  <div className="space-y-2 pt-3 border-t border-border">
+                    <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">
+                      Explanation / Solution <span className="text-text-muted font-normal lowercase">(optional)</span>
+                    </label>
+                    <textarea
+                      rows={5}
+                      value={explanation}
+                      onChange={(e) => setExplanation(e.target.value)}
+                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium resize-y min-h-[120px]"
+                      placeholder="Enter explanation or step-by-step solution for students..."
+                    />
+                    {explanation && (
+                      <div className="lg:hidden px-3 py-2 bg-bg border border-dashed border-border rounded-lg mt-2">
+                        <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Explanation Preview</p>
+                        <MathRenderer text={explanation} className="text-xs text-text-main" />
+                      </div>
+                    )}
+                  </div>
+
+                  {error && <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-semibold">{error}</div>}
+                  <div className="flex gap-3 pt-4 border-t border-border">
+                    <button type="button" onClick={() => setShowForm(false)}
+                      className="flex-1 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors">
+                      Cancel
+                    </button>
+                    <button type="submit" disabled={formLoading}
+                      className="flex-1 py-3 bg-accent-primary text-white font-semibold rounded-xl hover:bg-accent-primary/80 disabled:opacity-50 text-sm transition-colors shadow-md">
+                      {formLoading ? 'Saving...' : editingQuestionId ? 'Update Question' : 'Save Question'}
+                    </button>
+                  </div>
+                </form>
+
+                {/* Right Column: Live Question Preview Card (Desktop only) */}
+                <div className="hidden lg:block lg:sticky lg:top-0 bg-bg border border-border rounded-2xl p-6 shadow-sm space-y-5">
+                  <div className="flex items-center justify-between border-b border-border pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-text-main">Live Question Preview</h4>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase text-accent-primary bg-accent-primary/10 px-2.5 py-0.5 rounded-full border border-accent-primary/20">
+                      {questionType.toUpperCase()}
+                    </span>
+                  </div>
+
+                  {/* Question Text & Image */}
+                  <div className="space-y-3">
+                    <div className="text-sm font-semibold text-text-main leading-relaxed break-words [overflow-wrap:anywhere] min-h-[40px]">
+                      {questionText ? (
+                        <MathRenderer text={questionText} />
+                      ) : (
+                        <span className="text-text-muted/60 italic text-xs">Question text preview will appear here live...</span>
+                      )}
+                    </div>
+                    {questionImage && (
+                      <div className="pt-1">
+                        <img src={questionImage} alt="Question preview" className="h-28 rounded-lg border border-border object-contain bg-white" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Options */}
+                  {questionType === 'mcq' && (
+                    <div className="space-y-2 pt-3 border-t border-border">
+                      <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Options</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {[
+                          { id: 'A', val: optionA, img: optionAImage },
+                          { id: 'B', val: optionB, img: optionBImage },
+                          { id: 'C', val: optionC, img: optionCImage },
+                          { id: 'D', val: optionD, img: optionDImage },
+                        ].map((opt) => {
+                          const isCorrect = correctAnswer === opt.id;
+                          return (
+                            <div
+                              key={opt.id}
+                              className={`p-3 rounded-xl border transition-all flex flex-col gap-1.5 ${
+                                isCorrect
+                                  ? 'bg-emerald-500/10 border-emerald-500 text-emerald-950 dark:text-emerald-200'
+                                  : 'bg-surface border-border text-text-main'
+                              }`}
+                            >
+                              <div className="flex items-start gap-2.5 text-xs font-medium">
+                                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
+                                  isCorrect ? 'bg-emerald-500 text-white' : 'bg-bg border border-border text-text-muted'
+                                }`}>
+                                  {opt.id}
+                                </span>
+                                <div className="flex-1 break-words [overflow-wrap:anywhere]">
+                                  {opt.val ? (
+                                    <MathRenderer text={opt.val} />
+                                  ) : (
+                                    <span className="text-text-muted/60 italic text-xs">Option {opt.id}...</span>
+                                  )}
+                                </div>
+                              </div>
+                              {opt.img && (
+                                <div className="pl-7 pt-1">
+                                  <img src={opt.img} alt={`Opt ${opt.id} preview`} className="h-16 rounded border border-border object-contain bg-white" />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* NAT Answer */}
+                  {questionType === 'nat' && (
+                    <div className="pt-3 border-t border-border">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/30 rounded-lg text-xs font-bold text-accent-primary">
+                        <span>Correct Answer:</span>
+                        <span>{natAnswer || '—'}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Explanation Preview */}
+                  <div className="pt-3 border-t border-border space-y-1.5">
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Explanation / Solution</p>
+                    <div className="p-3 bg-surface border border-border rounded-xl text-xs">
+                      {explanation ? (
+                        <MathRenderer text={explanation} className="text-text-main" />
+                      ) : (
+                        <span className="text-text-muted/60 italic text-xs">Explanation preview will appear here live...</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         </div>
@@ -781,6 +954,16 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </div>
+      )}
+
+      {showTopBtn && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 p-3 bg-accent-primary text-white rounded-full shadow-lg hover:bg-accent-primary/90 transition-all hover:-translate-y-1 animate-in fade-in slide-in-from-bottom-5 duration-300"
+          title="Go to Top"
+        >
+          <ArrowUp size={20} />
+        </button>
       )}
     </div>
   );

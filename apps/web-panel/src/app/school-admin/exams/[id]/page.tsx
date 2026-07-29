@@ -33,6 +33,8 @@ import {
   ChevronRight,
   ChevronDown,
   Filter,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import ReactCrop, { type Crop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -327,6 +329,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setQText,
     qImage,
     setQImage,
+    qExplanation,
+    setQExplanation,
     rawImageToCrop,
     setRawImageToCrop,
     cropTarget,
@@ -428,6 +432,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [typeFilter, setTypeFilter] = useState("all");
   const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
   const [step1CollapseAll, setStep1CollapseAll] = useState(false);
+  const [showTeacherPassword, setShowTeacherPassword] = useState(false);
 
   const [draggedPillIndex, setDraggedPillIndex] = useState<number | null>(null);
   const [draggedOverPillIndex, setDraggedOverPillIndex] = useState<number | null>(null);
@@ -643,22 +648,22 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     <div className="flex flex-wrap sm:flex-nowrap justify-between items-center gap-2 w-full">
                       {/* Use Template */}
                       <div className="flex items-center gap-1.5 min-w-0">                        <select
-                          onChange={(e) => {
-                            const selected = (templates || []).find((t) => t.id === e.target.value);
-                            if (selected) handleTemplateApply(selected);
-                            e.target.value = "";
-                          }}
-                          defaultValue=""
-                          disabled={applyingTemplate || templatesLoading || !templates || templates.length === 0}
-                          className="w-full sm:w-auto max-w-[140px] sm:max-w-none text-ellipsis overflow-hidden px-2.5 py-1.5 bg-surface border border-border rounded-lg text-text-main hover:bg-surface-hover text-xs font-bold focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
-                        >
-                          <option value="" disabled className="bg-surface text-text-main">
-                            {templatesLoading ? "Loading..." : (!templates || templates.length === 0) ? "No templates" : "Use Template..."}
-                          </option>
-                          {(templates || []).map((t) => (
-                            <option key={t.id} value={t.id} className="bg-surface text-text-main">{t.title}</option>
-                          ))}
-                        </select>
+                        onChange={(e) => {
+                          const selected = (templates || []).find((t) => t.id === e.target.value);
+                          if (selected) handleTemplateApply(selected);
+                          e.target.value = "";
+                        }}
+                        defaultValue=""
+                        disabled={applyingTemplate || templatesLoading || !templates || templates.length === 0}
+                        className="w-full sm:w-auto max-w-[140px] sm:max-w-none text-ellipsis overflow-hidden px-2.5 py-1.5 bg-surface border border-border rounded-lg text-text-main hover:bg-surface-hover text-xs font-bold focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                      >
+                        <option value="" disabled className="bg-surface text-text-main">
+                          {templatesLoading ? "Loading..." : (!templates || templates.length === 0) ? "No templates" : "Use Template..."}
+                        </option>
+                        {(templates || []).map((t) => (
+                          <option key={t.id} value={t.id} className="bg-surface text-text-main">{t.title}</option>
+                        ))}
+                      </select>
                         {applyingTemplate && (
                           <span className="text-[10px] text-accent-primary flex items-center gap-1 font-semibold animate-pulse shrink-0">
                             <span className="w-2 h-2 rounded-full border-2 border-[#008080] border-t-transparent animate-spin" />
@@ -702,7 +707,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             const isSelected = drawerSubjectId === s.id;
                             const isDragging = draggedPillIndex === idx;
                             const isDragOver = draggedOverPillIndex === idx;
-                            
+
                             return (
                               <button
                                 key={s.id}
@@ -948,6 +953,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setQText={setQText}
               qImage={qImage}
               setQImage={setQImage}
+              qExplanation={qExplanation}
+              setQExplanation={setQExplanation}
               optA={optA}
               setOptA={setOptA}
               optAImg={optAImg}
@@ -1247,7 +1254,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       value={newTeacherName}
                       onChange={(e) => setNewTeacherName(e.target.value)}
                       required
-                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
+                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-[#9CA3AF] focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                       placeholder="e.g. Dr. Sharma"
                     />
                   </div>
@@ -1260,7 +1267,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       value={newTeacherEmail}
                       onChange={(e) => setNewTeacherEmail(e.target.value)}
                       required
-                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
+                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-[#9CA3AF] focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                       placeholder="sharma@school.com"
                     />
                   </div>
@@ -1273,22 +1280,34 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       onChange={setNewTeacherDepartment}
                       options={Array.from(new Set(teachers.map((t: any) => t.department).filter(Boolean))) as string[]}
                       placeholder="e.g. Mathematics"
-                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
+                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-[#9CA3AF] focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-text-main mb-1.5">
                       Password
                     </label>
-                    <input
-                      type="password"
-                      value={newTeacherPassword}
-                      onChange={(e) => setNewTeacherPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
-                      placeholder="Min 6 characters"
-                    />
+
+                    <div className="relative">
+                      <input
+                        type={showTeacherPassword ? "text" : "password"}
+                        value={newTeacherPassword}
+                        onChange={(e) => setNewTeacherPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        className="w-full px-4 py-3 pr-12 bg-bg border border-border rounded-xl text-text-main placeholder:text-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
+                        placeholder="Min 6 characters"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => setShowTeacherPassword((prev) => !prev)}
+                        className="absolute inset-y-0 right-3 flex items-center text-text-muted hover:text-text-main transition-colors"
+                        aria-label={showTeacherPassword ? "Hide password" : "Show password"}
+                      >
+                        {showTeacherPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -1340,7 +1359,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   placeholder="Search teachers..."
                   value={teacherSearchQuery}
                   onChange={(e) => setTeacherSearchQuery(e.target.value)}
-                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-accent-primary mb-3"
+                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary mb-3"
                 />
                 <div className="max-h-60 overflow-y-auto mb-4 border border-border rounded-lg custom-scrollbar">
                   {teachers.length === 0 ? (
@@ -1607,73 +1626,73 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 <div className="flex-1 flex flex-col min-h-0">
                   <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col space-y-3.5 pb-2">
                     <div className="bg-surface border border-border rounded-xl p-3 sm:p-6">
-                    <Globe
-                      size={24}
-                      className="mx-auto text-accent-primary mb-1.5"
-                    />
-                    <p className="text-text-main text-xs sm:text-base font-bold text-center mb-1">
-                      Public Registration Link
-                    </p>
-                    <p className="text-text-muted text-[11px] sm:text-sm font-medium text-center mb-3">
-                      Share this link with students. They will be automatically
-                      added to this exam upon completing the form.
-                    </p>
-
-                    <div className="bg-bg border border-border p-2.5 sm:p-4 rounded-xl mb-3 space-y-2">
-                      <p className="text-[11px] sm:text-xs font-bold text-accent-primary uppercase tracking-wider mb-1.5">
-                        Optional: Pre-fill Student Details
+                      <Globe
+                        size={24}
+                        className="mx-auto text-accent-primary mb-1.5"
+                      />
+                      <p className="text-text-main text-xs sm:text-base font-bold text-center mb-1">
+                        Public Registration Link
                       </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-                        <div>
-                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-                            Course
-                          </label>
-                          <CustomCombobox
-                            value={linkCourse}
-                            onChange={(val) => { setLinkCourse(val); setLinkGenerated(false); }}
-                            options={uniqueCourses as string[]}
-                            placeholder="e.g. NEET"
-                            className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-                            Batch
-                          </label>
-                          <CustomCombobox
-                            value={linkBatch}
-                            onChange={(val) => { setLinkBatch(val); setLinkGenerated(false); }}
-                            options={uniqueBatches as string[]}
-                            placeholder="e.g. Morning"
-                            className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-                            Session
-                          </label>
-                          <CustomCombobox
-                            value={linkSession}
-                            onChange={(val) => { setLinkSession(val); setLinkGenerated(false); }}
-                            options={uniqueSessions as string[]}
-                            placeholder="e.g. 2024-25"
-                            className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
-                          />
-                        </div>
-                      </div>
-                    </div>
+                      <p className="text-text-muted text-[11px] sm:text-sm font-medium text-center mb-3">
+                        Share this link with students. They will be automatically
+                        added to this exam upon completing the form.
+                      </p>
 
-                    {linkGenerated && (
-                      <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 mt-2">
-                        <input
-                          type="text"
-                          readOnly
-                          value={`${getSchoolBaseUrl()}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`}
-                          className="flex-1 px-3.5 py-2.5 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-muted font-mono focus:outline-none truncate"
-                        />
+                      <div className="bg-bg border border-border p-2.5 sm:p-4 rounded-xl mb-3 space-y-2">
+                        <p className="text-[11px] sm:text-xs font-bold text-accent-primary uppercase tracking-wider mb-1.5">
+                          Optional: Pre-fill Student Details
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                          <div>
+                            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                              Course
+                            </label>
+                            <CustomCombobox
+                              value={linkCourse}
+                              onChange={(val) => { setLinkCourse(val); setLinkGenerated(false); }}
+                              options={uniqueCourses as string[]}
+                              placeholder="e.g. NEET"
+                              className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                              Batch
+                            </label>
+                            <CustomCombobox
+                              value={linkBatch}
+                              onChange={(val) => { setLinkBatch(val); setLinkGenerated(false); }}
+                              options={uniqueBatches as string[]}
+                              placeholder="e.g. Morning"
+                              className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
+                              Session
+                            </label>
+                            <CustomCombobox
+                              value={linkSession}
+                              onChange={(val) => { setLinkSession(val); setLinkGenerated(false); }}
+                              options={uniqueSessions as string[]}
+                              placeholder="e.g. 2024-25"
+                              className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
+                            />
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </div>
+
+                      {linkGenerated && (
+                        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 mt-2">
+                          <input
+                            type="text"
+                            readOnly
+                            value={`${getSchoolBaseUrl()}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`}
+                            className="flex-1 px-3.5 py-2.5 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-muted font-mono focus:outline-none truncate"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex gap-3 pt-3 mt-auto bg-surface border-t border-border/80 z-10 shrink-0">
@@ -1955,8 +1974,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                                   <td className="px-3 py-2.5 text-text-muted whitespace-nowrap">{row.session || '-'}</td>
                                   <td className="px-3 py-2.5">
                                     {row.status === 'pending' && <span className="text-text-muted font-medium">Ready</span>}
-                                    {row.status === 'success' && <span className="text-emerald-600 font-bold flex items-center gap-1"><CheckCircle2 size={12}/> Success</span>}
-                                    {row.status === 'failed' && <span className="text-red-600 font-bold flex items-center gap-1 max-w-[150px] truncate" title={row.error}><AlertCircle size={12}/> {row.error}</span>}
+                                    {row.status === 'success' && <span className="text-emerald-600 font-bold flex items-center gap-1"><CheckCircle2 size={12} /> Success</span>}
+                                    {row.status === 'failed' && <span className="text-red-600 font-bold flex items-center gap-1 max-w-[150px] truncate" title={row.error}><AlertCircle size={12} /> {row.error}</span>}
                                   </td>
                                 </tr>
                               ))}
@@ -2125,7 +2144,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           value={newTeacherName}
                           onChange={(e) => setNewTeacherName(e.target.value)}
                           required
-                          className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
+                          className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder:text-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                           placeholder="e.g. Dr. Sharma"
                         />
                       </div>
@@ -2136,7 +2155,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           value={newTeacherEmail}
                           onChange={(e) => setNewTeacherEmail(e.target.value)}
                           required
-                          className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
+                          className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder:text-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                           placeholder="sharma@school.com"
                         />
                       </div>
@@ -2147,20 +2166,30 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           onChange={setNewTeacherDepartment}
                           options={Array.from(new Set(teachers.map((t: any) => t.department).filter(Boolean))) as string[]}
                           placeholder="e.g. Mathematics"
-                          className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
+                          className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder:text-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-text-main mb-1.5">Password</label>
-                        <input
-                          type="password"
-                          value={newTeacherPassword}
-                          onChange={(e) => setNewTeacherPassword(e.target.value)}
-                          required
-                          minLength={6}
-                          className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
-                          placeholder="Min 6 characters"
-                        />
+                        <div className="relative">
+                          <input
+                            type={showTeacherPassword ? "text" : "password"}
+                            value={newTeacherPassword}
+                            onChange={(e) => setNewTeacherPassword(e.target.value)}
+                            required
+                            minLength={6}
+                            className="w-full px-4 py-3 pr-12 bg-bg border border-border rounded-xl text-text-main placeholder:text-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all"
+                            placeholder="Min 6 characters"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowTeacherPassword((prev) => !prev)}
+                            className="absolute inset-y-0 right-3 flex items-center text-text-muted hover:text-text-main transition-colors"
+                            aria-label={showTeacherPassword ? "Hide password" : "Show password"}
+                          >
+                            {showTeacherPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
                       </div>
                     </div>
                     {addTeacherError && (
