@@ -372,6 +372,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     fetchDrawerQuestions,
     handleDrawerNewQuestion,
     handleDrawerCancel,
+    clearDraft,
     doSaveQuestion,
     handleDrawerEditQuestion,
     handleDrawerDeleteQuestion,
@@ -995,6 +996,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setTeacherSearchQuery={setTeacherSearchQuery}
               searchQuery={questionSearchQuery}
               typeFilter={typeFilter}
+              onClearForm={clearDraft}
+              setConfirmDialog={setConfirmDialog}
             />
           )}
 
@@ -2414,6 +2417,36 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   "Duplicate"
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Confirmation Dialog */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1300] p-4">
+          <div className="bg-surface border border-border rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle size={24} className="text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-text-main mb-2">{confirmDialog.title}</h3>
+              <p className="text-text-muted text-sm font-medium mb-6">{confirmDialog.message}</p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDialog((prev: any) => ({ ...prev, isOpen: false }))}
+                  className="flex-1 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDialog.onConfirm}
+                  className={`flex-1 py-3 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm cursor-pointer ${confirmDialog.confirmColor}`}
+                >
+                  {confirmDialog.confirmText}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -452,7 +452,7 @@ export function useExamDetailPage(paramsId: string) {
         question_type: qType,
         question_text: qText,
         explanation: qExplanation || null,
-        question_number: editingQuestionId ? undefined : drawerQuestions.length + 1,
+        question_number: editingQuestionId ? undefined : (drawerQuestions.length > 0 ? Math.max(...drawerQuestions.map(q => q.question_number || 0)) + 1 : 1),
         image_url: qImage,
         marks: qType === 'nat' ? (markingScheme.nat_correct || 4) : (markingScheme[`${qType}_correct`] || markingScheme.mcq_correct || 4),
         positive_marks: qType === 'nat' ? (markingScheme.nat_correct || 4) : (markingScheme[`${qType}_correct`] || markingScheme.mcq_correct || 4),
@@ -2187,5 +2187,6 @@ export function useExamDetailPage(paramsId: string) {
     setLinkGenerated,
     showStep1Errors,
     setShowStep1Errors,
+    clearDraft,
   };
 }

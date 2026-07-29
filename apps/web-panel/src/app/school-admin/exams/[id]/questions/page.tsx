@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ReactCrop, { type Crop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { AlertCircle, CheckCircle2, Sigma, ArrowUp, ChevronDown } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Sigma, ArrowUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import FormulaToolbar from '@/components/FormulaToolbar';
 import MathRenderer from '@/components/MathRenderer';
 
@@ -66,11 +66,81 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
   const qTextRef = useRef<HTMLTextAreaElement>(null);
   const optRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
   const natRef = useRef<HTMLTextAreaElement>(null);
+  const explRef = useRef<HTMLTextAreaElement>(null);
+  const [showExplFormula, setShowExplFormula] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const autoGrow = (el: HTMLElement | null) => {
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = `${el.scrollHeight}px`;
+  };
+
+  const draftNewQuestionRef = useRef<{
+    questionType: 'mcq' | 'nat';
+    questionText: string;
+    questionImage: string | null;
+    explanation: string;
+    optionA: string;
+    optionAImage: string | null;
+    optionB: string;
+    optionBImage: string | null;
+    optionC: string;
+    optionCImage: string | null;
+    optionD: string;
+    optionDImage: string | null;
+    correctAnswer: string;
+    natAnswer: string;
+  } | null>(null);
+
+  const handleNavPrevQuestion = () => {
+    const currentQIndex = editingQuestionId ? questions.findIndex(q => q.id === editingQuestionId) : -1;
+    if (currentQIndex === -1 && questions.length > 0) {
+      draftNewQuestionRef.current = {
+        questionType, questionText, questionImage, explanation,
+        optionA, optionAImage, optionB, optionBImage, optionC, optionCImage, optionD, optionDImage,
+        correctAnswer, natAnswer
+      };
+      handleEditQuestion(questions[questions.length - 1]);
+    } else if (currentQIndex > 0) {
+      handleEditQuestion(questions[currentQIndex - 1]);
+    }
+  };
+
+  const handleNavNextQuestion = () => {
+    const currentQIndex = editingQuestionId ? questions.findIndex(q => q.id === editingQuestionId) : -1;
+    if (currentQIndex >= 0 && currentQIndex < questions.length - 1) {
+      handleEditQuestion(questions[currentQIndex + 1]);
+    } else if (currentQIndex === questions.length - 1) {
+      setEditingQuestionId(null);
+      if (draftNewQuestionRef.current) {
+        const d = draftNewQuestionRef.current;
+        setQuestionType(d.questionType);
+        setQuestionText(d.questionText);
+        setQuestionImage(d.questionImage);
+        setExplanation(d.explanation);
+        setOptionA(d.optionA);
+        setOptionAImage(d.optionAImage);
+        setOptionB(d.optionB);
+        setOptionBImage(d.optionBImage);
+        setOptionC(d.optionC);
+        setOptionCImage(d.optionCImage);
+        setOptionD(d.optionD);
+        setOptionDImage(d.optionDImage);
+        setCorrectAnswer(d.correctAnswer);
+        setNatAnswer(d.natAnswer);
+      } else {
+        setQuestionText('');
+        setQuestionImage(null);
+        setExplanation('');
+        setOptionA(''); setOptionAImage(null);
+        setOptionB(''); setOptionBImage(null);
+        setOptionC(''); setOptionCImage(null);
+        setOptionD(''); setOptionDImage(null);
+        setCorrectAnswer('');
+        setNatAnswer('');
+      }
+    }
   };
 
   const insertAtCursor = (
@@ -182,7 +252,9 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
         throw new Error(`Maximum question limit (${subjectDef.question_count}) reached for this subject.`);
       }
 
-      const questionNumber = questions.length + 1;
+      const questionNumber = questions.length > 0 
+        ? Math.max(...questions.map(q => q.question_number || 0)) + 1 
+        : 1;
       const markingScheme = exam.marking_scheme || {};
 
       const questionData: any = {
@@ -192,7 +264,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
         question_type: questionType,
         question_text: questionText,
         explanation: explanation || null,
-        question_number: questionNumber,
+        ...(editingQuestionId ? {} : { question_number: questionNumber }),
         image_url: questionImage,
         marks: questionType === 'mcq' ? (markingScheme.mcq_correct || 4) : (markingScheme.nat_correct || 4),
         positive_marks: questionType === 'mcq' ? (markingScheme.mcq_correct || 4) : (markingScheme.nat_correct || 4),
@@ -557,19 +629,21 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
               </div>
 
               <div className="flex items-center gap-3">
-                {/* Mobile toggle */}
-                <div className="flex sm:hidden bg-white/10 rounded-xl p-1 border border-white/20">
-                  <button type="button" onClick={() => setQuestionType('mcq')}
-                    className={`px-2 py-1 text-xs font-bold rounded-lg transition-all ${questionType === 'mcq' ? 'bg-white text-accent-primary shadow-sm' : 'text-white/80 hover:text-white'}`}>
-                    MCQ
-                  </button>
-                  <button type="button" onClick={() => setQuestionType('nat')}
-                    className={`px-2 py-1 text-xs font-bold rounded-lg transition-all ${questionType === 'nat' ? 'bg-white text-accent-primary shadow-sm' : 'text-white/80 hover:text-white'}`}>
-                    NAT
-                  </button>
-                </div>
+                <div className="flex items-center gap-2">
+                  {/* Mobile toggle */}
+                  <div className="flex sm:hidden bg-white/10 rounded-xl p-1 border border-white/20">
+                    <button type="button" onClick={() => setQuestionType('mcq')}
+                      className={`px-2 py-1 text-xs font-bold rounded-lg transition-all ${questionType === 'mcq' ? 'bg-white text-accent-primary shadow-sm' : 'text-white/80 hover:text-white'}`}>
+                      MCQ
+                    </button>
+                    <button type="button" onClick={() => setQuestionType('nat')}
+                      className={`px-2 py-1 text-xs font-bold rounded-lg transition-all ${questionType === 'nat' ? 'bg-white text-accent-primary shadow-sm' : 'text-white/80 hover:text-white'}`}>
+                      NAT
+                    </button>
+                  </div>
 
-                <button onClick={() => setShowForm(false)} className="text-white/80 hover:text-white transition-colors text-lg font-bold w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center">✕</button>
+                  <button onClick={() => setShowForm(false)} className="text-white/80 hover:text-white transition-colors text-lg font-bold w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center">✕</button>
+                </div>
               </div>
             </div>
             
@@ -583,7 +657,9 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                   <div className="space-y-4">
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">Question Text (Optional if image provided)</label>
+                        <label className="block text-xs font-semibold text-text-main uppercase tracking-wider flex items-center gap-1.5">
+                          Question <span className="text-accent-primary font-extrabold bg-accent-primary/10 px-1.5 py-0.5 rounded text-[11px]">#{editingQuestionId ? questions.findIndex(q => q.id === editingQuestionId) + 1 : questions.length + 1}</span>
+                        </label>
                         <button
                           type="button"
                           onClick={() => setShowQFormula(!showQFormula)}
@@ -793,10 +869,70 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                   )}
 
                   <div className="space-y-2 pt-3 border-t border-border">
-                    <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">
-                      Explanation / Solution <span className="text-text-muted font-normal lowercase">(optional)</span>
-                    </label>
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">
+                        Explanation / Solution <span className="text-text-muted font-normal lowercase">(optional)</span>
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          id="expl-img-upload-qpage"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              const url = ev.target?.result as string;
+                              const imageTag = `![image](${url})`;
+                              const el = explRef.current;
+                              if (el) {
+                                const start = el.selectionStart ?? explanation.length;
+                                const end = el.selectionEnd ?? explanation.length;
+                                setExplanation(explanation.slice(0, start) + imageTag + explanation.slice(end));
+                              } else {
+                                setExplanation(explanation + imageTag);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                            e.target.value = '';
+                          }}
+                        />
+                        <label
+                          htmlFor="expl-img-upload-qpage"
+                          className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 bg-bg border border-border text-accent-primary font-bold text-[11px] rounded-lg hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors"
+                        >
+                          + Image
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowExplFormula(!showExplFormula)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                            showExplFormula
+                              ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
+                              : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
+                          }`}
+                        >
+                          <Sigma size={11} />
+                          Formula
+                        </button>
+                      </div>
+                    </div>
+                    {showExplFormula && (
+                      <FormulaToolbar
+                        onInsert={(latex) =>
+                          insertAtCursor(
+                            explRef as React.RefObject<HTMLTextAreaElement | null>,
+                            setExplanation,
+                            explanation,
+                            latex
+                          )
+                        }
+                      />
+                    )}
                     <textarea
+                      ref={explRef}
                       rows={5}
                       value={explanation}
                       onChange={(e) => setExplanation(e.target.value)}
@@ -812,28 +948,94 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                   </div>
 
                   {error && <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-semibold">{error}</div>}
-                  <div className="flex gap-3 pt-4 border-t border-border">
-                    <button type="button" onClick={() => setShowForm(false)}
-                      className="flex-1 py-3 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-sm transition-colors">
-                      Cancel
-                    </button>
-                    <button type="submit" disabled={formLoading}
-                      className="flex-1 py-3 bg-accent-primary text-white font-semibold rounded-xl hover:bg-accent-primary/80 disabled:opacity-50 text-sm transition-colors shadow-md">
-                      {formLoading ? 'Saving...' : editingQuestionId ? 'Update Question' : 'Save Question'}
-                    </button>
-                  </div>
+                  
+                  {(() => {
+                    const currentQIndex = editingQuestionId ? questions.findIndex(q => q.id === editingQuestionId) : -1;
+                    const hasPrevQuestion = currentQIndex > 0 || (currentQIndex === -1 && questions.length > 0);
+                    const hasNextQuestion = currentQIndex >= 0;
+
+                    return (
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-border">
+                        {/* Left side: Previous and Next Question */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={!hasPrevQuestion}
+                            onClick={handleNavPrevQuestion}
+                            className="inline-flex items-center gap-1 px-3 py-2 bg-bg border border-border text-text-main font-semibold rounded-xl text-xs hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                          >
+                            <ChevronLeft size={15} />
+                            Previous Question
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!hasNextQuestion}
+                            onClick={handleNavNextQuestion}
+                            className="inline-flex items-center gap-1 px-3 py-2 bg-bg border border-border text-text-main font-semibold rounded-xl text-xs hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                          >
+                            Next Question
+                            <ChevronRight size={15} />
+                          </button>
+                        </div>
+
+                        {/* Center side: Clear Form */}
+                        <div className="flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfirmDialog({
+                                isOpen: true,
+                                title: 'Clear Form',
+                                message: 'Are you sure you want to clear all form fields?',
+                                confirmText: 'Clear Form',
+                                confirmColor: 'bg-red-500 hover:bg-red-600 shadow-red-500/20',
+                                onConfirm: () => {
+                                  setConfirmDialog((prev: any) => ({ ...prev, isOpen: false }));
+                                  setQuestionText(''); setQuestionImage(null); setExplanation('');
+                                  setOptionA(''); setOptionAImage(null); setOptionB(''); setOptionBImage(null);
+                                  setOptionC(''); setOptionCImage(null); setOptionD(''); setOptionDImage(null);
+                                  setCorrectAnswer(''); setNatAnswer('');
+                                  setEditingQuestionId(null);
+                                }
+                              });
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-2 bg-bg border border-border text-text-muted font-semibold rounded-xl text-xs hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors cursor-pointer"
+                          >
+                            Clear Form
+                          </button>
+                        </div>
+
+                        {/* Right side: Cancel and Save */}
+                        <div className="flex items-center gap-3">
+                          <button type="button" onClick={() => setShowForm(false)}
+                            className="px-5 py-2.5 bg-surface border border-border text-text-muted font-semibold rounded-xl hover:bg-surface-hover text-xs transition-colors cursor-pointer">
+                            Cancel
+                          </button>
+                          <button type="submit" disabled={formLoading}
+                            className="px-5 py-2.5 bg-accent-primary text-white font-semibold rounded-xl hover:bg-accent-primary/80 disabled:opacity-50 text-xs transition-colors shadow-md cursor-pointer">
+                            {formLoading ? 'Saving...' : editingQuestionId ? 'Update Question' : 'Save Question'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </form>
 
-                {/* Right Column: Live Question Preview Card (Desktop only) */}
-                <div className="hidden lg:block lg:sticky lg:top-0 bg-bg border border-border rounded-2xl p-6 shadow-sm space-y-5">
-                  <div className="flex items-center justify-between border-b border-border pb-3">
+                {/* Right Column: Live Question Preview Card (Desktop only - Read Only) */}
+                <div className="hidden lg:block lg:sticky lg:top-0 bg-bg/60 border border-border/80 rounded-2xl p-6 shadow-xs space-y-5 pointer-events-none select-none opacity-85">
+                  <div className="flex items-center justify-between border-b border-border/80 pb-3">
                     <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-text-main">Live Question Preview</h4>
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 shrink-0" />
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-text-muted">Live Question Preview</h4>
                     </div>
-                    <span className="text-[10px] font-bold uppercase text-accent-primary bg-accent-primary/10 px-2.5 py-0.5 rounded-full border border-accent-primary/20">
-                      {questionType.toUpperCase()}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-semibold uppercase tracking-wider text-text-muted/70 bg-surface px-2 py-0.5 rounded border border-border/60">
+                        Read-Only
+                      </span>
+                      <span className="text-[10px] font-bold uppercase text-accent-primary bg-accent-primary/10 px-2.5 py-0.5 rounded-full border border-accent-primary/20">
+                        {questionType.toUpperCase()}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Question Text & Image */}
@@ -869,23 +1071,28 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                               key={opt.id}
                               className={`p-3 rounded-xl border transition-all flex flex-col gap-1.5 ${
                                 isCorrect
-                                  ? 'bg-emerald-500/10 border-emerald-500 text-emerald-950 dark:text-emerald-200'
-                                  : 'bg-surface border-border text-text-main'
+                                  ? 'bg-emerald-500/15 border-2 border-emerald-500 text-emerald-900 dark:text-emerald-300 shadow-sm'
+                                  : 'bg-surface border-border text-text-main opacity-75'
                               }`}
                             >
                               <div className="flex items-start gap-2.5 text-xs font-medium">
                                 <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
-                                  isCorrect ? 'bg-emerald-500 text-white' : 'bg-bg border border-border text-text-muted'
+                                  isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-bg border border-border text-text-muted'
                                 }`}>
                                   {opt.id}
                                 </span>
-                                <div className="flex-1 break-words [overflow-wrap:anywhere]">
+                                <div className="flex-1 break-words [overflow-wrap:anywhere] font-semibold">
                                   {opt.val ? (
                                     <MathRenderer text={opt.val} />
                                   ) : (
                                     <span className="text-text-muted/60 italic text-xs">Option {opt.id}...</span>
                                   )}
                                 </div>
+                                {isCorrect && (
+                                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                                    ✓ Correct
+                                  </span>
+                                )}
                               </div>
                               {opt.img && (
                                 <div className="pl-7 pt-1">

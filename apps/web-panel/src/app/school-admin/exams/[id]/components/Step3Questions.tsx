@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BookOpen, Edit2, Trash2, Search, AlertCircle, Sigma, Plus, ArrowUp, ChevronDown } from 'lucide-react';
+import { BookOpen, Edit2, Trash2, Search, AlertCircle, Sigma, Plus, ArrowUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import FormulaToolbar from '@/components/FormulaToolbar';
 import MathRenderer from '@/components/MathRenderer';
 import { parseQuestionImages } from '../hooks/useExamDetailPage';
@@ -70,6 +70,8 @@ interface Step3QuestionsProps {
   setTeacherSearchQuery: (query: string) => void;
   searchQuery: string;
   typeFilter: string;
+  onClearForm?: () => void;
+  setConfirmDialog?: (val: any) => void;
 }
 
 export default function Step3Questions({
@@ -95,7 +97,7 @@ export default function Step3Questions({
   qImage,
   setQImage,
   qExplanation = '',
-  setQExplanation = () => {},
+  setQExplanation = () => { },
   optA,
   setOptA,
   optAImg,
@@ -136,6 +138,8 @@ export default function Step3Questions({
   setTeacherSearchQuery,
   searchQuery,
   typeFilter,
+  onClearForm,
+  setConfirmDialog,
 }: Step3QuestionsProps) {
 
   const isDraftStepperMode = role !== 'teacher' && exam?.status === 'draft';
@@ -180,6 +184,7 @@ export default function Step3Questions({
   const qTextRef = useRef<HTMLTextAreaElement>(null);
   const optRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
   const natRef = useRef<HTMLTextAreaElement>(null);
+  const explRef = useRef<HTMLTextAreaElement>(null);
 
   /** Inserts latex at the cursor position in a textarea and calls the setter */
   const insertAtCursor = (
@@ -216,6 +221,8 @@ export default function Step3Questions({
 
   const [showQFormula, setShowQFormula] = useState(false);
   const [showNatFormula, setShowNatFormula] = useState(false);
+  const [showExplFormula, setShowExplFormula] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showOptFormula, setShowOptFormula] = useState<Record<string, boolean>>({
     A: false,
     B: false,
@@ -231,6 +238,65 @@ export default function Step3Questions({
     C: false,
     D: false,
   });
+
+  const draftNewQuestionRef = useRef<{
+    qType: 'mcq' | 'msq' | 'nat';
+    qText: string;
+    qImage: string | null;
+    qExplanation: string;
+    optA: string;
+    optAImg: string | null;
+    optB: string;
+    optBImg: string | null;
+    optC: string;
+    optCImg: string | null;
+    optD: string;
+    optDImg: string | null;
+    correctAnswer: string;
+    natAnswer: string;
+  } | null>(null);
+
+  const handleNavPrevQuestion = () => {
+    const currentQIndex = editingQuestionId ? drawerQuestions.findIndex(q => q.id === editingQuestionId) : -1;
+    if (currentQIndex === -1 && drawerQuestions.length > 0) {
+      draftNewQuestionRef.current = {
+        qType, qText, qImage, qExplanation: qExplanation || '',
+        optA, optAImg, optB, optBImg, optC, optCImg, optD, optDImg,
+        correctAnswer, natAnswer
+      };
+      handleDrawerEditQuestion(drawerQuestions[drawerQuestions.length - 1]);
+    } else if (currentQIndex > 0) {
+      handleDrawerEditQuestion(drawerQuestions[currentQIndex - 1]);
+    }
+  };
+
+  const handleNavNextQuestion = () => {
+    const currentQIndex = editingQuestionId ? drawerQuestions.findIndex(q => q.id === editingQuestionId) : -1;
+    if (currentQIndex >= 0 && currentQIndex < drawerQuestions.length - 1) {
+      handleDrawerEditQuestion(drawerQuestions[currentQIndex + 1]);
+    } else if (currentQIndex === drawerQuestions.length - 1) {
+      if (draftNewQuestionRef.current) {
+        const d = draftNewQuestionRef.current;
+        handleDrawerNewQuestion();
+        setQType(d.qType);
+        setQText(d.qText);
+        setQImage(d.qImage);
+        if (setQExplanation) setQExplanation(d.qExplanation);
+        setOptA(d.optA);
+        setOptAImg(d.optAImg);
+        setOptB(d.optB);
+        setOptBImg(d.optBImg);
+        setOptC(d.optC);
+        setOptCImg(d.optCImg);
+        setOptD(d.optD);
+        setOptDImg(d.optDImg);
+        setCorrectAnswer(d.correctAnswer);
+        setNatAnswer(d.natAnswer);
+      } else {
+        handleDrawerNewQuestion();
+      }
+    }
+  };
 
   useEffect(() => {
     if (drawerView !== 'editor') {
@@ -551,9 +617,7 @@ export default function Step3Questions({
               {/* Drawer Header - pinned */}
               <div className="relative px-5 py-3 border-b border-border flex justify-between items-center bg-surface shrink-0">
                 <div className="flex items-center gap-3">
-                  <span className="w-9 h-9 rounded-lg bg-accent-primary/10 flex items-center justify-center shrink-0">
-                    <BookOpen size={17} className="text-accent-primary" />
-                  </span>
+
                   <div>
                     <h3 className="text-sm font-bold m-0 text-text-main leading-tight">
                       {editingQuestionId ? 'Edit Question' : 'Add New Question'}
@@ -607,7 +671,7 @@ export default function Step3Questions({
               {/* Drawer Body - scrollable */}
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 bg-surface">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto items-start">
-                  
+
                   {/* Left Column: Form Fields */}
                   <form id="drawer-question-form" onSubmit={(e) => doSaveQuestion(e, false)} className="space-y-6">
                     {/* Question text + image section */}
@@ -615,7 +679,9 @@ export default function Step3Questions({
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
-                          <label className="text-[11px] font-bold text-text-main uppercase tracking-wider">Question</label>
+                          <label className="text-[11px] font-bold text-text-main uppercase tracking-wider flex items-center gap-1.5">
+                            Question <span className="text-accent-primary font-extrabold bg-accent-primary/10 px-1.5 py-0.5 rounded text-[11px]">#{editingQuestionId ? drawerQuestions.findIndex(q => q.id === editingQuestionId) + 1 : drawerQuestions.length + 1}</span>
+                          </label>
                         </div>
                         <div className="flex items-center gap-2">
                           <input type="file" accept="image/*" onChange={(e) => handleDrawerImageUpload(e, 'question')} className="hidden" id="q-img" />
@@ -859,14 +925,75 @@ export default function Step3Questions({
                     )}
 
                     <div className="space-y-2 pt-3 border-t border-border">
-                      <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">
-                        Explanation / Solution <span className="text-text-muted font-normal lowercase">(optional)</span>
-                      </label>
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">
+                          Explanation / Solution <span className="text-text-muted font-normal lowercase">(optional)</span>
+                        </label>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            id="expl-img-upload"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                const url = ev.target?.result as string;
+                                const imageTag = `![image](${url})`;
+                                const el = explRef.current;
+                                if (el) {
+                                  const start = el.selectionStart ?? (qExplanation || '').length;
+                                  const end = el.selectionEnd ?? (qExplanation || '').length;
+                                  const newVal = (qExplanation || '').slice(0, start) + imageTag + (qExplanation || '').slice(end);
+                                  if (setQExplanation) setQExplanation(newVal);
+                                } else {
+                                  if (setQExplanation) setQExplanation((qExplanation || '') + imageTag);
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                              e.target.value = '';
+                            }}
+                          />
+                          <label
+                            htmlFor="expl-img-upload"
+                            className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 bg-bg border border-border text-accent-primary font-bold text-[11px] rounded-lg hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors"
+                          >
+                            + Image
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setShowExplFormula(!showExplFormula)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all cursor-pointer ${
+                              showExplFormula
+                                ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary'
+                                : 'bg-bg border-border text-text-muted hover:text-text-main hover:border-accent-primary/30'
+                            }`}
+                          >
+                            <Sigma size={11} />
+                            Formula
+                          </button>
+                        </div>
+                      </div>
+                      {showExplFormula && (
+                        <FormulaToolbar
+                          onInsert={(latex) =>
+                            insertAtCursor(
+                              explRef as React.RefObject<HTMLTextAreaElement | null>,
+                              (val) => { if (setQExplanation) setQExplanation(val); },
+                              qExplanation || '',
+                              latex
+                            )
+                          }
+                        />
+                      )}
                       <textarea
+                        ref={explRef}
                         rows={5}
                         value={qExplanation}
                         onChange={(e) => setQExplanation(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-xs font-medium resize-y min-h-[120px] placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                        className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-xs font-medium resize-y min-h-[150px] placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                         placeholder="Enter explanation or step-by-step solution for students..."
                       />
                       {qExplanation && (
@@ -885,16 +1012,21 @@ export default function Step3Questions({
                     )}
                   </form>
 
-                  {/* Right Column: Dedicated Live Preview Panel (Desktop only) */}
-                  <div className="hidden lg:block lg:sticky lg:top-0 bg-bg border border-border rounded-2xl p-5 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between border-b border-border pb-3">
+                  {/* Right Column: Dedicated Live Preview Panel (Desktop only - Read Only) */}
+                  <div className="hidden lg:block lg:sticky lg:top-0 bg-bg/60 border border-border/80 rounded-2xl p-5 shadow-xs space-y-4 pointer-events-none select-none opacity-85">
+                    <div className="flex items-center justify-between border-b border-border/80 pb-3">
                       <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-text-main">Live Question Preview</h4>
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 shrink-0" />
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-text-muted">Live Question Preview</h4>
                       </div>
-                      <span className="text-[10px] font-bold uppercase text-accent-primary bg-accent-primary/10 px-2.5 py-0.5 rounded-full border border-accent-primary/20">
-                        {qType.toUpperCase()}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-semibold uppercase tracking-wider text-text-muted/70 bg-surface px-2 py-0.5 rounded border border-border/60">
+                          Read-Only
+                        </span>
+                        <span className="text-[10px] font-bold uppercase text-accent-primary bg-accent-primary/10 px-2.5 py-0.5 rounded-full border border-accent-primary/20">
+                          {qType.toUpperCase()}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Question Content */}
@@ -940,25 +1072,28 @@ export default function Step3Questions({
                             return (
                               <div
                                 key={opt.id}
-                                className={`p-3 rounded-xl border transition-all flex flex-col gap-1.5 ${
-                                  isCorrect
-                                    ? 'bg-emerald-500/10 border-emerald-500 text-emerald-950 dark:text-emerald-200'
-                                    : 'bg-surface border-border text-text-main'
-                                }`}
+                                className={`p-3 rounded-xl border transition-all flex flex-col gap-1.5 ${isCorrect
+                                  ? 'bg-emerald-500/15 border-2 border-emerald-500 text-text-main'
+                                  : 'bg-surface border-border text-text-main opacity-75'
+                                  }`}
                               >
                                 <div className="flex items-start gap-2.5 text-xs font-medium">
-                                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${
-                                    isCorrect ? 'bg-emerald-500 text-white' : 'bg-bg border border-border text-text-muted'
-                                  }`}>
+                                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 ${isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-bg border border-border text-text-muted'
+                                    }`}>
                                     {opt.id}
                                   </span>
-                                  <div className="flex-1 break-words [overflow-wrap:anywhere]">
+                                  <div className="flex-1 break-words [overflow-wrap:anywhere] font-semibold">
                                     {opt.val ? (
                                       <MathRenderer text={opt.val} />
                                     ) : (
                                       <span className="text-text-muted/60 italic text-xs">Option {opt.id}...</span>
                                     )}
                                   </div>
+                                  {isCorrect && (
+                                    <span className="text-[10px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                                      ✓ Correct
+                                    </span>
+                                  )}
                                 </div>
                                 {optImages.length > 0 && (
                                   <div className="flex flex-wrap gap-2 pl-7 pt-1">
@@ -1000,19 +1135,87 @@ export default function Step3Questions({
               </div>
 
               {/* Drawer Footer - pinned at bottom */}
-              <div className="px-5 py-3.5 border-t border-border bg-surface shrink-0 flex gap-2">
-                <button type="button" onClick={() => setShowQuestionPreview(true)} className="flex-1 py-2.5 bg-bg border border-border text-text-muted font-semibold rounded-lg text-sm hover:bg-surface-hover hover:text-text-main transition-colors">
-                  Preview
-                </button>
-                <button type="submit" form="drawer-question-form" disabled={drawerFormLoading} className="flex-1 py-2.5 bg-accent-primary text-white font-semibold rounded-lg text-sm hover:bg-accent-primary/90 disabled:opacity-50 transition-colors shadow-sm">
-                  {drawerFormLoading ? 'Saving...' : 'Save'}
-                </button>
-                {!editingQuestionId && drawerQuestions.length < (subjects.find(s => s.id === drawerSubjectId)?.question_count ?? 0) - 1 && (
-                  <button type="button" onClick={(e) => doSaveQuestion(e, true)} disabled={drawerFormLoading} className="flex-1 py-2.5 bg-accent-primary/10 text-accent-primary font-semibold rounded-lg text-sm border border-accent-primary/20 hover:bg-accent-primary/20 disabled:opacity-50 transition-colors">
-                    Save & Add Next
-                  </button>
-                )}
-              </div>
+              {(() => {
+                const currentQIndex = editingQuestionId ? drawerQuestions.findIndex(q => q.id === editingQuestionId) : -1;
+                const hasPrevQuestion = currentQIndex > 0 || (currentQIndex === -1 && drawerQuestions.length > 0);
+                const hasNextQuestion = currentQIndex >= 0;
+
+                return (
+                  <div className="px-5 py-3 border-t border-border bg-surface shrink-0 flex flex-wrap items-center justify-between gap-3">
+                    {/* Left side: Previous Question and Next Question */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={!hasPrevQuestion}
+                        onClick={handleNavPrevQuestion}
+                        className="inline-flex items-center gap-1 px-3 py-2 bg-bg border border-border text-text-main font-semibold rounded-lg text-xs hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >
+                        <ChevronLeft size={15} />
+                        Previous Question
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!hasNextQuestion}
+                        onClick={handleNavNextQuestion}
+                        className="inline-flex items-center gap-1 px-3 py-2 bg-bg border border-border text-text-main font-semibold rounded-lg text-xs hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >
+                        Next Question
+                        <ChevronRight size={15} />
+                      </button>
+                    </div>
+
+                    {/* Center: Clear Form */}
+                    <div className="flex items-center justify-center">
+                      <button
+                        type="button"
+                        title="Clear all form fields"
+                        onClick={() => {
+                          if (setConfirmDialog) {
+                            setConfirmDialog({
+                              isOpen: true,
+                              title: 'Clear Form',
+                              message: 'Are you sure you want to clear all form fields?',
+                              confirmText: 'Clear Form',
+                              confirmColor: 'bg-red-500 hover:bg-red-600 shadow-red-500/20',
+                              onConfirm: () => {
+                                setConfirmDialog((prev: any) => ({ ...prev, isOpen: false }));
+                                if (onClearForm) onClearForm();
+                              }
+                            });
+                          } else if (onClearForm) {
+                            onClearForm();
+                          }
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-bg border border-border text-text-muted text-xs font-semibold hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-all cursor-pointer"
+                      >
+                        Clear Form
+                      </button>
+                    </div>
+
+                    {/* Right side: Save & Add Next and Save */}
+                    <div className="flex items-center gap-2">
+                      {!editingQuestionId && drawerQuestions.length < (subjects.find(s => s.id === drawerSubjectId)?.question_count ?? 0) - 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => doSaveQuestion(e, true)}
+                          disabled={drawerFormLoading}
+                          className="px-4 py-2 bg-accent-primary/10 text-accent-primary font-semibold rounded-lg text-xs border border-accent-primary/20 hover:bg-accent-primary/20 disabled:opacity-50 transition-colors cursor-pointer"
+                        >
+                          Save & Add Next
+                        </button>
+                      )}
+                      <button
+                        type="submit"
+                        form="drawer-question-form"
+                        disabled={drawerFormLoading}
+                        className="px-5 py-2 bg-accent-primary text-white font-semibold rounded-lg text-xs hover:bg-accent-primary/90 disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
+                      >
+                        {drawerFormLoading ? 'Saving...' : 'Save'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </>
