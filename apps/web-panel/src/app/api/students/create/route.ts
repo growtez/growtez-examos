@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
     if (insertError) {
       if (insertError.code === '23505') {
-        return NextResponse.json({ error: 'A student with this roll number, DOB, course, batch, and session is already registered for this exam.' }, { status: 400 });
+        return NextResponse.json({ error: 'A student with this roll number and DOB is already registered for this exam.' }, { status: 400 });
       }
       return NextResponse.json({ error: insertError.message }, { status: 400 });
     }
