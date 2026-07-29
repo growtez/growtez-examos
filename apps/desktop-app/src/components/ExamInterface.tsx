@@ -66,6 +66,11 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const autoSubmittedRef = useRef(false);
   const questionContentRef = useRef<HTMLDivElement>(null);
 
+  // True when the student is re-entering an exam that was already in-progress
+  const [isResuming] = useState(!!exam.student_started_at);
+  // Controls the amber "Resuming" banner shown at the top of the exam UI
+  const [showResumeBanner, setShowResumeBanner] = useState(!!exam.student_started_at);
+
   const scrollToTop = () => {
     questionContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -133,7 +138,51 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
         setSubjects(loadedSubjects);
         setQuestions(loadedQuestions);
-        initializeAnswers(loadedQuestions);
+
+        // Build the blank answer slate first so the UI can render
+        const blankAnswers = initializeAnswers(loadedQuestions);
+
+        // ── Resume: restore previously saved answers from DB ────────────────
+        // When student_started_at is set the student is re-entering an exam
+        // that was interrupted (app closed, crash, etc.). We load whatever
+        // answers were already persisted so they are NOT lost.
+        if (exam.student_started_at && studentProfile?.id) {
+          try {
+            // Answers are stored as a JSONB blob in results.answers, keyed by question_id.
+            // The submit_exam RPC upserts into results on every draft save, so this is
+            // the authoritative source for in-progress answers.
+            const { data: resultRow, error: saErr } = await supabase
+              .from('results')
+              .select('answers')
+              .eq('exam_id', exam.id)
+              .eq('student_id', studentProfile.id)
+              .maybeSingle();
+
+            if (!saErr && resultRow?.answers && Object.keys(resultRow.answers).length > 0) {
+              // resultRow.answers is { [question_id]: { answer, marked_for_review, ... } }
+              const restored = { ...blankAnswers };
+              Object.entries(resultRow.answers as Record<string, any>).forEach(([qId, sa]) => {
+                if (restored[qId] !== undefined) {
+                  restored[qId] = {
+                    answer: sa.answer ?? null,
+                    marked: sa.marked_for_review ?? false,
+                    visited: true,
+                    saved: true,
+                  };
+                }
+              });
+              setAnswers(restored);
+            } else {
+              setAnswers(blankAnswers);
+            }
+          } catch (err) {
+            console.warn('[Resume] Failed to restore saved answers, continuing with blank slate:', err);
+            setAnswers(blankAnswers);
+          }
+        } else {
+          setAnswers(blankAnswers);
+        }
+        // ───────────────────────────────────────────────────────────────────
       } catch (err) {
         console.error('Failed to fetch exam data:', err);
       } finally {
@@ -141,6 +190,8 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       }
     };
 
+    // Returns the initialised blank-slate answer map (and also calls setAnswers
+    // as a fallback; the resume block above will overwrite it when needed).
     const initializeAnswers = (loadedQuestions: any[]) => {
       const initialAnswers: Record<string, { answer: string | null; marked: boolean; visited: boolean; saved: boolean }> = {};
       loadedQuestions.forEach((q) => {
@@ -149,7 +200,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       if (loadedQuestions.length > 0) {
         initialAnswers[loadedQuestions[0].id].visited = true;
       }
-      setAnswers(initialAnswers);
+      return initialAnswers;
     };
 
     fetchExamData();
@@ -160,6 +211,34 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
     if (loading) return; // Don't start timer until exam data is loaded
 
     if (timeLeft <= 0) {
+      // ── Safety re-verification before auto-submitting ──────────────────
+      // On exam resumption the initial timeLeft is computed client-side
+      // before the serverTimeOffset handshake fully settles. Re-derive the
+      // true remaining seconds directly from the authoritative timestamps
+      // to prevent a false auto-submit when the student still has time left.
+      const verifiedTimeLeft = (() => {
+        if (!exam.end_time) {
+          if (exam.student_started_at) {
+            const now = new Date(Date.now() + serverTimeOffset).getTime();
+            const startedAt = new Date(exam.student_started_at).getTime();
+            const elapsedSeconds = Math.floor((now - startedAt) / 1000);
+            return Math.max(0, (exam.duration_minutes * 60) - elapsedSeconds);
+          }
+          return 0;
+        }
+        const now = new Date(Date.now() + serverTimeOffset).getTime();
+        const endTime = new Date(exam.end_time).getTime();
+        return Math.max(0, Math.floor((endTime - now) / 1000));
+      })();
+
+      if (verifiedTimeLeft > 0) {
+        // Clock drift or stale state — correct timeLeft and keep going
+        console.info(`[Timer] Corrected stale timeLeft (was 0, verified: ${verifiedTimeLeft}s). Resuming timer.`);
+        setTimeLeft(verifiedTimeLeft);
+        return;
+      }
+      // ──────────────────────────────────────────────────────────────────
+
       // Auto-submit only once
       if (!autoSubmittedRef.current) {
         autoSubmittedRef.current = true;
@@ -273,13 +352,15 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         }
       });
 
-      await supabase.rpc('submit_exam', {
+      // Use save_exam_draft (not submit_exam) so that students.status stays
+      // 'in_progress' — allowing re-entry if the app closes mid-exam.
+      // submit_exam is reserved for the final manual/timer submission only.
+      await supabase.rpc('save_exam_draft', {
         p_exam_id: exam.id,
         p_school_id: exam.school_id,
         p_answers: savedAnswers,
         p_total_marks: runningScore,
         p_section_scores: sectionScores,
-        p_time_taken_seconds: 0,
       });
     } catch (err) {
       console.error('Failed to save answer to DB:', err);
@@ -725,6 +806,23 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           Calculator
         </button>
       </div>
+
+      {/* Resume Banner — shown when student re-enters a mid-exam session */}
+      {isResuming && showResumeBanner && (
+        <div className="bg-[#F59E0B] text-white text-center text-xs font-bold py-2.5 uppercase tracking-widest flex items-center justify-center gap-2 shrink-0">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Resuming your exam — your previously saved answers have been restored.
+          <button
+            onClick={() => setShowResumeBanner(false)}
+            className="ml-3 text-white/80 hover:text-white font-extrabold text-base leading-none focus:outline-none cursor-pointer"
+            aria-label="Dismiss resume banner"
+          >
+            &times;
+          </button>
+        </div>
+      )}
 
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">
