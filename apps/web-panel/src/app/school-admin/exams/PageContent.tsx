@@ -21,6 +21,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [role, setRole] = useState<string>('school_admin');
+  const [currentSchoolId, setCurrentSchoolId] = useState<string | undefined>(schoolIdProp);
   const [creatingId, setCreatingId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
@@ -179,6 +180,8 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
         const { data: profile } = await supabase.from('teachers').select('school_id').eq('id', user.id).single();
         schoolId = profile?.school_id;
       }
+      
+      if (schoolId) setCurrentSchoolId(schoolId);
     }
     if (!schoolId) return;
 
@@ -1081,7 +1084,7 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
         activeForm="template"
         setActiveForm={() => {}}
         onRefresh={fetchExams}
-        examPrefill={{ schoolId: schoolIdProp }}
+        examPrefill={{ schoolId: currentSchoolId || schoolIdProp }}
         hideTabs={true}
       />
     </div>
