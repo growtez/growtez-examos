@@ -13,6 +13,7 @@ export interface ExamPrefill {
   natCorrect?: number;
   natWrong?: number;
   subjects?: { name: string; questionCount: number }[];
+  schoolId?: string;
 }
 
 interface DrawerContextType {

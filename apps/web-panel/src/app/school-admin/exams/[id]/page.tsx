@@ -1151,6 +1151,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setStartTime={setStartTime}
               setEndTime={setEndTime}
               autoSaveSchedule={autoSaveSchedule}
+              fetchExamData={fetchExamData}
             />
           )}
 
@@ -1587,7 +1588,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                   }}
                   className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "csv" ? "bg-accent-primary text-white shadow-sm" : "text-text-muted hover:text-text-main"}`}
                 >
-                  Import CSV
+                  Import Excel
                 </button>
               </div>
 
@@ -1831,7 +1832,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     <div className="bg-bg border border-border rounded-xl p-3.5 sm:p-5 space-y-2.5">
                       <div className="flex items-center justify-between">
                         <p className="text-text-main text-xs sm:text-sm font-bold">
-                          CSV Format:
+                          Excel Format:
                         </p>
                         <button
                           type="button"
@@ -1841,13 +1842,38 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                           <Download size={12} /> Download Template
                         </button>
                       </div>
-                      <code className="text-[11px] sm:text-xs text-accent-primary bg-surface px-3 py-2.5 block border border-border rounded-lg font-mono overflow-x-auto whitespace-nowrap">
-                        name, roll_number, dob, course, batch, session
-                        <br />
-                        Aarav Patel, 2024001, 15/06/2005, NEET, Morning, 2024-25
-                        <br />
-                        Priya Singh, 2024002, 22/03/2005, JEE, Evening, 2024-25
-                      </code>
+                      <div className="overflow-x-auto rounded-lg border border-border mt-2">
+                        <table className="w-full text-left text-[11px] sm:text-xs whitespace-nowrap min-w-[500px]">
+                          <thead className="bg-surface text-text-muted font-bold uppercase text-[10px]">
+                            <tr>
+                              <th className="px-3 py-2 border-b border-r border-border font-bold">name</th>
+                              <th className="px-3 py-2 border-b border-r border-border font-bold">roll_number</th>
+                              <th className="px-3 py-2 border-b border-r border-border font-bold">dob</th>
+                              <th className="px-3 py-2 border-b border-r border-border font-bold">course</th>
+                              <th className="px-3 py-2 border-b border-r border-border font-bold">batch</th>
+                              <th className="px-3 py-2 border-b border-border font-bold">session</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-bg text-text-main divide-y divide-border">
+                            <tr className="hover:bg-surface/50 transition-colors">
+                              <td className="px-3 py-1.5 border-r border-border">Aarav Patel</td>
+                              <td className="px-3 py-1.5 border-r border-border">2024001</td>
+                              <td className="px-3 py-1.5 border-r border-border">15/06/2005</td>
+                              <td className="px-3 py-1.5 border-r border-border">NEET</td>
+                              <td className="px-3 py-1.5 border-r border-border">Morning</td>
+                              <td className="px-3 py-1.5">2024-25</td>
+                            </tr>
+                            <tr className="hover:bg-surface/50 transition-colors">
+                              <td className="px-3 py-1.5 border-r border-border">Priya Singh</td>
+                              <td className="px-3 py-1.5 border-r border-border">2024002</td>
+                              <td className="px-3 py-1.5 border-r border-border">22/03/2005</td>
+                              <td className="px-3 py-1.5 border-r border-border">JEE</td>
+                              <td className="px-3 py-1.5 border-r border-border">Evening</td>
+                              <td className="px-3 py-1.5">2024-25</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
                       <div className="sm:hidden pt-0.5">
                         <button
                           type="button"
@@ -1861,12 +1887,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
 
                     <div>
                       <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                        Select CSV File
+                        Select Excel File
                       </label>
                       <label className="relative flex flex-col items-center justify-center p-4 sm:p-5 border-2 border-dashed border-border rounded-xl bg-surface hover:border-accent-primary/50 transition-all cursor-pointer group text-center">
                         <input
                           type="file"
-                          accept=".csv,.txt"
+                          accept=".csv,.txt,.xlsx,.xls"
                           required
                           onChange={(e) => handleCsvFileChange(e.target.files?.[0] || null)}
                           className="sr-only"
@@ -1886,10 +1912,13 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         ) : (
                           <span className="space-y-0.5 block">
                             <span className="text-xs font-bold text-text-main block">
-                              Choose CSV File
+                              Choose Excel File
                             </span>
                             <span className="text-[10px] text-text-muted font-medium block">
                               Tap to browse from device
+                            </span>
+                            <span className="text-[9px] text-text-muted/80 font-semibold block mt-0.5">
+                              Supported: .xlsx, .xls, .csv
                             </span>
                           </span>
                         )}
@@ -1953,7 +1982,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       disabled={addingStudent || !csvFile}
                       className="flex-1 py-3 bg-accent-primary hover:bg-accent-primary/80 text-white font-semibold rounded-xl disabled:opacity-50 text-sm transition-colors shadow-sm shadow-accent-primary/20 cursor-pointer"
                     >
-                      {addingStudent ? "Importing..." : "Import CSV"}
+                      {addingStudent ? "Importing..." : "Import Excel"}
                     </button>
                   </div>
                 </form>

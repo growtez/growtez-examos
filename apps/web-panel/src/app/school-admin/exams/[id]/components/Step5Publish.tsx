@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   AlertCircle, CheckCircle2, CreditCard, Play, Calendar, Clock, Users, BookOpen, Award, Monitor,
-  Search, ChevronLeft, ChevronRight, Filter, ArrowUpDown, ArrowUp, X, FileBarChart2, FileText, Loader2, Download,
+  Search, ChevronLeft, ChevronRight, Filter, ArrowUpDown, ArrowUp, X, FileBarChart2, FileText, Loader2, Download, Coins, Zap
 } from 'lucide-react';
+import { openRazorpayCheckout } from '@/components/RazorpayCheckout';
 
 interface Step5PublishProps {
   exam: any;
@@ -30,6 +31,7 @@ interface Step5PublishProps {
   setStartTime?: (val: string) => void;
   setEndTime?: (val: string) => void;
   autoSaveSchedule?: (currentStartTime?: string, currentEndTime?: string) => Promise<void>;
+  fetchExamData?: () => void;
 }
 
 export default function Step5Publish({
@@ -56,8 +58,63 @@ export default function Step5Publish({
   setStartTime,
   setEndTime,
   autoSaveSchedule,
+  fetchExamData,
 }: Step5PublishProps) {
   if (!exam) return null;
+
+  const [loadingPlans, setLoadingPlans] = useState(false);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [showBuyModal, setShowBuyModal] = useState(false);
+  const [purchasingPlan, setPurchasingPlan] = useState<string | null>(null);
+
+  const fetchPlans = async () => {
+    if (plans.length > 0) return;
+    try {
+      setLoadingPlans(true);
+      const { data } = await supabase
+        .from('plans')
+        .select('id, name, price, credits_awarded')
+        .eq('is_active', true)
+        .eq('plan_type', 'exam_based')
+        .order('price', { ascending: true });
+      if (data) setPlans(data);
+    } catch (err) {
+      console.error('Failed to fetch plans', err);
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
+
+  const handleBuy = async (plan: any) => {
+    setPurchasingPlan(plan.id);
+    try {
+      await openRazorpayCheckout({
+        amount: plan.price,
+        schoolId: exam.school_id,
+        planId: plan.id,
+        planName: plan.name,
+        onSuccess: () => {
+          if (fetchExamData) fetchExamData();
+          setShowBuyModal(false);
+          alert('Credits purchased successfully!');
+        },
+        onError: (err: any) => {
+          console.error("Payment failed", err);
+          alert("Payment failed or cancelled. Please try again.");
+        }
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setPurchasingPlan(null);
+    }
+  };
+
+  useEffect(() => {
+    if (showBuyModal) {
+      fetchPlans();
+    }
+  }, [showBuyModal]);
 
   // ---- Exam results table (shown once published) ----
   const [results, setResults] = useState<any[]>([]);
@@ -832,12 +889,12 @@ export default function Step5Publish({
                       <Play size={16} />
                       Insufficient Credits
                     </button>
-                    <a
-                      href="/credits"
+                    <button
+                      onClick={() => setShowBuyModal(true)}
                       className="text-sm text-center font-semibold text-accent-primary hover:underline mt-1"
                     >
                       Buy more credits
-                    </a>
+                    </button>
                   </div>
                 )}
               </>
@@ -845,6 +902,98 @@ export default function Step5Publish({
           </div>
         </div>
       </div>
+
+      {/* Buy Credits Modal */}
+      {showBuyModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-surface rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="p-4 md:p-6 border-b border-border flex items-center justify-between bg-gradient-to-r from-accent-primary/10 to-transparent">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-accent-primary/20 flex items-center justify-center text-accent-primary">
+                  <Coins size={20} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-extrabold text-text-main">Purchase Credits</h2>
+                  <p className="text-text-muted text-xs font-medium">1 Credit = 1 Exam Publish</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowBuyModal(false)}
+                className="p-2 text-text-muted hover:text-text-main bg-bg hover:bg-surface-hover rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-4 md:p-6 overflow-y-auto custom-scrollbar flex-1 bg-bg">
+              {loadingPlans ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-accent-primary mb-4" />
+                  <p className="text-text-muted text-sm font-medium">Loading plans...</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {plans.map((plan, i) => {
+                    const isPopular = i === 2 || plan.credits_awarded === 6;
+                    return (
+                      <div
+                        key={plan.id}
+                        className={`relative group bg-surface rounded-2xl p-5 flex flex-col h-full transition-all duration-300 hover:-translate-y-1 ${isPopular
+                            ? 'border-2 border-accent-primary shadow-xl shadow-accent-primary/10'
+                            : 'border border-border shadow-sm hover:shadow-md'
+                          }`}
+                      >
+                        {isPopular && (
+                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent-primary text-white text-[9px] font-bold uppercase tracking-widest py-0.5 px-3 rounded-full shadow-sm z-10 whitespace-nowrap">
+                            Most Popular
+                          </div>
+                        )}
+                        <div className="mb-4">
+                          <h3 className="text-sm font-bold text-text-main mb-1">{plan.name}</h3>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-black text-text-main tracking-tight">₹{plan.price}</span>
+                            <span className="text-[11px] font-medium text-text-muted">/pack</span>
+                          </div>
+                        </div>
+                        <div className="flex-1 flex flex-col mb-4 space-y-2">
+                          <div className="flex items-center gap-2 bg-accent-primary/10 text-accent-primary py-2 px-3 rounded-lg">
+                            <Zap className="w-4 h-4 shrink-0 fill-accent-primary/20" />
+                            <span className="text-xs font-bold">
+                              {plan.credits_awarded} Exam{plan.credits_awarded > 1 ? 's' : ''} Publish
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 py-1.5 px-3">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            <span className="text-xs font-medium text-text-muted">
+                              ₹{(plan.price / plan.credits_awarded).toFixed(0)} / credit
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 py-1.5 px-3">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            <span className="text-xs font-medium text-text-muted">Never expires</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleBuy(plan)}
+                          disabled={purchasingPlan === plan.id}
+                          className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all mt-auto ${isPopular
+                              ? 'bg-accent-primary hover:bg-accent-primary/90 text-white shadow-sm shadow-accent-primary/20'
+                              : 'bg-bg hover:bg-surface-hover border border-border text-text-main hover:border-accent-primary/50'
+                            }`}
+                        >
+                          {purchasingPlan === plan.id ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Wait...</>
+                          ) : 'Buy Now'}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
