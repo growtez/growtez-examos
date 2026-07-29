@@ -541,26 +541,26 @@ export default function NewExamPage() {
               <div>
                 <label className="block text-xs font-semibold text-text-main mb-1">Full Name</label>
                 <input type="text" value={newTeacherName} onChange={(e) => setNewTeacherName(e.target.value)} required
-                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
+                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
                   placeholder="e.g. Dr. Sharma" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-text-main mb-1">Email</label>
                 <input type="email" value={newTeacherEmail} onChange={(e) => setNewTeacherEmail(e.target.value)} required
-                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
+                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
                   placeholder="sharma@school.com" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-text-main mb-1">Department</label>
                 <input type="text" value={newTeacherDepartment} onChange={(e) => setNewTeacherDepartment(e.target.value)} required
-                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
+                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
                   placeholder="e.g. Mathematics" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-text-main mb-1">Temporary Password</label>
                 <div className="relative">
                   <input type={showPassword ? "text" : "password"} value={newTeacherPassword} onChange={(e) => setNewTeacherPassword(e.target.value)} required minLength={6}
-                    className="w-full pl-3 pr-10 py-2 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
+                    className="w-full pl-3 pr-10 py-2 bg-bg border border-border rounded-lg text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
                     placeholder="Min 6 characters" />
                   <button
                     type="button"

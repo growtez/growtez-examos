@@ -982,7 +982,7 @@ export default function Step5Publish({
                             }`}
                         >
                           {purchasingPlan === plan.id ? (
-                            <><Loader2 className="w-4 h-4 animate-spin" /> Wait...</>
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Opening Gateway...</>
                           ) : 'Buy Now'}
                         </button>
                       </div>
