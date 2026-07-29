@@ -63,18 +63,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid login credentials or not assigned to any active exam.' }, { status: 401, headers: corsHeaders });
     }
 
-    // 3. Guard: check if this student already submitted this exam.
-    // If a result row exists, the exam is done — re-login must be blocked
-    // to prevent answer overrides. Late-comers who haven't submitted yet
-    // will have no result row and can still log in normally.
-    const { data: existingResult } = await adminSupabase
-      .from('results')
-      .select('id')
-      .eq('student_id', student.id)
-      .eq('exam_id', student.exam_id)
-      .maybeSingle();
-
-    if (existingResult) {
+    // 3. Guard: check if this student has TRULY submitted (manual or timer-expired submit).
+    // We check students.status rather than the existence of a results row because
+    // results rows are also created during the exam for draft answer saves — a student
+    // mid-exam who lost connectivity would be incorrectly blocked otherwise.
+    // Only status = 'submitted' (set by the final submit_exam call) is authoritative.
+    if (student.status === 'submitted') {
       return NextResponse.json(
         { error: 'You have already submitted this exam. Re-entry is not allowed.' },
         { status: 403, headers: corsHeaders }

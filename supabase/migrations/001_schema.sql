@@ -524,11 +524,52 @@ BEGIN
     time_taken_seconds = EXCLUDED.time_taken_seconds,
     submitted_at = NOW();
 
-  -- Update student status
+  -- Update student status to 'submitted' (final — blocks re-entry via the login API)
   UPDATE public.students
   SET status = 'submitted', submitted_at = NOW()
   WHERE exam_id = p_exam_id AND id = public.get_student_id();
   
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Draft auto-save RPC: persists in-progress answers to the results table
+-- WITHOUT marking the student as 'submitted'. This keeps the re-entry gate
+-- (students.status = 'submitted') clean for the login API check.
+-- Called by the desktop app on every "Save & Next" during the exam.
+CREATE OR REPLACE FUNCTION public.save_exam_draft(
+  p_exam_id UUID,
+  p_school_id UUID,
+  p_answers JSONB,
+  p_total_marks INTEGER,
+  p_section_scores JSONB
+)
+RETURNS VOID AS $$
+BEGIN
+  INSERT INTO public.results (
+    exam_id,
+    student_id,
+    school_id,
+    answers,
+    total_marks,
+    section_scores,
+    time_taken_seconds
+  ) VALUES (
+    p_exam_id,
+    public.get_student_id(),
+    p_school_id,
+    p_answers,
+    p_total_marks,
+    p_section_scores,
+    0
+  )
+  ON CONFLICT (exam_id, student_id)
+  DO UPDATE SET
+    answers = EXCLUDED.answers,
+    total_marks = EXCLUDED.total_marks,
+    section_scores = EXCLUDED.section_scores,
+    submitted_at = NOW();
+  -- NOTE: students.status is intentionally NOT updated here.
+  -- It stays 'in_progress' so the student can re-enter if the app closes.
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
