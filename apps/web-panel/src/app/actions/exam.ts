@@ -81,7 +81,7 @@ export async function fetchStudentResult(examId: string, schoolId: string, rollN
     .select('id, full_name')
     .eq('roll_number', rollNumber.trim())
     .eq('date_of_birth', dob)
-    .eq('school_id', schoolId)
+    .eq('exam_id', examId)
     .single();
 
   if (studentError || !student) {
