@@ -3,14 +3,34 @@ import { supabase, setStudentToken } from '../lib/supabase';
 import { getDeviceId } from '../lib/deviceId';
 import VirtualKeyboard from './VirtualKeyboard';
 
-type Step = 'login' | 'waiting_room' | 'exam' | 'submitted';
+type Step = 'login' | 'exam_select' | 'waiting_room' | 'exam' | 'submitted';
+
+export interface StudentAssignment {
+  student_id: string;
+  student_status: 'assigned' | 'in_progress' | 'submitted';
+  started_at: string | null;
+  full_name: string;
+  roll_number: string;
+  exams: {
+    id: string;
+    title: string;
+    description: string | null;
+    duration_minutes: number;
+    start_time: string | null;
+    end_time: string | null;
+    status: 'published' | 'active' | 'draft' | 'completed';
+  } | null;
+}
 
 interface LoginProps {
+  /** Called on single-exam auth (direct). Profile + exam + initialStep. */
   onLoginSuccess: (studentData: any, selectedExam: any, initialStep?: Step) => void;
+  /** Called when multiple exams found; student must pick one. */
+  onMultipleExams: (assignments: StudentAssignment[]) => void;
   serverTimeOffset: number;
 }
 
-export default function Login({ onLoginSuccess }: LoginProps) {
+export default function Login({ onLoginSuccess, onMultipleExams }: LoginProps) {
   const [schools, setSchools] = useState<any[]>([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
   const [rollNumber, setRollNumber] = useState('');
@@ -159,14 +179,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     setError('');
     setLoading(true);
 
-    let authedUserId: string | null = null;
-
     try {
       if (!selectedSchoolId) throw new Error('Please select your school');
       if (!rollNumber.trim()) throw new Error('Please enter your roll number');
       if (!dob) throw new Error('Please select your date of birth');
 
-      // convert DD/MM/YYYY or DD-MM-YYYY to YYYY-MM-DD
+      // Convert DD/MM/YYYY or DD-MM-YYYY to YYYY-MM-DD
       let formattedDob = dob.trim();
       if (formattedDob.includes('/')) {
         const parts = formattedDob.split('/');
@@ -187,17 +205,31 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         body: JSON.stringify({
           school_id: selectedSchoolId,
           roll_number: rollNumber.trim(),
-          dob: formattedDob
-        })
+          dob: formattedDob,
+        }),
       });
 
       const loginData = await loginRes.json();
-      if (!loginRes.ok) throw new Error(`Login API Error: ${loginData.error || 'Authentication failed'}`);
+      if (!loginRes.ok) throw new Error(loginData.error || 'Authentication failed');
 
+      // ── Multiple exams: hand control to App → ExamSelector ──────────────────
+      if (loginData.mode === 'select') {
+        // Map raw DB rows → StudentAssignment shape
+        const assignments: StudentAssignment[] = loginData.students.map((s: any) => ({
+          student_id: s.id,
+          student_status: s.status,
+          started_at: s.started_at,
+          full_name: s.full_name,
+          roll_number: s.roll_number,
+          exams: s.exams ?? null,
+        }));
+        onMultipleExams(assignments);
+        return;
+      }
+
+      // ── Single exam: direct JWT issued by API ────────────────────────────────
       const { access_token, student } = loginData;
-      
       setStudentToken(access_token);
-      authedUserId = student.id;
 
       const devId = getDeviceId();
       const { data: isSessionValid, error: sessionError } = await supabase.rpc(
@@ -206,7 +238,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       );
 
       if (sessionError) {
-        throw new Error(`Session Check Error: ${sessionError.message} (Hint: ${sessionError.hint || 'none'})`);
+        throw new Error(`Session error: ${sessionError.message}`);
       }
       if (!isSessionValid) {
         throw new Error(
@@ -215,62 +247,22 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         );
       }
 
-      const { data: profile, error: profileError } = await supabase
-        .from('students')
-        .select('*')
-        .eq('id', student.id)
-        .single();
-
-      if (profileError || !profile) {
-        throw new Error(`Profile Error: ${profileError?.message || 'Not found'}`);
-      }
-
-      const { data: examData, error: examError } = await supabase
-        .from('exams')
-        .select('*')
-        .eq('id', profile.exam_id)
-        .single();
-
-      if (examError) throw new Error(`Exam Fetch Error: ${examError.message} (Hint: ${examError.hint || 'No hint'})`);
-
-      const activeAssignments = [
-        {
-          ...profile,
-          exams: examData
-        }
-      ].filter(
-        (assignment: any) => assignment.exams && (assignment.exams.status === 'published' || assignment.exams.status === 'active')
-      );
-
-      if (activeAssignments.length === 0) {
-        throw new Error('No active exams assigned to you at this moment.');
-      }
-
-      const selectedAssignment = activeAssignments[0];
       const selectedExam = {
-        ...selectedAssignment.exams,
-        student_exam_status: selectedAssignment.status,
-        student_started_at: selectedAssignment.started_at,
+        ...student.exams,
+        student_exam_status: student.status,
+        student_started_at: student.started_at,
       };
 
-      if (selectedAssignment.status === 'in_progress') {
-        onLoginSuccess(profile, selectedExam, 'exam');
-      } else {
-        onLoginSuccess(profile, selectedExam, 'waiting_room');
-      }
+      const initialStep: Step = student.status === 'in_progress' ? 'exam' : 'waiting_room';
+      onLoginSuccess(student, selectedExam, initialStep);
+
     } catch (err: any) {
       console.error(err);
       setError(err.message || JSON.stringify(err));
       try {
-        if (authedUserId) {
-          await supabase.rpc('clear_student_session', {
-            p_student_id: authedUserId,
-            p_device_id: getDeviceId(),
-          });
-        }
         await supabase.auth.signOut();
       } catch (signOutErr) {
-        console.warn('Signout/session clear failed', signOutErr);
+        console.warn('Signout failed', signOutErr);
       }
     } finally {
       setLoading(false);
