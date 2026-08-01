@@ -81,7 +81,7 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
             <p className="text-[9px] text-[#667085] uppercase tracking-wider font-semibold">Powered by Growtez</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-4 text-sm">
           <div className="w-14 h-14 border border-[#E4E7EC] bg-[#F9FAFB] flex items-center justify-center rounded-none shadow-sm">
             <svg className="w-10 h-10 text-[#667085]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
@@ -89,14 +89,14 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
           <div className="flex flex-col text-right">
             <div className="text-[#1D2939] text-xs font-medium"><span className="text-[#667085]">Candidate Name :</span> <span className="text-[#1D2939] font-bold">[{studentProfile?.full_name}]</span></div>
             {exam && (
-              <div className="text-[#1D2939] text-xs font-medium mt-0.5"><span className="text-[#667085]">Subject Name :</span> <span className="text-[#1D2939] font-bold">[{exam?.title}]</span></div>
+              <div className="text-[#1D2939] text-xs font-medium mt-0.5"><span className="text-[#667085]">Exam Name :</span> <span className="text-[#1D2939] font-bold">[{exam?.title}]</span></div>
             )}
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main 
+      <main
         className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col animate-in fade-in duration-300"
         style={{
           scrollbarWidth: 'thin',
