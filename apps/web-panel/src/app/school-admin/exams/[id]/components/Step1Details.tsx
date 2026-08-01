@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2, Check, BookOpen, ChevronDown, Info, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, BookOpen, ChevronDown, Info, AlertCircle, X } from 'lucide-react';
 
 /**
  * A single-line-looking field that wraps text and grows its height
@@ -156,6 +156,7 @@ interface Step1DetailsProps {
   setInlineEditSubjectCount: (val: number) => void;
   handleSaveSubjectCount: (subjectId: string) => void;
   handleDeleteSubject: (e: any, id: string, name: string) => void;
+  handleRemoveSubjectTeacher?: (subjectId: string, teacherId: string) => void;
   handleMoveSubject?: (index: number, direction: 'left' | 'right') => void;
   handleReorderSubjects?: (fromIndex: number, toIndex: number) => void;
   setManageTeachersSubject: (subject: any) => void;
@@ -221,6 +222,7 @@ export default function Step1Details({
   setInlineEditSubjectCount,
   handleSaveSubjectCount,
   handleDeleteSubject,
+  handleRemoveSubjectTeacher,
   handleMoveSubject,
   handleReorderSubjects,
   setManageTeachersSubject,
@@ -754,8 +756,22 @@ export default function Step1Details({
                   </div>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {s.exam_subject_teachers?.map((est: any) => (
-                      <span key={est.id} className="text-[9px] font-bold uppercase tracking-wider text-accent-primary bg-surface border border-border px-1.5 py-0.5 rounded leading-relaxed break-words whitespace-normal sm:leading-normal">
+                      <span key={est.id} className="text-[9px] font-bold uppercase tracking-wider text-accent-primary bg-surface border border-border px-1.5 py-0.5 rounded leading-relaxed break-words whitespace-normal sm:leading-normal inline-flex items-center gap-1">
                         {est.teachers?.full_name || 'Teacher'}
+                        {!isReadOnly && handleRemoveSubjectTeacher && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleRemoveSubjectTeacher(s.id, est.teacher_id);
+                            }}
+                            className="hover:text-red-500 transition-colors p-0.5"
+                            title="Remove Teacher"
+                          >
+                            <X size={10} />
+                          </button>
+                        )}
                       </span>
                     ))}
                     <button

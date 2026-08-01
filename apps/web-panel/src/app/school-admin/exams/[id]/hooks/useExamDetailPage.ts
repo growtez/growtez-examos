@@ -1219,6 +1219,22 @@ export function useExamDetailPage(paramsId: string) {
     }
   };
 
+  const handleRemoveSubjectTeacher = async (subjectId: string, teacherId: string) => {
+    setSubjects(prev => prev.map(s => {
+      if (s.id === subjectId) {
+        return {
+          ...s,
+          exam_subject_teachers: (s.exam_subject_teachers || []).filter((est: any) => est.teacher_id !== teacherId)
+        };
+      }
+      return s;
+    }));
+    await supabase.from('exam_subject_teachers')
+      .delete()
+      .eq('exam_subject_id', subjectId)
+      .eq('teacher_id', teacherId);
+  };
+
   const handleAddSubject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSubject.name.trim()) {
@@ -2156,6 +2172,7 @@ export function useExamDetailPage(paramsId: string) {
     handleSaveSubjectCount,
     handleDeleteSubject,
     handleSaveSubjectTeachers,
+    handleRemoveSubjectTeacher,
     handleAddSubject,
     toggleNewSubjectTeacher,
     handleMoveSubject,

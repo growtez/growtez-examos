@@ -396,6 +396,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     handleSaveSubjectCount,
     handleDeleteSubject,
     handleSaveSubjectTeachers,
+    handleRemoveSubjectTeacher,
     handleAddSubject,
     toggleNewSubjectTeacher,
     handleMoveSubject,
@@ -1108,6 +1109,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setInlineEditSubjectCount={setInlineEditSubjectCount}
               handleSaveSubjectCount={handleSaveSubjectCount}
               handleDeleteSubject={handleDeleteSubject}
+              handleRemoveSubjectTeacher={handleRemoveSubjectTeacher}
               handleMoveSubject={handleMoveSubject}
               handleReorderSubjects={handleReorderSubjects}
               setManageTeachersSubject={setManageTeachersSubject}
