@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { getDeviceId } from '../lib/deviceId';
 import Calculator from './Calculator';
@@ -321,6 +321,25 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
   const currentQuestions = getFilteredQuestions();
   const currentQuestion = currentQuestions[currentQuestionIndex];
+
+  const currentOptionsOrder = useMemo(() => {
+    const baseOptions = ['A', 'B', 'C', 'D'];
+    if (!currentQuestion) return baseOptions;
+    
+    if (exam?.shuffle_questions !== false && studentProfile?.id) {
+      const seedStr = `${studentProfile.id}-${exam.id}-${currentQuestion.id}-options`;
+      const seed = generateSeed(seedStr);
+      const random = mulberry32(seed);
+      
+      const shuffled = [...baseOptions];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+    return baseOptions;
+  }, [currentQuestion, exam?.shuffle_questions, exam?.id, studentProfile?.id]);
 
   const handleSelectOption = (qId: string, option: string) => {
     const isMsq = questions.find(q => q.id === qId)?.question_type === 'msq';
@@ -922,7 +941,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
                 {(currentQuestion.question_type === 'mcq' || currentQuestion.question_type === 'msq') && currentQuestion.options ? (
                   <div className="space-y-3 max-w-2xl mt-8">
-                    {['A', 'B', 'C', 'D'].map((opt) => {
+                    {currentOptionsOrder.map((opt) => {
                       const isMsq = currentQuestion.question_type === 'msq';
                       const currentAns = answers[currentQuestion.id]?.answer || '';
                       const selected = isMsq ? currentAns.split(',').includes(opt) : currentAns === opt;
