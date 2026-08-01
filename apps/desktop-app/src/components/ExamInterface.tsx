@@ -941,7 +941,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
                 {(currentQuestion.question_type === 'mcq' || currentQuestion.question_type === 'msq') && currentQuestion.options ? (
                   <div className="space-y-3 max-w-2xl mt-8">
-                    {currentOptionsOrder.map((opt) => {
+                    {currentOptionsOrder.map((opt, index) => {
                       const isMsq = currentQuestion.question_type === 'msq';
                       const currentAns = answers[currentQuestion.id]?.answer || '';
                       const selected = isMsq ? currentAns.split(',').includes(opt) : currentAns === opt;
@@ -962,7 +962,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                             className={`w-4 h-4 text-[#008080] border-[#E4E7EC] focus:ring-[#008080] cursor-pointer mt-1 ${isMsq ? 'rounded' : ''}`}
                           />
                           <span className="flex items-start gap-3 font-serif text-[14px] w-full">
-                            <span className="font-bold shrink-0 mt-0.5">({opt})</span>
+                            <span className="font-bold shrink-0 mt-0.5">({String.fromCharCode(65 + index)})</span>
                             <span className="flex flex-col gap-2 flex-1 min-w-0">
                               {currentQuestion.options[opt] && (
                                 <span className="inline-block align-middle">
