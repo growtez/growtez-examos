@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import Login from './components/Login';
+import Login, { StudentAssignment } from './components/Login';
+import ExamSelector from './components/ExamSelector';
 import ExamInterface from './components/ExamInterface';
 import WaitingRoom from './components/WaitingRoom';
-import { supabase } from './lib/supabase';
+import { supabase, setStudentToken } from './lib/supabase';
 import { getDeviceId } from './lib/deviceId';
 import parikshaLogo from '../public/ParikshaOS_logo.png';
 
-type Step = 'login' | 'waiting_room' | 'exam' | 'submitted';
+type Step = 'login' | 'exam_select' | 'waiting_room' | 'exam' | 'submitted';
 
 /**
  * Activates kiosk-mode OS-level protections when the student moves past the login screen.
@@ -45,6 +46,11 @@ function App() {
   // Tracks whether JS-level keyboard blocking is active (after login)
   const [kioskActive, setKioskActive] = useState(false);
 
+  // Multi-exam picker state
+  const [pendingAssignments, setPendingAssignments] = useState<StudentAssignment[]>([]);
+  const [examSelectLoading, setExamSelectLoading] = useState(false);
+  const [examSelectError, setExamSelectError] = useState('');
+
   // ── Global JS keyboard blocker ─────────────────────────────────────────────
   // Runs as a second layer on top of the Rust WH_KEYBOARD_LL hook.
   // Prevents any in-browser keyboard input once the student leaves the login screen.
@@ -66,9 +72,9 @@ function App() {
 
   // ── Session Heartbeat ───────────────────────────────────────────────────────
   // Sends a heartbeat every 20 seconds to keep the single-session lock alive.
-  // Stops when the student is on the login or submitted screen.
+  // Stops when the student is on the login, exam_select, or submitted screen.
   useEffect(() => {
-    if (!studentProfile?.id || step === 'login' || step === 'submitted') return;
+    if (!studentProfile?.id || step === 'login' || step === 'exam_select' || step === 'submitted') return;
 
     const devId = getDeviceId();
     const interval = setInterval(async () => {
@@ -103,7 +109,8 @@ function App() {
     await closeAppWindow();
   };
 
-  const handleLoginSuccess = async (profile: any, exam: any, initialStep: Step = 'exam') => {
+  // ── Shared kiosk/time bootstrap ─────────────────────────────────────────────
+  const bootstrapPostLogin = async () => {
     try {
       const { data, error } = await supabase.rpc('get_server_time');
       if (!error && data) {
@@ -114,14 +121,80 @@ function App() {
     } catch (e) {
       console.error('Failed to sync server time', e);
     }
-    
-    // Activate OS-level kiosk mode (Rust hook) and JS-level keyboard block.
     await activateKioskMode();
     setKioskActive(true);
-    
+  };
+
+  // ── Single-exam fast path: called directly from Login ──────────────────────
+  const handleLoginSuccess = async (profile: any, exam: any, initialStep: Step = 'exam') => {
+    await bootstrapPostLogin();
     setStudentProfile(profile);
     setSelectedExam(exam);
     setStep(initialStep);
+  };
+
+  // ── Multi-exam path: Login hands up assignment list ────────────────────────
+  const handleMultipleExams = (assignments: StudentAssignment[]) => {
+    setPendingAssignments(assignments);
+    setExamSelectError('');
+    setStep('exam_select');
+  };
+
+  // ── ExamSelector confirm: issue JWT and claim session for chosen row ────────
+  const handleExamConfirmed = async (studentId: string) => {
+    setExamSelectLoading(true);
+    setExamSelectError('');
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const res = await fetch(`${apiUrl}/api/auth/student-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'select_exam', student_id: studentId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to authenticate for selected exam');
+
+      const { access_token, student } = data;
+      setStudentToken(access_token);
+
+      // Claim device session for this specific student row
+      const devId = getDeviceId();
+      const { data: isSessionValid, error: sessionError } = await supabase.rpc(
+        'check_and_set_student_session',
+        { p_student_id: student.id, p_device_id: devId }
+      );
+
+      if (sessionError) throw new Error(`Session error: ${sessionError.message}`);
+      if (!isSessionValid) {
+        throw new Error(
+          'This student is already logged in on another device. ' +
+          'Please wait for the active session to expire or contact your administrator.'
+        );
+      }
+
+      await bootstrapPostLogin();
+
+      const selectedExamData = {
+        ...student.exams,
+        student_exam_status: student.status,
+        student_started_at: student.started_at,
+      };
+
+      setStudentProfile(student);
+      setSelectedExam(selectedExamData);
+      setStep(student.status === 'in_progress' ? 'exam' : 'waiting_room');
+
+    } catch (err: any) {
+      console.error('[ExamSelect]', err);
+      setExamSelectError(err.message || 'Something went wrong. Please try again.');
+      try {
+        await supabase.auth.signOut();
+      } catch (_) {}
+    } finally {
+      setExamSelectLoading(false);
+    }
   };
 
   const handleExamSubmitted = () => {
@@ -134,7 +207,30 @@ function App() {
 
 
   if (step === 'login') {
-    return <Login onLoginSuccess={handleLoginSuccess} serverTimeOffset={serverTimeOffset} />;
+    return (
+      <Login
+        onLoginSuccess={handleLoginSuccess}
+        onMultipleExams={handleMultipleExams}
+        serverTimeOffset={serverTimeOffset}
+      />
+    );
+  }
+
+  if (step === 'exam_select') {
+    return (
+      <div className="relative">
+        {examSelectError && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#F04438] text-white text-sm font-bold px-5 py-3 shadow-lg">
+            {examSelectError}
+          </div>
+        )}
+        <ExamSelector
+          assignments={pendingAssignments}
+          onExamSelected={handleExamConfirmed}
+          loading={examSelectLoading}
+        />
+      </div>
+    );
   }
 
   if (step === 'waiting_room') {
