@@ -762,7 +762,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       onExamSubmitted();
     } catch (error) {
       console.error(error);
-      alert('Failed to submit exam. Error: ' + (error?.message || JSON.stringify(error) || String(error)));
+      alert('Failed to submit exam. Error: ' + ((error as any)?.message || JSON.stringify(error) || String(error)));
     } finally {
       setSubmitting(false);
     }
