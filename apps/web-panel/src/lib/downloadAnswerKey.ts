@@ -409,6 +409,7 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
 
     const fullHtml = `
       <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; padding: 16px; max-width: 800px; margin: 0 auto; background-color: #ffffff;">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" crossorigin="anonymous" />
         
         <!-- Header Banner -->
         <div style="text-align: center; border-bottom: 2px solid #0d9488; padding-bottom: 10px; margin-bottom: 14px;">
