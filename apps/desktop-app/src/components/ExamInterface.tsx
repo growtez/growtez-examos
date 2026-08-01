@@ -6,6 +6,27 @@ import Numpad from './Numpad';
 import MathRenderer from './MathRenderer';
 import parikshaLogo from '../../public/ParikshaOS_logo.png';
 
+// A simple, fast deterministic random number generator
+function mulberry32(a: number) {
+  return function() {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Simple string hash to generate a numeric seed
+function generateSeed(str: string) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash;
+}
+
 // Parses image_url / option image fields which may be stored as JSON arrays or plain URLs/data-URIs
 const parseQuestionImages = (urlStr: string | null | undefined): string[] => {
   if (!urlStr) return [];
@@ -134,6 +155,31 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
         if (loadedSubjects.length === 0 || loadedQuestions.length === 0) {
           console.warn('No subjects or questions found for this exam.');
+        }
+
+        // Deterministic shuffle if not disabled
+        if (exam.shuffle_questions !== false) {
+          const seedStr = `${studentProfile?.id || 'unknown'}-${exam.id}`;
+          const seed = generateSeed(seedStr);
+          const random = mulberry32(seed);
+          
+          // 1. Shuffle completely
+          for (let i = loadedQuestions.length - 1; i > 0; i--) {
+            const j = Math.floor(random() * (i + 1));
+            [loadedQuestions[i], loadedQuestions[j]] = [loadedQuestions[j], loadedQuestions[i]];
+          }
+
+          // 2. Group by subject and then by question type
+          const typeOrder: Record<string, number> = { mcq: 1, msq: 2, nat: 3 };
+          loadedQuestions.sort((a, b) => {
+            const subA = loadedSubjects.findIndex(s => s.id === a.exam_subject_id);
+            const subB = loadedSubjects.findIndex(s => s.id === b.exam_subject_id);
+            if (subA !== subB) return subA - subB;
+            
+            const tA = typeOrder[a.question_type] || 99;
+            const tB = typeOrder[b.question_type] || 99;
+            return tA - tB;
+          });
         }
 
         setSubjects(loadedSubjects);
@@ -355,9 +401,11 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       // Use save_exam_draft (not submit_exam) so that students.status stays
       // 'in_progress' — allowing re-entry if the app closes mid-exam.
       // submit_exam is reserved for the final manual/timer submission only.
+      const actualSchoolId = exam.school_id || studentProfile?.school_id || (questions.length > 0 ? questions[0].school_id : undefined);
+      
       await supabase.rpc('save_exam_draft', {
         p_exam_id: exam.id,
-        p_school_id: exam.school_id,
+        p_school_id: actualSchoolId,
         p_answers: savedAnswers,
         p_total_marks: runningScore,
         p_section_scores: sectionScores,
@@ -539,10 +587,12 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         }
       });
 
+      const actualSchoolId = exam.school_id || studentProfile?.school_id || (questions.length > 0 ? questions[0].school_id : undefined);
+
       if (exam.id) {
         await supabase.rpc('submit_exam', {
           p_exam_id: exam.id,
-          p_school_id: exam.school_id,
+          p_school_id: actualSchoolId,
           p_answers: formattedAnswers,
           p_total_marks: finalScore,
           p_section_scores: sectionScores,
@@ -660,10 +710,12 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         }
       });
 
+      const actualSchoolId = exam.school_id || studentProfile?.school_id || (questions.length > 0 ? questions[0].school_id : undefined);
+
       if (exam.id) {
         const { error } = await supabase.rpc('submit_exam', {
           p_exam_id: exam.id,
-          p_school_id: exam.school_id,
+          p_school_id: actualSchoolId,
           p_answers: formattedAnswers,
           p_total_marks: finalScore,
           p_section_scores: sectionScores,
@@ -691,7 +743,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       onExamSubmitted();
     } catch (error) {
       console.error(error);
-      alert('Failed to submit exam.');
+      alert('Failed to submit exam. Error: ' + (error?.message || JSON.stringify(error) || String(error)));
     } finally {
       setSubmitting(false);
     }
@@ -835,7 +887,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
               <div className="font-serif" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
                 <div className="flex items-center justify-between border-b border-[#E4E7EC] pb-3 mb-6">
                   <div className="flex items-center gap-3">
-                    <h2 className="text-lg font-bold text-[#1D2939]">Question {currentQuestion.question_number ?? (currentQuestionIndex + 1)}:</h2>
+                    <h2 className="text-lg font-bold text-[#1D2939]">Question {currentQuestionIndex + 1}:</h2>
                   </div>
                   {currentQuestion.question_type && (
                     <span className="font-sans text-s font-bold text-[#008080] bg-[#EAF2F2] border border-[#008080] px-3 py-1 uppercase tracking-wider shadow-sm">

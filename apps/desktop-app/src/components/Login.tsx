@@ -36,6 +36,7 @@ export default function Login({ onLoginSuccess, onMultipleExams }: LoginProps) {
   const [rollNumber, setRollNumber] = useState('');
   const [dob, setDob] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingSchools, setLoadingSchools] = useState(true);
   const [activeInput, setActiveInput] = useState<'school' | 'roll' | 'dob' | null>(null);
 
   const [error, setError] = useState('');
@@ -111,6 +112,7 @@ export default function Login({ onLoginSuccess, onMultipleExams }: LoginProps) {
   // Fetch active schools on mount
   useEffect(() => {
     const fetchSchools = async () => {
+      setLoadingSchools(true);
       try {
         const { data, error } = await supabase
           .from('schools')
@@ -124,12 +126,14 @@ export default function Login({ onLoginSuccess, onMultipleExams }: LoginProps) {
         }
       } catch (err) {
         console.warn('Failed to fetch schools', err);
+      } finally {
+        setLoadingSchools(false);
       }
     };
     fetchSchools();
   }, []);
 
-  const formatDob = (val: string) => {
+  const formatDob = (val: string, isDeleting = false) => {
     // If it's already YYYY-MM-DD from native calendar picker
     if (val.match(/^\d{4}-\d{2}-\d{2}$/)) {
       const [y, m, d] = val.split('-');
@@ -140,11 +144,17 @@ export default function Login({ onLoginSuccess, onMultipleExams }: LoginProps) {
     if (clean.length > 8) clean = clean.substring(0, 8);
     
     let formatted = clean;
-    if (clean.length >= 3) {
-      formatted = clean.substring(0, 2) + '/' + clean.substring(2);
+    if (clean.length >= 2) {
+      formatted = clean.substring(0, 2) + (isDeleting && clean.length === 2 ? '' : '/');
+      if (clean.length > 2) {
+        formatted += clean.substring(2);
+      }
     }
-    if (clean.length >= 5) {
-      formatted = formatted.substring(0, 5) + '/' + clean.substring(4);
+    if (clean.length >= 4) {
+      formatted = formatted.substring(0, 5) + (isDeleting && clean.length === 4 ? '' : '/');
+      if (clean.length > 4) {
+        formatted += clean.substring(4);
+      }
     }
     return formatted;
   };
@@ -156,7 +166,7 @@ export default function Login({ onLoginSuccess, onMultipleExams }: LoginProps) {
     } else if (activeInput === 'roll') {
       setRollNumber(prev => prev + key);
     } else if (activeInput === 'dob') {
-      setDob(prev => formatDob(prev + key));
+      setDob(prev => formatDob(prev + key, false));
     }
   };
 
@@ -169,7 +179,7 @@ export default function Login({ onLoginSuccess, onMultipleExams }: LoginProps) {
     } else if (activeInput === 'dob') {
       setDob(prev => {
         const clean = prev.replace(/[^\d]/g, '');
-        return formatDob(clean.slice(0, -1));
+        return formatDob(clean.slice(0, -1), true);
       });
     }
   };
@@ -374,7 +384,15 @@ export default function Login({ onLoginSuccess, onMultipleExams }: LoginProps) {
 
                     {isOpen && (
                       <div className="absolute z-[110] mt-1 w-full bg-white border border-[#E4E7EC] rounded-none shadow-lg max-h-60 overflow-y-auto">
-                        {filteredSchools.length > 0 ? (
+                        {loadingSchools ? (
+                          <div className="px-4 py-3 text-sm text-[#667085] text-center italic flex items-center justify-center gap-2">
+                            <svg className="animate-spin h-4 w-4 text-[#008080]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Loading schools...
+                          </div>
+                        ) : filteredSchools.length > 0 ? (
                           filteredSchools.map((school) => (
                             <div
                               key={school.id}
@@ -441,7 +459,11 @@ export default function Login({ onLoginSuccess, onMultipleExams }: LoginProps) {
                       <input
                         type="text"
                         value={dob}
-                        onChange={(e) => setDob(formatDob(e.target.value))}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const isDeleting = val.length < dob.length;
+                          setDob(formatDob(val, isDeleting));
+                        }}
                         onFocus={() => setActiveInput('dob')}
                         onClick={() => setActiveInput('dob')}
                         required
