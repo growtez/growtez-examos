@@ -12,6 +12,7 @@ interface Step4ScheduleProps {
   durationMinutes: number;
   stepsBeforeScheduleComplete: boolean;
   publishing: boolean;
+  isPublished?: boolean;
   isReadOnly?: boolean;
 }
 
@@ -22,6 +23,7 @@ export default function Step4Schedule({
   setEndTime,
   autoSaveSchedule,
   durationMinutes,
+  isPublished = false,
   isReadOnly = false,
 }: Step4ScheduleProps) {
   const startInputRef = useRef<HTMLInputElement>(null);
@@ -60,8 +62,13 @@ export default function Step4Schedule({
   return (
     <div className="bg-bg border border-border rounded-2xl p-6 shadow-sm">
       {isReadOnly && (
-        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-600">
-          This exam is published — schedule is read-only.
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-semibold text-red-600">
+          Exam has started — schedule is now locked.
+        </div>
+      )}
+      {isPublished && !isReadOnly && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-semibold text-amber-700">
+          Exam is published — you can still adjust the schedule until the exam starts.
         </div>
       )}
       {isSchedulePast && !isReadOnly && (

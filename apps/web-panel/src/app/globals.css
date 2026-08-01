@@ -160,6 +160,12 @@
   background: #52525b;
 }
 
+/* Hide native browser password reveal button (prevents duplicate eye icons) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
 /* Loader */
 .loader {
   width: 24px;

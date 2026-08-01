@@ -506,6 +506,9 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const isDraftStepperMode = loading || (!isTeacher && true);
   // True once the exam is no longer editable: published (any non-draft status) or its window has passed.
   const isReadOnly = !loading && (exam?.status !== "draft" || isExamOver);
+  // Schedule can still be edited after publish, up until the exam actually starts.
+  const isExamStarted = !!(exam?.start_time && exam?.status !== "draft" && new Date(exam.start_time) <= new Date());
+  const isScheduleReadOnly = !loading && (isExamStarted || isExamOver);
 
   if (loading) {
     if (role === "teacher") {
@@ -1122,7 +1125,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               expandAll={step1CollapseAll}
             />
           )}
-          {/* Schedule Step — shown on step 4 for any status; read-only once published or over; hidden for teachers */}
+          {/* Schedule Step — shown on step 4 for any status; editable after publish until exam starts; read-only once started or over; hidden for teachers */}
           {(!isTeacher && currentStep === 4) && (
             <Step4Schedule
               startTime={startTime}
@@ -1133,7 +1136,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               durationMinutes={durationMinutes}
               stepsBeforeScheduleComplete={stepsBeforeScheduleComplete}
               publishing={publishing}
-              isReadOnly={isReadOnly}
+              isPublished={!loading && exam?.status !== 'draft'}
+              isReadOnly={isScheduleReadOnly}
             />
           )}
 
