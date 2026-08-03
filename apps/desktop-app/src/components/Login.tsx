@@ -3,19 +3,40 @@ import { supabase, setStudentToken } from '../lib/supabase';
 import { getDeviceId } from '../lib/deviceId';
 import VirtualKeyboard from './VirtualKeyboard';
 
-type Step = 'login' | 'waiting_room' | 'exam' | 'submitted';
+type Step = 'login' | 'exam_select' | 'waiting_room' | 'exam' | 'submitted';
+
+export interface StudentAssignment {
+  student_id: string;
+  student_status: 'assigned' | 'in_progress' | 'submitted';
+  started_at: string | null;
+  full_name: string;
+  roll_number: string;
+  exams: {
+    id: string;
+    title: string;
+    description: string | null;
+    duration_minutes: number;
+    start_time: string | null;
+    end_time: string | null;
+    status: 'published' | 'active' | 'draft' | 'completed';
+  } | null;
+}
 
 interface LoginProps {
+  /** Called on single-exam auth (direct). Profile + exam + initialStep. */
   onLoginSuccess: (studentData: any, selectedExam: any, initialStep?: Step) => void;
+  /** Called when multiple exams found; student must pick one. */
+  onMultipleExams: (assignments: StudentAssignment[]) => void;
   serverTimeOffset: number;
 }
 
-export default function Login({ onLoginSuccess }: LoginProps) {
+export default function Login({ onLoginSuccess, onMultipleExams }: LoginProps) {
   const [schools, setSchools] = useState<any[]>([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
   const [rollNumber, setRollNumber] = useState('');
   const [dob, setDob] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingSchools, setLoadingSchools] = useState(true);
   const [activeInput, setActiveInput] = useState<'school' | 'roll' | 'dob' | null>(null);
 
   const [error, setError] = useState('');
@@ -91,6 +112,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   // Fetch active schools on mount
   useEffect(() => {
     const fetchSchools = async () => {
+      setLoadingSchools(true);
       try {
         const { data, error } = await supabase
           .from('schools')
@@ -104,12 +126,14 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         }
       } catch (err) {
         console.warn('Failed to fetch schools', err);
+      } finally {
+        setLoadingSchools(false);
       }
     };
     fetchSchools();
   }, []);
 
-  const formatDob = (val: string) => {
+  const formatDob = (val: string, isDeleting = false) => {
     // If it's already YYYY-MM-DD from native calendar picker
     if (val.match(/^\d{4}-\d{2}-\d{2}$/)) {
       const [y, m, d] = val.split('-');
@@ -120,11 +144,17 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     if (clean.length > 8) clean = clean.substring(0, 8);
     
     let formatted = clean;
-    if (clean.length >= 3) {
-      formatted = clean.substring(0, 2) + '/' + clean.substring(2);
+    if (clean.length >= 2) {
+      formatted = clean.substring(0, 2) + (isDeleting && clean.length === 2 ? '' : '/');
+      if (clean.length > 2) {
+        formatted += clean.substring(2);
+      }
     }
-    if (clean.length >= 5) {
-      formatted = formatted.substring(0, 5) + '/' + clean.substring(4);
+    if (clean.length >= 4) {
+      formatted = formatted.substring(0, 5) + (isDeleting && clean.length === 4 ? '' : '/');
+      if (clean.length > 4) {
+        formatted += clean.substring(4);
+      }
     }
     return formatted;
   };
@@ -136,7 +166,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     } else if (activeInput === 'roll') {
       setRollNumber(prev => prev + key);
     } else if (activeInput === 'dob') {
-      setDob(prev => formatDob(prev + key));
+      setDob(prev => formatDob(prev + key, false));
     }
   };
 
@@ -149,7 +179,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     } else if (activeInput === 'dob') {
       setDob(prev => {
         const clean = prev.replace(/[^\d]/g, '');
-        return formatDob(clean.slice(0, -1));
+        return formatDob(clean.slice(0, -1), true);
       });
     }
   };
@@ -159,14 +189,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     setError('');
     setLoading(true);
 
-    let authedUserId: string | null = null;
-
     try {
       if (!selectedSchoolId) throw new Error('Please select your school');
       if (!rollNumber.trim()) throw new Error('Please enter your roll number');
       if (!dob) throw new Error('Please select your date of birth');
 
-      // convert DD/MM/YYYY or DD-MM-YYYY to YYYY-MM-DD
+      // Convert DD/MM/YYYY or DD-MM-YYYY to YYYY-MM-DD
       let formattedDob = dob.trim();
       if (formattedDob.includes('/')) {
         const parts = formattedDob.split('/');
@@ -187,17 +215,31 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         body: JSON.stringify({
           school_id: selectedSchoolId,
           roll_number: rollNumber.trim(),
-          dob: formattedDob
-        })
+          dob: formattedDob,
+        }),
       });
 
       const loginData = await loginRes.json();
-      if (!loginRes.ok) throw new Error(`Login API Error: ${loginData.error || 'Authentication failed'}`);
+      if (!loginRes.ok) throw new Error(loginData.error || 'Authentication failed');
 
+      // ── Multiple exams: hand control to App → ExamSelector ──────────────────
+      if (loginData.mode === 'select') {
+        // Map raw DB rows → StudentAssignment shape
+        const assignments: StudentAssignment[] = loginData.students.map((s: any) => ({
+          student_id: s.id,
+          student_status: s.status,
+          started_at: s.started_at,
+          full_name: s.full_name,
+          roll_number: s.roll_number,
+          exams: s.exams ?? null,
+        }));
+        onMultipleExams(assignments);
+        return;
+      }
+
+      // ── Single exam: direct JWT issued by API ────────────────────────────────
       const { access_token, student } = loginData;
-      
       setStudentToken(access_token);
-      authedUserId = student.id;
 
       const devId = getDeviceId();
       const { data: isSessionValid, error: sessionError } = await supabase.rpc(
@@ -206,7 +248,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       );
 
       if (sessionError) {
-        throw new Error(`Session Check Error: ${sessionError.message} (Hint: ${sessionError.hint || 'none'})`);
+        throw new Error(`Session error: ${sessionError.message}`);
       }
       if (!isSessionValid) {
         throw new Error(
@@ -215,62 +257,22 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         );
       }
 
-      const { data: profile, error: profileError } = await supabase
-        .from('students')
-        .select('*')
-        .eq('id', student.id)
-        .single();
-
-      if (profileError || !profile) {
-        throw new Error(`Profile Error: ${profileError?.message || 'Not found'}`);
-      }
-
-      const { data: examData, error: examError } = await supabase
-        .from('exams')
-        .select('*')
-        .eq('id', profile.exam_id)
-        .single();
-
-      if (examError) throw new Error(`Exam Fetch Error: ${examError.message} (Hint: ${examError.hint || 'No hint'})`);
-
-      const activeAssignments = [
-        {
-          ...profile,
-          exams: examData
-        }
-      ].filter(
-        (assignment: any) => assignment.exams && (assignment.exams.status === 'published' || assignment.exams.status === 'active')
-      );
-
-      if (activeAssignments.length === 0) {
-        throw new Error('No active exams assigned to you at this moment.');
-      }
-
-      const selectedAssignment = activeAssignments[0];
       const selectedExam = {
-        ...selectedAssignment.exams,
-        student_exam_status: selectedAssignment.status,
-        student_started_at: selectedAssignment.started_at,
+        ...student.exams,
+        student_exam_status: student.status,
+        student_started_at: student.started_at,
       };
 
-      if (selectedAssignment.status === 'in_progress') {
-        onLoginSuccess(profile, selectedExam, 'exam');
-      } else {
-        onLoginSuccess(profile, selectedExam, 'waiting_room');
-      }
+      const initialStep: Step = student.status === 'in_progress' ? 'exam' : 'waiting_room';
+      onLoginSuccess(student, selectedExam, initialStep);
+
     } catch (err: any) {
       console.error(err);
       setError(err.message || JSON.stringify(err));
       try {
-        if (authedUserId) {
-          await supabase.rpc('clear_student_session', {
-            p_student_id: authedUserId,
-            p_device_id: getDeviceId(),
-          });
-        }
         await supabase.auth.signOut();
       } catch (signOutErr) {
-        console.warn('Signout/session clear failed', signOutErr);
+        console.warn('Signout failed', signOutErr);
       }
     } finally {
       setLoading(false);
@@ -382,7 +384,15 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
                     {isOpen && (
                       <div className="absolute z-[110] mt-1 w-full bg-white border border-[#E4E7EC] rounded-none shadow-lg max-h-60 overflow-y-auto">
-                        {filteredSchools.length > 0 ? (
+                        {loadingSchools ? (
+                          <div className="px-4 py-3 text-sm text-[#667085] text-center italic flex items-center justify-center gap-2">
+                            <svg className="animate-spin h-4 w-4 text-[#008080]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Loading schools...
+                          </div>
+                        ) : filteredSchools.length > 0 ? (
                           filteredSchools.map((school) => (
                             <div
                               key={school.id}
@@ -449,7 +459,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                       <input
                         type="text"
                         value={dob}
-                        onChange={(e) => setDob(formatDob(e.target.value))}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const isDeleting = val.length < dob.length;
+                          setDob(formatDob(val, isDeleting));
+                        }}
                         onFocus={() => setActiveInput('dob')}
                         onClick={() => setActiveInput('dob')}
                         required

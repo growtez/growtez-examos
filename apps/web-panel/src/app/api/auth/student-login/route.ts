@@ -15,11 +15,7 @@ export async function OPTIONS() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { roll_number, dob, school_id } = body;
-
-    if (!roll_number || !dob || !school_id) {
-      return NextResponse.json({ error: 'Missing required credentials' }, { status: 400, headers: corsHeaders });
-    }
+    const { action, roll_number, dob, school_id, student_id } = body;
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -33,11 +29,46 @@ export async function POST(req: Request) {
       auth: { persistSession: false, autoRefreshToken: false }
     });
 
-    // We must find the student by roll_number and date_of_birth.
-    // However, the student is now tied to an exam_id, not school_id directly.
-    // So we need to find exams that belong to this school, and see if the student is registered.
-    
-    // 1. Get all active exams for this school
+    // ── action: 'select_exam' — called after student picks one from the UI ────
+    if (action === 'select_exam') {
+      if (!student_id) {
+        return NextResponse.json({ error: 'Missing student_id' }, { status: 400, headers: corsHeaders });
+      }
+
+      const { data: student, error: studentError } = await adminSupabase
+        .from('students')
+        .select('*, exams(*)')
+        .eq('id', student_id)
+        .single();
+
+      if (studentError || !student) {
+        return NextResponse.json({ error: 'Student not found' }, { status: 404, headers: corsHeaders });
+      }
+
+      if (student.status === 'submitted') {
+        return NextResponse.json({ error: 'You have already submitted this exam.' }, { status: 403, headers: corsHeaders });
+      }
+
+      const payload = {
+        role: 'authenticated',
+        iss: 'supabase',
+        aud: 'authenticated',
+        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24),
+        sub: student.id,
+        student_id: student.id,
+        exam_id: student.exam_id,
+      };
+
+      const token = jwt.sign(payload, jwtSecret);
+      return NextResponse.json({ access_token: token, student }, { headers: corsHeaders });
+    }
+
+    // ── Default: initial login — find all matching student rows ───────────────
+    if (!roll_number || !dob || !school_id) {
+      return NextResponse.json({ error: 'Missing required credentials' }, { status: 400, headers: corsHeaders });
+    }
+
+    // 1. Get all active/published exams for this school
     const { data: exams, error: examsError } = await adminSupabase
       .from('exams')
       .select('id')
@@ -45,52 +76,52 @@ export async function POST(req: Request) {
       .in('status', ['active', 'published']);
 
     if (examsError || !exams || exams.length === 0) {
-      return NextResponse.json({ error: 'No active exams found for your school' }, { status: 404, headers: corsHeaders });
+      return NextResponse.json({ error: 'No active exams found for your school.' }, { status: 404, headers: corsHeaders });
     }
 
     const examIds = exams.map(e => e.id);
 
-    // 2. Find the student in one of these exams
-    const { data: student, error: studentError } = await adminSupabase
+    // 2. Find ALL student rows matching roll+dob across those exams (no .single()!)
+    const { data: students, error: studentsError } = await adminSupabase
       .from('students')
-      .select('*')
+      .select('*, exams(id, title, description, duration_minutes, start_time, end_time, status)')
       .in('exam_id', examIds)
       .eq('roll_number', roll_number)
-      .eq('date_of_birth', dob)
-      .single();
+      .eq('date_of_birth', dob);
 
-    if (studentError || !student) {
-      return NextResponse.json({ error: 'Invalid login credentials or not assigned to any active exam.' }, { status: 401, headers: corsHeaders });
+    if (studentsError || !students || students.length === 0) {
+      return NextResponse.json({ error: 'Invalid credentials or not assigned to any active exam.' }, { status: 401, headers: corsHeaders });
     }
 
-    // 3. Guard: check if this student has TRULY submitted (manual or timer-expired submit).
-    // We check students.status rather than the existence of a results row because
-    // results rows are also created during the exam for draft answer saves — a student
-    // mid-exam who lost connectivity would be incorrectly blocked otherwise.
-    // Only status = 'submitted' (set by the final submit_exam call) is authoritative.
-    if (student.status === 'submitted') {
+    // 3. Exclude already-submitted rows — nothing left to do there
+    const pending = students.filter((s: any) => s.status !== 'submitted');
+
+    if (pending.length === 0) {
       return NextResponse.json(
-        { error: 'You have already submitted this exam. Re-entry is not allowed.' },
+        { error: 'You have already submitted all your assigned exams. Re-entry is not allowed.' },
         { status: 403, headers: corsHeaders }
       );
     }
 
-    const payload = {
-      role: 'authenticated', // Gives them authenticated access in Postgres
-      iss: 'supabase',
-      aud: 'authenticated',
-      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24), // 24 hours
-      sub: student.id,
-      student_id: student.id,
-      exam_id: student.exam_id
-    };
+    // 4. Single pending exam → issue JWT immediately (no picker needed)
+    if (pending.length === 1) {
+      const s = pending[0];
+      const payload = {
+        role: 'authenticated',
+        iss: 'supabase',
+        aud: 'authenticated',
+        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24),
+        sub: s.id,
+        student_id: s.id,
+        exam_id: s.exam_id,
+      };
+      const token = jwt.sign(payload, jwtSecret);
+      return NextResponse.json({ mode: 'direct', access_token: token, student: s }, { headers: corsHeaders });
+    }
 
-    const token = jwt.sign(payload, jwtSecret);
+    // 5. Multiple pending exams → let the client show the exam picker
+    return NextResponse.json({ mode: 'select', students: pending }, { headers: corsHeaders });
 
-    return NextResponse.json({
-      access_token: token,
-      student: student
-    }, { headers: corsHeaders });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500, headers: corsHeaders });
   }

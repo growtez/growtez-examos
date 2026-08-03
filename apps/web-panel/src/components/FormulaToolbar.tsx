@@ -9,7 +9,7 @@ const FORMULA_GROUPS = [
       { label: "sin", insert: "\\sin()" },
       { label: "cos", insert: "\\cos()" },
       { label: "tan", insert: "\\tan()" },
-      { label: "cosec", insert: "\\csc()" },
+      { label: "cosec", insert: "\\cosec()" },
       { label: "sec", insert: "\\sec()" },
       { label: "cot", insert: "\\cot()" },
       { label: "sin-1", insert: "\\sin^{-1}()" },

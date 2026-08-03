@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { renderToStream } from '@react-pdf/renderer';
 import React from 'react';
 import { AnswerKeyPDF } from './AnswerKeyPDF';
@@ -13,7 +14,10 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Missing resultId', { status: 400 });
   }
 
-  const supabase = createClient();
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
   // 1. Fetch Result
   const { data: result, error: resultError } = await supabase
@@ -52,9 +56,17 @@ export async function GET(request: NextRequest) {
   // 3. Fetch Questions
   const { data: questions, error: questionsError } = await supabase
     .from('questions')
-    .select('*, exam_subjects(subject_name)')
-    .eq('exam_id', result.exam_id)
-    .order('question_number', { ascending: true });
+    .select('*, exam_subjects(subject_name, sort_order)')
+    .eq('exam_id', result.exam_id);
+
+  if (questions) {
+    questions.sort((a, b) => {
+      const orderA = (a.exam_subjects as any)?.sort_order ?? 0;
+      const orderB = (b.exam_subjects as any)?.sort_order ?? 0;
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.question_number || 0) - (b.question_number || 0);
+    });
+  }
 
   if (questionsError || !questions) {
     return new NextResponse('Error fetching questions', { status: 500 });
