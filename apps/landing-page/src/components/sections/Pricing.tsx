@@ -4,6 +4,14 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, Info } from 'lucide-react';
 
+const plans = [
+  { id: 1, name: "1 Exam Pack", price: 299, credits: 1 },
+  { id: 2, name: "3 Exams Pack", price: 799, credits: 3 },
+  { id: 3, name: "6 Exams Pack", price: 1499, credits: 6, popular: true },
+  { id: 4, name: "9 Exams Pack", price: 2099, credits: 9 },
+  { id: 5, name: "12 Exams Pack", price: 2699, credits: 12 },
+];
+
 export default function Pricing() {
   return (
     <section id="pricing" className="py-20 md:py-28 relative bg-bg">
@@ -12,136 +20,61 @@ export default function Pricing() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           <h2 className="text-3xl font-extrabold tracking-tight text-text-main sm:text-4xl">
-            Flexible Plans for Every Institute
+            Transparent Exam Packs
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-text-muted font-medium">
-            Scale seamlessly from weekly coaching mock tests to full-school terminal examination cycles.
+            No hidden subscription fees. Top up your account with exam packs and only pay for what you use.
           </p>
         </div>
 
-        <div className="mt-16 grid grid-cols-1 gap-8 max-w-4xl mx-auto md:grid-cols-2 items-stretch">
-          
-          {/* Card 1: Pay-per-Exam */}
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="relative flex flex-col justify-between border-2 border-primary bg-surface p-8 shadow-xl"
-          >
-            {/* "Most Popular" badge */}
-            <div className="absolute top-0 right-6 -translate-y-1/2 bg-primary px-4 py-1.5 text-xs font-bold tracking-widest text-white uppercase shadow-sm">
-              Most Popular
-            </div>
+        <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6 items-stretch max-w-6xl mx-auto">
+          {plans.map((plan, i) => (
+            <motion.div
+              key={plan.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+              className={`relative flex flex-col justify-between bg-surface p-6 transition-all duration-300 hover:-translate-y-1 ${
+                plan.popular
+                  ? 'border-2 border-primary shadow-xl shadow-primary/10'
+                  : 'border border-border shadow-md'
+              }`}
+            >
+              {plan.popular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary px-3 py-1 text-[10px] font-bold tracking-widest text-white uppercase shadow-sm whitespace-nowrap z-10">
+                  Most Popular
+                </div>
+              )}
 
-            <div>
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-xl font-extrabold text-text-main">Weekly Mock Test Plan</h3>
-                  <p className="mt-2 text-sm text-text-muted font-medium">Pay a flat rate per mock test created. Perfect for coaching classes running weekend tests.</p>
+              <div className="mb-6 text-center">
+                <h3 className="text-lg font-bold text-text-main mb-2">{plan.name}</h3>
+                <div className="flex items-baseline justify-center gap-1">
+                  <span className="text-3xl font-extrabold tracking-tight text-text-main">₹{plan.price}</span>
+                  <span className="text-xs font-bold text-text-muted uppercase">/pack</span>
                 </div>
               </div>
 
-              <div className="mt-6 flex items-baseline">
-                <span className="text-5xl font-extrabold tracking-tight text-text-main">₹300</span>
-                <span className="ml-1 text-sm font-bold text-text-muted uppercase">/ test</span>
-              </div>
-
-              <div className="mt-4 flex items-center gap-1.5 bg-primary/5 p-3 text-xs font-bold text-primary border border-primary/20">
-                <Info className="h-4 w-4 text-primary shrink-0" />
-                <span>Unlimited students per test. Credits never expire.</span>
-              </div>
-
-              <ul className="mt-8 space-y-4">
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-sm font-medium text-text-main">School Admin Panel & Desktop App</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-sm font-medium text-text-main">Authentic JEE/NEET UI for students</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-sm font-medium text-text-main">Create unlimited questions & batches</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-sm font-medium text-text-main">Instant report cards for parents</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="mt-8">
-              <a
-                href="https://wa.me/916026056362?text=Hi%2C%20I%20am%20interested%20in%20ParikshaOS%20for%20my%20institute"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full text-center bg-primary hover:bg-primary/90 py-4 text-sm font-bold text-white uppercase tracking-widest transition-colors duration-200"
-              >
-                Contact Sales
-              </a>
-            </div>
-          </motion.div>
-
-          {/* Card 2: Annual Pro */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="flex flex-col justify-between border border-border bg-surface p-8 hover:border-primary transition-all duration-300"
-          >
-            <div>
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-xl font-extrabold text-text-main">Complete School License</h3>
-                  <p className="mt-2 text-sm text-text-muted font-medium">Unlimited examination runs for K-12 schools managing daily practice and terminal exams.</p>
+              <div className="flex-1 flex flex-col space-y-0">
+                <div className="flex items-center gap-3 border-b border-border/50 py-3">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" strokeWidth={3} />
+                  <span className="text-[13px] font-medium text-text-muted">
+                    {plan.credits} Exam{plan.credits > 1 ? 's' : ''} Publish
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 border-b border-border/50 py-3">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" strokeWidth={3} />
+                  <span className="text-[13px] font-medium text-text-muted">
+                    ₹{Math.round(plan.price / plan.credits)} / exam
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 border-b border-border/50 py-3">
+                  <Check className="h-4 w-4 text-emerald-500 shrink-0" strokeWidth={3} />
+                  <span className="text-[13px] font-medium text-text-muted">Never expires</span>
                 </div>
               </div>
-
-              <div className="mt-6 flex items-baseline">
-                <span className="text-5xl font-extrabold tracking-tight text-text-main">Custom</span>
-                <span className="ml-1 text-sm font-bold text-text-muted uppercase">/ yearly</span>
-              </div>
-
-              <div className="mt-4 flex items-center gap-1.5 bg-surface-hover p-3 text-xs font-bold text-text-muted border border-border">
-                <Info className="h-4 w-4 text-primary shrink-0" />
-                <span>Custom installation for your computer labs.</span>
-              </div>
-
-              <ul className="mt-8 space-y-4">
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-sm font-medium text-text-main">Unlimited tests & student accounts</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-sm font-medium text-text-main">Local server sync for patchy internet</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-sm font-medium text-text-main">Student Portal & Teacher Dashboard</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-sm font-medium text-text-main">On-boarding & 24/7 technical support</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="mt-8">
-              <a
-                href="https://wa.me/916026056362?text=Hi%2C%20I%20am%20interested%20in%20ParikshaOS%20for%20my%20school"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full text-center bg-surface-hover hover:bg-bg border border-border py-4 text-sm font-bold text-text-main uppercase tracking-widest transition-colors duration-200"
-              >
-                Contact Sales
-              </a>
-            </div>
-          </motion.div>
-
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>

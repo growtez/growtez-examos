@@ -1229,7 +1229,9 @@ export function useExamDetailPage(paramsId: string) {
       }
       return s;
     }));
-    await supabase.from('exam_subject_teachers')
+
+    await supabase
+      .from('exam_subject_teachers')
       .delete()
       .eq('exam_subject_id', subjectId)
       .eq('teacher_id', teacherId);

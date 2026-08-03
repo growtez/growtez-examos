@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Plus, Trash2, Edit2, Check, BookOpen, ChevronDown, Info, AlertCircle, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, BookOpen, ChevronDown, Info, AlertCircle } from 'lucide-react';
 
 /**
  * A single-line-looking field that wraps text and grows its height
@@ -156,10 +156,10 @@ interface Step1DetailsProps {
   setInlineEditSubjectCount: (val: number) => void;
   handleSaveSubjectCount: (subjectId: string) => void;
   handleDeleteSubject: (e: any, id: string, name: string) => void;
-  handleRemoveSubjectTeacher?: (subjectId: string, teacherId: string) => void;
   handleMoveSubject?: (index: number, direction: 'left' | 'right') => void;
   handleReorderSubjects?: (fromIndex: number, toIndex: number) => void;
   setManageTeachersSubject: (subject: any) => void;
+  handleRemoveSubjectTeacher?: (subjectId: string, teacherId: string) => void;
   setSelectedTeacherIds: (ids: string[]) => void;
   setTeacherSearchQuery: (query: string) => void;
   handleSaveExamDetails: (e: React.FormEvent) => void;
@@ -222,10 +222,10 @@ export default function Step1Details({
   setInlineEditSubjectCount,
   handleSaveSubjectCount,
   handleDeleteSubject,
-  handleRemoveSubjectTeacher,
   handleMoveSubject,
   handleReorderSubjects,
   setManageTeachersSubject,
+  handleRemoveSubjectTeacher,
   setSelectedTeacherIds,
   setTeacherSearchQuery,
   handleSaveExamDetails,
@@ -755,25 +755,28 @@ export default function Step1Details({
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {s.exam_subject_teachers?.map((est: any) => (
-                      <span key={est.id} className="text-[9px] font-bold uppercase tracking-wider text-accent-primary bg-surface border border-border px-1.5 py-0.5 rounded leading-relaxed break-words whitespace-normal sm:leading-normal inline-flex items-center gap-1">
-                        {est.teachers?.full_name || 'Teacher'}
-                        {!isReadOnly && handleRemoveSubjectTeacher && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handleRemoveSubjectTeacher(s.id, est.teacher_id);
-                            }}
-                            className="hover:text-red-500 transition-colors p-0.5"
-                            title="Remove Teacher"
-                          >
-                            <X size={10} />
-                          </button>
-                        )}
+                    {s.exam_subject_teachers?.map((est: any) => {
+                      const teacherId = est.teacher_id || est.teachers?.id;
+                      return (
+                      <span key={teacherId || est.id || Math.random()} className="relative flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-accent-primary bg-surface border border-border px-1.5 py-0.5 rounded leading-relaxed break-words whitespace-normal sm:leading-normal">
+                        <span>{est.teachers?.full_name || 'Teacher'}</span>
+                        <button
+                          type="button"
+                          title="Remove Teacher"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const teacherId = est.teacher_id || est.teachers?.id;
+                            if (handleRemoveSubjectTeacher && teacherId) {
+                              handleRemoveSubjectTeacher(s.id, teacherId);
+                            }
+                          }}
+                          className="text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-full p-1 -mr-0.5 ml-0.5 transition-all cursor-pointer relative z-10"
+                        >
+                          <svg className="pointer-events-none" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
                       </span>
-                    ))}
+                    )})}
                     <button
                       type="button"
                       onClick={(e) => {
