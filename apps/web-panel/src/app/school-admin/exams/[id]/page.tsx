@@ -995,9 +995,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setInlineEditSubjectCount={setInlineEditSubjectCount}
               handleSaveSubjectCount={handleSaveSubjectCount}
               handleDeleteSubject={handleDeleteSubject}
-              manageTeachersSubject={manageTeachersSubject}
               setManageTeachersSubject={setManageTeachersSubject}
-              handleRemoveSubjectTeacher={handleRemoveSubjectTeacher}
               setSelectedTeacherIds={setSelectedTeacherIds}
               setTeacherSearchQuery={setTeacherSearchQuery}
               searchQuery={questionSearchQuery}
