@@ -216,12 +216,15 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
       return { q, evalResult, images, optionsList };
     });
 
+    const totalExamMarks = exam?.total_marks || subjectBreakdownList.reduce((acc, sb) => acc + sb.maxMarks, 0);
+
     const pdfData = {
       schoolName,
       testName,
       studentName,
       rollNo,
       marks,
+      totalExamMarks,
       formattedDate,
       subjectBreakdownList,
       evaluatedQuestions

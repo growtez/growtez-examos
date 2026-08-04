@@ -6,15 +6,15 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   text: {
     fontSize: 10,
-    lineHeight: 1.4,
+    lineHeight: 1.6,
     color: '#0f172a',
   },
   inlineMath: {
-    marginHorizontal: 1,
+    marginHorizontal: 0,
   },
   blockMathContainer: {
     width: '100%',
@@ -65,17 +65,19 @@ export const LatexParser: React.FC<LatexParserProps> = ({ content, style }) => {
           );
         }
 
-        // Otherwise it's regular text. 
-        // We might want to handle newlines by splitting and rendering multiple Text components.
-        // Because of flexWrap: 'wrap', simple words should wrap, but new lines need forced breaks.
-        // Actually, rendering text inside flexRow wrap requires we let <Text> handle its own wrap 
-        // if possible, but React-PDF Text doesn't wrap alongside sibling views natively unless they are inside it.
-        // For robust wrapping with inline math, we need to wrap each word in Text, or keep them together.
-        // For now, let's keep the block together.
+        // Otherwise it's regular text.
+        // Split into individual words so they wrap naturally alongside inline math in flex-wrap row.
         const lines = part.split('\n');
         return lines.map((line, lineIndex) => (
           <React.Fragment key={`${index}-${lineIndex}`}>
-            {line && <Text style={styles.text}>{line}</Text>}
+            {line && line.split(/(\s+)/).map((word, wordIndex) => {
+              if (!word) return null;
+              // Preserve whitespace as-is
+              if (/^\s+$/.test(word)) {
+                return <Text key={`${index}-${lineIndex}-${wordIndex}`} style={styles.text}> </Text>;
+              }
+              return <Text key={`${index}-${lineIndex}-${wordIndex}`} style={styles.text}>{word}</Text>;
+            })}
             {lineIndex < lines.length - 1 && <View style={{ width: '100%', height: 4 }} />}
           </React.Fragment>
         ));
