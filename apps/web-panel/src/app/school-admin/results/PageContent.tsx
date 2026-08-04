@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getSchoolBaseUrl } from '@/lib/utils';
+import { calculateSubjectBreakdown } from '@/lib/downloadAnswerKey';
 import { FileBarChart2, Download, FileText, Loader2, Search, ChevronLeft, ChevronRight, Filter, ArrowUpDown, ArrowUp, ArrowDown, X, Calendar, Clock, Users, CalendarDays, Share2, Check } from 'lucide-react';
 
 const CustomCalendar = ({ exams, selectedDate, onSelectDate }: { exams: any[], selectedDate: Date | null, onSelectDate: (d: Date | null) => void }) => {
@@ -270,7 +271,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
 
       const { data: resData, error: resError } = await supabase
         .from('results')
-        .select('*, exams:exam_id(title, total_marks, start_time)')
+        .select('*, exams:exam_id(title, total_marks, start_time, marking_scheme)')
         .eq('exam_id', examId);
       if (resError) throw resError;
 
@@ -278,7 +279,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
       if (!examDetails) {
         const { data: examData } = await supabase
           .from('exams')
-          .select('title, total_marks, start_time, status')
+          .select('title, total_marks, start_time, status, marking_scheme')
           .eq('id', examId)
           .single();
         examDetails = examData;
@@ -295,7 +296,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
             id: studentResult?.id || `no-res-${sid}`,
             student_id: sid,
             exam_id: examId,
-            total_marks: studentResult ? (studentResult.total_marks ?? 0) : null,
+            total_marks: studentResult ? studentResult.total_marks : null,
             time_taken_seconds: studentResult?.time_taken_seconds || null,
             submitted_at: studentResult?.submitted_at || null,
             answers: studentResult?.answers || null,
@@ -304,7 +305,8 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
             exams: studentResult?.exams || {
               title: examDetails?.title || '',
               total_marks: examDetails?.total_marks || 0,
-              start_time: examDetails?.start_time || null
+              start_time: examDetails?.start_time || null,
+              marking_scheme: examDetails?.marking_scheme || null
             },
             isAbsent: !studentResult
           };
@@ -316,7 +318,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
             id: studentResult.id,
             student_id: studentResult.student_id,
             exam_id: examId,
-            total_marks: studentResult.total_marks ?? 0,
+            total_marks: studentResult.total_marks ?? null,
             time_taken_seconds: studentResult.time_taken_seconds || null,
             submitted_at: studentResult.submitted_at || null,
             answers: studentResult.answers || null,
@@ -325,7 +327,8 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
             exams: studentResult.exams || {
               title: examDetails?.title || '',
               total_marks: examDetails?.total_marks || 0,
-              start_time: examDetails?.start_time || null
+              start_time: examDetails?.start_time || null,
+              marking_scheme: examDetails?.marking_scheme || null
             },
             isAbsent: false
           };
@@ -335,7 +338,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
       merged.sort((a: any, b: any) => {
         if (a.isAbsent && !b.isAbsent) return 1;
         if (!a.isAbsent && b.isAbsent) return -1;
-        return (b.total_marks ?? 0) - (a.total_marks ?? 0);
+        return (b.total_marks ?? -Infinity) - (a.total_marks ?? -Infinity);
       });
 
       setResults(merged);
@@ -352,6 +355,60 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
       setLoadingResults(false);
     }
   };
+
+  // Background calculation for missing scores
+  useEffect(() => {
+    const uncalculated = results.filter(r => !r.isAbsent && r.total_marks === null && r.answers);
+    if (uncalculated.length === 0 || questions.length === 0) return;
+
+    const calculateMissingScores = async () => {
+      const updatedResults = [...results];
+      let updatesNeeded = false;
+      const updatesToSave: any[] = [];
+
+      for (const res of updatedResults) {
+        if (!res.isAbsent && res.total_marks === null && res.answers) {
+          const breakdown = calculateSubjectBreakdown(questions, res.answers, res.exams?.marking_scheme);
+          const totalScore = breakdown.reduce((acc: number, subj: any) => acc + subj.marks, 0);
+          
+          res.total_marks = totalScore;
+          res.section_scores = breakdown;
+          updatesNeeded = true;
+
+          if (!res.id.startsWith('no-res-')) {
+            updatesToSave.push({
+              id: res.id,
+              total_marks: totalScore,
+              section_scores: breakdown
+            });
+          }
+        }
+      }
+
+      if (updatesToSave.length > 0) {
+        try {
+          await fetch('/api/results/update-scores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ updates: updatesToSave })
+          });
+        } catch (err) {
+          console.error('Failed to save calculated scores via API:', err);
+        }
+      }
+
+      if (updatesNeeded) {
+        updatedResults.sort((a: any, b: any) => {
+          if (a.isAbsent && !b.isAbsent) return 1;
+          if (!a.isAbsent && b.isAbsent) return -1;
+          return (b.total_marks ?? -Infinity) - (a.total_marks ?? -Infinity);
+        });
+        setResults(updatedResults);
+      }
+    };
+
+    calculateMissingScores();
+  }, [results, questions, supabase]);
 
   const handleDownloadAllResults = async () => {
     if (!selectedExamId) return;
@@ -973,6 +1030,8 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
                         <td className="py-2.5 px-4 align-middle text-center">
                           {res.isAbsent ? (
                             <span className="text-text-muted font-medium text-[13px]">—</span>
+                          ) : res.total_marks === null && res.answers ? (
+                            <Loader2 size={16} className="animate-spin text-accent-primary mx-auto" />
                           ) : (
                             <span className="text-accent-primary font-bold text-base">{res.total_marks ?? 0}</span>
                           )}
@@ -981,10 +1040,14 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
                           <div className="flex flex-col gap-0.5 text-[11px]">
                             {res.isAbsent ? (
                               <span className="text-text-muted">—</span>
+                            ) : res.total_marks === null && res.answers ? (
+                              <div className="flex items-center gap-1 text-text-muted">
+                                <Loader2 size={10} className="animate-spin" /> Calculating...
+                              </div>
                             ) : Array.isArray(res.section_scores) ? (
                               res.section_scores.map((score: any, idx: number) => (
                                 <div key={idx} className="text-text-muted">
-                                  <span className="font-semibold text-text-main">{score.subject_name}:</span> {score.marks} marks ({score.correct}C/{score.wrong}W)
+                                  <span className="font-semibold text-text-main">{score.subject_name}:</span> {score.marks} marks
                                 </div>
                               ))
                             ) : (
@@ -1051,16 +1114,22 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
                       </div>
                       {res.isAbsent ? (
                         <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">Absent</span>
+                      ) : res.total_marks === null && res.answers ? (
+                        <Loader2 size={16} className="animate-spin text-accent-primary shrink-0" />
                       ) : (
                         <span className="shrink-0 text-accent-primary font-bold text-lg">{res.total_marks ?? 0}</span>
                       )}
                     </div>
 
-                    {!res.isAbsent && Array.isArray(res.section_scores) && res.section_scores.length > 0 && (
+                    {!res.isAbsent && res.total_marks === null && res.answers ? (
+                      <div className="flex items-center gap-1 text-text-muted bg-surface-hover rounded-lg p-2 text-[11px]">
+                        <Loader2 size={10} className="animate-spin" /> Calculating...
+                      </div>
+                    ) : !res.isAbsent && Array.isArray(res.section_scores) && res.section_scores.length > 0 && (
                       <div className="flex flex-col gap-0.5 text-[11px] bg-surface-hover rounded-lg p-2">
                         {res.section_scores.map((score: any, idx: number) => (
                           <div key={idx} className="text-text-muted">
-                            <span className="font-semibold text-text-main">{score.subject_name}:</span> {score.marks} marks ({score.correct}C/{score.wrong}W)
+                            <span className="font-semibold text-text-main">{score.subject_name}:</span> {score.marks} marks
                           </div>
                         ))}
                       </div>

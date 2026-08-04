@@ -1,5 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { evaluateQuestion, calculateSubjectBreakdown } from '@/lib/downloadAnswerKey';
 
 const styles = StyleSheet.create({
   page: {
@@ -230,71 +231,14 @@ export const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
   const testName = exam?.title || 'Exam';
   const studentName = result.students?.full_name || 'Unknown';
   const rollNo = result.students?.roll_number || 'N/A';
-  const marks = result.total_marks ?? 0;
   const studentAnswers = result.answers || {};
 
-  // Calculate subject breakdown
-  const subjectMap: Record<string, { subjectName: string; marks: number; maxMarks: number; correct: number; partial: number; wrong: number; unattempted: number; totalQuestions: number }> = {};
-
-  questions.forEach((q: any) => {
-    const sName = q.exam_subjects?.subject_name || 'General';
-    if (!subjectMap[sName]) {
-      subjectMap[sName] = { subjectName: sName, marks: 0, maxMarks: 0, correct: 0, partial: 0, wrong: 0, unattempted: 0, totalQuestions: 0 };
-    }
-    subjectMap[sName].totalQuestions++;
-    const qMaxMarks = q.positive_marks || q.marks || 1;
-    subjectMap[sName].maxMarks += qMaxMarks;
-
-    const studentAns = studentAnswers[q.id]?.answer;
-    const correctAns = q.correct_option;
-
-    if (studentAns === undefined || studentAns === null || String(studentAns).trim() === '') {
-      subjectMap[sName].unattempted++;
-    } else {
-      const isMsq = q.question_type === 'msq' || (correctAns && String(correctAns).includes(','));
-      if (isMsq) {
-        const selectedOpts = String(studentAns).split(',').filter(Boolean).map(s => s.trim().toUpperCase()).sort();
-        const correctOpts = String(correctAns).split(',').filter(Boolean).map(s => s.trim().toUpperCase()).sort();
-        let hasWrong = false;
-        let correctCount = 0;
-        selectedOpts.forEach(opt => {
-          if (correctOpts.includes(opt)) correctCount++;
-          else hasWrong = true;
-        });
-
-        const msqCorrect = q.positive_marks || q.marks || exam?.marking_scheme?.msq_correct || 4;
-        const msqWrong = q.negative_marks ? -Math.abs(q.negative_marks) : (exam?.marking_scheme?.msq_wrong ?? 0);
-        
-        const configuredPartial = exam?.marking_scheme?.msq_partial;
-        const msqPartialVal = (configuredPartial !== undefined && configuredPartial !== null && Number(configuredPartial) > 0)
-          ? Number(configuredPartial)
-          : (correctOpts.length > 0 ? Math.max(1, msqCorrect / correctOpts.length) : 1);
-
-        if (hasWrong) {
-          subjectMap[sName].marks += msqWrong;
-          subjectMap[sName].wrong++;
-        } else if (correctCount === correctOpts.length) {
-          subjectMap[sName].marks += msqCorrect;
-          subjectMap[sName].correct++;
-        } else if (correctCount > 0) {
-          const partialMarks = Math.round(msqPartialVal * correctCount * 100) / 100;
-          subjectMap[sName].marks += partialMarks;
-          subjectMap[sName].partial++;
-        } else {
-          subjectMap[sName].unattempted++;
-        }
-      } else if (String(studentAns).trim().toLowerCase() === String(correctAns).trim().toLowerCase()) {
-        subjectMap[sName].marks += qMaxMarks;
-        subjectMap[sName].correct++;
-      } else {
-        const negMarks = q.negative_marks ? -Math.abs(q.negative_marks) : (q.question_type === 'mcq' ? -1 : 0);
-        subjectMap[sName].marks += negMarks;
-        subjectMap[sName].wrong++;
-      }
-    }
-  });
-
-  const subjectBreakdownList = Object.values(subjectMap);
+  // Calculate subject breakdown using shared logic
+  const subjectBreakdownList = calculateSubjectBreakdown(questions, studentAnswers, exam?.marking_scheme);
+  
+  // Use dynamically calculated total instead of static DB total to ensure accuracy
+  const totalScore = subjectBreakdownList.reduce((acc: number, subj: any) => acc + subj.marks, 0);
+  const marks = totalScore;
 
   return (
     <Document>
@@ -321,7 +265,7 @@ export const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
               <View style={styles.subjectGrid}>
                 {subjectBreakdownList.map((sb, idx) => (
                   <View key={idx} style={styles.subjectCard}>
-                    <Text style={styles.subjectName}>{sb.subjectName}</Text>
+                    <Text style={styles.subjectName}>{sb.subject_name}</Text>
                     <Text style={styles.subjectMarks}>
                       {sb.marks} <Text style={styles.subjectMaxMarks}>/ {sb.maxMarks} marks</Text>
                     </Text>
@@ -342,49 +286,14 @@ export const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
 
         {questions.map((q: any, index: number) => {
           const studentAns = studentAnswers[q.id]?.answer;
-          const correctAns = q.correct_option;
-          
-          let marksAwarded = 0;
-          let isPartialMatch = false;
-
-          if (studentAns !== undefined && studentAns !== null && String(studentAns).trim() !== '') {
-            const isMsq = q.question_type === 'msq' || (correctAns && String(correctAns).includes(','));
-            if (isMsq) {
-              const selectedOpts = String(studentAns).split(',').filter(Boolean).map(s => s.trim().toUpperCase()).sort();
-              const correctOpts = String(correctAns).split(',').filter(Boolean).map(s => s.trim().toUpperCase()).sort();
-              let hasWrong = false;
-              let correctCount = 0;
-              selectedOpts.forEach(opt => {
-                if (correctOpts.includes(opt)) correctCount++;
-                else hasWrong = true;
-              });
-
-              const msqCorrect = q.positive_marks || q.marks || exam?.marking_scheme?.msq_correct || 4;
-              const msqWrong = q.negative_marks ? -Math.abs(q.negative_marks) : (exam?.marking_scheme?.msq_wrong ?? 0);
-              
-              const configuredPartial = exam?.marking_scheme?.msq_partial;
-              const msqPartialVal = (configuredPartial !== undefined && configuredPartial !== null && Number(configuredPartial) > 0)
-                ? Number(configuredPartial)
-                : (correctOpts.length > 0 ? Math.max(1, msqCorrect / correctOpts.length) : 1);
-
-              if (hasWrong) {
-                marksAwarded = msqWrong;
-              } else if (correctCount === correctOpts.length) {
-                marksAwarded = msqCorrect;
-              } else if (correctCount > 0) {
-                marksAwarded = Math.round(msqPartialVal * correctCount * 100) / 100;
-                isPartialMatch = true;
-              }
-            } else if (String(studentAns).trim().toLowerCase() === String(correctAns).trim().toLowerCase()) {
-                marksAwarded = q.positive_marks || q.marks || 1;
-            } else {
-                marksAwarded = q.negative_marks ? -Math.abs(q.negative_marks) : (q.question_type === 'mcq' ? -1 : 0);
-            }
-          }
+          const evalResult = evaluateQuestion(q, studentAns, exam?.marking_scheme);
+          const marksAwarded = evalResult.marksAwarded;
+          const isPartialMatch = evalResult.isPartialMatch && !evalResult.hasWrong;
 
           const selectedOpts = (studentAns !== undefined && studentAns !== null && String(studentAns).trim() !== '')
             ? String(studentAns).split(',').map(s => s.trim().toUpperCase()).filter(Boolean)
             : [];
+          const correctAns = q.correct_option;
           const correctOpts = (correctAns !== undefined && correctAns !== null && String(correctAns).trim() !== '')
             ? String(correctAns).split(',').map(s => s.trim().toUpperCase()).filter(Boolean)
             : [];

@@ -42,6 +42,87 @@ const parseQuestionImages = (urlStr: string | null | undefined): string[] => {
   return [trimmed];
 };
 
+export interface ExamScheme {
+  msq_correct?: number;
+  msq_wrong?: number;
+  msq_partial_enabled?: boolean;
+  msq_partial?: number;
+}
+
+export function evaluateQuestion(q: any, studentAns: string | undefined | null, examScheme?: ExamScheme): { marksAwarded: number, isCorrect: boolean, isPartialMatch: boolean, hasWrong: boolean } {
+  const correctAns = q.correct_option;
+  const isAttempted = studentAns !== undefined && studentAns !== null && String(studentAns).trim() !== '';
+
+  let marksAwarded = 0;
+  let isPartialMatch = false;
+  let isCorrect = false;
+  let hasWrong = false;
+
+  const selectedOpts = isAttempted ? String(studentAns).split(',').filter(Boolean).map(s => s.trim().toUpperCase()).sort() : [];
+  const correctOpts = (correctAns !== undefined && correctAns !== null && String(correctAns).trim() !== '')
+    ? String(correctAns).split(',').filter(Boolean).map(s => s.trim().toUpperCase()).sort()
+    : [];
+
+  const maxMarks = q.positive_marks ?? q.marks ?? 1;
+  const negMarks = (q.negative_marks !== undefined && q.negative_marks !== null) 
+    ? -Math.abs(Number(q.negative_marks)) 
+    : (q.question_type === 'mcq' ? -1 : 0);
+
+  if (isAttempted) {
+    const isMsq = q.question_type === 'msq' || (correctAns && String(correctAns).includes(','));
+
+    if (isMsq) {
+      let correctCount = 0;
+      selectedOpts.forEach(opt => {
+        if (correctOpts.includes(opt)) correctCount++;
+        else hasWrong = true;
+      });
+
+      const msqCorrect = (examScheme?.msq_correct !== undefined && examScheme?.msq_correct !== null) 
+        ? Number(examScheme.msq_correct) 
+        : (maxMarks > 1 ? maxMarks : 4);
+      const msqWrong = (examScheme?.msq_wrong !== undefined && examScheme?.msq_wrong !== null)
+        ? -Math.abs(Number(examScheme.msq_wrong))
+        : ((q.negative_marks !== undefined && q.negative_marks !== null) ? -Math.abs(Number(q.negative_marks)) : 0);
+      const msqPartialEnabled = examScheme?.msq_partial_enabled ?? false;
+      const configuredPartial = examScheme?.msq_partial;
+      const msqPartialVal = (configuredPartial !== undefined && configuredPartial !== null && Number(configuredPartial) > 0)
+        ? Number(configuredPartial)
+        : (correctOpts.length > 0 ? Math.max(1, msqCorrect / correctOpts.length) : 1);
+
+      if (hasWrong) {
+        marksAwarded = msqWrong;
+      } else if (correctCount === correctOpts.length) {
+        marksAwarded = msqCorrect;
+        isCorrect = true;
+      } else if (correctCount > 0) {
+        isPartialMatch = true;
+        marksAwarded = msqPartialEnabled ? Number((correctCount * msqPartialVal).toFixed(2)) : msqWrong;
+      } else {
+        marksAwarded = msqWrong;
+      }
+    } else {
+      if (q.question_type === 'nat') {
+        if (String(studentAns).trim() === String(correctAns).trim()) {
+          marksAwarded = maxMarks;
+          isCorrect = true;
+        } else {
+          marksAwarded = negMarks;
+        }
+      } else {
+        if (selectedOpts.length === 1 && correctOpts.includes(selectedOpts[0])) {
+          marksAwarded = maxMarks;
+          isCorrect = true;
+        } else {
+          marksAwarded = negMarks;
+        }
+      }
+    }
+  }
+
+  return { marksAwarded, isCorrect, isPartialMatch, hasWrong };
+}
+
 interface ExamInterfaceProps {
   studentProfile: any;
   exam: any;
@@ -384,39 +465,6 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
       if (Object.keys(savedAnswers).length === 0) return;
 
-      // Calculate a running score for the saved answers only
-      let runningScore = 0;
-      const sectionScores: any[] = subjects.map(sub => ({ subject_name: sub.subject_name, correct: 0, wrong: 0, unanswered: 0, marks: 0 }));
-      questions.forEach(q => {
-        const a = updatedAnswers[q.id];
-        if (!a?.saved) return;
-        const studentAns = a.answer;
-        const subIdx = subjects.findIndex(s => s.id === q.exam_subject_id);
-        const section = sectionScores[subIdx];
-        if (!section) return;
-        if (studentAns === null || studentAns === '' || studentAns === undefined) {
-          section.unanswered++;
-        } else if (q.question_type === 'msq') {
-          const selectedOpts = String(studentAns).split(',').filter(Boolean).sort();
-          const correctOpts = String(q.correct_option).split(',').filter(Boolean).sort();
-          let hasWrong = false;
-          let correctCount = 0;
-          selectedOpts.forEach((opt: string) => { if (correctOpts.includes(opt)) correctCount++; else hasWrong = true; });
-          const msqCorrect = exam?.marking_scheme?.msq_correct ?? 4;
-          const msqPartialPerQ = exam?.marking_scheme?.msq_partial ?? 1;
-          const msqWrong = exam?.marking_scheme?.msq_wrong ?? 0;
-          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? false;
-          if (hasWrong) { section.wrong++; section.marks += msqWrong; runningScore += msqWrong; }
-          else if (correctCount === correctOpts.length) { section.correct++; section.marks += msqCorrect; runningScore += msqCorrect; }
-          else if (msqPartialEnabled) { const p = Math.round(msqPartialPerQ * correctCount * 100) / 100; section.marks += p; runningScore += p; }
-          else { section.wrong++; section.marks += msqWrong; runningScore += msqWrong; }
-        } else if (studentAns === q.correct_option) {
-          section.correct++; section.marks += q.positive_marks ?? 4; runningScore += q.positive_marks ?? 4;
-        } else {
-          section.wrong++; section.marks += q.negative_marks ?? 0; runningScore += q.negative_marks ?? 0;
-        }
-      });
-
       // Use save_exam_draft (not submit_exam) so that students.status stays
       // 'in_progress' — allowing re-entry if the app closes mid-exam.
       // submit_exam is reserved for the final manual/timer submission only.
@@ -426,8 +474,8 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         p_exam_id: exam.id,
         p_school_id: actualSchoolId,
         p_answers: savedAnswers,
-        p_total_marks: runningScore,
-        p_section_scores: sectionScores,
+        p_total_marks: null,
+        p_section_scores: null,
       });
     } catch (err) {
       console.error('Failed to save answer to DB:', err);
@@ -554,55 +602,16 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
 
         if (studentAns === null || studentAns === '' || studentAns === undefined) {
           section.unanswered++;
-        } else if (q.question_type === 'msq') {
-          const selectedOpts = String(studentAns).split(',').filter(Boolean).sort();
-          const correctOpts = String(q.correct_option).split(',').filter(Boolean).sort();
-
-          let hasWrong = false;
-          let correctCount = 0;
-          selectedOpts.forEach((opt: string) => {
-            if (correctOpts.includes(opt)) correctCount++;
-            else hasWrong = true;
-          });
-
-          const msqCorrect = exam?.marking_scheme?.msq_correct ?? 4;
-          const msqPartialPerQ = exam?.marking_scheme?.msq_partial ?? 1;
-          const msqWrong = exam?.marking_scheme?.msq_wrong ?? 0;
-          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? false;
-
-          if (hasWrong) {
-            // Any wrong selection → wrong (always, regardless of partial setting)
-            section.wrong++;
-            section.marks += msqWrong;
-            finalScore += msqWrong;
-          } else if (correctCount === correctOpts.length) {
-            // All correct, none wrong → full marks
-            section.correct++;
-            section.marks += msqCorrect;
-            finalScore += msqCorrect;
-          } else {
-            // Partial: some correct, none wrong
-            if (msqPartialEnabled) {
-              // Award msq_partial per correctly selected option
-              const partialScore = Math.round(msqPartialPerQ * correctCount * 100) / 100;
-              section.partial = (section.partial || 0) + 1;
-              section.marks += partialScore;
-              finalScore += partialScore;
-            } else {
-              // Partial marking disabled → treat as wrong
-              section.wrong++;
-              section.marks += msqWrong;
-              finalScore += msqWrong;
-            }
-          }
-        } else if (studentAns === q.correct_option) {
-          section.correct++;
-          section.marks += q.positive_marks ?? 4;
-          finalScore += q.positive_marks ?? 4;
         } else {
-          section.wrong++;
-          section.marks += q.negative_marks ?? 0;
-          finalScore += q.negative_marks ?? 0;
+          const evalResult = evaluateQuestion(q, studentAns, exam?.marking_scheme);
+          if (evalResult.isCorrect) section.correct++;
+          else if (evalResult.isPartialMatch && !evalResult.hasWrong) {
+            section.partial = (section.partial || 0) + 1;
+          } else {
+            section.wrong++;
+          }
+          section.marks += evalResult.marksAwarded;
+          finalScore += evalResult.marksAwarded;
         }
       });
 
@@ -655,9 +664,6 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const handleSubmitExam = async () => {
     setSubmitting(true);
     try {
-      let finalScore = 0;
-      const sectionScores: any[] = subjects.map(sub => ({ subject_name: sub.subject_name, correct: 0, wrong: 0, unanswered: 0, marks: 0 }));
-
       // Only include answers that were explicitly saved (Save & Next / Save & Mark for Review)
       // Exclude answers that were only "Mark for Review & Next" (saved: false)
       const formattedAnswers: Record<string, any> = {};
@@ -665,68 +671,12 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         const a = answers[q.id];
         if (!a?.saved) return; // Skip mark-for-review-only answers
 
-        const studentAns = a.answer;
-        const subIdx = subjects.findIndex(s => s.id === q.exam_subject_id);
-        const section = sectionScores[subIdx];
-
         formattedAnswers[q.id] = {
           question_id: q.id,
-          answer: studentAns,
+          answer: a.answer,
           marked_for_review: a.marked,
           time_spent_seconds: 0
         };
-
-        if (studentAns === null || studentAns === '' || studentAns === undefined) {
-          section.unanswered++;
-        } else if (q.question_type === 'msq') {
-          const selectedOpts = String(studentAns).split(',').filter(Boolean).sort();
-          const correctOpts = String(q.correct_option).split(',').filter(Boolean).sort();
-
-          let hasWrong = false;
-          let correctCount = 0;
-          selectedOpts.forEach((opt: string) => {
-            if (correctOpts.includes(opt)) correctCount++;
-            else hasWrong = true;
-          });
-
-          const msqCorrect = exam?.marking_scheme?.msq_correct ?? 4;
-          const msqPartialPerQ = exam?.marking_scheme?.msq_partial ?? 1;
-          const msqWrong = exam?.marking_scheme?.msq_wrong ?? 0;
-          const msqPartialEnabled = exam?.marking_scheme?.msq_partial_enabled ?? false;
-
-          if (hasWrong) {
-            // Any wrong selection → wrong (always)
-            section.wrong++;
-            section.marks += msqWrong;
-            finalScore += msqWrong;
-          } else if (correctCount === correctOpts.length) {
-            // All correct → full marks
-            section.correct++;
-            section.marks += msqCorrect;
-            finalScore += msqCorrect;
-          } else {
-            // Partial: some correct, none wrong
-            if (msqPartialEnabled) {
-              const partialScore = Math.round(msqPartialPerQ * correctCount * 100) / 100;
-              section.partial = (section.partial || 0) + 1;
-              section.marks += partialScore;
-              finalScore += partialScore;
-            } else {
-              // Partial marking disabled → treat as wrong
-              section.wrong++;
-              section.marks += msqWrong;
-              finalScore += msqWrong;
-            }
-          }
-        } else if (studentAns === q.correct_option) {
-          section.correct++;
-          section.marks += q.positive_marks ?? 4;
-          finalScore += q.positive_marks ?? 4;
-        } else {
-          section.wrong++;
-          section.marks += q.negative_marks ?? 0;
-          finalScore += q.negative_marks ?? 0;
-        }
       });
 
       const actualSchoolId = exam.school_id || studentProfile?.school_id || (questions.length > 0 ? questions[0].school_id : undefined);
@@ -736,8 +686,8 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           p_exam_id: exam.id,
           p_school_id: actualSchoolId,
           p_answers: formattedAnswers,
-          p_total_marks: finalScore,
-          p_section_scores: sectionScores,
+          p_total_marks: null,
+          p_section_scores: null,
           p_time_taken_seconds: (exam.duration_minutes * 60) - timeLeft
         });
 
