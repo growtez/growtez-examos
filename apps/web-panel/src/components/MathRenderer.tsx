@@ -58,14 +58,31 @@ export function autoWrapBareLatex(text: string, inline = false): string {
       'g'
     );
 
-    return part.replace(BARE_EXPR_RE, (match) => {
+    let wrapped = part.replace(BARE_EXPR_RE, (match) => {
       const trimmed = match.trim();
       if (!trimmed) return match;
       return `$${trimmed}$`;
     });
+
+    // Repeatedly merge adjacent math blocks separated by math operators (+, -, =, *, /, \times, etc.)
+    let prev = '';
+    while (prev !== wrapped) {
+      prev = wrapped;
+      wrapped = wrapped.replace(/\$([^\$\n]+)\$(\s*[\+\-\=\*\/\×\÷\:\,\;\>]|\s*\\times\s*|\s*\\cdot\s*|\s*\\div\s*)\$([^\$\n]+)\$/g, '$$1$2$3$');
+    }
+
+    return wrapped;
   });
 
-  return processedParts.join("");
+  let result = processedParts.join("");
+  // Global pass to merge any remaining adjacent inline math separated by simple operators
+  let prevResult = '';
+  while (prevResult !== result) {
+    prevResult = result;
+    result = result.replace(/\$([^\$\n]+)\$(\s*[\+\-\=\*\/\×\÷\:\,\;]|\s*\\times\s*|\s*\\cdot\s*|\s*\\div\s*)\$([^\$\n]+)\$/g, '$$1$2$3$');
+  }
+
+  return result;
 }
 
 export default function MathRenderer({ text, className, inline = false }: MathRendererProps) {

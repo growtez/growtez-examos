@@ -227,6 +227,25 @@ const styles = StyleSheet.create({
   },
 });
 
+const renderTextWithMathOffset = (text: string | null | undefined) => {
+  if (!text) return null;
+  // Match mathematical alphanumeric symbols (U+1D400 - U+1D7FF) and letterlike symbols (U+2100 - U+214F)
+  const mathRegex = /([\u2100-\u214F\u{1D400}-\u{1D7FF}]+)/gu;
+  
+  if (!text.match(mathRegex)) {
+    return text;
+  }
+
+  const parts = text.split(mathRegex);
+  return parts.map((part, index) => {
+    if (part.match(mathRegex)) {
+      // Shift math Unicode characters up slightly to align with Helvetica's baseline
+      return <Text key={index} style={{ position: 'relative', top: -1.5 }}>{part}</Text>;
+    }
+    return <Text key={index}>{part}</Text>;
+  });
+};
+
 export const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
   const testName = exam?.title || 'Exam';
   const studentName = result.students?.full_name || 'Unknown';
@@ -329,16 +348,16 @@ export const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
                 </Text>
               </View>
               
-              {q.question_text && <Text style={styles.questionText}>{q.question_text}</Text>}
+              {q.question_text && <Text style={styles.questionText}>{renderTextWithMathOffset(q.question_text)}</Text>}
 
               <View style={styles.summaryBanner}>
                 <Text style={styles.summaryText}>
                   <Text style={styles.headerBold}>Your Answer: </Text>
-                  <Text style={{ color: userAnswerColor, fontFamily: 'Helvetica-Bold' }}>{userAnswerText}</Text>
+                  <Text style={{ color: userAnswerColor, fontFamily: 'Helvetica-Bold' }}>{renderTextWithMathOffset(userAnswerText)}</Text>
                 </Text>
                 <Text style={styles.summaryText}>
                   <Text style={styles.headerBold}>Correct Answer: </Text>
-                  <Text style={{ color: '#22c55e', fontFamily: 'Helvetica-Bold' }}>{correctAnswerText}</Text>
+                  <Text style={{ color: '#22c55e', fontFamily: 'Helvetica-Bold' }}>{renderTextWithMathOffset(correctAnswerText)}</Text>
                 </Text>
               </View>
 
@@ -390,7 +409,7 @@ export const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
                         <View style={{ flex: 1 }}>
                           <Text style={styles.optionText}>
                             <Text style={styles.headerBold}>{key}) </Text>
-                            {val || ''}
+                            {renderTextWithMathOffset(val || '')}
                           </Text>
                           {imgVal && (
                             <Image 
@@ -413,18 +432,18 @@ export const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
                 <View style={styles.natBox}>
                   <Text style={styles.optionText}>
                     <Text style={styles.headerBold}>Your Answer: </Text>
-                    <Text style={{ color: userAnswerColor, fontFamily: 'Helvetica-Bold' }}>{userAnswerText}</Text>
+                    <Text style={{ color: userAnswerColor, fontFamily: 'Helvetica-Bold' }}>{renderTextWithMathOffset(userAnswerText)}</Text>
                   </Text>
                   <Text style={styles.optionText}>
                     <Text style={styles.headerBold}>Correct Answer: </Text>
-                    <Text style={{ color: '#22c55e', fontFamily: 'Helvetica-Bold' }}>{correctAnswerText}</Text>
+                    <Text style={{ color: '#22c55e', fontFamily: 'Helvetica-Bold' }}>{renderTextWithMathOffset(correctAnswerText)}</Text>
                   </Text>
                 </View>
               )}
               {q.explanation && (
                 <View style={{ marginTop: 6, padding: 6, borderRadius: 4, borderWidth: 1, borderColor: '#bfdbfe', backgroundColor: '#eff6ff' }}>
                   <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 9, color: '#1d4ed8', marginBottom: 2 }}>Explanation / Solution:</Text>
-                  <Text style={{ fontSize: 9, color: '#1e293b' }}>{q.explanation}</Text>
+                  <Text style={{ fontSize: 9, color: '#1e293b' }}>{renderTextWithMathOffset(q.explanation)}</Text>
                 </View>
               )}
             </View>

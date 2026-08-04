@@ -298,7 +298,7 @@ export const AnswerKeyDocument = ({ data }: { data: any }) => {
                 {subjectBreakdownList.map((sb: any, i: number) => (
                   <View key={i} style={styles.subjectCard}>
                     <View style={styles.subjectCardHeader}>
-                      <Text style={styles.subjectCardName}>{sb.subjectName}</Text>
+                      <Text style={styles.subjectCardName}>{sb.subject_name}</Text>
                       <Text style={styles.subjectCardScore}>{sb.marks}/{sb.maxMarks} marks</Text>
                     </View>
                     <View style={styles.subjectCardStats}>

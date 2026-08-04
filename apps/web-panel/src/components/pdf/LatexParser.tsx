@@ -47,20 +47,22 @@ export const LatexParser: React.FC<LatexParserProps> = ({ content, style }) => {
 
         // Check if block math
         if (part.startsWith('$$') && part.endsWith('$$')) {
-          const mathExpr = part.slice(2, -2).trim();
+          let mathExpr = part.slice(2, -2).trim();
+          mathExpr = mathExpr.replace(/\\mathbf{([^}]+)}/g, '$1').replace(/\\boldsymbol{([^}]+)}/g, '$1');
           return (
             <View key={index} style={styles.blockMathContainer}>
-              <ReactPdfMath fontSize={10}>{mathExpr}</ReactPdfMath>
+              <ReactPdfMath fontSize={10} color="#1e293b">{mathExpr}</ReactPdfMath>
             </View>
           );
         }
 
         // Check if inline math
         if (part.startsWith('$') && part.endsWith('$')) {
-          const mathExpr = part.slice(1, -1).trim();
+          let mathExpr = part.slice(1, -1).trim();
+          mathExpr = mathExpr.replace(/\\mathbf{([^}]+)}/g, '$1').replace(/\\boldsymbol{([^}]+)}/g, '$1');
           return (
             <View key={index} style={styles.inlineMath}>
-              <ReactPdfMath inline fontSize={10}>{mathExpr}</ReactPdfMath>
+              <ReactPdfMath inline fontSize={10} color="#1e293b">{mathExpr}</ReactPdfMath>
             </View>
           );
         }
@@ -76,6 +78,23 @@ export const LatexParser: React.FC<LatexParserProps> = ({ content, style }) => {
               if (/^\s+$/.test(word)) {
                 return <Text key={`${index}-${lineIndex}-${wordIndex}`} style={styles.text}> </Text>;
               }
+              
+              // Scan word for mathematical unicode characters
+              const mathRegex = /([\u2100-\u214F\u{1D400}-\u{1D7FF}]+)/gu;
+              if (word.match(mathRegex)) {
+                const chunks = word.split(mathRegex);
+                return (
+                  <Text key={`${index}-${lineIndex}-${wordIndex}`} style={styles.text}>
+                    {chunks.map((chunk, cIdx) => {
+                      if (chunk.match(mathRegex)) {
+                        return <Text key={cIdx} style={{ position: 'relative', top: -1.5, color: '#334155' }}>{chunk}</Text>;
+                      }
+                      return chunk;
+                    })}
+                  </Text>
+                );
+              }
+
               return <Text key={`${index}-${lineIndex}-${wordIndex}`} style={styles.text}>{word}</Text>;
             })}
             {lineIndex < lines.length - 1 && <View style={{ width: '100%', height: 4 }} />}
