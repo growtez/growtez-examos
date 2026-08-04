@@ -1,14 +1,30 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font, Image, Svg, Path, Circle } from '@react-pdf/renderer';
 import { LatexParser } from './LatexParser';
 
-// Register standard fonts if needed, but react-pdf has built-in Helvetica.
-// We will use standard sans-serif.
+// Register Inter font via jsDelivr (@fontsource/inter) — stable versioned URLs
+Font.register({
+  family: 'Inter',
+  fonts: [
+    {
+      src: 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-400-normal.woff',
+      fontWeight: 400,
+    },
+    {
+      src: 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-600-normal.woff',
+      fontWeight: 600,
+    },
+    {
+      src: 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-700-normal.woff',
+      fontWeight: 700,
+    },
+  ],
+});
 
 const styles = StyleSheet.create({
   page: {
     padding: 30,
-    fontFamily: 'Helvetica',
+    fontFamily: 'Inter',
     backgroundColor: '#ffffff',
   },
   headerBanner: {
@@ -34,9 +50,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 14,
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 10,
   },
   metaRow: {
     flexDirection: 'row',
@@ -52,18 +68,17 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: 'row',
     marginRight: 10,
-    marginBottom: 4,
   },
   metaLabel: {
     color: '#64748b',
     textTransform: 'uppercase',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
     marginRight: 4,
   },
   metaValue: {
     color: '#0f172a',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
   },
   scoreBadge: {
@@ -72,18 +87,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccfbf1',
     borderWidth: 1,
     borderColor: '#99f6e4',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
   },
   scoreLabel: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: 'bold',
     color: '#0f766e',
-    marginRight: 6,
+    marginRight: 4,
   },
   scoreValue: {
-    fontSize: 18,
+    fontSize: 11,
     fontWeight: 'bold',
     color: '#0f766e',
   },
@@ -92,53 +107,54 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
+    flexDirection: 'column',
   },
   subjectLabel: {
     fontSize: 10,
     fontWeight: 'bold',
     color: '#64748b',
     textTransform: 'uppercase',
-    marginRight: 8,
+    marginBottom: 6,
   },
-  subjectPill: {
+  subjectCardsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  subjectCard: {
+    flexDirection: 'column',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: '#e2e8f0',
     borderRadius: 6,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    marginRight: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 4,
+    width: '48%',
+  },
+  subjectCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 4,
   },
-  pillName: {
+  subjectCardName: {
     fontWeight: 'bold',
     color: '#0f766e',
-    fontSize: 11,
-    marginRight: 6,
+    fontSize: 10,
   },
-  pillMarks: {
+  subjectCardScore: {
     fontWeight: 'bold',
     color: '#0f172a',
-    fontSize: 11,
+    fontSize: 10,
   },
-  pillMax: {
-    fontSize: 9,
-    color: '#64748b',
-  },
-  pillStats: {
+  subjectCardStats: {
     flexDirection: 'row',
-    borderLeftWidth: 1,
-    borderLeftColor: '#e2e8f0',
-    paddingLeft: 6,
-    marginLeft: 6,
+    flexWrap: 'wrap',
+    gap: 6,
   },
-  statText: {
-    fontSize: 9,
+  statItem: {
+    fontSize: 8,
     fontWeight: 'bold',
   },
   questionsContainer: {
@@ -190,19 +206,17 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   optionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     marginTop: 6,
   },
   optionBox: {
-    width: '48%',
+    width: '100%',
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     borderWidth: 1,
     borderRadius: 6,
     padding: 4,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   optionLabel: {
     fontWeight: 'bold',
@@ -216,11 +230,10 @@ const styles = StyleSheet.create({
     fontSize: 7,
     fontWeight: 'bold',
     color: '#ffffff',
-    paddingHorizontal: 3,
-    paddingVertical: 1,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
     borderRadius: 4,
-    marginTop: 2,
-    alignSelf: 'flex-start',
+    marginLeft: 'auto',
   },
   explanationBox: {
     marginTop: 8,
@@ -243,48 +256,60 @@ export const AnswerKeyDocument = ({ data }: { data: any }) => {
     studentName,
     rollNo,
     marks,
+    totalExamMarks,
     formattedDate,
     subjectBreakdownList,
     evaluatedQuestions
   } = data;
 
+  const maxMarksSum = subjectBreakdownList && subjectBreakdownList.length > 0
+    ? subjectBreakdownList.reduce((acc: number, sb: any) => acc + (sb.maxMarks || 0), 0)
+    : 0;
+  const maxTotal = totalExamMarks || maxMarksSum;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.headerBanner}>
-          <Text style={styles.schoolName}>{schoolName || 'Student Answer Key'}</Text>
+          <Text style={styles.schoolName}>{testName || 'Answer Key'}</Text>
           <Text style={styles.subtitle}>Answer Key & Detailed Report</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+            <Text style={{ fontSize: 10, color: '#64748b' }}>{schoolName}</Text>
+            <Text style={{ fontSize: 10, color: '#64748b' }}>{formattedDate}</Text>
+          </View>
         </View>
 
         <View style={styles.metaBox}>
           <View style={styles.metaRow}>
             <View style={styles.metaDetails}>
-              <View style={styles.metaItem}><Text style={styles.metaLabel}>Test:</Text><Text style={styles.metaValue}>{testName}</Text></View>
               <View style={styles.metaItem}><Text style={styles.metaLabel}>Student:</Text><Text style={styles.metaValue}>{studentName}</Text></View>
               <View style={styles.metaItem}><Text style={styles.metaLabel}>Roll No:</Text><Text style={styles.metaValue}>{rollNo}</Text></View>
-              <View style={styles.metaItem}><Text style={styles.metaLabel}>Date:</Text><Text style={styles.metaValue}>{formattedDate}</Text></View>
             </View>
             <View style={styles.scoreBadge}>
               <Text style={styles.scoreLabel}>SCORE</Text>
-              <Text style={styles.scoreValue}>{marks}</Text>
+              <Text style={styles.scoreValue}>{marks}{maxTotal ? `/${maxTotal}` : ''}</Text>
             </View>
           </View>
 
           {subjectBreakdownList && subjectBreakdownList.length > 0 && (
             <View style={styles.subjectRow}>
-              <Text style={styles.subjectLabel}>Subjects:</Text>
-              {subjectBreakdownList.map((sb: any, i: number) => (
-                <View key={i} style={styles.subjectPill}>
-                  <Text style={styles.pillName}>{sb.subjectName}</Text>
-                  <Text style={styles.pillMarks}>{sb.marks} <Text style={styles.pillMax}>/ {sb.maxMarks}m</Text></Text>
-                  <View style={styles.pillStats}>
-                    <Text style={[styles.statText, { color: '#166534' }]}>{sb.correct}C </Text>
-                    {sb.partial > 0 && <Text style={[styles.statText, { color: '#b45309' }]}>• {sb.partial}P </Text>}
-                    <Text style={[styles.statText, { color: '#be123c' }]}>• {sb.wrong}W </Text>
-                    <Text style={[styles.statText, { color: '#64748b' }]}>• {sb.unattempted}U</Text>
+              <Text style={styles.subjectLabel}>Subject-wise Breakdown</Text>
+              <View style={styles.subjectCardsRow}>
+                {subjectBreakdownList.map((sb: any, i: number) => (
+                  <View key={i} style={styles.subjectCard}>
+                    <View style={styles.subjectCardHeader}>
+                      <Text style={styles.subjectCardName}>{sb.subject_name}</Text>
+                      <Text style={styles.subjectCardScore}>{sb.marks}/{sb.maxMarks} marks</Text>
+                    </View>
+                    <View style={styles.subjectCardStats}>
+                      <Text style={[styles.statItem, { color: '#166534' }]}>{sb.correct} Correct</Text>
+                      {sb.partial > 0 && <Text style={[styles.statItem, { color: '#b45309' }]}>{sb.partial} Partial</Text>}
+                      <Text style={[styles.statItem, { color: '#be123c' }]}>{sb.wrong} Wrong</Text>
+                      <Text style={[styles.statItem, { color: '#64748b' }]}>{sb.unattempted} Skipped</Text>
+                    </View>
                   </View>
-                </View>
-              ))}
+                ))}
+              </View>
             </View>
           )}
         </View>
@@ -296,28 +321,32 @@ export const AnswerKeyDocument = ({ data }: { data: any }) => {
             // Badge color logic
             let badgeBg = '#f1f5f9';
             let badgeColor = '#475569';
-            let marksText = '0.00';
+            let marksText = '0';
+            const formatMarks = (m: number) => {
+              if (m > 0) return `+${m}`;
+              return `${m}`;
+            };
             
             if (evalResult.isCorrect) {
               badgeBg = '#dcfce3';
               badgeColor = '#166534';
-              marksText = `+${evalResult.marksAwarded}`;
+              marksText = formatMarks(evalResult.marksAwarded);
             } else if (evalResult.isPartialMatch && !evalResult.hasWrong) {
               badgeBg = '#fef3c7';
               badgeColor = '#b45309';
-              marksText = `+${evalResult.marksAwarded}`;
+              marksText = formatMarks(evalResult.marksAwarded);
             } else if (evalResult.isAttempted && evalResult.marksAwarded < 0) {
               badgeBg = '#ffe4e6';
               badgeColor = '#be123c';
-              marksText = `${evalResult.marksAwarded}`;
+              marksText = formatMarks(evalResult.marksAwarded);
             } else if (evalResult.isAttempted && evalResult.marksAwarded === 0) {
               badgeBg = '#ffe4e6';
               badgeColor = '#be123c';
-              marksText = '0.00';
+              marksText = '0';
             } else {
               badgeBg = '#f1f5f9';
               badgeColor = '#475569';
-              marksText = '0.00';
+              marksText = '0';
             }
 
             return (
@@ -366,10 +395,14 @@ export const AnswerKeyDocument = ({ data }: { data: any }) => {
                           <View style={styles.optionContent}>
                             {opt.text && <LatexParser content={opt.text} />}
                             {opt.image && <Image src={opt.image} style={styles.image} />}
-                            {opt.isStudentAns && opt.isCorrect && <Text style={[styles.badge, { backgroundColor: '#22c55e' }]}>Your Correct Ans</Text>}
-                            {!opt.isStudentAns && opt.isCorrect && <Text style={[styles.badge, { backgroundColor: '#22c55e' }]}>Correct Answer</Text>}
-                            {opt.isStudentAns && !opt.isCorrect && <Text style={[styles.badge, { backgroundColor: '#ef4444' }]}>Your Wrong Ans</Text>}
                           </View>
+                          {opt.isCorrect && (
+                            <Svg width="14" height="14" viewBox="0 0 24 24" style={{ marginLeft: 'auto' }}>
+                              <Circle cx="12" cy="12" r="10" fill="#22c55e" />
+                              <Path d="M8 12l3 3 5-5" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                            </Svg>
+                          )}
+                          {opt.isStudentAns && <Text style={[styles.badge, { backgroundColor: '#64748b', marginLeft: opt.isCorrect ? 4 : 'auto' }]}>Your Answer</Text>}
                         </View>
                       )
                     })}

@@ -1,13 +1,31 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
 import { LatexParser } from './LatexParser';
 // Removing Question import from downloadAnswerKey to avoid TS error
 
+// Register Inter font via jsDelivr (@fontsource/inter) — stable versioned URLs
+Font.register({
+  family: 'Inter',
+  fonts: [
+    {
+      src: 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-400-normal.woff',
+      fontWeight: 400,
+    },
+    {
+      src: 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-600-normal.woff',
+      fontWeight: 600,
+    },
+    {
+      src: 'https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.8/files/inter-latin-700-normal.woff',
+      fontWeight: 700,
+    },
+  ],
+});
 
 const styles = StyleSheet.create({
   page: {
     padding: 30,
-    fontFamily: 'Helvetica',
+    fontFamily: 'Inter',
     backgroundColor: '#ffffff',
   },
   headerBanner: {
@@ -101,20 +119,18 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   optionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     marginTop: 6,
   },
   optionBox: {
-    width: '48%',
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'flex-start',
     borderWidth: 1,
     borderColor: '#cbd5e1',
     borderRadius: 6,
     padding: 4,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   optionLabel: {
     fontWeight: 'bold',

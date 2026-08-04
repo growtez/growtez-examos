@@ -33,7 +33,7 @@ export interface QuestionEvaluation {
 }
 
 export interface SubjectBreakdown {
-  subjectName: string;
+  subject_name: string;
   marks: number;
   maxMarks: number;
   correct: number;
@@ -60,8 +60,10 @@ export function evaluateQuestion(q: Question, studentAns: string | undefined | n
     ? String(correctAns).split(',').filter(Boolean).map(s => s.trim().toUpperCase()).sort()
     : [];
 
-  const maxMarks = q.positive_marks || q.marks || 1;
-  const negMarks = q.negative_marks ? -Math.abs(q.negative_marks) : (q.question_type === 'mcq' ? -1 : 0);
+  const maxMarks = q.positive_marks ?? q.marks ?? 1;
+  const negMarks = (q.negative_marks !== undefined && q.negative_marks !== null) 
+    ? -Math.abs(Number(q.negative_marks)) 
+    : (q.question_type === 'mcq' ? -1 : 0);
 
   if (isAttempted) {
     const isMsq = q.question_type === 'msq' || (correctAns && String(correctAns).includes(','));
@@ -73,8 +75,12 @@ export function evaluateQuestion(q: Question, studentAns: string | undefined | n
         else hasWrong = true;
       });
 
-      const msqCorrect = maxMarks > 1 ? maxMarks : (examScheme?.msq_correct || 4);
-      const msqWrong = q.negative_marks ? -Math.abs(q.negative_marks) : (examScheme?.msq_wrong ?? 0);
+      const msqCorrect = (examScheme?.msq_correct !== undefined && examScheme?.msq_correct !== null) 
+        ? Number(examScheme.msq_correct) 
+        : (maxMarks > 1 ? maxMarks : 4);
+      const msqWrong = (examScheme?.msq_wrong !== undefined && examScheme?.msq_wrong !== null)
+        ? -Math.abs(Number(examScheme.msq_wrong))
+        : ((q.negative_marks !== undefined && q.negative_marks !== null) ? -Math.abs(Number(q.negative_marks)) : 0);
       const msqPartialEnabled = examScheme?.msq_partial_enabled ?? false;
       const configuredPartial = examScheme?.msq_partial;
       const msqPartialVal = (configuredPartial !== undefined && configuredPartial !== null && Number(configuredPartial) > 0)
@@ -129,10 +135,10 @@ export function calculateSubjectBreakdown(questions: Question[], studentAnswers:
   questions.forEach(q => {
     const subjName = q.exam_subjects?.subject_name || 'General';
     if (!breakdown[subjName]) {
-      breakdown[subjName] = { subjectName: subjName, marks: 0, maxMarks: 0, correct: 0, partial: 0, wrong: 0, unattempted: 0, totalQuestions: 0 };
+      breakdown[subjName] = { subject_name: subjName, marks: 0, maxMarks: 0, correct: 0, partial: 0, wrong: 0, unattempted: 0, totalQuestions: 0 };
     }
 
-    const maxMarks = q.positive_marks || q.marks || 1;
+    const maxMarks = q.positive_marks ?? q.marks ?? 1;
     breakdown[subjName].totalQuestions += 1;
     breakdown[subjName].maxMarks += maxMarks;
 
@@ -216,12 +222,15 @@ export async function downloadAnswerKey(resultId: string, onProgress?: (status: 
       return { q, evalResult, images, optionsList };
     });
 
+    const totalExamMarks = exam?.total_marks || subjectBreakdownList.reduce((acc, sb) => acc + sb.maxMarks, 0);
+
     const pdfData = {
       schoolName,
       testName,
       studentName,
       rollNo,
       marks,
+      totalExamMarks,
       formattedDate,
       subjectBreakdownList,
       evaluatedQuestions

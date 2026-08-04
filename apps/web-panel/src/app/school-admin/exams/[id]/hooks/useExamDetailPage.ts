@@ -651,12 +651,12 @@ export function useExamDetailPage(paramsId: string) {
         duration_minutes: currentDuration,
         marking_scheme: {
           mcq_correct: parseFloat(String(currentMcqCorrect)) || 0,
-          mcq_wrong: parseFloat(String(currentMcqWrong)) || 0,
+          mcq_wrong: -Math.abs(parseFloat(String(currentMcqWrong)) || 0),
           nat_correct: parseFloat(String(currentNatCorrect)) || 0,
-          nat_wrong: parseFloat(String(currentNatWrong)) || 0,
+          nat_wrong: -Math.abs(parseFloat(String(currentNatWrong)) || 0),
           msq_correct: parseFloat(String(currentMsqCorrect)) || 0,
           msq_partial: parseFloat(String(currentMsqPartial)) || 0,
-          msq_wrong: parseFloat(String(currentMsqWrong)) || 0,
+          msq_wrong: -Math.abs(parseFloat(String(currentMsqWrong)) || 0),
           msq_partial_enabled: currentMsqPartialEnabled,
           msq_enabled: currentMsqEnabled
         },
@@ -672,30 +672,8 @@ export function useExamDetailPage(paramsId: string) {
 
       if (error) throw error;
 
-      // Sync marking scheme to all existing questions for this exam
-      const mcqC = parseFloat(String(currentMcqCorrect)) || 0;
-      const mcqW = parseFloat(String(currentMcqWrong)) || 0;
-      const natC = parseFloat(String(currentNatCorrect)) || 0;
-      const natW = parseFloat(String(currentNatWrong)) || 0;
-      const msqC = parseFloat(String(currentMsqCorrect)) || 0;
-      const msqW = parseFloat(String(currentMsqWrong)) || 0;
-
-      await Promise.all([
-        supabase.from('questions').update({ marks: mcqC, positive_marks: mcqC, negative_marks: mcqW }).eq('exam_id', paramsId).eq('question_type', 'mcq'),
-        supabase.from('questions').update({ marks: natC, positive_marks: natC, negative_marks: natW }).eq('exam_id', paramsId).eq('question_type', 'nat'),
-        supabase.from('questions').update({ marks: msqC, positive_marks: msqC, negative_marks: msqW }).eq('exam_id', paramsId).eq('question_type', 'msq')
-      ]);
-
-      setDrawerQuestions(prev => prev.map(q => {
-        if (q.question_type === 'mcq') {
-          return { ...q, marks: mcqC, positive_marks: mcqC, negative_marks: mcqW };
-        } else if (q.question_type === 'nat') {
-          return { ...q, marks: natC, positive_marks: natC, negative_marks: natW };
-        } else if (q.question_type === 'msq') {
-          return { ...q, marks: msqC, positive_marks: msqC, negative_marks: msqW };
-        }
-        return q;
-      }));
+      // We intentionally do NOT sync this global scheme down to all existing questions.
+      // Individual questions can have their own overrides.
 
       setExam((prev: any) => prev ? { ...prev, title: currentTitle, description: currentDesc, duration_minutes: currentDuration, exam_instructions: filteredInstructions, marking_scheme: updateData.marking_scheme, ...(updateData.end_time ? { end_time: updateData.end_time } : {}) } : null);
       setSaveStatus('saved');
@@ -1439,9 +1417,13 @@ export function useExamDetailPage(paramsId: string) {
         if (row.status === 'success') continue;
 
         let formattedDob = row.dob;
-        if (row.dob.includes('/')) {
-          const [d, m, y] = row.dob.split('/');
-          formattedDob = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        if (row.dob.includes('/') || (row.dob.includes('-') && row.dob.split('-')[0].length <= 2)) {
+          const sep = row.dob.includes('/') ? '/' : '-';
+          const parts = row.dob.split(sep);
+          if (parts.length === 3 && parts[2].length === 4) {
+            const [d, m, y] = parts;
+            formattedDob = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+          }
         }
         try {
           const res = await fetch('/api/students/create', {
