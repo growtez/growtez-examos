@@ -13,7 +13,7 @@ interface MathRendererProps {
  * Normalizes and wraps bare LaTeX expressions into $...$ or $$...$$ delimiters
  * so KaTeX can render them properly even when the user didn't manually type $ or $$.
  */
-function autoWrapBareLatex(text: string, inline = false): string {
+export function autoWrapBareLatex(text: string, inline = false): string {
   if (!text) return "";
 
   // 1. Convert LaTeX native block delimiters \[...\] → $$...$$ and inline \(...\) → $...$

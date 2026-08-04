@@ -856,85 +856,28 @@ export function useExamDetailPage(paramsId: string) {
       const formattedStartTime = exam.start_time ? new Date(exam.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       const formattedEndTime = exam.end_time ? new Date(exam.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-      let html = `
-        <div style="font-family: Arial, sans-serif; padding: 40px; color: #1a2e2e;">
-          <h1 style="text-align: center; color: #008080; margin-bottom: 5px;">${exam.title}</h1>
-          <h3 style="text-align: center; color: #555555; margin-top: 0; margin-bottom: 5px;">Question Paper</h3>
-          <div style="text-align: center; color: #777777; margin-bottom: 30px; font-size: 14px;">
-            <strong>Date:</strong> ${formattedDate} ${formattedStartTime ? ` | <strong>Time:</strong> ${formattedStartTime} - ${formattedEndTime}` : ''}
-          </div>
-      `;
-
-      let currentSubject = '';
-      let qIndex = 1;
-
-      (questionsData || []).forEach((q: any) => {
-        if (q.exam_subjects?.subject_name !== currentSubject) {
-          currentSubject = q.exam_subjects?.subject_name;
-          html += `<h2 style="color: #008080; border-bottom: 2px solid #e0f2f2; padding-bottom: 8px; margin-top: 30px;">${currentSubject}</h2>`;
-          qIndex = 1;
-        }
-
-        html += `
-          <div class="question-block" style="margin-bottom: 25px; page-break-inside: avoid; break-inside: avoid;">
-            <div style="font-weight: bold; margin-bottom: 10px; font-size: 16px;">Q${qIndex}. ${q.question_text || 'Image Question'}</div>
-        `;
-
-        if (q.image_url) {
-          const images = parseQuestionImages(q.image_url);
-          images.forEach((imgUrl: string) => {
-            html += `<img src="${imgUrl}" style="max-width: 400px; max-height: 300px; display: block; margin-bottom: 15px; border-radius: 8px; border: 1px solid #e0f2f2;" />`;
-          });
-        }
-
-        html += `<div style="padding-left: 15px; display: flex; flex-direction: column; gap: 8px;">`;
-
-        if (q.question_type === 'nat') {
-          html += `
-            <div style="padding: 12px 15px; border-radius: 8px; border: 2px solid #22c55e; background-color: #f0fdf4; font-size: 14px;">
-              <strong>Numerical Answer:</strong> ${q.correct_option}
-              <span style="color: #22c55e; font-weight: bold; float: right; font-size: 13px;">✓ Correct Answer</span>
-            </div>
-          `;
-        } else if (q.options && typeof q.options === 'object') {
-          ['A', 'B', 'C', 'D'].forEach(key => {
-            const val = q.options[key];
-            const imgVal = q.options[`${key}_image`];
-
-            if (!val && !imgVal) return;
-
-            const isCorrect = String(q.correct_option).trim().toUpperCase() === key;
-            let borderStyle = isCorrect ? '2px solid #22c55e' : '1px solid #e0f2f2';
-            let bgStyle = isCorrect ? '#f0fdf4' : 'transparent';
-
-            html += `
-              <div style="padding: 12px 15px; border-radius: 8px; border: ${borderStyle}; background-color: ${bgStyle}; font-size: 14px; display: flex; flex-direction: column; gap: 8px;">
-                <div>
-                  <strong>${key})</strong> ${val || ''}
-                  ${isCorrect ? '<span style="color: #22c55e; font-weight: bold; float: right; font-size: 13px;">✓ Correct Option</span>' : ''}
-                </div>
-                ${imgVal ? `<img src="${imgVal}" style="max-width: 200px; max-height: 150px; display: block; margin-top: 8px; border-radius: 4px; border: 1px solid #e0f2f2;" />` : ''}
-              </div>
-            `;
-          });
-        }
-        html += `</div></div>`;
-        qIndex++;
-      });
-
-      html += `</div>`;
-
-      const html2pdf = (await import('html2pdf.js')).default;
-      const opt: any = {
-        margin: 10,
-        filename: `${exam.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_question_paper.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: 'css', avoid: '.question-block' }
+      const pdfData = {
+        schoolName: 'Growtez ExamOS',
+        testName: exam.title,
+        questions: questionsData || []
       };
 
-      await html2pdf().set(opt).from(html).save();
+      const { pdf } = await import('@react-pdf/renderer');
+      const React = await import('react');
+      const { QuestionPaperDocument } = await import('@/components/pdf/QuestionPaperDocument');
+      
+      const blob = await pdf(React.createElement(QuestionPaperDocument, { data: pdfData }) as any).toBlob();
+      const safeFilename = `${exam.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_question_paper.pdf`;
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = safeFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
     } catch (err: any) {
       alert('Failed to generate question paper: ' + err.message);
     } finally {
@@ -1860,29 +1803,7 @@ export function useExamDetailPage(paramsId: string) {
       const courseText = assignedCourseFilter ? `Course: ${assignedCourseFilter}` : 'All Courses';
       const filterText = `${courseText} | ${batchText}`;
 
-      let html = `
-        <div style="font-family: Arial, sans-serif; padding: 30px; color: #1a2e2e;">
-          <h1 style="text-align: center; color: #008080; margin-bottom: 5px;">${exam.title}</h1>
-          <h3 style="text-align: center; color: #555555; margin-top: 0; margin-bottom: 5px;">Exam Results</h3>
-          <div style="text-align: center; color: #777777; margin-bottom: 30px; font-size: 14px;">
-            <strong>Date:</strong> ${formattedDate} | <strong>Total Marks:</strong> ${totalExamMarks} | <strong>${filterText}</strong>
-          </div>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; text-align: left;">
-            <thead>
-              <tr style="background-color: #f5f9f9;">
-                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Roll No</th>
-                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Name</th>
-                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Course</th>
-                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Batch</th>
-                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Session</th>
-                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Status</th>
-                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Score</th>
-              </tr>
-            </thead>
-            <tbody>
-      `;
-
-      for (const row of filteredAssignedStudents) {
+      const results = filteredAssignedStudents.map(row => {
         let statusText = 'Assigned';
         const isExamOver = exam?.end_time && exam?.status !== 'draft' ? new Date(exam.end_time) < new Date() : false;
         if (isExamOver) {
@@ -1892,37 +1813,38 @@ export function useExamDetailPage(paramsId: string) {
           else if (row.status === 'in_progress') statusText = 'In Progress';
         }
         let score = row.result ? row.result.total_marks : (isExamOver ? (row.status === 'assigned' ? 'Absent' : 'N/A') : 'N/A');
-        const scoreColor = score === 'Absent' || score === 'N/A' ? '#999' : '#008080';
 
-        html += `
-          <tr>
-            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.roll_number || ''}</td>
-            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.full_name || ''}</td>
-            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.course || ''}</td>
-            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.batch || ''}</td>
-            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.session || ''}</td>
-            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${statusText}</td>
-            <td style="padding: 8px 10px; border: 1px solid #e0f2f2; font-weight: bold; color: ${scoreColor};">${score}</td>
-          </tr>
-        `;
-      }
+        return {
+          ...row,
+          statusText,
+          total_marks: score
+        };
+      });
 
-      html += `
-            </tbody>
-          </table>
-        </div>
-      `;
-
-      const html2pdf = (await import('html2pdf.js')).default;
-      const opt: any = {
-        margin: 10,
-        filename: `${exam.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_results${assignedBatchFilter ? `_${assignedBatchFilter.replace(/[^a-z0-9]/gi, '_').toLowerCase()}` : ''}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      const pdfData = {
+        examTitle: exam.title,
+        formattedDate,
+        totalExamMarks,
+        filterText,
+        results
       };
 
-      await html2pdf().set(opt).from(html).save();
+      const { pdf } = await import('@react-pdf/renderer');
+      const React = await import('react');
+      const { ResultsDocument } = await import('@/components/pdf/ResultsDocument');
+
+      const blob = await pdf(React.createElement(ResultsDocument, { data: pdfData }) as any).toBlob();
+      const safeFilename = `${exam.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_results${assignedBatchFilter ? `_${assignedBatchFilter.replace(/[^a-z0-9]/gi, '_').toLowerCase()}` : ''}.pdf`;
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = safeFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
     } catch (err: any) {
       alert('Failed to generate results PDF: ' + err.message);
     } finally {

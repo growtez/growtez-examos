@@ -8,6 +8,10 @@ const __dirname = path.dirname(__filename);
 const nextConfig = {
     experimental: {
         optimizePackageImports: ['lucide-react'],
+    },
+    webpack: (config) => {
+        config.resolve.alias.canvas = false;
+        return config;
     }
 };
 
