@@ -267,54 +267,34 @@ export default function Step5Publish({
       const courseText = resultsCourseFilter ? `Course: ${resultsCourseFilter}` : 'All Courses';
       const filterText = `${courseText} | ${batchText}`;
 
-      let html = `
-        <div style="font-family: Arial, sans-serif; padding: 30px; color: #1a2e2e;">
-          <h1 style="text-align: center; color: #008080; margin-bottom: 5px;">${title}</h1>
-          <h3 style="text-align: center; color: #555555; margin-top: 0; margin-bottom: 5px;">Exam Results</h3>
-          <div style="text-align: center; color: #777777; margin-bottom: 30px; font-size: 14px;">
-            <strong>Date:</strong> ${formattedDate} | <strong>${filterText}</strong>
-          </div>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; text-align: left;">
-            <thead>
-              <tr style="background-color: #f5f9f9;">
-                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Roll No</th>
-                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Name</th>
-                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Course</th>
-                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Batch</th>
-                <th style="padding: 10px; border: 1px solid #e0f2f2; color: #555555;">Score</th>
-              </tr>
-            </thead>
-            <tbody>
-          `;
+      const resultsData = filteredResultsRows.map(row => ({
+        ...row,
+        statusText: 'Completed',
+        total_marks: row.total_marks ?? 'N/A'
+      }));
 
-      for (const row of filteredResultsRows) {
-        const score = row.total_marks ?? 'N/A';
-        html += `
-          <tr>
-            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.roll_number || ''}</td>
-            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.full_name || ''}</td>
-            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.course || ''}</td>
-            <td style="padding: 8px 10px; border: 1px solid #e0f2f2;">${row.students?.batch || ''}</td>
-            <td style="padding: 8px 10px; border: 1px solid #e0f2f2; font-weight: bold; color: #008080;">${score}</td>
-          </tr>
-        `;
-      }
-
-      html += `
-            </tbody>
-          </table>
-        </div>
-      `;
-
-      const html2pdf = (await import('html2pdf.js')).default;
-      const opt: any = {
-        margin: 10,
-        filename: `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_results${resultsBatchFilter ? `_${resultsBatchFilter.replace(/[^a-z0-9]/gi, '_').toLowerCase()}` : ''}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      const pdfData = {
+        examTitle: title,
+        formattedDate,
+        totalExamMarks: 'N/A', // not directly calculated in Step5Publish, but could be passed
+        filterText,
+        results: resultsData
       };
-      await html2pdf().set(opt).from(html).save();
+
+      const { pdf } = await import('@react-pdf/renderer');
+      const { ResultsDocument } = await import('@/components/pdf/ResultsDocument');
+
+      const blob = await pdf(<ResultsDocument data={pdfData} /> as any).toBlob();
+      const safeFilename = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_results${resultsBatchFilter ? `_${resultsBatchFilter.replace(/[^a-z0-9]/gi, '_').toLowerCase()}` : ''}.pdf`;
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = safeFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err: any) {
       alert('Failed to generate results PDF: ' + err.message);
     } finally {
