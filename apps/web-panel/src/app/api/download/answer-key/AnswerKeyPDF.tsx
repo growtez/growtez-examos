@@ -1,5 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import { evaluateQuestion, calculateSubjectBreakdown } from '@/lib/downloadAnswerKey';
 
 const styles = StyleSheet.create({
   page: {
@@ -269,11 +270,29 @@ const styles = StyleSheet.create({
   },
 });
 
+const renderTextWithMathOffset = (text: string | null | undefined) => {
+  if (!text) return null;
+  // Match mathematical alphanumeric symbols (U+1D400 - U+1D7FF) and letterlike symbols (U+2100 - U+214F)
+  const mathRegex = /([\u2100-\u214F\u{1D400}-\u{1D7FF}]+)/gu;
+  
+  if (!text.match(mathRegex)) {
+    return text;
+  }
+
+  const parts = text.split(mathRegex);
+  return parts.map((part, index) => {
+    if (part.match(mathRegex)) {
+      // Shift math Unicode characters up slightly to align with Helvetica's baseline
+      return <Text key={index} style={{ position: 'relative', top: -1.5 }}>{part}</Text>;
+    }
+    return <Text key={index}>{part}</Text>;
+  });
+};
+
 export const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
   const testName = exam?.title || 'Exam';
   const studentName = result.students?.full_name || 'Unknown';
   const rollNo = result.students?.roll_number || 'N/A';
-  const marks = result.total_marks ?? 0;
   const studentAnswers = result.answers || {};
   const formattedDate = exam?.start_time
     ? new Date(exam.start_time).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -434,7 +453,7 @@ export const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
               <View style={styles.subjectGrid}>
                 {subjectBreakdownList.map((sb, idx) => (
                   <View key={idx} style={styles.subjectCard}>
-                    <Text style={styles.subjectName}>{sb.subjectName}</Text>
+                    <Text style={styles.subjectName}>{sb.subject_name}</Text>
                     <Text style={styles.subjectMarks}>
                       {sb.marks}<Text style={styles.subjectMaxMarks}> / {sb.maxMarks}m</Text>
                     </Text>
@@ -496,7 +515,7 @@ export const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
                 <View style={styles.summaryBanner}>
                   <Text style={styles.summaryText}>
                     <Text style={styles.headerBold}>Your Answer: </Text>
-                    <Text style={{ color: userAnswerColor, fontFamily: 'Helvetica-Bold' }}>{userAnswerText}</Text>
+                    <Text style={{ color: userAnswerColor, fontFamily: 'Helvetica-Bold' }}>{renderTextWithMathOffset(userAnswerText)}</Text>
                   </Text>
                   <Text style={styles.summaryText}>
                     <Text style={styles.headerBold}>Correct: </Text>

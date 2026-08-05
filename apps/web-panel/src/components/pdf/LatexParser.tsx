@@ -6,15 +6,15 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   text: {
     fontSize: 10,
-    lineHeight: 1.4,
+    lineHeight: 1.6,
     color: '#0f172a',
   },
   inlineMath: {
-    marginHorizontal: 1,
+    marginHorizontal: 0,
   },
   blockMathContainer: {
     width: '100%',
@@ -47,35 +47,56 @@ export const LatexParser: React.FC<LatexParserProps> = ({ content, style }) => {
 
         // Check if block math
         if (part.startsWith('$$') && part.endsWith('$$')) {
-          const mathExpr = part.slice(2, -2).trim();
+          let mathExpr = part.slice(2, -2).trim();
+          mathExpr = mathExpr.replace(/\\mathbf{([^}]+)}/g, '$1').replace(/\\boldsymbol{([^}]+)}/g, '$1');
           return (
             <View key={index} style={styles.blockMathContainer}>
-              <ReactPdfMath fontSize={10}>{mathExpr}</ReactPdfMath>
+              <ReactPdfMath fontSize={10} color="#1e293b">{mathExpr}</ReactPdfMath>
             </View>
           );
         }
 
         // Check if inline math
         if (part.startsWith('$') && part.endsWith('$')) {
-          const mathExpr = part.slice(1, -1).trim();
+          let mathExpr = part.slice(1, -1).trim();
+          mathExpr = mathExpr.replace(/\\mathbf{([^}]+)}/g, '$1').replace(/\\boldsymbol{([^}]+)}/g, '$1');
           return (
             <View key={index} style={styles.inlineMath}>
-              <ReactPdfMath inline fontSize={10}>{mathExpr}</ReactPdfMath>
+              <ReactPdfMath inline fontSize={10} color="#1e293b">{mathExpr}</ReactPdfMath>
             </View>
           );
         }
 
-        // Otherwise it's regular text. 
-        // We might want to handle newlines by splitting and rendering multiple Text components.
-        // Because of flexWrap: 'wrap', simple words should wrap, but new lines need forced breaks.
-        // Actually, rendering text inside flexRow wrap requires we let <Text> handle its own wrap 
-        // if possible, but React-PDF Text doesn't wrap alongside sibling views natively unless they are inside it.
-        // For robust wrapping with inline math, we need to wrap each word in Text, or keep them together.
-        // For now, let's keep the block together.
+        // Otherwise it's regular text.
+        // Split into individual words so they wrap naturally alongside inline math in flex-wrap row.
         const lines = part.split('\n');
         return lines.map((line, lineIndex) => (
           <React.Fragment key={`${index}-${lineIndex}`}>
-            {line && <Text style={styles.text}>{line}</Text>}
+            {line && line.split(/(\s+)/).map((word, wordIndex) => {
+              if (!word) return null;
+              // Preserve whitespace as-is
+              if (/^\s+$/.test(word)) {
+                return <Text key={`${index}-${lineIndex}-${wordIndex}`} style={styles.text}> </Text>;
+              }
+              
+              // Scan word for mathematical unicode characters
+              const mathRegex = /([\u2100-\u214F\u{1D400}-\u{1D7FF}]+)/gu;
+              if (word.match(mathRegex)) {
+                const chunks = word.split(mathRegex);
+                return (
+                  <Text key={`${index}-${lineIndex}-${wordIndex}`} style={styles.text}>
+                    {chunks.map((chunk, cIdx) => {
+                      if (chunk.match(mathRegex)) {
+                        return <Text key={cIdx} style={{ position: 'relative', top: -1.5, color: '#334155' }}>{chunk}</Text>;
+                      }
+                      return chunk;
+                    })}
+                  </Text>
+                );
+              }
+
+              return <Text key={`${index}-${lineIndex}-${wordIndex}`} style={styles.text}>{word}</Text>;
+            })}
             {lineIndex < lines.length - 1 && <View style={{ width: '100%', height: 4 }} />}
           </React.Fragment>
         ));

@@ -1917,7 +1917,24 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       <label className="block text-xs font-semibold text-text-muted mb-1.5">
                         Select Excel File
                       </label>
-                      <label className="relative flex flex-col items-center justify-center p-4 sm:p-5 border-2 border-dashed border-border rounded-xl bg-surface hover:border-accent-primary/50 transition-all cursor-pointer group text-center">
+                      <label 
+                        className="relative flex flex-col items-center justify-center p-4 sm:p-5 border-2 border-dashed border-border rounded-xl bg-surface hover:border-accent-primary/50 transition-all cursor-pointer group text-center"
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.classList.add('border-accent-primary', 'bg-accent-primary/5');
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.classList.remove('border-accent-primary', 'bg-accent-primary/5');
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.classList.remove('border-accent-primary', 'bg-accent-primary/5');
+                          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                            handleCsvFileChange(e.dataTransfer.files[0]);
+                          }
+                        }}
+                      >
                         <input
                           type="file"
                           accept=".csv,.txt,.xlsx,.xls"
@@ -1934,7 +1951,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                               {csvFile.name}
                             </span>
                             <span className="text-[10px] text-text-muted block">
-                              {(csvFile.size / 1024).toFixed(1)} KB — Tap to change
+                              {(csvFile.size / 1024).toFixed(1)} KB — Tap or drag to change
                             </span>
                           </span>
                         ) : (
@@ -1943,7 +1960,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                               Choose Excel File
                             </span>
                             <span className="text-[10px] text-text-muted font-medium block">
-                              Tap to browse from device
+                              Tap or drag file here
                             </span>
                             <span className="text-[9px] text-text-muted/80 font-semibold block mt-0.5">
                               Supported: .xlsx, .xls, .csv

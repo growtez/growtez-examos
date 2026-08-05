@@ -103,10 +103,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginRight: 6,
   },
-  subjectPill: {
+  subjectCardsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  subjectCard: {
+    flexDirection: 'column',
+    backgroundColor: '#f8fafc',
     borderWidth: 1,
     borderColor: '#cbd5e1',
     borderRadius: 5,
@@ -129,7 +133,7 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#64748b',
   },
-  pillStats: {
+  subjectCardStats: {
     flexDirection: 'row',
     borderLeftWidth: 1,
     borderLeftColor: '#e2e8f0',
@@ -202,7 +206,7 @@ const styles = StyleSheet.create({
   optionBox: {
     width: '47%',
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     borderWidth: 1,
     borderRadius: 5,
     padding: 4,
@@ -219,11 +223,10 @@ const styles = StyleSheet.create({
     fontSize: 7,
     fontFamily: 'Helvetica-Bold',
     color: '#ffffff',
-    paddingHorizontal: 3,
-    paddingVertical: 1,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
     borderRadius: 4,
-    marginTop: 2,
-    alignSelf: 'flex-start',
+    marginLeft: 'auto',
   },
   explanationBox: {
     marginTop: 6,
@@ -261,32 +264,40 @@ export const AnswerKeyDocument = ({ data }: { data: any }) => {
     studentName,
     rollNo,
     marks,
+    totalExamMarks,
     formattedDate,
     subjectBreakdownList,
     evaluatedQuestions
   } = data;
+
+  const maxMarksSum = subjectBreakdownList && subjectBreakdownList.length > 0
+    ? subjectBreakdownList.reduce((acc: number, sb: any) => acc + (sb.maxMarks || 0), 0)
+    : 0;
+  const maxTotal = totalExamMarks || maxMarksSum;
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Fixed header on every page */}
         <View style={styles.headerBanner}>
-          <Text style={styles.schoolName}>{schoolName || 'Student Answer Key'}</Text>
+          <Text style={styles.schoolName}>{testName || 'Answer Key'}</Text>
           <Text style={styles.subtitle}>Answer Key & Detailed Report</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+            <Text style={{ fontSize: 10, color: '#64748b' }}>{schoolName}</Text>
+            <Text style={{ fontSize: 10, color: '#64748b' }}>{formattedDate}</Text>
+          </View>
         </View>
 
         {/* Student meta info — first page only */}
         <View style={styles.metaBox}>
           <View style={styles.metaRow}>
             <View style={styles.metaDetails}>
-              <View style={styles.metaItem}><Text style={styles.metaLabel}>Test:</Text><Text style={styles.metaValue}>{testName}</Text></View>
               <View style={styles.metaItem}><Text style={styles.metaLabel}>Student:</Text><Text style={styles.metaValue}>{studentName}</Text></View>
               <View style={styles.metaItem}><Text style={styles.metaLabel}>Roll No:</Text><Text style={styles.metaValue}>{rollNo}</Text></View>
-              <View style={styles.metaItem}><Text style={styles.metaLabel}>Date:</Text><Text style={styles.metaValue}>{formattedDate}</Text></View>
             </View>
             <View style={styles.scoreBadge}>
               <Text style={styles.scoreLabel}>SCORE</Text>
-              <Text style={styles.scoreValue}>{marks}</Text>
+              <Text style={styles.scoreValue}>{marks}{maxTotal ? `/${maxTotal}` : ''}</Text>
             </View>
           </View>
 
@@ -303,8 +314,8 @@ export const AnswerKeyDocument = ({ data }: { data: any }) => {
                     <Text style={[styles.statText, { color: '#be123c' }]}>•{sb.wrong}W</Text>
                     <Text style={[styles.statText, { color: '#64748b' }]}>•{sb.unattempted}U</Text>
                   </View>
-                </View>
-              ))}
+                ))}
+              </View>
             </View>
           )}
         </View>

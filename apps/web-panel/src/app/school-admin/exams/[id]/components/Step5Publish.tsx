@@ -6,6 +6,7 @@ import {
   Search, ChevronLeft, ChevronRight, Filter, ArrowUpDown, ArrowUp, X, FileBarChart2, FileText, Loader2, Download, Coins, Zap
 } from 'lucide-react';
 import { openRazorpayCheckout } from '@/components/RazorpayCheckout';
+import { calculateSubjectBreakdown } from '@/lib/downloadAnswerKey';
 
 interface Step5PublishProps {
   exam: any;
@@ -118,6 +119,7 @@ export default function Step5Publish({
 
   // ---- Exam results table (shown once published) ----
   const [results, setResults] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<any[]>([]);
   const [loadingResults, setLoadingResults] = useState(false);
   const [resultsSearchQuery, setResultsSearchQuery] = useState('');
   const [resultsCourseFilter, setResultsCourseFilter] = useState('');
@@ -151,6 +153,12 @@ export default function Step5Publish({
           .eq('exam_id', exam.id);
         if (resError) throw resError;
 
+        const { data: qData } = await supabase
+          .from('questions')
+          .select('*, exam_subjects(subject_name)')
+          .eq('exam_id', exam.id);
+        if (!cancelled && qData) setQuestions(qData);
+
         // 3. Extract student IDs
         const studentIds = (studentsData || []).map((s: any) => s.id);
 
@@ -164,10 +172,11 @@ export default function Step5Publish({
               id: studentResult?.id || `no-res-${sid}`,
               student_id: sid,
               exam_id: exam.id,
-              total_marks: studentResult ? (studentResult.total_marks ?? 0) : null,
+              total_marks: studentResult ? studentResult.total_marks : null,
               time_taken_seconds: studentResult?.time_taken_seconds || null,
               submitted_at: studentResult?.submitted_at || null,
               answers: studentResult?.answers || null,
+              section_scores: studentResult?.section_scores || null,
               students: studentInfo || null,
               isAbsent: !studentResult
             };
@@ -180,10 +189,11 @@ export default function Step5Publish({
               id: studentResult.id,
               student_id: studentResult.student_id,
               exam_id: exam.id,
-              total_marks: studentResult.total_marks ?? 0,
+              total_marks: studentResult.total_marks ?? null,
               time_taken_seconds: studentResult.time_taken_seconds || null,
               submitted_at: studentResult.submitted_at || null,
               answers: studentResult.answers || null,
+              section_scores: studentResult.section_scores || null,
               students: studentInfo || null,
               isAbsent: false
             };
@@ -194,7 +204,7 @@ export default function Step5Publish({
         merged.sort((a: any, b: any) => {
           if (a.isAbsent && !b.isAbsent) return 1;
           if (!a.isAbsent && b.isAbsent) return -1;
-          return (b.total_marks ?? 0) - (a.total_marks ?? 0);
+          return (b.total_marks ?? -Infinity) - (a.total_marks ?? -Infinity);
         });
 
         if (!cancelled) setResults(merged);
@@ -207,6 +217,60 @@ export default function Step5Publish({
     fetchResults();
     return () => { cancelled = true; };
   }, [isPublishedForFetch, exam?.id, supabase]);
+
+  // Background calculation for missing scores
+  useEffect(() => {
+    const uncalculated = results.filter(r => !r.isAbsent && r.total_marks === null && r.answers);
+    if (uncalculated.length === 0 || questions.length === 0) return;
+
+    const calculateMissingScores = async () => {
+      const updatedResults = [...results];
+      let updatesNeeded = false;
+      const updatesToSave: any[] = [];
+
+      for (const res of updatedResults) {
+        if (!res.isAbsent && res.total_marks === null && res.answers) {
+          const breakdown = calculateSubjectBreakdown(questions, res.answers, exam?.marking_scheme);
+          const totalScore = breakdown.reduce((acc: number, subj: any) => acc + subj.marks, 0);
+          
+          res.total_marks = totalScore;
+          res.section_scores = breakdown;
+          updatesNeeded = true;
+
+          if (!res.id.startsWith('no-res-')) {
+            updatesToSave.push({
+              id: res.id,
+              total_marks: totalScore,
+              section_scores: breakdown
+            });
+          }
+        }
+      }
+
+      if (updatesToSave.length > 0) {
+        try {
+          await fetch('/api/results/update-scores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ updates: updatesToSave })
+          });
+        } catch (err) {
+          console.error('Failed to save calculated scores via API:', err);
+        }
+      }
+
+      if (updatesNeeded) {
+        updatedResults.sort((a: any, b: any) => {
+          if (a.isAbsent && !b.isAbsent) return 1;
+          if (!a.isAbsent && b.isAbsent) return -1;
+          return (b.total_marks ?? -Infinity) - (a.total_marks ?? -Infinity);
+        });
+        setResults(updatedResults);
+      }
+    };
+
+    calculateMissingScores();
+  }, [results, questions, exam?.marking_scheme]);
 
   const toggleResultsSort = (field: string) => {
     setResultsSortBy((prev) => (prev === field ? 'rank' : field));
@@ -492,7 +556,15 @@ export default function Step5Publish({
               <Award size={14} />
               <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wide">Marking</p>
             </div>
-            <p className="text-xs sm:text-sm font-bold text-text-main">MCQ +{mcqCorrect}/{mcqWrong} · NAT +{natCorrect}/{natWrong}</p>
+            <p className="text-xs sm:text-sm font-bold text-text-main">
+              MCQ +{mcqCorrect}/{mcqWrong} · NAT +{natCorrect}/{natWrong}
+              {exam?.marking_scheme?.msq_enabled && (
+                <>
+                  {' '}· MSQ +{exam.marking_scheme.msq_correct ?? 4}/{exam.marking_scheme.msq_wrong ?? 0}
+                  {exam.marking_scheme.msq_partial_enabled && ` (Partial: +${exam.marking_scheme.msq_partial ?? 'Auto'})`}
+                </>
+              )}
+            </p>
           </div>
         </div>
 
@@ -692,6 +764,8 @@ export default function Step5Publish({
                           <td className="py-2.5 px-4 align-middle text-center">
                             {res.isAbsent ? (
                               <span className="text-text-muted font-medium text-[13px]">—</span>
+                            ) : res.total_marks === null && res.answers ? (
+                              <Loader2 size={16} className="animate-spin text-accent-primary mx-auto" />
                             ) : (
                               <span className="text-accent-primary font-bold text-base">{res.total_marks ?? 0}</span>
                             )}

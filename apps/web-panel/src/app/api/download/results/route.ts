@@ -44,41 +44,70 @@ export async function GET(request: NextRequest) {
   // Generate PDF using jsPDF
   try {
     const doc = new jsPDF('p', 'pt', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
     const testName = exam.title || 'Exam Results';
     const schoolName = exam.schools?.name || 'Results Report';
     const totalStudents = results.length;
     const totalExamMarks = exam.total_marks || 'N/A';
-    
+
     let filterText = '';
     if (courseFilter || batchFilter) {
-      filterText = `Filters: ${courseFilter || 'All Courses'} | ${batchFilter || 'All Batches'}`;
+      filterText = `${courseFilter || 'All Courses'}  ·  ${batchFilter || 'All Batches'}`;
     }
 
-    // Header
-    doc.setFontSize(18);
-    doc.setTextColor(26, 46, 46);
-    doc.text(schoolName, 40, 40);
-    
-    doc.setFontSize(11);
-    doc.setTextColor(85, 85, 85);
-    doc.text(`Test Name: ${testName}`, 40, 60);
-    doc.text(`Total Students Appeared: ${totalStudents}`, 40, 75);
-    doc.text(`Total Marks: ${totalExamMarks}`, 40, 90);
-    if (filterText) doc.text(filterText, 40, 105);
+    // ── Header banner ──────────────────────────────────────────────────
+    doc.setFillColor(15, 118, 110); // teal-700
+    doc.rect(0, 0, pageWidth, 64, 'F');
 
-    // Marking scheme summary
-    let yPos = filterText ? 120 : 105;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.setTextColor(255, 255, 255);
+    doc.text(schoolName, 36, 30);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(204, 240, 238);
+    doc.text('Exam Results Report', 36, 48);
+
+    // ── Exam meta block ────────────────────────────────────────────────
+    let yPos = 88;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42);   // slate-900
+    doc.text(testName, 36, yPos);
+    yPos += 18;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139); // slate-500
+
+    const metaItems = [
+      `Total Students: ${totalStudents}`,
+      `Total Marks: ${totalExamMarks}`,
+      ...(filterText ? [`Filters: ${filterText}`] : []),
+    ];
+    doc.text(metaItems.join('    |    '), 36, yPos);
+    yPos += 14;
+
+    // ── Marking scheme note ────────────────────────────────────────────
     const ms = exam.marking_scheme;
     if (ms) {
       const msqPartialEnabled = ms.msq_partial_enabled ?? false;
-      doc.setFontSize(9);
-      doc.setTextColor(120, 120, 120);
-      const schemeText = `Marking: MCQ +${ms.mcq_correct}/${ms.mcq_wrong} | NAT +${ms.nat_correct}/${ms.nat_wrong}` +
-        (ms.msq_enabled ? ` | MSQ +${ms.msq_correct}/${ms.msq_wrong}` + (msqPartialEnabled ? ` (partial +${ms.msq_partial}/correct opt)` : ' (no partial)') : '');
-      doc.text(schemeText, 40, yPos);
-      yPos += 13;
-      doc.text('Subject columns: Marks (C=Correct, P=Partial, W=Wrong)', 40, yPos);
-      yPos += 8;
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184); // slate-400
+      const schemeText =
+        `Marking Scheme — MCQ: +${ms.mcq_correct} / ${ms.mcq_wrong}` +
+        `   NAT: +${ms.nat_correct} / ${ms.nat_wrong}` +
+        (ms.msq_enabled
+          ? `   MSQ: +${ms.msq_correct} / ${ms.msq_wrong}` +
+            (msqPartialEnabled ? ` (partial +${ms.msq_partial}/opt)` : ' (no partial)')
+          : '');
+      doc.text(schemeText, 36, yPos);
+      yPos += 12;
+      doc.setFontSize(7.5);
+      doc.text('Subject columns: Score (C = Correct, P = Partial, W = Wrong)', 36, yPos);
+      yPos += 10;
     }
 
     // Collect all unique subjects from the results
@@ -127,10 +156,30 @@ export async function GET(request: NextRequest) {
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: yPos + 5,
-      styles: { fontSize: 9, cellPadding: 5 },
-      headStyles: { fillColor: [0, 128, 128], textColor: 255 },
-      alternateRowStyles: { fillColor: [245, 249, 249] },
+      startY: yPos + 8,
+      styles: {
+        font: 'helvetica',
+        fontSize: 8.5,
+        cellPadding: { top: 6, right: 8, bottom: 6, left: 8 },
+        textColor: [15, 23, 42],
+        lineColor: [226, 232, 240],
+        lineWidth: 0.5,
+      },
+      headStyles: {
+        fillColor: [15, 118, 110],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 8.5,
+      },
+      alternateRowStyles: {
+        fillColor: [240, 253, 252],
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 30 },
+        1: { cellWidth: 55 },
+        3: { halign: 'center' },
+      },
+      margin: { left: 36, right: 36 },
     });
 
     const arrayBuffer = doc.output('arraybuffer');
