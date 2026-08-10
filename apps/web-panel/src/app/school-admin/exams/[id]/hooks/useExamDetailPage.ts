@@ -43,6 +43,7 @@ export function useExamDetailPage(paramsId: string) {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [currentStep, setCurrentStep] = useState(1);
   const [examFee, setExamFee] = useState<number | null>(null);
+  const [showCreditsPage, setShowCreditsPage] = useState(true);
 
   useEffect(() => {
     setMounted(true);
@@ -61,6 +62,7 @@ export function useExamDetailPage(paramsId: string) {
   const [msqWrong, setMsqWrong] = useState<number | string>(0);
   const [msqPartialEnabled, setMsqPartialEnabled] = useState<boolean>(false);
   const [msqEnabled, setMsqEnabled] = useState<boolean>(false);
+  const [allowCalculator, setAllowCalculator] = useState<boolean>(false);
   const [role, setRole] = useState<string>('school_admin');
   
   useEffect(() => {
@@ -636,6 +638,7 @@ export function useExamDetailPage(paramsId: string) {
     currentMsqWrong = msqWrong,
     currentMsqPartialEnabled = msqPartialEnabled,
     currentMsqEnabled = msqEnabled,
+    currentAllowCalculator = allowCalculator,
     currentInstructions = instructionsList
   ) => {
     if (!currentTitle.trim() || currentDuration < 1) {
@@ -649,6 +652,7 @@ export function useExamDetailPage(paramsId: string) {
         title: currentTitle,
         description: currentDesc,
         duration_minutes: currentDuration,
+        allow_calculator: currentAllowCalculator,
         marking_scheme: {
           mcq_correct: parseFloat(String(currentMcqCorrect)) || 0,
           mcq_wrong: -Math.abs(parseFloat(String(currentMcqWrong)) || 0),
@@ -690,7 +694,7 @@ export function useExamDetailPage(paramsId: string) {
 
   const handleSaveExamDetails = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    await autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList);
+    await autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, instructionsList);
   };
 
   const autoSaveSchedule = async (
@@ -759,13 +763,18 @@ export function useExamDetailPage(paramsId: string) {
       setMcqWrong(newMcqWrong);
       setNatCorrect(newNatCorrect);
       setNatWrong(newNatWrong);
+      setMsqCorrect(newMsqCorrect);
+      setMsqPartial(newMsqPartial);
+      setMsqWrong(newMsqWrong);
+      setMsqPartialEnabled(newMsqPartialEnabled);
+      setMsqEnabled(newMsqEnabled);
       setInstructionsList(newInstructions);
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('breadcrumb-update', { detail: { id: paramsId, title: newTitle } }));
       }
 
-      const savePromise = autoSaveExamDetails(newTitle, newDesc, newDuration, newMcqCorrect, newMcqWrong, newNatCorrect, newNatWrong, newInstructions);
+      const savePromise = autoSaveExamDetails(newTitle, newDesc, newDuration, newMcqCorrect, newMcqWrong, newNatCorrect, newNatWrong, newMsqCorrect, newMsqPartial, newMsqWrong, newMsqPartialEnabled, newMsqEnabled, allowCalculator, newInstructions);
 
       let subjectsPromise = Promise.resolve();
 
@@ -808,7 +817,7 @@ export function useExamDetailPage(paramsId: string) {
   const removeInstructionItem = (index: number) => {
     const updated = instructionsList.filter((_, i) => i !== index);
     setInstructionsList(updated);
-    autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, updated);
+    autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, updated);
   };
 
   const updateInstructionItem = (index: number, value: string) => {
@@ -900,6 +909,7 @@ export function useExamDetailPage(paramsId: string) {
     setTitle(examData.title || '');
     setDescription(examData.description || '');
     setDurationMinutes(examData.duration_minutes || 180);
+    setAllowCalculator(examData.allow_calculator ?? false);
     if (examData.marking_scheme) {
       setMcqCorrect(examData.marking_scheme.mcq_correct ?? 4);
       setMcqWrong(examData.marking_scheme.mcq_wrong ?? -1);
@@ -965,11 +975,12 @@ export function useExamDetailPage(paramsId: string) {
 
     const { data: schoolData } = await supabase
       .from('schools')
-      .select('exam_credits')
+      .select('exam_credits, show_credits_page')
       .eq('id', examData.school_id)
       .single();
     if (schoolData) {
-      setExamFee(schoolData.exam_credits || 0); // Reusing examFee state as examCredits for now, or I'll change the state name
+      setExamFee(schoolData.exam_credits || 0);
+      setShowCreditsPage(schoolData.show_credits_page !== false);
     }
 
     setLoading(false);
@@ -1884,6 +1895,8 @@ export function useExamDetailPage(paramsId: string) {
     setMsqPartialEnabled,
     msqEnabled,
     setMsqEnabled,
+    allowCalculator,
+    setAllowCalculator,
     role,
     setRole,
     userId,
@@ -2111,5 +2124,6 @@ export function useExamDetailPage(paramsId: string) {
     showStep1Errors,
     setShowStep1Errors,
     clearDraft,
+    showCreditsPage,
   };
 }

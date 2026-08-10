@@ -14,15 +14,16 @@ const plans = [
 
 export default function Pricing() {
   return (
-    <section id="pricing" className="py-20 md:py-28 relative bg-bg">
-      <div className="absolute top-10 left-1/2 -z-10 h-[400px] w-[500px] -translate-x-1/2 bg-primary/5 blur-[120px]" />
+    <section id="pricing" className="py-20 md:py-28 relative bg-white border-b-4 border-black">
+      {/* Background grid pattern */}
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px] opacity-10" />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold tracking-tight text-text-main sm:text-4xl">
+          <h2 className="text-4xl font-black tracking-tighter text-black sm:text-5xl lg:text-6xl uppercase">
             Transparent Exam Packs
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-text-muted font-medium">
+          <p className="mx-auto mt-6 max-w-2xl text-black font-semibold text-lg border-2 border-black bg-white p-4 shadow-brutal-sm">
             No hidden subscription fees. Top up your account with exam packs and only pay for what you use.
           </p>
         </div>
@@ -35,42 +36,42 @@ export default function Pricing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
-              className={`relative flex flex-col justify-between bg-surface p-6 transition-all duration-300 hover:-translate-y-1 ${
+              className={`relative flex flex-col justify-between p-6 transition-transform duration-200 border-4 border-black ${
                 plan.popular
-                  ? 'border-2 border-primary shadow-xl shadow-primary/10'
-                  : 'border border-border shadow-md'
+                  ? 'bg-primary/10 shadow-brutal-lg -translate-y-2'
+                  : 'bg-white shadow-brutal hover:-translate-y-1 hover:shadow-brutal-lg'
               }`}
             >
               {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary px-3 py-1 text-[10px] font-bold tracking-widest text-white uppercase shadow-sm whitespace-nowrap z-10">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-black border-2 border-black px-4 py-1 text-xs font-black tracking-widest text-white uppercase shadow-brutal-sm whitespace-nowrap z-10">
                   Most Popular
                 </div>
               )}
 
               <div className="mb-6 text-center">
-                <h3 className="text-lg font-bold text-text-main mb-2">{plan.name}</h3>
+                <h3 className="text-xl font-black text-black mb-2 uppercase">{plan.name}</h3>
                 <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-3xl font-extrabold tracking-tight text-text-main">₹{plan.price}</span>
-                  <span className="text-xs font-bold text-text-muted uppercase">/pack</span>
+                  <span className="text-4xl font-black tracking-tighter text-black">₹{plan.price}</span>
+                  <span className="text-sm font-bold text-black uppercase">/pack</span>
                 </div>
               </div>
 
               <div className="flex-1 flex flex-col space-y-0">
-                <div className="flex items-center gap-3 border-b border-border/50 py-3">
-                  <Check className="h-4 w-4 text-emerald-500 shrink-0" strokeWidth={3} />
-                  <span className="text-[13px] font-medium text-text-muted">
+                <div className="flex items-center gap-3 border-b-2 border-black py-3">
+                  <Check className="h-5 w-5 text-black shrink-0 stroke-[3]" />
+                  <span className="text-[14px] font-bold text-black">
                     {plan.credits} Exam{plan.credits > 1 ? 's' : ''} Publish
                   </span>
                 </div>
-                <div className="flex items-center gap-3 border-b border-border/50 py-3">
-                  <Check className="h-4 w-4 text-emerald-500 shrink-0" strokeWidth={3} />
-                  <span className="text-[13px] font-medium text-text-muted">
+                <div className="flex items-center gap-3 border-b-2 border-black py-3">
+                  <Check className="h-5 w-5 text-black shrink-0 stroke-[3]" />
+                  <span className="text-[14px] font-bold text-black">
                     ₹{Math.round(plan.price / plan.credits)} / exam
                   </span>
                 </div>
-                <div className="flex items-center gap-3 border-b border-border/50 py-3">
-                  <Check className="h-4 w-4 text-emerald-500 shrink-0" strokeWidth={3} />
-                  <span className="text-[13px] font-medium text-text-muted">Never expires</span>
+                <div className="flex items-center gap-3 border-b-2 border-black py-3">
+                  <Check className="h-5 w-5 text-black shrink-0 stroke-[3]" />
+                  <span className="text-[14px] font-bold text-black">Never expires</span>
                 </div>
               </div>
             </motion.div>

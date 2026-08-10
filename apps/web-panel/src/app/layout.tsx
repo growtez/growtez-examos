@@ -8,6 +8,10 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'ParikshaOS',
   description: 'Secure Examination Management System',
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({

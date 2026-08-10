@@ -178,6 +178,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setCurrentStep,
     examFee,
     setExamFee,
+    showCreditsPage,
     title,
     setTitle,
     description,
@@ -202,6 +203,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setMsqPartialEnabled,
     msqEnabled,
     setMsqEnabled,
+    allowCalculator,
+    setAllowCalculator,
     role,
     setRole,
     userId,
@@ -1097,6 +1100,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setMsqPartialEnabled={setMsqPartialEnabled}
               msqEnabled={msqEnabled}
               setMsqEnabled={setMsqEnabled}
+              allowCalculator={allowCalculator}
+              setAllowCalculator={setAllowCalculator}
               instructionsList={instructionsList}
               updateInstructionItem={updateInstructionItem}
               addInstructionItem={addInstructionItem}
@@ -1121,6 +1126,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               handleSaveExamDetails={handleSaveExamDetails}
               paramsId={params.id}
               isReadOnly={isReadOnly}
+              isExamStarted={isExamStarted}
               showStep1Errors={showStep1Errors}
               expandAll={step1CollapseAll}
             />
@@ -1168,6 +1174,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setEndTime={setEndTime}
               autoSaveSchedule={autoSaveSchedule}
               fetchExamData={fetchExamData}
+              showCreditsPage={showCreditsPage}
             />
           )}
 

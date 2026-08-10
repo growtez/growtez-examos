@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: '--font-space' });
 
 export const metadata: Metadata = {
   title: "ParikshaOS - Secure Examination & Mock Test Platform for Schools",
@@ -57,8 +58,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} min-h-full flex flex-col`}>
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              "name": "ParikshaOS",
+              "applicationCategory": "EducationalApplication",
+              "operatingSystem": "Windows, Web",
+              "offers": {
+                "@type": "Offer",
+                "price": "299",
+                "priceCurrency": "INR"
+              },
+              "description": "Transform your computer lab into an authentic testing center. ParikshaOS offers secure, offline-tolerant examination software with exact JEE/NEET interfaces.",
+              "url": "https://parikshaos.com"
+            })
+          }}
+        />
+      </head>
+      <body className="font-space min-h-full flex flex-col bg-white text-text-main selection:bg-primary selection:text-white">
         {children}
       </body>
     </html>

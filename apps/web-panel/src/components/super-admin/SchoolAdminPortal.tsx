@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { SchoolAdminDashboardView } from './SchoolAdminDashboardView';
 import { ExamsListContent } from '../../app/school-admin/exams/PageContent';
 import { TeachersListContent } from '../../app/school-admin/teachers/PageContent';
 import { ResultsListContent } from '../../app/school-admin/results/PageContent';
 
 import DeleteSchoolButton from '../../app/super-admin/schools/DeleteSchoolButton';
-import { LayoutDashboard, FileText, GraduationCap, Trophy, Users, MessageSquare, Bell, Coins } from 'lucide-react';
+import { LayoutDashboard, FileText, GraduationCap, Trophy, Users, MessageSquare, Bell, Coins, Eye, EyeOff } from 'lucide-react';
 import SchoolFeedbackContent from './SchoolFeedbackContent';
 import SchoolNotificationsContent from './SchoolNotificationsContent';
 import EditSchoolCredits from './EditSchoolCredits';
@@ -23,7 +24,21 @@ const menuItems = [
 
 export function SchoolAdminPortal({ school, schoolAdmin }: { school: any; schoolAdmin: any }) {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showCreditsPage, setShowCreditsPage] = useState(school.show_credits_page !== false);
+  const [savingCreditsToggle, setSavingCreditsToggle] = useState(false);
   const schoolId = school.id;
+  const supabase = createClient();
+
+  const toggleCreditsPage = async () => {
+    setSavingCreditsToggle(true);
+    const newVal = !showCreditsPage;
+    const { error } = await supabase
+      .from('schools')
+      .update({ show_credits_page: newVal })
+      .eq('id', schoolId);
+    if (!error) setShowCreditsPage(newVal);
+    setSavingCreditsToggle(false);
+  };
 
   const renderActiveView = () => {
     switch (activeTab) {
@@ -98,6 +113,20 @@ export function SchoolAdminPortal({ school, schoolAdmin }: { school: any; school
                   <Coins size={14} className="text-accent-primary" />
                   <EditSchoolCredits schoolId={school.id} initialCredits={school.exam_credits} />
                 </div>
+                {/* Credits Page Toggle */}
+                <button
+                  onClick={toggleCreditsPage}
+                  disabled={savingCreditsToggle}
+                  title={showCreditsPage ? 'Hide Credits page from school sidebar' : 'Show Credits page in school sidebar'}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors ${
+                    showCreditsPage
+                      ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20'
+                      : 'bg-surface-hover border-border text-text-muted hover:bg-surface'
+                  } disabled:opacity-50`}
+                >
+                  {showCreditsPage ? <Eye size={14} /> : <EyeOff size={14} />}
+                  {showCreditsPage ? 'Credits: Visible' : 'Credits: Hidden'}
+                </button>
                 <div className="bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-xl border border-red-500/20 transition-colors">
                   <DeleteSchoolButton schoolId={school.id} />
                 </div>
