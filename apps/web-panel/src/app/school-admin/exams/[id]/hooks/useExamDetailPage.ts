@@ -763,13 +763,18 @@ export function useExamDetailPage(paramsId: string) {
       setMcqWrong(newMcqWrong);
       setNatCorrect(newNatCorrect);
       setNatWrong(newNatWrong);
+      setMsqCorrect(newMsqCorrect);
+      setMsqPartial(newMsqPartial);
+      setMsqWrong(newMsqWrong);
+      setMsqPartialEnabled(newMsqPartialEnabled);
+      setMsqEnabled(newMsqEnabled);
       setInstructionsList(newInstructions);
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('breadcrumb-update', { detail: { id: paramsId, title: newTitle } }));
       }
 
-      const savePromise = autoSaveExamDetails(newTitle, newDesc, newDuration, newMcqCorrect, newMcqWrong, newNatCorrect, newNatWrong, newInstructions);
+      const savePromise = autoSaveExamDetails(newTitle, newDesc, newDuration, newMcqCorrect, newMcqWrong, newNatCorrect, newNatWrong, newMsqCorrect, newMsqPartial, newMsqWrong, newMsqPartialEnabled, newMsqEnabled, allowCalculator, newInstructions);
 
       let subjectsPromise = Promise.resolve();
 
@@ -812,7 +817,7 @@ export function useExamDetailPage(paramsId: string) {
   const removeInstructionItem = (index: number) => {
     const updated = instructionsList.filter((_, i) => i !== index);
     setInstructionsList(updated);
-    autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, updated);
+    autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, updated);
   };
 
   const updateInstructionItem = (index: number, value: string) => {
