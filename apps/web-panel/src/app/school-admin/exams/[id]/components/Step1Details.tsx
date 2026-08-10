@@ -127,6 +127,8 @@ interface Step1DetailsProps {
   setMsqPartialEnabled: (val: boolean) => void;
   msqEnabled: boolean;
   setMsqEnabled: (val: boolean) => void;
+  allowCalculator: boolean;
+  setAllowCalculator: (val: boolean) => void;
   instructionsList: string[];
   updateInstructionItem: (index: number, value: string) => void;
   addInstructionItem: () => void;
@@ -144,6 +146,7 @@ interface Step1DetailsProps {
     msqWrong?: string | number,
     msqPartialEnabled?: boolean,
     msqEnabled?: boolean,
+    allowCalculator?: boolean,
     instructionsList?: string[]
   ) => void;
   setShowInstructionPreview: (val: boolean) => void;
@@ -165,6 +168,7 @@ interface Step1DetailsProps {
   handleSaveExamDetails: (e: React.FormEvent) => void;
   paramsId: string;
   isReadOnly?: boolean;
+  isExamStarted?: boolean;
   showStep1Errors?: boolean;
   expandAll?: boolean;
 }
@@ -207,6 +211,8 @@ export default function Step1Details({
   setMsqPartialEnabled,
   msqEnabled,
   setMsqEnabled,
+  allowCalculator,
+  setAllowCalculator,
   instructionsList,
   updateInstructionItem,
   addInstructionItem,
@@ -231,6 +237,7 @@ export default function Step1Details({
   handleSaveExamDetails,
   paramsId,
   isReadOnly = false,
+  isExamStarted = false,
   showStep1Errors = false,
   expandAll,
 }: Step1DetailsProps) {
@@ -309,7 +316,7 @@ export default function Step1Details({
                   setExam((prev: any) => (prev ? { ...prev, title: newTitle } : null));
                   window.dispatchEvent(new CustomEvent('breadcrumb-update', { detail: { id: paramsId, title: newTitle } }));
                 }}
-                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, instructionsList)}
                 required
                 className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && title.trim() === '' ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/10' : 'border-border'} rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
               />
@@ -324,7 +331,7 @@ export default function Step1Details({
               <AutoGrowInput
                 value={description}
                 onChange={setDescription}
-                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, instructionsList)}
                 className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal min-h-[3.5rem] shadow-sm hover:shadow"
               />
             </div>
@@ -344,7 +351,7 @@ export default function Step1Details({
                     setEndTime(endString);
                   }
                 }}
-                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, instructionsList)}
                 min={1}
                 required
                 className={`w-full px-3 py-2 bg-bg border ${showStep1Errors && (!durationMinutes || durationMinutes < 1) ? 'border-red-500 ring-2 ring-red-500/20 bg-red-50/10' : 'border-border'} rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 hover:border-accent-primary/40 transition-all text-[13px] font-medium leading-relaxed sm:leading-normal shadow-sm hover:shadow`}
@@ -354,6 +361,28 @@ export default function Step1Details({
                   <AlertCircle size={12} /> Duration must be at least 1 minute
                 </p>
               )}
+            </div>
+            
+            {/* Calculator Toggle */}
+            <div className={`flex flex-col gap-1.5 mt-2 ${isReadOnly && !isExamStarted ? 'pointer-events-auto opacity-100' : ''}`}>
+              <label className="text-[13px] font-bold text-text-main">
+                Scientific Calculator
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer mt-1">
+                <input
+                  type="checkbox"
+                  checked={allowCalculator}
+                  disabled={isExamStarted}
+                  onChange={(e) => {
+                    setAllowCalculator(e.target.checked);
+                    autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, e.target.checked, instructionsList);
+                  }}
+                  className="w-4 h-4 text-accent-primary bg-bg border-border rounded focus:ring-accent-primary/20 disabled:opacity-50"
+                />
+                <span className="text-[13px] font-medium text-text-muted">
+                  Allow students to use scientific calculator during exam
+                </span>
+              </label>
             </div>
           </div>
         </CollapsibleCard>
@@ -389,7 +418,7 @@ export default function Step1Details({
                     step="any"
                     value={mcqCorrect}
                     onChange={(e) => setMcqCorrect(e.target.value)}
-                    onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                    onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, instructionsList)}
                     className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
                   />
                 </div>
@@ -401,7 +430,7 @@ export default function Step1Details({
                     step="any"
                     value={mcqWrong}
                     onChange={(e) => setMcqWrong(e.target.value)}
-                    onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                    onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, instructionsList)}
                     className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
                   />
                 </div>
@@ -420,7 +449,7 @@ export default function Step1Details({
                     step="any"
                     value={natCorrect}
                     onChange={(e) => setNatCorrect(e.target.value)}
-                    onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                    onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, instructionsList)}
                     className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
                   />
                 </div>
@@ -432,7 +461,7 @@ export default function Step1Details({
                     step="any"
                     value={natWrong}
                     onChange={(e) => setNatWrong(e.target.value)}
-                    onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                    onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, instructionsList)}
                     className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
                   />
                 </div>
@@ -448,7 +477,7 @@ export default function Step1Details({
                     checked={msqEnabled}
                     onChange={(e) => {
                       setMsqEnabled(e.target.checked);
-                      autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, e.target.checked, instructionsList);
+                      autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, e.target.checked, allowCalculator, instructionsList);
                     }}
                     className="w-4 h-4 text-accent-primary rounded border-border focus:ring-accent-primary cursor-pointer"
                   />
@@ -461,7 +490,7 @@ export default function Step1Details({
                     checked={msqPartialEnabled}
                     onChange={(e) => {
                       setMsqPartialEnabled(e.target.checked);
-                      autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, e.target.checked, msqEnabled, instructionsList);
+                      autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, e.target.checked, msqEnabled, allowCalculator, instructionsList);
                     }}
                     disabled={!msqEnabled}
                     className="w-3.5 h-3.5 text-accent-primary rounded border-border focus:ring-accent-primary cursor-pointer"
@@ -480,7 +509,7 @@ export default function Step1Details({
                       step="any"
                       value={msqCorrect}
                       onChange={(e) => setMsqCorrect(e.target.value)}
-                      onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                      onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, instructionsList)}
                       disabled={!msqEnabled}
                       className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
                     />
@@ -493,7 +522,7 @@ export default function Step1Details({
                       step="any"
                       value={msqWrong}
                       onChange={(e) => setMsqWrong(e.target.value)}
-                      onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                      onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, instructionsList)}
                       disabled={!msqEnabled}
                       className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
                     />
@@ -549,7 +578,7 @@ export default function Step1Details({
                       step="any"
                       value={msqPartial}
                       onChange={(e) => setMsqPartial(e.target.value)}
-                      onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                      onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, instructionsList)}
                       disabled={!msqEnabled || !msqPartialEnabled}
                       className="w-full px-2 sm:px-3 py-1.5 bg-transparent text-center text-text-main focus:outline-none text-xs font-medium"
                     />
@@ -852,7 +881,7 @@ export default function Step1Details({
                   id={`instruction-input-${index}`}
                   value={inst}
                   onChange={(val) => updateInstructionItem(index, val)}
-                  onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, instructionsList)}
+                  onBlur={() => autoSaveExamDetails(title, description, durationMinutes, mcqCorrect, mcqWrong, natCorrect, natWrong, msqCorrect, msqPartial, msqWrong, msqPartialEnabled, msqEnabled, allowCalculator, instructionsList)}
                   placeholder="e.g. Do not close browser..."
                   className="flex-1 min-w-0 px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium leading-relaxed sm:leading-normal"
                 />

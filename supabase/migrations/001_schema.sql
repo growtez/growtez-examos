@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS public.schools (
     logo_url TEXT,
 
     is_active BOOLEAN DEFAULT true,
+    show_credits_page BOOLEAN DEFAULT true,  -- superadmin can hide Credits sidebar item
 
     contact_email TEXT,
     contact_phone TEXT,
@@ -66,6 +67,7 @@ CREATE TABLE IF NOT EXISTS public.exams (
     created_by UUID, -- Foreign key dropped as per requirement (Snippet 3)
     is_paid BOOLEAN DEFAULT false,
     is_trashed BOOLEAN DEFAULT false,
+    allow_calculator BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

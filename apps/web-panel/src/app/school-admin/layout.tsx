@@ -64,6 +64,7 @@ export default function SchoolAdminLayout({
   const [examStatus, setExamStatus] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(false);
   const [totalCredits, setTotalCredits] = useState<number | null>(null);
+  const [showCreditsPage, setShowCreditsPage] = useState(true);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadNotifsCount, setUnreadNotifsCount] = useState(0);
@@ -237,10 +238,11 @@ export default function SchoolAdminLayout({
           if (host.startsWith('school.')) baseDomain = host.replace('school.', '');
 
           if (schoolId) {
-            const { data: school } = await supabase.from('schools').select('name, exam_credits, logo_url, is_active').eq('id', schoolId).single();
+            const { data: school } = await supabase.from('schools').select('name, exam_credits, logo_url, is_active, show_credits_page').eq('id', schoolId).single();
             if (school && school.is_active !== false) {
               setSchoolName(school.name);
               setTotalCredits(school.exam_credits || 0);
+              setShowCreditsPage(school.show_credits_page !== false);
               if (school.logo_url) setProfileImageUrl(school.logo_url);
             } else {
               // School deleted or inactive — sign out cleanly then redirect.
@@ -425,6 +427,7 @@ export default function SchoolAdminLayout({
               if (role === 'teacher') {
                 return ['Dashboard', 'Exams', 'Results'].includes(item.label);
               }
+              if (item.label === 'Credits' && !showCreditsPage) return false;
               return true;
             }).map((item) => {
             const activeClass = "bg-accent-primary/20 text-white rounded-lg shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border-accent-primary font-bold";

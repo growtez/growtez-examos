@@ -33,6 +33,7 @@ interface Step5PublishProps {
   setEndTime?: (val: string) => void;
   autoSaveSchedule?: (currentStartTime?: string, currentEndTime?: string) => Promise<void>;
   fetchExamData?: () => void;
+  showCreditsPage?: boolean;
 }
 
 export default function Step5Publish({
@@ -60,6 +61,7 @@ export default function Step5Publish({
   setEndTime,
   autoSaveSchedule,
   fetchExamData,
+  showCreditsPage = true,
 }: Step5PublishProps) {
   if (!exam) return null;
 
@@ -914,16 +916,18 @@ export default function Step5Publish({
               </button>
             ) : (
               <>
-                <div className={`rounded-xl border px-4 py-3 ${
-                  (examFee ?? 0) > 0 
-                    ? 'border-blue-200 bg-blue-50 text-blue-700' 
-                    : 'border-red-200 bg-red-50 text-red-700'
-                }`}>
-                  <p className="text-xs font-bold uppercase">Exam Credits</p>
-                  <p className="mt-1 text-lg font-bold">
-                    {examFee === null ? 'Loading...' : `${examFee} Available`}
-                  </p>
-                </div>
+                {showCreditsPage && (
+                  <div className={`rounded-xl border px-4 py-3 ${
+                    (examFee ?? 0) > 0 
+                      ? 'border-blue-200 bg-blue-50 text-blue-700' 
+                      : 'border-red-200 bg-red-50 text-red-700'
+                  }`}>
+                    <p className="text-xs font-bold uppercase">Exam Credits</p>
+                    <p className="mt-1 text-lg font-bold">
+                      {examFee === null ? 'Loading...' : `${examFee} Available`}
+                    </p>
+                  </div>
+                )}
                 
                 {(examFee ?? 0) > 0 ? (
                   <button
@@ -943,12 +947,14 @@ export default function Step5Publish({
                       <Play size={16} />
                       Insufficient Credits
                     </button>
-                    <button
-                      onClick={() => setShowBuyModal(true)}
-                      className="text-sm text-center font-semibold text-accent-primary hover:underline mt-1"
-                    >
-                      Buy more credits
-                    </button>
+                    {showCreditsPage && (
+                      <button
+                        onClick={() => setShowBuyModal(true)}
+                        className="text-sm text-center font-semibold text-accent-primary hover:underline mt-1"
+                      >
+                        Buy more credits
+                      </button>
+                    )}
                   </div>
                 )}
               </>

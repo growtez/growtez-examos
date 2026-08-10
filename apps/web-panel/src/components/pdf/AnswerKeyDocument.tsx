@@ -145,6 +145,25 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontFamily: 'Helvetica-Bold',
   },
+  subjectPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    borderRadius: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 5,
+    marginBottom: 3,
+  },
+  pillStats: {
+    flexDirection: 'row',
+    gap: 3,
+    borderLeftWidth: 1,
+    borderLeftColor: '#e2e8f0',
+    paddingLeft: 5,
+    marginLeft: 5,
+  },
   // Single column cards
   questionsContainer: {
     flexDirection: 'column',
@@ -314,8 +333,8 @@ export const AnswerKeyDocument = ({ data }: { data: any }) => {
                     <Text style={[styles.statText, { color: '#be123c' }]}>•{sb.wrong}W</Text>
                     <Text style={[styles.statText, { color: '#64748b' }]}>•{sb.unattempted}U</Text>
                   </View>
-                ))}
-              </View>
+                </View>
+              ))}
             </View>
           )}
         </View>

@@ -907,15 +907,17 @@ export default function Step3Questions({
 
                         <div className="space-y-2">
                           <input
-                            type="number"
-                            step="any"
+                            type="text"
+                            inputMode="decimal"
                             value={natAnswer}
-                            onChange={(e) => setNatAnswer(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (['e', 'E', '+'].includes(e.key)) {
-                                e.preventDefault();
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              // Allow digits, decimal point, and leading minus
+                              if (val === '' || val === '-' || /^-?\d*\.?\d*$/.test(val)) {
+                                setNatAnswer(val);
                               }
                             }}
+                            onBlur={(e) => setNatAnswer(e.target.value.trim())}
                             required
                             className="w-full px-3 py-2.5 bg-bg border border-accent-primary rounded-lg outline-none focus:ring-2 focus:ring-accent-primary/15 text-sm font-medium transition-shadow placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                             placeholder="e.g. 42.5 or -3"

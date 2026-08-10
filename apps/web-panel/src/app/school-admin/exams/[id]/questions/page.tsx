@@ -852,15 +852,16 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                         <label className="block text-xs font-semibold text-text-main uppercase tracking-wider">Correct Numerical Answer</label>
                       </div>
                       <input
-                        type="number"
-                        step="any"
+                        type="text"
+                        inputMode="decimal"
                         value={natAnswer}
-                        onChange={(e) => setNatAnswer(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (['e', 'E', '+'].includes(e.key)) {
-                            e.preventDefault();
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '' || val === '-' || /^-?\d*\.?\d*$/.test(val)) {
+                            setNatAnswer(val);
                           }
                         }}
+                        onBlur={(e) => setNatAnswer(e.target.value.trim())}
                         required
                         className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium"
                         placeholder="e.g. 42.5 or -5"
