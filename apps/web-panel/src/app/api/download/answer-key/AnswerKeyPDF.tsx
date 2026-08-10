@@ -343,6 +343,9 @@ export const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
   });
 
   const subjectBreakdownList = Object.values(subjectMap);
+  const totalScore = subjectBreakdownList.reduce((acc, sb) => acc + sb.marks, 0);
+  const maxScore = subjectBreakdownList.reduce((acc, sb) => acc + sb.maxMarks, 0);
+  const marks = `${totalScore} / ${maxScore}`;
 
   // Pre-compute per-question evaluation
   const evaluatedQuestions = questions.map((q: any, index: number) => {
@@ -453,7 +456,7 @@ export const AnswerKeyPDF = ({ result, exam, questions, schoolName }: any) => {
               <View style={styles.subjectGrid}>
                 {subjectBreakdownList.map((sb, idx) => (
                   <View key={idx} style={styles.subjectCard}>
-                    <Text style={styles.subjectName}>{sb.subject_name}</Text>
+                    <Text style={styles.subjectName}>{sb.subjectName}</Text>
                     <Text style={styles.subjectMarks}>
                       {sb.marks}<Text style={styles.subjectMaxMarks}> / {sb.maxMarks}m</Text>
                     </Text>
