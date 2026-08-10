@@ -25,4 +25,23 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+@layer components {
+  .brutal-btn {
+    @apply border-2 border-black bg-primary text-white font-bold uppercase tracking-wider px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform duration-200 hover:-translate-y-1 hover:translate-x-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-none;
+  }
+  
+  .brutal-btn-secondary {
+    @apply border-2 border-black bg-white text-black font-bold uppercase tracking-wider px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform duration-200 hover:-translate-y-1 hover:translate-x-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:translate-x-0 active:shadow-none;
+  }
+
+  .brutal-card {
+    @apply border-2 border-black bg-white p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)];
+  }
+  
+  .brutal-tag {
+    @apply inline-flex items-center gap-2 border-2 border-black bg-primary px-4 py-2 text-sm font-bold uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-white;
+  }
 }

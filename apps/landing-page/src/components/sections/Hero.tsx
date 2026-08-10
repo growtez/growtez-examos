@@ -9,9 +9,9 @@ export default function Hero() {
   const [selectedOption, setSelectedOption] = useState('B');
 
   return (
-    <section className="relative overflow-hidden pt-24 pb-20 md:pt-32 md:pb-28 bg-bg px-4 sm:px-6">
-      {/* Background glow effects */}
-      <div className="absolute top-1/4 left-1/2 -z-10 h-[400px] w-[600px] -translate-x-1/2 -translate-y-1/2 bg-primary/5 blur-[120px]" />
+    <section className="relative overflow-hidden pt-10 pb-20 md:pt-24 md:pb-28 bg-primary/10 px-4 sm:px-6 border-b-4 border-black">
+      {/* Background grid pattern */}
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px] opacity-20" />
 
       <div className="mx-auto max-w-7xl text-center">
         {/* Anti-cheat Tag */}
@@ -19,10 +19,10 @@ export default function Hero() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 border border-border bg-surface px-4 py-2 text-xs sm:text-sm text-primary shadow-sm"
+          className="brutal-tag mb-6"
         >
-          <ShieldAlert className="h-4 w-4 text-primary animate-pulse" />
-          <span className="font-bold tracking-wide uppercase text-xs sm:text-sm">Empowering Indian Schools & Institutes</span>
+          <ShieldAlert className="h-4 w-4" />
+          <span>Empowering Indian Schools & Institutes</span>
         </motion.div>
 
         {/* Headline */}
@@ -30,10 +30,10 @@ export default function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="mt-8 text-4xl font-extrabold tracking-tight text-text-main sm:text-5xl md:text-6xl lg:text-7xl"
+          className="mt-4 text-5xl font-black tracking-tighter text-black sm:text-6xl md:text-7xl lg:text-8xl uppercase leading-none"
         >
           Conduct Flawless <br className="hidden sm:inline" />
-          <span className="text-primary">
+          <span className="bg-primary text-white px-2 inline-block mt-2 shadow-brutal-sm border-2 border-black -rotate-1">
             JEE & NEET Mock Tests
           </span>
         </motion.h1>
@@ -43,7 +43,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="mx-auto mt-6 max-w-2xl text-base sm:text-lg md:text-xl text-text-muted font-medium px-2"
+          className="mx-auto mt-8 max-w-3xl text-lg sm:text-xl md:text-2xl text-black font-semibold px-2 border-l-4 border-black pl-4 text-left sm:text-center sm:border-none sm:pl-0"
         >
           Transform your computer lab into an authentic national-level testing center. Prepare your students with exact exam interfaces, powered by our secure Desktop App and smart School Admin panel—even during internet outages.
         </motion.p>
@@ -53,13 +53,13 @@ export default function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4"
+          className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-6"
         >
           <a
-            href="#features"
-            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 border-2 border-primary bg-primary text-white hover:bg-primary/90 px-8 py-4 text-base font-bold transition-all duration-200 uppercase tracking-widest shadow-md"
+            href="https://school.parikshaos.com"
+            className="brutal-btn text-lg px-8 py-4"
           >
-            Explore Features
+            Get Started
           </a>
         </motion.div>
 
@@ -68,19 +68,16 @@ export default function Hero() {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="relative mt-16 md:mt-20 w-full"
+          className="relative mt-20 w-full px-4 sm:px-0"
         >
-          {/* Outer glowing frame */}
-          <div className="absolute inset-0 -z-10 bg-primary/10 blur-xl" />
-
-          {/* Perspective Container */}
-          <div className="perspective-1000 mx-auto max-w-5xl border border-border bg-surface p-1.5 sm:p-2 shadow-2xl transition-transform duration-500 hover:rotate-x-1 hover:rotate-y-[-1deg] w-full">
+          {/* Brutal Container */}
+          <div className="mx-auto max-w-5xl border-4 border-black bg-white p-2 shadow-brutal-lg w-full">
             <Image 
               src="/desktop-app-image.png" 
               alt="ParikshaOS Desktop App" 
               width={1200} 
               height={800} 
-              className="w-full h-auto object-cover border border-border bg-bg" 
+              className="w-full h-auto object-cover border-2 border-black" 
             />
           </div>
         </motion.div>
