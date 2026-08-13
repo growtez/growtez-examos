@@ -21,9 +21,6 @@ export interface CsvPreviewStudent {
   name: string;
   roll: string;
   dob: string;
-  course: string;
-  batch: string;
-  session: string;
   status: 'pending' | 'success' | 'failed';
   error?: string;
 }
@@ -88,12 +85,6 @@ export function useExamDetailPage(paramsId: string) {
   const [newName, setNewName] = useState('');
   const [newRoll, setNewRoll] = useState('');
   const [newDob, setNewDob] = useState('');
-  const [newCourse, setNewCourse] = useState('');
-  const [newBatch, setNewBatch] = useState('');
-  const [newSession, setNewSession] = useState('');
-  const [linkCourse, setLinkCourse] = useState('');
-  const [linkBatch, setLinkBatch] = useState('');
-  const [linkSession, setLinkSession] = useState('');
   const [schoolStudents, setSchoolStudents] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [addMode, setAddMode] = useState<'link' | 'search' | 'create' | 'csv'>('link');
@@ -1279,9 +1270,6 @@ export function useExamDetailPage(paramsId: string) {
           full_name: newName,
           roll_number: newRoll,
           date_of_birth: newDob,
-          course: newCourse,
-          batch: newBatch,
-          session: newSession,
           exam_id: paramsId,
         }),
       });
@@ -1293,7 +1281,6 @@ export function useExamDetailPage(paramsId: string) {
         setSchoolStudents(prev => [...prev, data.student]);
       }
       setNewName(''); setNewRoll(''); setNewDob('');
-      setNewCourse(''); setNewBatch(''); setNewSession('');
     } catch (err: any) {
       setAddError(err.message);
     } finally {
@@ -1339,17 +1326,11 @@ export function useExamDetailPage(paramsId: string) {
           const studentName = String(row[0] || '').trim();
           const studentRoll = String(row[1] || '').trim();
           const studentDob = String(row[2] || '').trim();
-          const csvCourse = String(row[3] || '').trim();
-          const csvBatch = String(row[4] || '').trim();
-          const csvSession = String(row[5] || '').trim();
 
           preview.push({
             name: studentName,
             roll: studentRoll,
             dob: studentDob,
-            course: csvCourse,
-            batch: csvBatch,
-            session: csvSession,
             status: 'pending'
           });
         }
@@ -1390,14 +1371,11 @@ export function useExamDetailPage(paramsId: string) {
         for (let i = 1; i < lines.length; i++) {
           const cols = parseCsvLine(lines[i]);
           if (cols.length < 3) continue;
-          const [studentName = '', studentRoll = '', studentDob = '', csvCourse = '', csvBatch = '', csvSession = ''] = cols.map(c => c ? c.trim() : '');
+          const [studentName = '', studentRoll = '', studentDob = ''] = cols.map(c => c ? c.trim() : '');
           preview.push({
             name: studentName,
             roll: studentRoll,
             dob: studentDob,
-            course: csvCourse,
-            batch: csvBatch,
-            session: csvSession,
             status: 'pending'
           });
         }
@@ -1444,9 +1422,6 @@ export function useExamDetailPage(paramsId: string) {
               full_name: row.name,
               roll_number: row.roll,
               date_of_birth: formattedDob,
-              course: row.course,
-              batch: row.batch,
-              session: row.session,
               exam_id: paramsId
             }),
           });
@@ -1489,18 +1464,15 @@ export function useExamDetailPage(paramsId: string) {
 
   const handleDownloadCsvTemplate = () => {
     const data = [
-      ["name", "roll_number", "dob", "course", "batch", "session"],
-      ["Aarav Patel", "2024001", "15/06/2005", "NEET", "Morning", "2024-25"],
-      ["Priya Singh", "2024002", "22/03/2005", "JEE", "Evening", "2024-25"]
+      ["name", "roll_number", "dob"],
+      ["Aarav Patel", "2024001", "15/06/2005"],
+      ["Priya Singh", "2024002", "22/03/2005"]
     ];
     const ws = XLSX.utils.aoa_to_sheet(data);
     ws['!cols'] = [
       { wch: 25 }, // name
       { wch: 15 }, // roll_number
-      { wch: 15 }, // dob
-      { wch: 15 }, // course
-      { wch: 15 }, // batch
-      { wch: 15 }  // session
+      { wch: 15 }  // dob
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Template");
@@ -1925,18 +1897,6 @@ export function useExamDetailPage(paramsId: string) {
     setNewRoll,
     newDob,
     setNewDob,
-    newCourse,
-    setNewCourse,
-    newBatch,
-    setNewBatch,
-    newSession,
-    setNewSession,
-    linkCourse,
-    setLinkCourse,
-    linkBatch,
-    setLinkBatch,
-    linkSession,
-    setLinkSession,
     schoolStudents,
     setSchoolStudents,
     searchQuery,

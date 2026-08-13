@@ -85,17 +85,14 @@ export default function Step2Students({
 
   const handleDownloadStudentsCsv = () => {
     const data = [
-      ["name", "roll_number", "dob", "course", "batch", "session"],
+      ["name", "roll_number", "dob"],
       ...assignedStudents.map((r: any) => {
         const s = r.students;
         if (!s) return null;
         return [
           s.full_name || '',
           s.roll_number || '',
-          s.date_of_birth || '',
-          s.course || '',
-          s.batch || '',
-          s.session || ''
+          s.date_of_birth || ''
         ];
       }).filter(Boolean)
     ] as any[][];
@@ -104,10 +101,7 @@ export default function Step2Students({
     ws['!cols'] = [
       { wch: 25 }, // name
       { wch: 15 }, // roll_number
-      { wch: 15 }, // dob
-      { wch: 15 }, // course
-      { wch: 15 }, // batch
-      { wch: 15 }  // session
+      { wch: 15 }  // dob
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Students");

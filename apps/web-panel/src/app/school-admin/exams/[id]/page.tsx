@@ -233,18 +233,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setNewRoll,
     newDob,
     setNewDob,
-    newCourse,
-    setNewCourse,
-    newBatch,
-    setNewBatch,
-    newSession,
-    setNewSession,
-    linkCourse,
-    setLinkCourse,
-    linkBatch,
-    setLinkBatch,
-    linkSession,
-    setLinkSession,
     schoolStudents,
     setSchoolStudents,
     searchQuery,
@@ -1654,56 +1642,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         added to this exam upon completing the form.
                       </p>
 
-                      <div className="bg-bg border border-border p-2.5 sm:p-4 rounded-xl mb-3 space-y-2">
-                        <p className="text-[11px] sm:text-xs font-bold text-accent-primary uppercase tracking-wider mb-1.5">
-                          Optional: Pre-fill Student Details
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-                          <div>
-                            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-                              Course
-                            </label>
-                            <CustomCombobox
-                              value={linkCourse}
-                              onChange={(val) => { setLinkCourse(val); setLinkGenerated(false); }}
-                              options={uniqueCourses as string[]}
-                              placeholder="e.g. NEET"
-                              className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-                              Batch
-                            </label>
-                            <CustomCombobox
-                              value={linkBatch}
-                              onChange={(val) => { setLinkBatch(val); setLinkGenerated(false); }}
-                              options={uniqueBatches as string[]}
-                              placeholder="e.g. Morning"
-                              className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-                              Session
-                            </label>
-                            <CustomCombobox
-                              value={linkSession}
-                              onChange={(val) => { setLinkSession(val); setLinkGenerated(false); }}
-                              options={uniqueSessions as string[]}
-                              placeholder="e.g. 2024-25"
-                              className="w-full px-2.5 py-1.5 sm:px-3 sm:py-2 bg-surface border border-border rounded-lg text-text-main text-xs focus:outline-none focus:border-accent-primary"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
                       {linkGenerated && (
                         <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-200 mt-2">
                           <input
                             type="text"
                             readOnly
-                            value={`${getSchoolBaseUrl()}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`}
+                            value={`${getSchoolBaseUrl()}/register/${params.id}`}
                             className="flex-1 px-3.5 py-2.5 bg-bg border border-border rounded-xl text-xs sm:text-sm text-text-muted font-mono focus:outline-none truncate"
                           />
                         </div>
@@ -1728,7 +1672,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                       <button
                         type="button"
                         onClick={() => {
-                          const url = `${getSchoolBaseUrl()}/register/${params.id}${linkCourse || linkBatch || linkSession ? `?p=${btoa(JSON.stringify({ c: linkCourse || undefined, b: linkBatch || undefined, s: linkSession || undefined }))}` : ""}`;
+                          const url = `${getSchoolBaseUrl()}/register/${params.id}`;
                           navigator.clipboard.writeText(url);
                           setLinkCopied(true);
                           setTimeout(() => setLinkCopied(false), 2000);
@@ -1801,44 +1745,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
                       />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                          Course <span className="text-text-muted/60 font-normal">(optional)</span>
-                        </label>
-                        <CustomCombobox
-                          value={newCourse}
-                          onChange={setNewCourse}
-                          options={uniqueCourses as string[]}
-                          placeholder="e.g. NEET"
-                          className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                          Batch <span className="text-text-muted/60 font-normal">(optional)</span>
-                        </label>
-                        <CustomCombobox
-                          value={newBatch}
-                          onChange={setNewBatch}
-                          options={uniqueBatches as string[]}
-                          placeholder="e.g. Morning"
-                          className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-text-muted mb-1.5">
-                          Session <span className="text-text-muted/60 font-normal">(optional)</span>
-                        </label>
-                        <CustomCombobox
-                          value={newSession}
-                          onChange={setNewSession}
-                          options={uniqueSessions as string[]}
-                          placeholder="e.g. 2024-25"
-                          className="w-full px-4 py-3 bg-surface border border-border rounded-xl text-text-main placeholder-gray-400 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 text-sm font-medium transition-all"
-                        />
-                      </div>
-                    </div>
                   </div>
                   <div className="flex gap-3 pt-3 mt-auto bg-surface border-t border-border/80 z-10 shrink-0">
                     <button
@@ -1883,28 +1789,19 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                             <tr>
                               <th className="px-3 py-2 border-b border-r border-border font-bold">name</th>
                               <th className="px-3 py-2 border-b border-r border-border font-bold">roll_number</th>
-                              <th className="px-3 py-2 border-b border-r border-border font-bold">dob</th>
-                              <th className="px-3 py-2 border-b border-r border-border font-bold">course</th>
-                              <th className="px-3 py-2 border-b border-r border-border font-bold">batch</th>
-                              <th className="px-3 py-2 border-b border-border font-bold">session</th>
+                              <th className="px-3 py-2 border-b border-border font-bold">dob</th>
                             </tr>
                           </thead>
                           <tbody className="bg-bg text-text-main divide-y divide-border">
                             <tr className="hover:bg-surface/50 transition-colors">
                               <td className="px-3 py-1.5 border-r border-border">Aarav Patel</td>
                               <td className="px-3 py-1.5 border-r border-border">2024001</td>
-                              <td className="px-3 py-1.5 border-r border-border">15/06/2005</td>
-                              <td className="px-3 py-1.5 border-r border-border">NEET</td>
-                              <td className="px-3 py-1.5 border-r border-border">Morning</td>
-                              <td className="px-3 py-1.5">2024-25</td>
+                              <td className="px-3 py-1.5">15/06/2005</td>
                             </tr>
                             <tr className="hover:bg-surface/50 transition-colors">
                               <td className="px-3 py-1.5 border-r border-border">Priya Singh</td>
                               <td className="px-3 py-1.5 border-r border-border">2024002</td>
-                              <td className="px-3 py-1.5 border-r border-border">22/03/2005</td>
-                              <td className="px-3 py-1.5 border-r border-border">JEE</td>
-                              <td className="px-3 py-1.5 border-r border-border">Evening</td>
-                              <td className="px-3 py-1.5">2024-25</td>
+                              <td className="px-3 py-1.5">22/03/2005</td>
                             </tr>
                           </tbody>
                         </table>
@@ -1990,9 +1887,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                                 <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">Name</th>
                                 <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">Roll No</th>
                                 <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">DOB</th>
-                                <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">Course</th>
-                                <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">Batch</th>
-                                <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">Session</th>
                                 <th className="px-3 py-2 text-text-muted font-bold whitespace-nowrap">Status</th>
                               </tr>
                             </thead>
@@ -2002,9 +1896,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                                   <td className="px-3 py-2.5 font-medium text-text-main truncate max-w-[120px]" title={row.name}>{row.name || '-'}</td>
                                   <td className="px-3 py-2.5 text-text-muted">{row.roll || '-'}</td>
                                   <td className="px-3 py-2.5 text-text-muted whitespace-nowrap">{row.dob || '-'}</td>
-                                  <td className="px-3 py-2.5 text-text-muted truncate max-w-[80px]" title={row.course}>{row.course || '-'}</td>
-                                  <td className="px-3 py-2.5 text-text-muted truncate max-w-[80px]" title={row.batch}>{row.batch || '-'}</td>
-                                  <td className="px-3 py-2.5 text-text-muted whitespace-nowrap">{row.session || '-'}</td>
                                   <td className="px-3 py-2.5">
                                     {row.status === 'pending' && <span className="text-text-muted font-medium">Ready</span>}
                                     {row.status === 'success' && <span className="text-emerald-600 font-bold flex items-center gap-1"><CheckCircle2 size={12} /> Success</span>}

@@ -1,25 +1,34 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, FileText, LayoutTemplate, ChevronDown, Eye, EyeOff, Trash2, Save, BookOpen } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 
 export default function NewExamPage() {
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [teachers, setTeachers] = useState<any[]>([]);
   const [schoolId, setSchoolId] = useState<string | null>(null);
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState('');
-  const [savingTemplate, setSavingTemplate] = useState(false);
-  const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null);
 
-  // Session Setup Modal (shown before the form)
-  const [showSessionModal, setShowSessionModal] = useState(true);
+  // Exam Details to be inserted (default or from template)
+  const [title, setTitle] = useState('Untitled Exam');
+  const [description, setDescription] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState(180);
+  const [mcqCorrect, setMcqCorrect] = useState<number | string>(4);
+  const [mcqWrong, setMcqWrong] = useState<number | string>(-1);
+  const [natCorrect, setNatCorrect] = useState<number | string>(4);
+  const [natWrong, setNatWrong] = useState<number | string>(0);
+  const [instructions, setInstructions] = useState<string[]>([
+    'The test contains multiple-choice questions (MCQs) and numerical value questions.',
+    'No deduction from the total score will be made if no response is indicated.',
+    'The test will automatically end when the time limit is reached.'
+  ]);
+  const [subjects, setSubjects] = useState<Array<{ name: string; questionCount: number; }>>([]);
+
+  // Session Setup Modal 
   const [examCourse, setExamCourse] = useState('');
   const [examBatch, setExamBatch] = useState('');
   const [examSession, setExamSession] = useState('');
@@ -27,53 +36,6 @@ export default function NewExamPage() {
   const [existingBatches, setExistingBatches] = useState<string[]>([]);
   const [existingSessions, setExistingSessions] = useState<string[]>([]);
   const [sessionModalError, setSessionModalError] = useState('');
-
-  // Add Teacher Modal State
-  const [showTeacherModal, setShowTeacherModal] = useState(false);
-  const [newTeacherName, setNewTeacherName] = useState('');
-  const [newTeacherEmail, setNewTeacherEmail] = useState('');
-  const [newTeacherPassword, setNewTeacherPassword] = useState('');
-  const [newTeacherDepartment, setNewTeacherDepartment] = useState('');
-  const [teacherFormLoading, setTeacherFormLoading] = useState(false);
-  const [teacherFormError, setTeacherFormError] = useState('');
-  const [activeDropdownIndex, setActiveDropdownIndex] = useState<number | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-
-  // Step 1: Exam details
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [durationMinutes, setDurationMinutes] = useState(180);
-  const [mcqCorrect, setMcqCorrect] = useState<number | string>(4);
-  const [mcqWrong, setMcqWrong] = useState<number | string>(-1);
-  const [natCorrect, setNatCorrect] = useState<number | string>(4);
-  const [natWrong, setNatWrong] = useState<number | string>(0);
-
-  // Instructions State
-  const [instructions, setInstructions] = useState<string[]>([
-    'The test contains multiple-choice questions (MCQs) and numerical value questions.',
-    'No deduction from the total score will be made if no response is indicated.',
-    'The test will automatically end when the time limit is reached.',]);
-
-  const addInstruction = () => {
-    setInstructions([...instructions, '']);
-  };
-
-  const removeInstruction = (index: number) => {
-    setInstructions(instructions.filter((_, i) => i !== index));
-  };
-
-  const updateInstruction = (index: number, value: string) => {
-    const updated = [...instructions];
-    updated[index] = value;
-    setInstructions(updated);
-  };
-
-  // Step 2: Subjects
-  const [subjects, setSubjects] = useState<Array<{
-    name: string;
-    questionCount: number;
-    teacherIds: string[];
-  }>>([{ name: '', questionCount: 10, teacherIds: [] }]);
 
   useEffect(() => {
     const init = async () => {
@@ -84,14 +46,10 @@ export default function NewExamPage() {
       if (!profile?.school_id) return;
       setSchoolId(profile.school_id);
 
-      const [teachersRes, templatesRes, examsRes] = await Promise.all([
-        supabase.from('teachers').select('*').eq('school_id', profile.school_id).order('department', { ascending: true }).order('full_name', { ascending: true }),
+      const [templatesRes, examsRes] = await Promise.all([
         supabase.from('exam_templates').select('*, exam_template_subjects(*)').or(`school_id.is.null,school_id.eq.${profile.school_id}`).order('created_at', { ascending: false }),
         supabase.from('exams').select('course, batch, session').eq('school_id', profile.school_id).not('course', 'is', null)
       ]);
-
-      setTeachers(teachersRes.data || []);
-      setTemplates(templatesRes.data || []);
 
       // Collect unique values for dropdown suggestions
       const exams = examsRes.data || [];
@@ -104,157 +62,38 @@ export default function NewExamPage() {
       const templateId = searchParams.get('templateId');
       if (templateId && templatesRes.data) {
         const template = templatesRes.data.find((t: any) => t.id === templateId);
-        if (template) handleTemplateSelect(template);
+        if (template) {
+          setTitle(template.title || 'Untitled Exam');
+          setDescription(template.description || '');
+          setDurationMinutes(template.duration_minutes || 180);
+          if (template.marking_scheme) {
+            setMcqCorrect(template.marking_scheme.mcq_correct ?? 4);
+            setMcqWrong(template.marking_scheme.mcq_wrong ?? -1);
+            setNatCorrect(template.marking_scheme.nat_correct ?? 4);
+            setNatWrong(template.marking_scheme.nat_wrong ?? 0);
+          }
+          if (template.exam_instructions) {
+            setInstructions(template.exam_instructions);
+          }
+          if (template.exam_template_subjects && template.exam_template_subjects.length > 0) {
+            const sortedSubjects = [...template.exam_template_subjects].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+            setSubjects(sortedSubjects.map(s => ({
+              name: s.subject_name,
+              questionCount: s.question_count,
+            })));
+          }
+        }
       }
     };
     init();
   }, []);
 
-  const handleTemplateSelect = (template: any) => {
-    setSelectedTemplateId(template.id);
-    setTitle(template.title || '');
-    setDescription(template.description || '');
-    setDurationMinutes(template.duration_minutes || 180);
-    if (template.marking_scheme) {
-      setMcqCorrect(template.marking_scheme.mcq_correct ?? 4);
-      setMcqWrong(template.marking_scheme.mcq_wrong ?? -1);
-      setNatCorrect(template.marking_scheme.nat_correct ?? 4);
-      setNatWrong(template.marking_scheme.nat_wrong ?? 0);
-    }
-    if (template.exam_template_subjects && template.exam_template_subjects.length > 0) {
-      const sortedSubjects = [...template.exam_template_subjects].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-      setSubjects(sortedSubjects.map(s => ({
-        name: s.subject_name,
-        questionCount: s.question_count,
-        teacherIds: []
-      })));
-    }
-  };
-
-  const handleAddTeacher = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setTeacherFormError('');
-    setTeacherFormLoading(true);
-
-    try {
-      if (!schoolId) throw new Error('No school found');
-
-      const res = await fetch('/api/users/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: newTeacherEmail,
-          password: newTeacherPassword,
-          full_name: newTeacherName,
-          role: 'teacher',
-          school_id: schoolId,
-          department: newTeacherDepartment || null
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to add teacher');
-
-      // Refresh teachers
-      const { data: updatedTeachers } = await supabase.from('teachers').select('*').eq('school_id', schoolId).order('department', { ascending: true }).order('full_name', { ascending: true });
-      setTeachers(updatedTeachers || []);
-
-      setShowTeacherModal(false);
-      setNewTeacherName(''); setNewTeacherEmail(''); setNewTeacherPassword(''); setNewTeacherDepartment('');
-      setShowPassword(false);
-    } catch (err: any) {
-      setTeacherFormError(err.message);
-    } finally {
-      setTeacherFormLoading(false);
-    }
-  };
-
-  const addSubject = () => {
-    setSubjects([...subjects, { name: '', questionCount: 10, teacherIds: [] }]);
-  };
-
-  const removeSubject = (index: number) => {
-    setSubjects(subjects.filter((_, i) => i !== index));
-  };
-
-  const updateSubject = (index: number, field: string, value: any) => {
-    const updated = [...subjects];
-    (updated[index] as any)[field] = value;
-    setSubjects(updated);
-  };
-
-  const toggleTeacher = (subjectIndex: number, teacherId: string) => {
-    const updated = [...subjects];
-    const ids = updated[subjectIndex].teacherIds;
-    if (ids.includes(teacherId)) {
-      updated[subjectIndex].teacherIds = ids.filter(id => id !== teacherId);
-    } else {
-      updated[subjectIndex].teacherIds = [...ids, teacherId];
-    }
-    setSubjects(updated);
-  };
-
-  const handleSaveCustomTemplate = async () => {
-    if (!title.trim() || !schoolId) {
-      alert('Title is required to save a template.');
-      return;
-    }
-    setSavingTemplate(true);
-    try {
-      const { data: template, error } = await supabase.from('exam_templates').insert({
-        title: title.trim(),
-        description: description?.trim() || null,
-        duration_minutes: durationMinutes,
-        marking_scheme: { mcq_correct: mcqCorrect, mcq_wrong: mcqWrong, nat_correct: natCorrect, nat_wrong: natWrong },
-        school_id: schoolId
-      }).select().single();
-      if (error) throw error;
-      
-      if (subjects.length > 0) {
-        const templateSubjects = subjects.map((s, i) => ({
-          template_id: template.id,
-          subject_name: s.name,
-          question_count: s.questionCount,
-          sort_order: i
-        }));
-        await supabase.from('exam_template_subjects').insert(templateSubjects);
-      }
-      
-      const { data: updatedTemplates } = await supabase.from('exam_templates').select('*, exam_template_subjects(*)').or(`school_id.is.null,school_id.eq.${schoolId}`).order('created_at', { ascending: false });
-      setTemplates(updatedTemplates || []);
-      setSelectedTemplateId(template.id);
-      alert('Custom template saved successfully!');
-    } catch (err: any) {
-      alert('Failed to save template: ' + err.message);
-    } finally {
-      setSavingTemplate(false);
-    }
-  };
-
-  const handleDeleteTemplate = async (templateId: string) => {
-    if (!confirm('Are you sure you want to delete this custom template?')) return;
-    setDeletingTemplate(templateId);
-    try {
-      const { error } = await supabase.from('exam_templates').delete().eq('id', templateId);
-      if (error) throw error;
-      const { data: updatedTemplates } = await supabase.from('exam_templates').select('*, exam_template_subjects(*)').or(`school_id.is.null,school_id.eq.${schoolId}`).order('created_at', { ascending: false });
-      setTemplates(updatedTemplates || []);
-      if (selectedTemplateId === templateId) setSelectedTemplateId('');
-    } catch (err: any) {
-      alert('Failed to delete template: ' + err.message);
-    } finally {
-      setDeletingTemplate(null);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setError('');
     setLoading(true);
 
     try {
       if (!schoolId) throw new Error('No school found');
-      if (subjects.some(s => !s.name.trim())) throw new Error('All subjects must have a name');
 
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user;
@@ -281,24 +120,18 @@ export default function NewExamPage() {
 
       if (examError) throw examError;
 
-      // 2. Create subjects and assign teachers
-      for (let i = 0; i < subjects.length; i++) {
-        const s = subjects[i];
-        const { data: subjectRow, error: subjectError } = await supabase.from('exam_subjects').insert({
-          exam_id: exam.id,
-          subject_name: s.name,
-          question_count: s.questionCount,
-          sort_order: i,
-        }).select().single();
-
-        if (subjectError) throw subjectError;
-
-        // Assign teachers
-        for (const teacherId of s.teacherIds) {
-          await supabase.from('exam_subject_teachers').insert({
-            exam_subject_id: subjectRow.id,
-            teacher_id: teacherId,
+      // 2. Create subjects
+      if (subjects.length > 0) {
+        for (let i = 0; i < subjects.length; i++) {
+          const s = subjects[i];
+          const { error: subjectError } = await supabase.from('exam_subjects').insert({
+            exam_id: exam.id,
+            subject_name: s.name,
+            question_count: s.questionCount,
+            sort_order: i,
           });
+
+          if (subjectError) throw subjectError;
         }
       }
 
@@ -306,403 +139,104 @@ export default function NewExamPage() {
       router.push(`/exams/${exam.id}`);
     } catch (err: any) {
       setError(err.message);
-    } finally {
+      setSessionModalError(err.message);
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500 mx-auto">
-
-      {/* === COMPULSORY SESSION SETUP MODAL === */}
-      {showSessionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-md p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-accent-primary/10 rounded-xl">
-                <BookOpen className="w-6 h-6 text-accent-primary" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-text-main">Exam Session Setup</h2>
-                <p className="text-xs text-text-muted mt-0.5">Required before creating the exam</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {/* Session */}
-              <div>
-                <label className="block text-sm font-semibold text-text-main mb-1.5">Academic Session <span className="text-red-500">*</span></label>
-                <input
-                  list="sessions-list"
-                  value={examSession}
-                  onChange={e => setExamSession(e.target.value)}
-                  placeholder="e.g. 2025-26"
-                  className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20"
-                />
-                <datalist id="sessions-list">
-                  {existingSessions.map(s => <option key={s} value={s} />)}
-                  {!existingSessions.includes('2024-25') && <option value="2024-25" />}
-                  {!existingSessions.includes('2025-26') && <option value="2025-26" />}
-                  {!existingSessions.includes('2026-27') && <option value="2026-27" />}
-                </datalist>
-              </div>
-
-              {/* Course */}
-              <div>
-                <label className="block text-sm font-semibold text-text-main mb-1.5">Course <span className="text-red-500">*</span></label>
-                <input
-                  list="courses-list"
-                  value={examCourse}
-                  onChange={e => setExamCourse(e.target.value)}
-                  placeholder="e.g. JEE, NEET, General"
-                  className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20"
-                />
-                <datalist id="courses-list">
-                  {existingCourses.map(c => <option key={c} value={c} />)}
-                  {!existingCourses.includes('JEE') && <option value="JEE" />}
-                  {!existingCourses.includes('NEET') && <option value="NEET" />}
-                  {!existingCourses.includes('General') && <option value="General" />}
-                </datalist>
-              </div>
-
-              {/* Batch */}
-              <div>
-                <label className="block text-sm font-semibold text-text-main mb-1.5">Batch <span className="text-red-500">*</span></label>
-                <input
-                  list="batches-list"
-                  value={examBatch}
-                  onChange={e => setExamBatch(e.target.value)}
-                  placeholder="e.g. Morning, Evening, Main"
-                  className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20"
-                />
-                <datalist id="batches-list">
-                  {existingBatches.map(b => <option key={b} value={b} />)}
-                  {!existingBatches.includes('Morning') && <option value="Morning" />}
-                  {!existingBatches.includes('Evening') && <option value="Evening" />}
-                  {!existingBatches.includes('Main') && <option value="Main" />}
-                </datalist>
-              </div>
-
-              {sessionModalError && (
-                <p className="text-red-500 text-sm font-medium">{sessionModalError}</p>
-              )}
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => {
-                  if (!examSession.trim() || !examCourse.trim() || !examBatch.trim()) {
-                    setSessionModalError('All three fields are required to create an exam.');
-                    return;
-                  }
-                  setSessionModalError('');
-                  setShowSessionModal(false);
-                }}
-                className="flex-1 bg-accent-primary text-white font-bold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity"
-              >
-                Continue to Create Exam
-              </button>
-              <Link href="/exams" className="px-4 py-2.5 border border-border rounded-xl text-text-muted text-sm font-medium hover:bg-bg transition-colors">
-                Cancel
-              </Link>
-            </div>
+    <div className="flex items-center justify-center min-h-[80vh] p-4">
+      <div className="bg-surface border border-border rounded-2xl shadow-xl w-full max-w-md p-8 animate-in zoom-in-95 duration-300">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 bg-accent-primary/10 rounded-xl">
+            <BookOpen className="w-6 h-6 text-accent-primary" />
           </div>
-        </div>
-      )}
-
-      <div className="mb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-text-main">Create New Exam</h2>
-        </div>
-        {templates.length > 0 && (
-          <div className="flex items-center gap-2">
-            <select
-              value={selectedTemplateId}
-              onChange={(e) => {
-                const selected = templates.find(t => t.id === e.target.value);
-                if (selected) handleTemplateSelect(selected);
-              }}
-              className="w-full sm:w-auto px-3 py-2 bg-surface border border-border rounded-lg text-xs font-bold text-accent-primary focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all cursor-pointer hover:bg-bg"
-            >
-              <option value="" disabled>Load Template</option>
-              {templates.map(t => (
-                <option key={t.id} value={t.id}>{t.title} {t.school_id ? '(Custom)' : ''}</option>
-              ))}
-            </select>
-            {selectedTemplateId && templates.find(t => t.id === selectedTemplateId)?.school_id === schoolId && (
-              <button
-                type="button"
-                onClick={() => handleDeleteTemplate(selectedTemplateId)}
-                disabled={deletingTemplate === selectedTemplateId}
-                className="p-1.5 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors border border-transparent hover:border-red-100 disabled:opacity-50"
-                title="Delete Custom Template"
-              >
-                {deletingTemplate === selectedTemplateId ? <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div> : <Trash2 size={16} />}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          
-          {/* Exam Details */}
-          <div className="bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm order-1 h-full">
-              <h3 className="text-sm font-bold text-text-main mb-3 border-b border-[#f0f7f7] pb-1.5">Exam Details</h3>
-              <div className="space-y-2">
-                <div>
-                  <label className="block text-xs font-semibold text-text-muted mb-1">Title *</label>
-                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required
-                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium"
-                    placeholder="JEE Main Mock Test 1" />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-text-muted mb-1">Description</label>
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
-                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all resize-none text-xs font-medium"
-                    placeholder="Mock test covering all topics..." />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-text-muted mb-1">Duration (minutes) *</label>
-                  <input type="number" value={durationMinutes} onChange={(e) => setDurationMinutes(parseInt(e.target.value))} min={1} required
-                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
-                </div>
-              </div>
-            </div>
-
-          {/* Marking Scheme */}
-          <div className="bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm order-2 h-full">
-              <h3 className="text-sm font-bold text-text-main mb-3 border-b border-[#f0f7f7] pb-1.5">Marking Scheme</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                <div>
-                  <label className="block text-[11px] font-semibold text-text-muted mb-1">MCQ Correct</label>
-                  <input type="number" step="any" value={mcqCorrect} onChange={(e) => setMcqCorrect(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-text-muted mb-1">MCQ Wrong (-)</label>
-                  <input type="number" step="any" value={mcqWrong} onChange={(e) => setMcqWrong(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-text-muted mb-1">NAT Correct</label>
-                  <input type="number" step="any" value={natCorrect} onChange={(e) => setNatCorrect(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-text-muted mb-1">NAT Wrong (-)</label>
-                  <input type="number" step="any" value={natWrong} onChange={(e) => setNatWrong(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
-                </div>
-              </div>
-            </div>
-
-          {/* Exam Instructions */}
-          <div className="bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm order-3 lg:col-span-2">
-              <div className="flex items-center justify-between mb-3 border-b border-[#f0f7f7] pb-1.5">
-                <h3 className="text-sm font-bold text-text-main">Exam Instructions</h3>
-                <button type="button" onClick={addInstruction}
-                  className="inline-flex items-center gap-1 text-accent-primary text-[11px] font-bold hover:underline">
-                  <Plus size={12} /> Add
-                </button>
-              </div>
-              <div className="space-y-1.5">
-                {instructions.map((inst, index) => (
-                  <div key={index} className="flex items-center gap-2 w-full">
-                    <span className="text-text-muted font-bold text-[11px] w-4 text-right flex-shrink-0">{index + 1}.</span>
-                    <input type="text" value={inst} onChange={(e) => updateInstruction(index, e.target.value)}
-                      placeholder="e.g. Do not close browser..."
-                      className="flex-1 min-w-0 px-3 py-1.5 bg-bg border border-border rounded-lg text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
-                    {instructions.length > 1 && (
-                      <button type="button" onClick={() => removeInstruction(index)}
-                        className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors flex-shrink-0"
-                        title="Remove instruction">
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-          </div>
-
-          {/* Subjects & Teachers */}
-          <div className="bg-surface border border-border rounded-xl p-3.5 sm:p-4 shadow-sm order-4 lg:col-span-2">
-              <div className="mb-3 border-b border-[#f0f7f7] pb-1.5">
-                <h3 className="text-sm font-bold text-text-main">Subjects & Teachers</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {subjects.map((subject, index) => (
-                  <div key={index} className="bg-bg border border-border rounded-lg p-4 relative flex flex-col justify-between">
-                    <div className="flex gap-3 mb-3">
-                      <div className="flex-[2] min-w-0">
-                        <label className="block text-[11px] font-semibold text-text-muted mb-1">Subject Name</label>
-                        <input type="text" value={subject.name} onChange={(e) => updateSubject(index, 'name', e.target.value)} required
-                          className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-md text-text-main placeholder-text-muted focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium"
-                          placeholder="e.g. Physics" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <label className="block text-[11px] font-semibold text-text-muted mb-1">Questions</label>
-                        <input type="number" value={subject.questionCount} onChange={(e) => updateSubject(index, 'questionCount', parseInt(e.target.value))} min={1}
-                          className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-md text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs font-medium" />
-                      </div>
-                      {subjects.length > 1 && (
-                        <div className="flex items-end">
-                          <button type="button" onClick={() => removeSubject(index)} 
-                            className="text-red-500 hover:text-red-700 p-1.5 rounded hover:bg-red-50 transition-colors flex-shrink-0 mb-[1px]"
-                            title="Remove subject">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-center mb-1.5">
-                        <label className="block text-[11px] font-semibold text-text-muted">Assign Teachers</label>
-                        <button type="button" onClick={() => setShowTeacherModal(true)} className="text-accent-primary text-[10px] font-bold hover:underline flex items-center gap-0.5">
-                          <Plus size={10} /> Add Teacher
-                        </button>
-                      </div>
-                      
-                      <div className="relative">
-                        <button 
-                          type="button" 
-                          onClick={() => setActiveDropdownIndex(activeDropdownIndex === index ? null : index)}
-                          className="w-full flex justify-between items-center px-2.5 py-2 bg-surface border border-border rounded-md text-text-main text-xs font-medium focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all"
-                        >
-                          <span className={`truncate pr-2 flex-1 text-left ${subject.teacherIds.length === 0 ? "text-text-muted" : "text-text-main"}`}>
-                            {subject.teacherIds.length === 0 
-                              ? "Select Teachers" 
-                              : subject.teacherIds.map(id => teachers.find(t => t.id === id)?.full_name).filter(Boolean).join(', ')}
-                          </span>
-                          <ChevronDown size={14} className="text-text-muted flex-shrink-0" />
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {activeDropdownIndex === index && (
-                          <>
-                            <div className="fixed inset-0 z-10" onClick={() => setActiveDropdownIndex(null)}></div>
-                            <div className="absolute z-20 w-full mt-1 bg-surface border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                              {teachers.length === 0 ? (
-                                <div className="p-3 text-xs text-text-muted text-center">No teachers available.</div>
-                              ) : (
-                                teachers.map(t => (
-                                  <label key={t.id} className="flex items-center gap-2 px-3 py-2 hover:bg-bg cursor-pointer">
-                                    <input 
-                                      type="checkbox" 
-                                      checked={subject.teacherIds.includes(t.id)} 
-                                      onChange={() => toggleTeacher(index, t.id)}
-                                      className="rounded border-border text-accent-primary focus:ring-accent-primary/20 w-3.5 h-3.5" 
-                                    />
-                                    <span className="text-xs text-text-main font-medium flex-1">
-                                      {t.full_name} 
-                                      <span className="text-[10px] text-text-muted ml-1 font-normal">
-                                        ({t.department || 'Other'})
-                                      </span>
-                                    </span>
-                                  </label>
-                                ))
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
-                {/* Add Subject Card */}
-                <button 
-                  type="button" 
-                  onClick={addSubject}
-                  className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-lg p-6 text-accent-primary hover:bg-[#f0f7f7] hover:border-accent-primary transition-colors min-h-[140px] h-full"
-                >
-                  <Plus size={24} />
-                  <span className="text-sm font-bold">Add Subject</span>
-                </button>
-              </div>
+          <div>
+            <h2 className="text-xl font-bold text-text-main">Exam Session Setup</h2>
+            <p className="text-xs text-text-muted mt-0.5">Required before creating the exam</p>
           </div>
         </div>
 
-        {error && <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-xs font-bold">{error}</div>}
+        <div className="space-y-4">
+          {/* Session */}
+          <div>
+            <label className="block text-sm font-semibold text-text-main mb-1.5">Academic Session <span className="text-red-500">*</span></label>
+            <input
+              list="sessions-list"
+              value={examSession}
+              onChange={e => setExamSession(e.target.value)}
+              placeholder="e.g. 2025-26"
+              className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20"
+            />
+            <datalist id="sessions-list">
+              {existingSessions.map(s => <option key={s} value={s} />)}
+              {!existingSessions.includes('2024-25') && <option value="2024-25" />}
+              {!existingSessions.includes('2025-26') && <option value="2025-26" />}
+              {!existingSessions.includes('2026-27') && <option value="2026-27" />}
+            </datalist>
+          </div>
 
-        <div className="pt-2 flex flex-col sm:flex-row justify-end items-center gap-3">
-          <Link href="/school-admin/exams" className="w-full sm:w-auto text-center px-5 py-2.5 bg-surface border border-border text-text-muted font-bold rounded-lg hover:bg-bg transition-colors text-xs">
+          {/* Course */}
+          <div>
+            <label className="block text-sm font-semibold text-text-main mb-1.5">Course <span className="text-red-500">*</span></label>
+            <input
+              list="courses-list"
+              value={examCourse}
+              onChange={e => setExamCourse(e.target.value)}
+              placeholder="e.g. JEE, NEET, General"
+              className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20"
+            />
+            <datalist id="courses-list">
+              {existingCourses.map(c => <option key={c} value={c} />)}
+              {!existingCourses.includes('JEE') && <option value="JEE" />}
+              {!existingCourses.includes('NEET') && <option value="NEET" />}
+              {!existingCourses.includes('General') && <option value="General" />}
+            </datalist>
+          </div>
+
+          {/* Batch */}
+          <div>
+            <label className="block text-sm font-semibold text-text-main mb-1.5">Batch <span className="text-red-500">*</span></label>
+            <input
+              list="batches-list"
+              value={examBatch}
+              onChange={e => setExamBatch(e.target.value)}
+              placeholder="e.g. Morning, Evening, Main"
+              className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20"
+            />
+            <datalist id="batches-list">
+              {existingBatches.map(b => <option key={b} value={b} />)}
+              {!existingBatches.includes('Morning') && <option value="Morning" />}
+              {!existingBatches.includes('Evening') && <option value="Evening" />}
+              {!existingBatches.includes('Main') && <option value="Main" />}
+            </datalist>
+          </div>
+
+          {sessionModalError && (
+            <p className="text-red-500 text-sm font-medium">{sessionModalError}</p>
+          )}
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          <button
+            onClick={() => {
+              if (!examSession.trim() || !examCourse.trim() || !examBatch.trim()) {
+                setSessionModalError('All three fields are required to create an exam.');
+                return;
+              }
+              setSessionModalError('');
+              handleSubmit();
+            }}
+            disabled={loading}
+            className="flex-1 flex justify-center items-center bg-accent-primary text-white font-bold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Create Exam'}
+          </button>
+          <Link href="/exams" className="px-4 py-2.5 border border-border rounded-xl text-text-muted text-sm font-medium hover:bg-bg transition-colors flex items-center">
             Cancel
           </Link>
-          <button
-            type="button"
-            onClick={handleSaveCustomTemplate}
-            disabled={savingTemplate || !title.trim()}
-            className="w-full sm:w-auto px-4 py-2.5 bg-surface text-text-main border border-border font-bold rounded-lg hover:bg-surface-hover transition-all disabled:opacity-50 shadow-sm text-xs flex items-center justify-center gap-2">
-            <Save size={14} />
-            {savingTemplate ? 'Saving...' : 'Save as Custom Template'}
-          </button>
-          <button type="submit" disabled={loading}
-            className="w-full sm:w-auto px-6 py-2.5 bg-accent-primary text-white font-bold rounded-lg hover:bg-accent-primary/80 transition-all disabled:opacity-50 shadow-md shadow-accent-primary/20 text-xs">
-            {loading ? 'Creating...' : 'Create Exam'}
-          </button>
         </div>
-      </form>
-
-      {/* Add Teacher Modal */}
-      {showTeacherModal && (
-        <div className="fixed inset-0 bg-[#1a2e2e]/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200" onClick={() => setShowTeacherModal(false)}>
-          <div className="bg-surface rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
-            <div className="p-5 border-b border-border bg-bg">
-              <h3 className="text-lg font-bold text-text-main">Add New Teacher</h3>
-              <p className="text-xs text-text-muted mt-0.5">Quickly add a teacher to assign</p>
-            </div>
-            <form onSubmit={handleAddTeacher} className="p-5 space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-text-main mb-1">Full Name</label>
-                <input type="text" value={newTeacherName} onChange={(e) => setNewTeacherName(e.target.value)} required
-                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
-                  placeholder="e.g. Dr. Sharma" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-text-main mb-1">Email</label>
-                <input type="email" value={newTeacherEmail} onChange={(e) => setNewTeacherEmail(e.target.value)} required
-                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
-                  placeholder="sharma@school.com" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-text-main mb-1">Department</label>
-                <input type="text" value={newTeacherDepartment} onChange={(e) => setNewTeacherDepartment(e.target.value)} required
-                  className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
-                  placeholder="e.g. Mathematics" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-text-main mb-1">Temporary Password</label>
-                <div className="relative">
-                  <input type={showPassword ? "text" : "password"} value={newTeacherPassword} onChange={(e) => setNewTeacherPassword(e.target.value)} required minLength={6}
-                    className="w-full pl-3 pr-10 py-2 bg-bg border border-border rounded-lg text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all text-xs"
-                    placeholder="Min 6 characters" />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-accent-primary focus:outline-none"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-              {teacherFormError && <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-red-600 text-[11px] font-bold">{teacherFormError}</div>}
-              <div className="flex gap-2 pt-3">
-                <button type="submit" disabled={teacherFormLoading}
-                  className="flex-1 py-2 bg-accent-primary text-white text-xs font-bold rounded-lg hover:bg-accent-primary/80 transition-all disabled:opacity-50">
-                  {teacherFormLoading ? 'Adding...' : 'Add Teacher'}
-                </button>
-                <button type="button" onClick={() => setShowTeacherModal(false)}
-                  className="px-4 py-2 bg-surface border border-border text-text-muted text-xs font-bold rounded-lg hover:bg-bg transition-colors">
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
