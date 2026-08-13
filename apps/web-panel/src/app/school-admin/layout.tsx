@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 import Link from 'next/link';
-import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight, Layers, Moon, Sun, Check, Trash2, Coins, Bell, Clock, CreditCard, CheckCircle, X } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight, Layers, Moon, Sun, Check, Trash2, Coins, Bell, Clock, CreditCard, CheckCircle, X, BarChart2 } from 'lucide-react';
 
 const navItems = [
   {
@@ -33,6 +33,11 @@ const navItems = [
     label: 'Credits',
     href: '/credits',
     icon: <Coins className="w-5 h-5" />,
+  },
+  {
+    label: 'Student Stats',
+    href: '/students-stats',
+    icon: <BarChart2 className="w-5 h-5" />,
   },
   {
     label: 'Trash',

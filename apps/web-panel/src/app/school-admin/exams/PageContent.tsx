@@ -102,55 +102,11 @@ export function ExamsListContent({ schoolIdProp }: { schoolIdProp?: string }) {
         throw new Error('You have reached the maximum limit of 20 exams. Please delete old exams to clear space before creating a new one.');
       }
 
-      let title = 'Untitled Exam';
-      let description = '';
-      let duration_minutes = 180;
-      let marking_scheme = { mcq_correct: 4, mcq_wrong: -1, nat_correct: 4, nat_wrong: 0 };
-      let exam_instructions = [
-        'The test contains multiple-choice questions (MCQs) and numerical value questions.',
-        'No deduction from the total score will be made if no response is indicated.',
-        'The test will automatically end when the time limit is reached.'
-      ];
-      let templateSubjects: any[] = [];
-
       if (templateId) {
-        const { data: template } = await supabase.from('exam_templates').select('*, exam_template_subjects(*)').eq('id', templateId).single();
-        if (template) {
-          title = template.title || title;
-          description = template.description || description;
-          duration_minutes = template.duration_minutes || duration_minutes;
-          if (template.marking_scheme) marking_scheme = template.marking_scheme;
-          if (template.exam_instructions) exam_instructions = template.exam_instructions;
-          if (template.exam_template_subjects) templateSubjects = template.exam_template_subjects;
-        }
+        router.push(`/exams/new?templateId=${templateId}`);
+      } else {
+        router.push('/exams/new');
       }
-
-      const { data: exam, error } = await supabase.from('exams').insert({
-        school_id: schoolId,
-        title,
-        description: description || null,
-        duration_minutes,
-        status: 'draft',
-        marking_scheme,
-        exam_instructions,
-        created_by: user.id
-      }).select().single();
-
-      if (error) throw error;
-
-      if (templateSubjects.length > 0) {
-        for (let i = 0; i < templateSubjects.length; i++) {
-          const s = templateSubjects[i];
-          await supabase.from('exam_subjects').insert({
-            exam_id: exam.id,
-            subject_name: s.subject_name,
-            question_count: s.question_count,
-            sort_order: i
-          });
-        }
-      }
-
-      router.push(`/exams/${exam.id}`);
     } catch (error: any) {
       console.error('Error creating exam:', error);
       alert(error.message);

@@ -24,10 +24,10 @@ export async function POST(req: Request) {
       global: { fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }) }
     });
 
-    // 1. Check if exam exists
+    // 1. Check if exam exists and get its session metadata
     const { data: exam, error: examError } = await adminSupabase
       .from('exams')
-      .select('id')
+      .select('id, school_id, course, batch, session')
       .eq('id', exam_id)
       .single();
 
@@ -37,16 +37,18 @@ export async function POST(req: Request) {
     }
 
     // 2. Insert into students table directly (exam_id + roll_number must be unique)
+    // course, batch, session are inherited from the exam — not from the caller
     const { data: newStudent, error: insertError } = await adminSupabase
       .from('students')
       .insert({
         exam_id,
+        school_id: exam.school_id,
         full_name,
         roll_number,
         date_of_birth,
-        course,
-        batch,
-        session,
+        course: exam.course ?? 'General',
+        batch: exam.batch ?? 'Main',
+        session: exam.session ?? '2026-27',
         status: 'assigned'
       })
       .select('*')
