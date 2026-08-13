@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, FileText, LayoutTemplate, ChevronDown, Eye, EyeOff, Trash2, Save } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, LayoutTemplate, ChevronDown, Eye, EyeOff, Trash2, Save, BookOpen } from 'lucide-react';
 
 export default function NewExamPage() {
   const router = useRouter();
@@ -17,6 +17,16 @@ export default function NewExamPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState<string | null>(null);
+
+  // Session Setup Modal (shown before the form)
+  const [showSessionModal, setShowSessionModal] = useState(true);
+  const [examCourse, setExamCourse] = useState('');
+  const [examBatch, setExamBatch] = useState('');
+  const [examSession, setExamSession] = useState('');
+  const [existingCourses, setExistingCourses] = useState<string[]>([]);
+  const [existingBatches, setExistingBatches] = useState<string[]>([]);
+  const [existingSessions, setExistingSessions] = useState<string[]>([]);
+  const [sessionModalError, setSessionModalError] = useState('');
 
   // Add Teacher Modal State
   const [showTeacherModal, setShowTeacherModal] = useState(false);
@@ -74,13 +84,20 @@ export default function NewExamPage() {
       if (!profile?.school_id) return;
       setSchoolId(profile.school_id);
 
-      const [teachersRes, templatesRes] = await Promise.all([
+      const [teachersRes, templatesRes, examsRes] = await Promise.all([
         supabase.from('teachers').select('*').eq('school_id', profile.school_id).order('department', { ascending: true }).order('full_name', { ascending: true }),
-        supabase.from('exam_templates').select('*, exam_template_subjects(*)').or(`school_id.is.null,school_id.eq.${profile.school_id}`).order('created_at', { ascending: false })
+        supabase.from('exam_templates').select('*, exam_template_subjects(*)').or(`school_id.is.null,school_id.eq.${profile.school_id}`).order('created_at', { ascending: false }),
+        supabase.from('exams').select('course, batch, session').eq('school_id', profile.school_id).not('course', 'is', null)
       ]);
 
       setTeachers(teachersRes.data || []);
       setTemplates(templatesRes.data || []);
+
+      // Collect unique values for dropdown suggestions
+      const exams = examsRes.data || [];
+      setExistingCourses([...new Set(exams.map((e: any) => e.course).filter(Boolean))]);
+      setExistingBatches([...new Set(exams.map((e: any) => e.batch).filter(Boolean))]);
+      setExistingSessions([...new Set(exams.map((e: any) => e.session).filter(Boolean))]);
 
       // Check for templateId in URL
       const searchParams = new URLSearchParams(window.location.search);
@@ -257,6 +274,9 @@ export default function NewExamPage() {
         },
         created_by: user?.id,
         exam_instructions: instructions.filter(inst => inst.trim() !== ''),
+        course: examCourse,
+        batch: examBatch,
+        session: examSession,
       }).select().single();
 
       if (examError) throw examError;
@@ -293,6 +313,103 @@ export default function NewExamPage() {
 
   return (
     <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500 mx-auto">
+
+      {/* === COMPULSORY SESSION SETUP MODAL === */}
+      {showSessionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface border border-border rounded-2xl shadow-2xl w-full max-w-md p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-accent-primary/10 rounded-xl">
+                <BookOpen className="w-6 h-6 text-accent-primary" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-text-main">Exam Session Setup</h2>
+                <p className="text-xs text-text-muted mt-0.5">Required before creating the exam</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Session */}
+              <div>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Academic Session <span className="text-red-500">*</span></label>
+                <input
+                  list="sessions-list"
+                  value={examSession}
+                  onChange={e => setExamSession(e.target.value)}
+                  placeholder="e.g. 2025-26"
+                  className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20"
+                />
+                <datalist id="sessions-list">
+                  {existingSessions.map(s => <option key={s} value={s} />)}
+                  {!existingSessions.includes('2024-25') && <option value="2024-25" />}
+                  {!existingSessions.includes('2025-26') && <option value="2025-26" />}
+                  {!existingSessions.includes('2026-27') && <option value="2026-27" />}
+                </datalist>
+              </div>
+
+              {/* Course */}
+              <div>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Course <span className="text-red-500">*</span></label>
+                <input
+                  list="courses-list"
+                  value={examCourse}
+                  onChange={e => setExamCourse(e.target.value)}
+                  placeholder="e.g. JEE, NEET, General"
+                  className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20"
+                />
+                <datalist id="courses-list">
+                  {existingCourses.map(c => <option key={c} value={c} />)}
+                  {!existingCourses.includes('JEE') && <option value="JEE" />}
+                  {!existingCourses.includes('NEET') && <option value="NEET" />}
+                  {!existingCourses.includes('General') && <option value="General" />}
+                </datalist>
+              </div>
+
+              {/* Batch */}
+              <div>
+                <label className="block text-sm font-semibold text-text-main mb-1.5">Batch <span className="text-red-500">*</span></label>
+                <input
+                  list="batches-list"
+                  value={examBatch}
+                  onChange={e => setExamBatch(e.target.value)}
+                  placeholder="e.g. Morning, Evening, Main"
+                  className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20"
+                />
+                <datalist id="batches-list">
+                  {existingBatches.map(b => <option key={b} value={b} />)}
+                  {!existingBatches.includes('Morning') && <option value="Morning" />}
+                  {!existingBatches.includes('Evening') && <option value="Evening" />}
+                  {!existingBatches.includes('Main') && <option value="Main" />}
+                </datalist>
+              </div>
+
+              {sessionModalError && (
+                <p className="text-red-500 text-sm font-medium">{sessionModalError}</p>
+              )}
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => {
+                  if (!examSession.trim() || !examCourse.trim() || !examBatch.trim()) {
+                    setSessionModalError('All three fields are required to create an exam.');
+                    return;
+                  }
+                  setSessionModalError('');
+                  setShowSessionModal(false);
+                }}
+                className="flex-1 bg-accent-primary text-white font-bold py-2.5 px-4 rounded-xl hover:opacity-90 transition-opacity"
+              >
+                Continue to Create Exam
+              </button>
+              <Link href="/exams" className="px-4 py-2.5 border border-border rounded-xl text-text-muted text-sm font-medium hover:bg-bg transition-colors">
+                Cancel
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
           <h2 className="text-xl font-bold text-text-main">Create New Exam</h2>
