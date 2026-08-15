@@ -144,7 +144,7 @@ export default function Step5Publish({
         // 1. Fetch assigned students directly from students table
         const { data: studentsData, error: sError } = await supabase
           .from('students')
-          .select('id, full_name, roll_number, course, batch, date_of_birth, session')
+          .select('id, full_name, roll_number, course, batch, date_of_birth, session, status, started_at, last_active_at, submitted_at')
           .eq('exam_id', exam.id);
         if (sError) throw sError;
 
@@ -161,46 +161,79 @@ export default function Step5Publish({
           .eq('exam_id', exam.id);
         if (!cancelled && qData) setQuestions(qData);
 
+        // Fetch exam subjects to build synthetic section_scores (all 0) for logged-in students with no result
+        const { data: subjectsData } = await supabase
+          .from('exam_subjects')
+          .select('subject_name, total_marks')
+          .eq('exam_id', exam.id)
+          .order('sort_order', { ascending: true });
+        const examSubjects = subjectsData || [];
+
+        const buildZeroSectionScores = () => {
+          if (examSubjects.length > 0) {
+            return examSubjects.map((subj: any) => ({
+              subject_name: subj.subject_name,
+              marks: 0,
+              max_marks: subj.total_marks || 0
+            }));
+          }
+
+          if (qData && qData.length > 0) {
+            const subjectSet = new Set<string>();
+            qData.forEach((q: any) => {
+              if (q.exam_subjects?.subject_name) {
+                subjectSet.add(q.exam_subjects.subject_name);
+              }
+            });
+            if (subjectSet.size > 0) {
+              return Array.from(subjectSet).map(subj => ({
+                subject_name: subj,
+                marks: 0,
+                max_marks: 0
+              }));
+            }
+          }
+
+          return [{
+            subject_name: 'Overall',
+            marks: 0,
+            max_marks: exam.total_marks || 0
+          }];
+        };
+
         // 3. Extract student IDs
         const studentIds = (studentsData || []).map((s: any) => s.id);
 
         // 4. Merge results with assigned students
-        let merged = [];
-        if (exam.status === 'completed') {
-          merged = studentIds.map((sid: any) => {
-            const studentResult = (resData || []).find((r: any) => r.student_id === sid);
-            const studentInfo = studentsData.find((s: any) => s.id === sid);
-            return {
-              id: studentResult?.id || `no-res-${sid}`,
-              student_id: sid,
-              exam_id: exam.id,
-              total_marks: studentResult ? studentResult.total_marks : null,
-              time_taken_seconds: studentResult?.time_taken_seconds || null,
-              submitted_at: studentResult?.submitted_at || null,
-              answers: studentResult?.answers || null,
-              section_scores: studentResult?.section_scores || null,
-              students: studentInfo || null,
-              isAbsent: !studentResult
-            };
-          });
-        } else {
-          // If ongoing, only show students who have a result entry (are in progress or submitted)
-          merged = (resData || []).map((studentResult: any) => {
-            const studentInfo = studentsData.find((s: any) => s.id === studentResult.student_id);
-            return {
-              id: studentResult.id,
-              student_id: studentResult.student_id,
-              exam_id: exam.id,
-              total_marks: studentResult.total_marks ?? null,
-              time_taken_seconds: studentResult.time_taken_seconds || null,
-              submitted_at: studentResult.submitted_at || null,
-              answers: studentResult.answers || null,
-              section_scores: studentResult.section_scores || null,
-              students: studentInfo || null,
-              isAbsent: false
-            };
-          });
-        }
+        let merged = studentIds.map((sid: any) => {
+          const studentResult = (resData || []).find((r: any) => r.student_id === sid);
+          const studentInfo = studentsData.find((s: any) => s.id === sid);
+          const hasLoggedIn = !!(
+            studentResult ||
+            (studentInfo && (
+              studentInfo.status === 'in_progress' ||
+              studentInfo.status === 'submitted' ||
+              studentInfo.started_at ||
+              studentInfo.last_active_at ||
+              studentInfo.submitted_at
+            ))
+          );
+          return {
+            id: studentResult?.id || `no-res-${sid}`,
+            student_id: sid,
+            exam_id: exam.id,
+            total_marks: studentResult ? studentResult.total_marks : (hasLoggedIn ? 0 : null),
+            time_taken_seconds: studentResult?.time_taken_seconds ?? (hasLoggedIn ? (studentInfo.last_active_at && studentInfo.started_at ? Math.max(0, Math.floor((new Date(studentInfo.last_active_at).getTime() - new Date(studentInfo.started_at).getTime()) / 1000)) : 0) : null),
+            submitted_at: studentResult?.submitted_at || (hasLoggedIn ? (studentInfo.submitted_at || studentInfo.last_active_at || studentInfo.started_at) : null),
+            answers: studentResult?.answers || (hasLoggedIn ? {} : null),
+            // For logged-in students with no result or empty/invalid section_scores, generate 0-mark section scores
+            section_scores: (Array.isArray(studentResult?.section_scores) && studentResult.section_scores.length > 0) 
+              ? studentResult.section_scores 
+              : (hasLoggedIn ? buildZeroSectionScores() : null),
+            students: studentInfo || null,
+            isAbsent: !hasLoggedIn
+          };
+        });
 
         // Sort by total marks descending (placing absent/null at the end)
         merged.sort((a: any, b: any) => {
@@ -801,7 +834,7 @@ export default function Step5Publish({
                                 Answer Key
                               </button>
                             ) : res.isAbsent ? (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">Absent</span>
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">Not Attempted</span>
                             ) : (
                               <span className="text-text-muted text-[11px] font-medium">In Progress</span>
                             )}

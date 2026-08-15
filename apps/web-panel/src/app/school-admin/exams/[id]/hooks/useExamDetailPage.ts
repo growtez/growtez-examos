@@ -943,14 +943,26 @@ export function useExamDetailPage(paramsId: string) {
 
     let assignedWithStudents: any[] = [];
     if (studentsData && studentsData.length > 0) {
-      assignedWithStudents = studentsData.map((s: any) => ({
-        id: s.id, // Keep wrapper object structure for components
-        exam_id: paramsId,
-        student_id: s.id,
-        status: s.status || 'assigned',
-        students: s,
-        result: examResults?.find((r: any) => r.student_id === s.id) || null
-      }));
+      assignedWithStudents = studentsData.map((s: any) => {
+        const hasLoggedIn = !!(s.status === 'in_progress' || s.status === 'submitted' || s.started_at || s.last_active_at || s.submitted_at);
+        const actualResult = examResults?.find((r: any) => r.student_id === s.id);
+        
+        let safeResult = actualResult || null;
+        if (safeResult && safeResult.total_marks == null) {
+          safeResult = { ...safeResult, total_marks: 0 };
+        } else if (!safeResult && hasLoggedIn) {
+          safeResult = { total_marks: 0, time_taken_seconds: 0, submitted_at: s.submitted_at || s.last_active_at || s.started_at };
+        }
+
+        return {
+          id: s.id,
+          exam_id: paramsId,
+          student_id: s.id,
+          status: s.status || 'assigned',
+          students: s,
+          result: safeResult
+        };
+      });
     }
     setAssignedStudents(assignedWithStudents);
 

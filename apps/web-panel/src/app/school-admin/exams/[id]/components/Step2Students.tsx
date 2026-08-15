@@ -84,25 +84,42 @@ export default function Step2Students({
   };
 
   const handleDownloadStudentsCsv = () => {
+    const header = isExamOver 
+      ? ["Name", "Roll Number", "DOB", "Status", "Score"]
+      : ["Name", "Roll Number", "DOB"];
+
     const data = [
-      ["name", "roll_number", "dob"],
+      header,
       ...assignedStudents.map((r: any) => {
         const s = r.students;
         if (!s) return null;
-        return [
-          s.full_name || '',
-          s.roll_number || '',
-          s.date_of_birth || ''
-        ];
+        
+        if (isExamOver) {
+          let statusText = r.status === 'assigned' ? 'Absent' : 'Completed';
+          
+          let score = r.result ? r.result.total_marks : (r.status === 'assigned' ? 'Absent' : 'N/A');
+          
+          return [
+            s.full_name || '',
+            s.roll_number || '',
+            s.date_of_birth || '',
+            statusText,
+            score
+          ];
+        } else {
+          return [
+            s.full_name || '',
+            s.roll_number || '',
+            s.date_of_birth || ''
+          ];
+        }
       }).filter(Boolean)
     ] as any[][];
 
     const ws = XLSX.utils.aoa_to_sheet(data);
-    ws['!cols'] = [
-      { wch: 25 }, // name
-      { wch: 15 }, // roll_number
-      { wch: 15 }  // dob
-    ];
+    ws['!cols'] = isExamOver 
+      ? [{ wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }]
+      : [{ wch: 25 }, { wch: 15 }, { wch: 15 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Students");
     XLSX.writeFile(wb, `${(exam?.title || 'exam').replace(/\s+/g, '_')}_students_${new Date().toISOString().split('T')[0]}.xlsx`);
