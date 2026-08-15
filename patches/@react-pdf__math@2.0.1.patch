@@ -1,0 +1,86 @@
+diff --git a/lib/index.d.ts b/lib/index.d.ts
+index 76f3d60026bd93c6e7d25aafcaee39624f79244e..495e48913f44e4e6cb11b365ecd8e609f8e6399d 100644
+--- a/lib/index.d.ts
++++ b/lib/index.d.ts
+@@ -30,6 +30,11 @@ interface MathProps {
+      * @default false
+      */
+     debug?: boolean;
++    /**
++     * Font size to scale math.
++     * @default 10
++     */
++    fontSize?: number;
+ }
+ /**
+  * Renders a LaTeX math expression as SVG in a react-pdf document.
+@@ -39,6 +44,6 @@ interface MathProps {
+  * <Math width={200} height={40}>{"\\int_0^\\infty e^{-x^2} dx"}</Math>
+  * ```
+  */
+-declare const Math: ({ children, inline, width, height, color, debug, }: MathProps) => react.ReactElement<any, string | react.JSXElementConstructor<any>>;
++declare const Math: ({ children, inline, width, height, color, debug, fontSize, }: MathProps) => react.ReactElement<any, string | react.JSXElementConstructor<any>>;
+ 
+ export { Math };
+diff --git a/lib/index.js b/lib/index.js
+index 537520a4e40177a23e966e57593bd286b69d2fe1..478fe066b0bc6e1d62af0eb8781a82a9847c61b2 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -28,7 +28,7 @@ const DEFAULT_HEIGHT = 22;
+  * - If only one is provided, compute the other from the viewBox aspect ratio.
+  * - If neither is provided, use a default height and derive width from the aspect ratio.
+  */
+-function resolveDimensions(props, width, height) {
++function resolveDimensions(props, width, height, fontSize = 10) {
+     const viewBox = props.viewBox;
+     const parts = viewBox?.split(/[\s,]+/).map(Number);
+     const vbWidth = parts?.[2] || 1;
+@@ -43,7 +43,18 @@ function resolveDimensions(props, width, height) {
+     if (width !== undefined) {
+         return { width: Number(width), height: Number(width) / aspectRatio };
+     }
+-    return { width: DEFAULT_HEIGHT * aspectRatio, height: DEFAULT_HEIGHT };
++    
++    // Parse height in 'ex' from props
++    let exHeight = 2.2;
++    if (props.height && typeof props.height === 'string' && props.height.endsWith('ex')) {
++        exHeight = parseFloat(props.height);
++    } else if (props.height && typeof props.height === 'number') {
++        exHeight = props.height;
++    }
++    
++    // 1ex is approx 0.5em. 1em = fontSize
++    const calculatedHeight = exHeight * 0.5 * fontSize;
++    return { width: calculatedHeight * aspectRatio, height: calculatedHeight };
+ }
+ /**
+  * Attributes to skip (not relevant for react-pdf)
+@@ -85,13 +96,13 @@ function mapSvgNode(node, key = 0, options) {
+     const { type, props, children } = node;
+     const color = options?.color || 'black';
+     const childElements = (children || [])
+-        .map((child, i) => mapSvgNode(child, i, { width: 0, height: 0, color }))
++        .map((child, i) => mapSvgNode(child, i, { width: 0, height: 0, color, fontSize: options?.fontSize }))
+         .filter(Boolean);
+     const mappedProps = mapAttributes(props, color);
+     switch (type) {
+         case P.Svg: {
+             const svgProps = { ...mappedProps };
+-            const dims = resolveDimensions(props, options?.width, options?.height);
++            const dims = resolveDimensions(props, options?.width, options?.height, options?.fontSize);
+             svgProps.width = dims.width;
+             svgProps.height = dims.height;
+             return (jsx(Svg, { ...svgProps, debug: options?.debug, children: childElements }, key));
+@@ -129,10 +140,10 @@ function mapSvgNode(node, key = 0, options) {
+  * <Math width={200} height={40}>{"\\int_0^\\infty e^{-x^2} dx"}</Math>
+  * ```
+  */
+-const Math = ({ children, inline = false, width, height, color = 'black', debug = false, }) => {
++const Math = ({ children, inline = false, width, height, color = 'black', debug = false, fontSize = 10, }) => {
+     const svgString = latexToSvg(children, { display: !inline });
+     const svgTree = parseSvg(svgString);
+-    return mapSvgNode(svgTree, 'math', { width, height, color, debug });
++    return mapSvgNode(svgTree, 'math', { width, height, color, debug, fontSize });
+ };
+ 
+ export { Math };

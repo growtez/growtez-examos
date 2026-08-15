@@ -163,10 +163,10 @@ export const ResultsDocument = ({ data }: { data: ResultsData }) => {
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.headerBanner}>
-          <Text style={styles.examTitle}>{examTitle}</Text>
+          <Text style={styles.examTitle}>{String(examTitle)}</Text>
           <Text style={styles.subtitle}>Exam Results</Text>
           <Text style={styles.metaText}>
-            Date: {formattedDate}  |  Total Marks: {totalExamMarks}  |  {filterText}  |  Total Students: {results.length}
+            Date: {String(formattedDate)}  |  Total Marks: {String(totalExamMarks)}  |  {String(filterText)}  |  Total Students: {String(results.length)}
           </Text>
         </View>
 
@@ -184,8 +184,8 @@ export const ResultsDocument = ({ data }: { data: ResultsData }) => {
           </View>
 
           {rankedResults.map((row, index) => {
-            const score = row.isAbsent ? 'Absent' : (row.total_marks ?? 'N/A');
-            const isNA = score === 'Absent' || score === 'N/A';
+            const score = row.isAbsent ? 'Not Attempted' : (row.total_marks ?? 'N/A');
+            const isNA = score === 'Not Attempted' || score === 'N/A';
             const rowStyle = index % 2 === 0 ? styles.tableRow : styles.tableRowAlt;
 
             return (
@@ -196,11 +196,11 @@ export const ResultsDocument = ({ data }: { data: ResultsData }) => {
                 <View style={styles.colCourse}><Text style={styles.cellMuted}>{row.students?.course || '—'}</Text></View>
                 <View style={styles.colBatch}><Text style={styles.cellMuted}>{row.students?.batch || '—'}</Text></View>
                 <View style={styles.colScore}>
-                  <Text style={isNA ? styles.scoreTextNA : styles.scoreText}>{score}</Text>
+                  <Text style={isNA ? styles.scoreTextNA : styles.scoreText}>{String(score)}</Text>
                 </View>
                 <View style={styles.colStatus}>
                   {row.isAbsent
-                    ? <Text style={styles.absentBadge}>Absent</Text>
+                    ? <Text style={styles.absentBadge}>Not Attempted</Text>
                     : <Text style={[styles.cellText, { color: '#0f766e' }]}>Done</Text>
                   }
                 </View>

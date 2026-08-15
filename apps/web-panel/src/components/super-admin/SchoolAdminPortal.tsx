@@ -12,6 +12,8 @@ import { LayoutDashboard, FileText, GraduationCap, Trophy, Users, MessageSquare,
 import SchoolFeedbackContent from './SchoolFeedbackContent';
 import SchoolNotificationsContent from './SchoolNotificationsContent';
 import EditSchoolCredits from './EditSchoolCredits';
+import EditSchoolAdminEmailModal from './EditSchoolAdminEmailModal';
+import { Edit2 } from 'lucide-react';
 
 const menuItems = [
   { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -26,6 +28,8 @@ export function SchoolAdminPortal({ school, schoolAdmin }: { school: any; school
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showCreditsPage, setShowCreditsPage] = useState(school.show_credits_page !== false);
   const [savingCreditsToggle, setSavingCreditsToggle] = useState(false);
+  const [adminEmail, setAdminEmail] = useState(schoolAdmin?.email || '');
+  const [isEditEmailOpen, setIsEditEmailOpen] = useState(false);
   const schoolId = school.id;
   const supabase = createClient();
 
@@ -104,7 +108,18 @@ export function SchoolAdminPortal({ school, schoolAdmin }: { school: any; school
                     <span className="text-border/60 font-normal">•</span>
                     <span>Phone: {school.contact_phone || '—'}</span>
                     <span className="text-border/60 font-normal">•</span>
-                    <span>Admin: {schoolAdmin?.full_name ? `${schoolAdmin.full_name} (${schoolAdmin.email})` : 'No admin assigned'}</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      Admin: {schoolAdmin?.full_name ? `${schoolAdmin.full_name} (${adminEmail || schoolAdmin.email})` : 'No admin assigned'}
+                      {schoolAdmin && (
+                        <button
+                          onClick={() => setIsEditEmailOpen(true)}
+                          title="Change admin email"
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-bold bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white transition-colors cursor-pointer border-none ml-1"
+                        >
+                          <Edit2 size={11} /> Edit Email
+                        </button>
+                      )}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -136,6 +151,17 @@ export function SchoolAdminPortal({ school, schoolAdmin }: { school: any; school
         )}
         {renderActiveView()}
       </div>
+
+      {schoolAdmin && (
+        <EditSchoolAdminEmailModal
+          adminId={schoolAdmin.id}
+          adminName={schoolAdmin.full_name}
+          currentEmail={adminEmail || schoolAdmin.email}
+          isOpen={isEditEmailOpen}
+          onClose={() => setIsEditEmailOpen(false)}
+          onSuccess={(newEmail) => setAdminEmail(newEmail)}
+        />
+      )}
     </div>
   );
 }

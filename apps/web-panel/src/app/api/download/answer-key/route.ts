@@ -19,27 +19,53 @@ export async function GET(request: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // 1. Fetch Result
-  const { data: result, error: resultError } = await supabase
-    .from('results')
-    .select('*')
-    .eq('id', resultId)
-    .single();
+  let result: any = null;
 
-  if (resultError || !result) {
-    console.error('API Error fetching result:', resultError);
-    return new NextResponse(`Result not found. DB Error: ${resultError?.message || 'Unknown'} - Details: ${resultError?.details || ''} - Hint: ${resultError?.hint || ''}`, { status: 404 });
-  }
-
-  // 1b. Fetch Student manually since there's no foreign key
-  const { data: student } = await supabase
-    .from('students')
-    .select('full_name, roll_number')
-    .eq('id', result.student_id)
-    .single();
+  if (resultId.startsWith('no-res-')) {
+    const studentId = resultId.replace('no-res-', '');
+    const { data: student } = await supabase
+      .from('students')
+      .select('*')
+      .eq('id', studentId)
+      .single();
     
-  if (student) {
-    result.students = student;
+    if (!student) {
+      return new NextResponse('Student not found', { status: 404 });
+    }
+    
+    result = {
+      id: resultId,
+      student_id: studentId,
+      exam_id: student.exam_id,
+      total_marks: 0,
+      answers: {},
+      students: student
+    };
+  } else {
+    // 1. Fetch Result
+    const { data: resData, error: resultError } = await supabase
+      .from('results')
+      .select('*')
+      .eq('id', resultId)
+      .single();
+
+    if (resultError || !resData) {
+      console.error('API Error fetching result:', resultError);
+      return new NextResponse(`Result not found. DB Error: ${resultError?.message || 'Unknown'} - Details: ${resultError?.details || ''} - Hint: ${resultError?.hint || ''}`, { status: 404 });
+    }
+    
+    result = resData;
+
+    // 1b. Fetch Student manually since there's no foreign key
+    const { data: student } = await supabase
+      .from('students')
+      .select('full_name, roll_number')
+      .eq('id', result.student_id)
+      .single();
+      
+    if (student) {
+      result.students = student;
+    }
   }
 
   // 2. Fetch Exam

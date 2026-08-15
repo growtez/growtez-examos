@@ -49,6 +49,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'You have already submitted this exam.' }, { status: 403, headers: corsHeaders });
       }
 
+      await adminSupabase
+        .from('students')
+        .update({ last_active_at: new Date().toISOString() })
+        .eq('id', student.id);
+
       const payload = {
         role: 'authenticated',
         iss: 'supabase',
@@ -84,7 +89,7 @@ export async function POST(req: Request) {
     // 2. Find ALL student rows matching roll+dob across those exams (no .single()!)
     const { data: students, error: studentsError } = await adminSupabase
       .from('students')
-      .select('*, exams(id, title, description, duration_minutes, start_time, end_time, status)')
+      .select('*, exams(*)')
       .in('exam_id', examIds)
       .eq('roll_number', roll_number)
       .eq('date_of_birth', dob);
@@ -102,6 +107,13 @@ export async function POST(req: Request) {
         { status: 403, headers: corsHeaders }
       );
     }
+
+    // Touch last_active_at for all pending matching student rows
+    const pendingIds = pending.map((s: any) => s.id);
+    await adminSupabase
+      .from('students')
+      .update({ last_active_at: new Date().toISOString() })
+      .in('id', pendingIds);
 
     // 4. Single pending exam → issue JWT immediately (no picker needed)
     if (pending.length === 1) {

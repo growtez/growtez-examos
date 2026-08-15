@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { parseExamInstructions } from '../lib/instructions';
 
 interface WaitingRoomProps {
   studentProfile: any;
@@ -13,6 +14,28 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
   const [isEnded, setIsEnded] = useState(false);
   const [canStart, setCanStart] = useState(false);
   const [starting, setStarting] = useState(false);
+  // Directly fetched exam instructions (guaranteed to be up-to-date from DB)
+  const [examInstructions, setExamInstructions] = useState<string[]>([]);
+
+  // Direct fetch of exam_instructions from DB using student's JWT session.
+  // This is necessary because the login API join response may not always include
+  // all JSONB columns reliably (e.g. empty array vs null vs missing key).
+  useEffect(() => {
+    if (!exam?.id) return;
+    supabase
+      .from('exams')
+      .select('exam_instructions')
+      .eq('id', exam.id)
+      .single()
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setExamInstructions(parseExamInstructions(data.exam_instructions));
+        } else {
+          // Fallback to whatever came from the login response
+          setExamInstructions(parseExamInstructions(exam?.exam_instructions));
+        }
+      });
+  }, [exam?.id]);
 
   useEffect(() => {
     if (!exam) return;
@@ -164,37 +187,48 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
             </div>
 
             {/* Rules and Tips */}
-            <div className="border-t border-[#E4E7EC] pt-6">
-              <div className="border-l-4 border-[#008080] pl-3 mb-4">
-                <h3 className="text-sm font-extrabold text-[#1D2939] uppercase tracking-wider">Important Instructions</h3>
-              </div>
-              <ul className="space-y-3">
-                {/* General Instructions */}
-                <li className="flex gap-3 text-sm text-[#667085] font-medium">
-                  <span className="text-[#008080] font-bold mt-0.5">▸</span>
-                  Do not refresh the page or close the application once the exam has started.
-                </li>
-                <li className="flex gap-3 text-sm text-[#667085] font-medium">
-                  <span className="text-[#008080] font-bold mt-0.5">▸</span>
-                  The timer will run continuously. If you get disconnected, your time will keep running on the server.
-                </li>
-                <li className="flex gap-3 text-sm text-[#667085] font-medium">
-                  <span className="text-[#008080] font-bold mt-0.5">▸</span>
-                  Your answers are automatically saved as you select them.
-                </li>
-                <li className="flex gap-3 text-sm text-[#667085] font-medium">
-                  <span className="text-[#008080] font-bold mt-0.5">▸</span>
-                  Once the exam end time is reached, it will be automatically submitted regardless of your progress.
-                </li>
-
-                {/* Custom Exam-Specific Instructions */}
-                {exam?.exam_instructions && exam.exam_instructions.map((inst: string, idx: number) => (
-                  <li key={idx} className="flex gap-3 text-sm text-[#667085] font-medium">
+            <div className="border-t border-[#E4E7EC] pt-6 space-y-6">
+              <div>
+                <div className="border-l-4 border-[#008080] pl-3 mb-3">
+                  <h3 className="text-sm font-extrabold text-[#1D2939] uppercase tracking-wider">Important Instructions</h3>
+                </div>
+                <ul className="space-y-3">
+                  {/* General Instructions */}
+                  <li className="flex gap-3 text-sm text-[#667085] font-medium">
                     <span className="text-[#008080] font-bold mt-0.5">▸</span>
-                    {inst}
+                    Do not refresh the page or close the application once the exam has started.
                   </li>
-                ))}
-              </ul>
+                  <li className="flex gap-3 text-sm text-[#667085] font-medium">
+                    <span className="text-[#008080] font-bold mt-0.5">▸</span>
+                    The timer will run continuously. If you get disconnected, your time will keep running on the server.
+                  </li>
+                  <li className="flex gap-3 text-sm text-[#667085] font-medium">
+                    <span className="text-[#008080] font-bold mt-0.5">▸</span>
+                    Your answers are automatically saved as you select them.
+                  </li>
+                  <li className="flex gap-3 text-sm text-[#667085] font-medium">
+                    <span className="text-[#008080] font-bold mt-0.5">▸</span>
+                    Once the exam end time is reached, it will be automatically submitted regardless of your progress.
+                  </li>
+                </ul>
+              </div>
+
+              {/* Additional Exam-Specific Instructions */}
+              {examInstructions.length > 0 && (
+                <div>
+                  <div className="border-l-4 border-[#008080] pl-3 mb-3">
+                    <h3 className="text-sm font-extrabold text-[#008080] uppercase tracking-wider">Additional Exam Instructions</h3>
+                  </div>
+                  <ul className="space-y-2.5 bg-[#008080]/5 p-4 border border-[#008080]/20">
+                    {examInstructions.map((inst: string, idx: number) => (
+                      <li key={idx} className="flex gap-3 text-sm text-[#1D2939] font-medium">
+                        <span className="text-[#008080] font-bold mt-0.5">▸</span>
+                        {inst}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
 

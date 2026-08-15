@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { getDeviceId } from '../lib/deviceId';
+import { parseExamInstructions } from '../lib/instructions';
 import Calculator from './Calculator';
 import Numpad from './Numpad';
 import MathRenderer from './MathRenderer';
@@ -160,6 +161,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const [timeLeft, setTimeLeft] = useState(getInitialTimeLeft());
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showLegendModal, setShowLegendModal] = useState(false);
+  const [showInstructionsModal, setShowInstructionsModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -167,6 +169,8 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   // Prevent double auto-submit
   const autoSubmittedRef = useRef(false);
   const questionContentRef = useRef<HTMLDivElement>(null);
+  // Directly-fetched exam instructions (guarantees data even if login response omitted it)
+  const [examInstructions, setExamInstructions] = useState<string[]>([]);
 
   // True when the student is re-entering an exam that was already in-progress
   const [isResuming] = useState(!!exam.student_started_at);
@@ -191,6 +195,23 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       questionContentRef.current.scrollTop = 0;
     }
   }, [currentQuestionIndex, currentSubjectIndex]);
+
+  // Fetch exam_instructions directly from DB — the login API join may not always include it
+  useEffect(() => {
+    if (!exam?.id) return;
+    supabase
+      .from('exams')
+      .select('exam_instructions')
+      .eq('id', exam.id)
+      .single()
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setExamInstructions(parseExamInstructions(data.exam_instructions));
+        } else {
+          setExamInstructions(parseExamInstructions(exam?.exam_instructions));
+        }
+      });
+  }, [exam?.id]);
 
   useEffect(() => {
     const fetchSchoolData = async () => {
@@ -815,19 +836,33 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           </div>
         </div>
 
-        {/* Calculator Trigger Button */}
-        {exam.allow_calculator && (
+        <div className="flex items-center gap-2">
+          {/* Instructions Trigger Button */}
           <button
-            onClick={() => setShowCalculator(prev => !prev)}
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded-none bg-[#195e5e] hover:bg-[#003333] active:bg-[#002222] text-white transition-all text-s font-bold shadow-sm"
-            title="Toggle Calculator"
+            onClick={() => setShowInstructionsModal(true)}
+            className="flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-none bg-[#195e5e] hover:bg-[#003333] active:bg-[#002222] text-white transition-all text-xs font-bold shadow-sm"
+            title="View Exam Instructions"
           >
-            <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
-            Calculator
+            Instructions
           </button>
-        )}
+
+          {/* Calculator Trigger Button */}
+          {exam.allow_calculator && (
+            <button
+              onClick={() => setShowCalculator(prev => !prev)}
+              className="flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-none bg-[#195e5e] hover:bg-[#003333] active:bg-[#002222] text-white transition-all text-xs font-bold shadow-sm"
+              title="Toggle Calculator"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              Calculator
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Resume Banner — shown when student re-enters a mid-exam session */}
@@ -1322,6 +1357,81 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
       {/* Floating Calculator */}
       {showCalculator && (
         <Calculator onClose={() => setShowCalculator(false)} />
+      )}
+
+      {/* Exam Instructions Modal */}
+      {showInstructionsModal && (
+        <div className="fixed inset-0 bg-[#1D2939]/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-[#E4E7EC] rounded-none w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="bg-[#008080] px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <h3 className="text-sm font-extrabold text-white uppercase tracking-widest">Exam Instructions</h3>
+              </div>
+              <button
+                onClick={() => setShowInstructionsModal(false)}
+                className="text-white/80 hover:text-white text-lg font-bold p-1 leading-none focus:outline-none cursor-pointer"
+                aria-label="Close"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              {/* General Instructions */}
+              <div>
+                <h4 className="text-xs font-bold text-[#667085] uppercase tracking-wider mb-3">General Rules</h4>
+                <ul className="space-y-2.5">
+                  <li className="flex gap-3 text-sm text-[#667085] font-medium">
+                    <span className="text-[#008080] font-bold mt-0.5">▸</span>
+                    Do not refresh the page or close the application once the exam has started.
+                  </li>
+                  <li className="flex gap-3 text-sm text-[#667085] font-medium">
+                    <span className="text-[#008080] font-bold mt-0.5">▸</span>
+                    The timer will run continuously. If you get disconnected, your time keeps running on the server.
+                  </li>
+                  <li className="flex gap-3 text-sm text-[#667085] font-medium">
+                    <span className="text-[#008080] font-bold mt-0.5">▸</span>
+                    Your answers are automatically saved as you select them or click Save &amp; Next.
+                  </li>
+                  <li className="flex gap-3 text-sm text-[#667085] font-medium">
+                    <span className="text-[#008080] font-bold mt-0.5">▸</span>
+                    Once the exam end time is reached, it will be automatically submitted regardless of your progress.
+                  </li>
+                </ul>
+              </div>
+
+              {/* Additional Custom Instructions if present */}
+              {examInstructions.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-[#008080] uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#008080]"></span>
+                    Additional Instructions
+                  </h4>
+                  <ul className="space-y-2.5 bg-[#008080]/5 p-4 border border-[#008080]/20 rounded-none">
+                    {examInstructions.map((inst, idx) => (
+                      <li key={idx} className="flex gap-3 text-sm text-[#1D2939] font-medium">
+                        <span className="text-[#008080] font-bold mt-0.5">▸</span>
+                        <span>{inst}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-[#E4E7EC] p-4 bg-[#F9FAFB] flex justify-end">
+              <button
+                onClick={() => setShowInstructionsModal(false)}
+                className="px-6 py-2 bg-[#008080] hover:bg-[#006666] text-white font-bold text-xs rounded-none transition-all uppercase shadow-sm cursor-pointer border-none"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
