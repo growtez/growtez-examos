@@ -104,9 +104,25 @@ export default function MathRenderer({ text, className, inline = false }: MathRe
           const latex = part.slice(1, -1).trim();
           return <MathBlock key={i} latex={latex} displayMode={false} raw={part} />;
         }
+        // Split plain text by markdown image syntax
+        const imageParts = part.split(/(!\[.*?\]\(.*?\))/g);
+        
         return (
           <span key={i} className="whitespace-pre-wrap">
-            {part}
+            {imageParts.map((subPart, j) => {
+              const imgMatch = subPart.match(/!\[(.*?)\]\((.*?)\)/);
+              if (imgMatch) {
+                return (
+                  <img 
+                    key={j} 
+                    src={imgMatch[2]} 
+                    alt={imgMatch[1]} 
+                    className="max-w-full h-auto inline-block my-2 rounded-lg border border-border shadow-sm" 
+                  />
+                );
+              }
+              return subPart;
+            })}
           </span>
         );
       })}

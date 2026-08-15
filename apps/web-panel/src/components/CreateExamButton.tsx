@@ -9,49 +9,8 @@ export default function CreateExamButton() {
   const [creating, setCreating] = useState(false);
   const router = useRouter();
 
-  const handleCreateExam = async () => {
-    const supabase = createClient();
-    setCreating(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) throw new Error('Not authenticated');
-
-      const currentRole = user.user_metadata?.role || 'school_admin';
-      let schoolId: string | null = null;
-
-      if (currentRole === 'school_admin') {
-        const { data: profile } = await supabase.from('school_admins').select('school_id').eq('id', user.id).single();
-        schoolId = profile?.school_id ?? null;
-      } else {
-        const { data: profile } = await supabase.from('teachers').select('school_id').eq('id', user.id).single();
-        schoolId = profile?.school_id ?? null;
-      }
-
-      if (!schoolId) throw new Error('School not found');
-
-
-      const { data: exam, error } = await supabase.from('exams').insert({
-        school_id: schoolId,
-        title: 'Untitled Exam',
-        duration_minutes: 180,
-        status: 'draft',
-        marking_scheme: { mcq_correct: 4, mcq_wrong: -1, nat_correct: 4, nat_wrong: 0 },
-        exam_instructions: [
-          'The test contains multiple-choice questions (MCQs) and numerical value questions.',
-          'No deduction from the total score will be made if no response is indicated.',
-          'The test will automatically end when the time limit is reached.'
-        ],
-        created_by: user.id
-      }).select().single();
-
-      if (error) throw error;
-
-      router.push(`/exams/${exam.id}`);
-    } catch (err: any) {
-      alert('Error creating exam: ' + err.message);
-      setCreating(false);
-    }
+  const handleCreateExam = () => {
+    router.push('/exams/new');
   };
 
   return (
@@ -67,7 +26,7 @@ export default function CreateExamButton() {
           <Plus size={18} />
         )}
       </div>
-      <span className="font-bold text-xs text-text-main group-hover:text-accent-primary transition-colors">{creating ? 'Creating...' : 'Create Exam'}</span>
+      <span className="font-bold text-xs text-text-main group-hover:text-accent-primary transition-colors">Create Exam</span>
     </button>
   );
 }

@@ -174,13 +174,13 @@ function ForgotPasswordContent() {
             )}
             
             {success && (
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/5 border border-green-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-accent-primary/10 to-accent-primary/5 border border-accent-primary/20 shadow-[0_0_15px_rgba(0,128,128,0.1)]">
                 <div className="mt-0.5">
-                  <svg className="w-5 h-5 text-green-500 drop-shadow-[0_0_5px_rgba(34,197,94,0.4)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  <svg className="w-5 h-5 text-accent-primary drop-shadow-[0_0_5px_rgba(0,128,128,0.4)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <div>
-                  <h4 className="text-green-400 font-bold text-[13px] tracking-wide">Action Successful</h4>
-                  <p className="text-green-500/90 text-xs mt-0.5 font-medium leading-relaxed">{success}</p>
+                  <h4 className="text-accent-primary font-bold text-[13px] tracking-wide">Action Successful</h4>
+                  <p className="text-text-main text-xs mt-0.5 font-medium leading-relaxed">{success}</p>
                 </div>
               </div>
             )}

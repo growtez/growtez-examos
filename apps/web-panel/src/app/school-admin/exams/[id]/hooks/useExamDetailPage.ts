@@ -1422,7 +1422,10 @@ export function useExamDetailPage(paramsId: string) {
               full_name: row.name,
               roll_number: row.roll,
               date_of_birth: formattedDob,
-              exam_id: paramsId
+              exam_id: paramsId,
+              course: exam.course,
+              batch: exam.batch,
+              session: exam.session
             }),
           });
           if (res.ok) {
@@ -1494,12 +1497,12 @@ export function useExamDetailPage(paramsId: string) {
     });
   };
 
-  const handleDuplicate = async (newTitle: string) => {
+  const handleDuplicate = async (newTitle: string, options: any) => {
     if (!newTitle) return;
-    await doDuplicate(newTitle);
+    await doDuplicate(newTitle, options);
   };
 
-  const doDuplicate = async (newTitle: string) => {
+  const doDuplicate = async (newTitle: string, options: any) => {
     if (!newTitle.trim()) return;
     setLoading(true);
     try {
@@ -1516,71 +1519,100 @@ export function useExamDetailPage(paramsId: string) {
           total_marks: exam.total_marks,
           is_paid: false,
           exam_instructions: exam.exam_instructions,
-          created_by: exam.created_by
+          created_by: exam.created_by,
+          course: options.details ? exam.course : null,
+          batch: options.details ? exam.batch : null,
+          session: options.details ? exam.session : null,
+          allow_calculator: options.calculator ? exam.allow_calculator : false
         })
         .select()
         .single();
 
       if (examError || !newExam) throw examError || new Error('Failed to create new exam');
 
-      // 2. Fetch old subjects
-      const { data: oldSubjects, error: subjectsError } = await supabase
-        .from('exam_subjects')
-        .select('*')
-        .eq('exam_id', paramsId);
-      
-      if (subjectsError) throw subjectsError;
+      if (options.questions) {
+        // 2. Fetch old subjects
+        const { data: oldSubjects, error: subjectsError } = await supabase
+          .from('exam_subjects')
+          .select('*')
+          .eq('exam_id', paramsId);
+        
+        if (subjectsError) throw subjectsError;
 
-      // 3. Create new subjects and build a mapping
-      const oldToNewSubjectMap: Record<string, string> = {};
-      if (oldSubjects && oldSubjects.length > 0) {
-        for (const subj of oldSubjects) {
-          const { data: newSubj, error: subjInsertError } = await supabase
-            .from('exam_subjects')
-            .insert({
-              exam_id: newExam.id,
-              subject_name: subj.subject_name,
-              question_count: subj.question_count,
-              sort_order: subj.sort_order
-            })
-            .select()
-            .single();
+        // 3. Create new subjects and build a mapping
+        const oldToNewSubjectMap: Record<string, string> = {};
+        if (oldSubjects && oldSubjects.length > 0) {
+          for (const subj of oldSubjects) {
+            const { data: newSubj, error: subjInsertError } = await supabase
+              .from('exam_subjects')
+              .insert({
+                exam_id: newExam.id,
+                subject_name: subj.subject_name,
+                question_count: subj.question_count,
+                sort_order: subj.sort_order
+              })
+              .select()
+              .single();
+            
+            if (subjInsertError || !newSubj) throw subjInsertError || new Error('Failed to copy subject');
+            oldToNewSubjectMap[subj.id] = newSubj.id;
+          }
+        }
+
+        // 4. Fetch old questions
+        const { data: oldQuestions, error: questionsError } = await supabase
+          .from('questions')
+          .select('*')
+          .eq('exam_id', paramsId);
+
+        if (questionsError) throw questionsError;
+
+        // 5. Insert new questions
+        if (oldQuestions && oldQuestions.length > 0) {
+          const questionsToInsert = oldQuestions.map(q => ({
+            exam_id: newExam.id,
+            school_id: exam.school_id,
+            exam_subject_id: q.exam_subject_id ? oldToNewSubjectMap[q.exam_subject_id] : null,
+            question_text: q.question_text,
+            image_url: q.image_url,
+            question_type: q.question_type,
+            options: q.options,
+            correct_option: q.correct_option,
+            positive_marks: q.positive_marks,
+            negative_marks: q.negative_marks,
+            question_number: q.question_number,
+            marks: q.marks
+          }));
+
+          const { error: batchInsertError } = await supabase
+            .from('questions')
+            .insert(questionsToInsert);
           
-          if (subjInsertError || !newSubj) throw subjInsertError || new Error('Failed to copy subject');
-          oldToNewSubjectMap[subj.id] = newSubj.id;
+          if (batchInsertError) throw batchInsertError;
         }
       }
 
-      // 4. Fetch old questions
-      const { data: oldQuestions, error: questionsError } = await supabase
-        .from('questions')
-        .select('*')
-        .eq('exam_id', paramsId);
-
-      if (questionsError) throw questionsError;
-
-      // 5. Insert new questions
-      if (oldQuestions && oldQuestions.length > 0) {
-        const questionsToInsert = oldQuestions.map(q => ({
-          exam_id: newExam.id,
-          school_id: exam.school_id,
-          exam_subject_id: q.exam_subject_id ? oldToNewSubjectMap[q.exam_subject_id] : null,
-          question_text: q.question_text,
-          image_url: q.image_url,
-          question_type: q.question_type,
-          options: q.options,
-          correct_option: q.correct_option,
-          positive_marks: q.positive_marks,
-          negative_marks: q.negative_marks,
-          question_number: q.question_number,
-          marks: q.marks
-        }));
-
-        const { error: batchInsertError } = await supabase
-          .from('questions')
-          .insert(questionsToInsert);
+      if (options.teachers) {
+        // Fetch old teachers
+        const { data: oldTeachers, error: teachersError } = await supabase
+          .from('exam_teachers')
+          .select('*')
+          .eq('exam_id', paramsId);
         
-        if (batchInsertError) throw batchInsertError;
+        if (teachersError) throw teachersError;
+
+        if (oldTeachers && oldTeachers.length > 0) {
+          const teachersToInsert = oldTeachers.map(t => ({
+            exam_id: newExam.id,
+            teacher_id: t.teacher_id,
+            permissions: t.permissions
+          }));
+          const { error: batchInsertTeacherError } = await supabase
+            .from('exam_teachers')
+            .insert(teachersToInsert);
+          
+          if (batchInsertTeacherError) throw batchInsertTeacherError;
+        }
       }
 
       // Redirect to the new exam page

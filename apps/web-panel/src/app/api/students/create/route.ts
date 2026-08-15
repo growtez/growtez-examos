@@ -46,9 +46,9 @@ export async function POST(req: Request) {
         full_name,
         roll_number,
         date_of_birth,
-        course: exam.course ?? 'General',
-        batch: exam.batch ?? 'Main',
-        session: exam.session ?? '2026-27',
+        course: course || exam.course || 'General',
+        batch: batch || exam.batch || 'Main',
+        session: session || exam.session || '2026-27',
         status: 'assigned'
       })
       .select('*')

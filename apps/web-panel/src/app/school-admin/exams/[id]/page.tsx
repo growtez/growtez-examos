@@ -433,11 +433,17 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
   const [duplicateTitleInput, setDuplicateTitleInput] = useState("");
   const [isDuplicating, setIsDuplicating] = useState(false);
+  const [duplicateOptions, setDuplicateOptions] = useState({
+    details: true,
+    calculator: true,
+    questions: true,
+    teachers: true
+  });
 
   const confirmDuplicateExam = async () => {
     if (!duplicateTitleInput.trim()) return;
     setIsDuplicating(true);
-    await handleDuplicate(duplicateTitleInput);
+    await handleDuplicate(duplicateTitleInput, duplicateOptions);
     setIsDuplicating(false);
     setShowDuplicateConfirm(false);
   };
@@ -543,6 +549,33 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
           {isDraftStepperMode && (
             <>
               <div className="sticky top-0 z-30 -mx-2 sm:-mx-6 -mt-6 pt-3 px-2 sm:px-6 pb-2 bg-bg relative isolate before:pointer-events-none before:absolute before:inset-x-0 before:-top-12 before:bottom-0 before:z-[-1] before:bg-bg">
+                {/* Exam Title and Meta Info Header */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 w-full max-w-5xl mx-auto mb-4 bg-surface p-3 sm:px-5 rounded-2xl border border-border shadow-sm">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-text-main leading-tight line-clamp-1" title={exam?.title || "Exam Setup"}>
+                      {exam?.title || "Exam Setup"}
+                    </h2>
+                    {(exam?.course || exam?.batch || exam?.session) && (
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mt-1.5">
+                        {exam?.course && (
+                          <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-text-muted bg-surface-hover px-2 py-0.5 rounded uppercase tracking-wider">
+                            Course: <span className="text-accent-primary">{exam.course}</span>
+                          </span>
+                        )}
+                        {exam?.batch && (
+                          <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-text-muted bg-surface-hover px-2 py-0.5 rounded uppercase tracking-wider">
+                            Batch: <span className="text-accent-primary">{exam.batch}</span>
+                          </span>
+                        )}
+                        {exam?.session && (
+                          <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-text-muted bg-surface-hover px-2 py-0.5 rounded uppercase tracking-wider">
+                            Session: <span className="text-accent-primary">{exam.session}</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Horizontal Stepper (Top) */}
                 <div className="grid grid-cols-[auto_1fr_auto] items-center gap-1.5 sm:gap-4 w-full max-w-5xl mx-auto">
@@ -1584,6 +1617,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     setAddError("");
                     setAddSuccess("");
                     setLinkGenerated(false);
+                    setCsvFile(null);
+                    setCsvPreviewRows([]);
                   }}
                   className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "link" ? "bg-accent-primary text-white shadow-sm" : "text-text-muted hover:text-text-main"}`}
                 >
@@ -1596,6 +1631,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     setAddError("");
                     setAddSuccess("");
                     setLinkGenerated(false);
+                    setCsvFile(null);
+                    setCsvPreviewRows([]);
                   }}
                   className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${addMode === "create" ? "bg-accent-primary text-white shadow-sm" : "text-text-muted hover:text-text-main"}`}
                 >
@@ -2149,7 +2186,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
             <p className="text-text-muted text-sm mb-4">
               Create a copy of this exam. You can edit all details in the new draft.
             </p>
-            <div className="mb-5">
+            <div className="mb-4">
               <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
                 New Exam Title
               </label>
@@ -2161,6 +2198,52 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 className="w-full px-4 py-2.5 bg-bg border border-border rounded-xl text-text-main text-sm focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all font-medium"
                 placeholder="Enter title..."
               />
+            </div>
+            
+            <div className="mb-5 space-y-3 bg-bg/50 p-3 rounded-xl border border-border">
+              <label className="block text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1">
+                Select What to Copy
+              </label>
+              
+              <label className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={duplicateOptions.details}
+                  onChange={(e) => setDuplicateOptions(prev => ({ ...prev, details: e.target.checked }))}
+                  className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary/20 transition-colors"
+                />
+                <span className="text-sm font-medium text-text-main group-hover:text-accent-primary transition-colors">Course, Batch, and Session</span>
+              </label>
+
+              <label className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={duplicateOptions.calculator}
+                  onChange={(e) => setDuplicateOptions(prev => ({ ...prev, calculator: e.target.checked }))}
+                  className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary/20 transition-colors"
+                />
+                <span className="text-sm font-medium text-text-main group-hover:text-accent-primary transition-colors">Calculator Setting</span>
+              </label>
+
+              <label className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={duplicateOptions.questions}
+                  onChange={(e) => setDuplicateOptions(prev => ({ ...prev, questions: e.target.checked }))}
+                  className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary/20 transition-colors"
+                />
+                <span className="text-sm font-medium text-text-main group-hover:text-accent-primary transition-colors">Questions and Subjects</span>
+              </label>
+
+              <label className="flex items-center gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={duplicateOptions.teachers}
+                  onChange={(e) => setDuplicateOptions(prev => ({ ...prev, teachers: e.target.checked }))}
+                  className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary/20 transition-colors"
+                />
+                <span className="text-sm font-medium text-text-main group-hover:text-accent-primary transition-colors">Assigned Teachers</span>
+              </label>
             </div>
             <div className="flex items-center gap-3">
               <button
