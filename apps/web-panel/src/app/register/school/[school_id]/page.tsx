@@ -224,7 +224,7 @@ export default function StudentSchoolRegistration({ params }: { params: { school
           <div className="p-6 md:p-8">
             {success ? (
               <div className="text-center py-4">
-                <div className="w-16 h-16 bg-[#e0f2f2] text-[#008080] rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-[#008080]">
+                <div className="w-16 h-16 bg-accent-primary/10 text-accent-primary rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-accent-primary">
                   <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>

@@ -28,6 +28,8 @@ interface Step3QuestionsProps {
   setQImage: (val: string | null) => void;
   qExplanation?: string;
   setQExplanation?: (val: string) => void;
+  qExplanationImg?: string | null;
+  setQExplanationImg?: (val: string | null) => void;
   optA: string;
   setOptA: (val: string) => void;
   optAImg: string | null;
@@ -55,7 +57,7 @@ interface Step3QuestionsProps {
   doSaveQuestion: (e: any, addAnother: boolean) => any;
   handleDrawerEditQuestion: (q: any) => void;
   handleDrawerDeleteQuestion: (qId: string) => void;
-  handleDrawerImageUpload: (e: React.ChangeEvent<HTMLInputElement>, target: 'question' | 'A' | 'B' | 'C' | 'D') => void;
+  handleDrawerImageUpload: (e: React.ChangeEvent<HTMLInputElement>, target: 'question' | 'A' | 'B' | 'C' | 'D' | 'explanation') => void;
 
   setShowAddSubjectModal: (val: boolean) => void;
   setNewSubjectTeacherSearch: (val: string) => void;
@@ -98,6 +100,8 @@ export default function Step3Questions({
   setQImage,
   qExplanation = '',
   setQExplanation = () => { },
+  qExplanationImg = null,
+  setQExplanationImg = () => { },
   optA,
   setOptA,
   optAImg,
@@ -537,14 +541,23 @@ export default function Step3Questions({
                             Answer: <MathRenderer text={q.correct_option ?? ''} className="ml-1" />
                           </div>
                         )}
-                        {q.explanation && (
+                        {(q.explanation || q.explanation_image_url) && (
                           <details className="group mt-3 bg-surface border border-border rounded-lg text-xs">
                             <summary className="px-3 py-2 font-bold text-text-main cursor-pointer flex items-center justify-between select-none hover:bg-surface-hover transition-colors [&::-webkit-details-marker]:hidden list-none">
                               <span>Explanation / Solution</span>
                               <ChevronDown size={14} className="transition-transform group-open:rotate-180 text-text-muted shrink-0" />
                             </summary>
-                            <div className="px-3 pb-3 pt-1 border-t border-border">
-                              <MathRenderer text={q.explanation} className="text-text-main" />
+                            <div className="px-3 pb-3 pt-1 border-t border-border flex flex-col gap-2">
+                              {q.explanation && (
+                                <MathRenderer text={q.explanation} className="text-text-main" />
+                              )}
+                              {q.explanation_image_url && (
+                                <div className="flex flex-col gap-2">
+                                  {parseQuestionImages(q.explanation_image_url).map((url, idx) => (
+                                    <img key={idx} src={url} alt={`Explanation ${idx + 1}`} className="max-w-full max-h-[200px] object-contain rounded border border-border bg-white" />
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </details>
                         )}
@@ -937,26 +950,7 @@ export default function Step3Questions({
                             accept="image/*"
                             id="expl-img-upload"
                             className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (!file) return;
-                              const reader = new FileReader();
-                              reader.onload = (ev) => {
-                                const url = ev.target?.result as string;
-                                const imageTag = `![image](${url})`;
-                                const el = explRef.current;
-                                if (el) {
-                                  const start = el.selectionStart ?? (qExplanation || '').length;
-                                  const end = el.selectionEnd ?? (qExplanation || '').length;
-                                  const newVal = (qExplanation || '').slice(0, start) + imageTag + (qExplanation || '').slice(end);
-                                  if (setQExplanation) setQExplanation(newVal);
-                                } else {
-                                  if (setQExplanation) setQExplanation((qExplanation || '') + imageTag);
-                                }
-                              };
-                              reader.readAsDataURL(file);
-                              e.target.value = '';
-                            }}
+                            onChange={(e) => handleDrawerImageUpload(e, 'explanation')}
                           />
                           <label
                             htmlFor="expl-img-upload"
@@ -1004,6 +998,31 @@ export default function Step3Questions({
                           <MathRenderer text={qExplanation} className="text-xs text-text-main" />
                         </div>
                       )}
+                      
+                      {/* Explanation Image Preview List */}
+                      {(() => {
+                        const images = qExplanationImg ? parseQuestionImages(qExplanationImg) : [];
+                        if (images.length === 0) return null;
+                        return (
+                          <div className="flex flex-wrap gap-2 items-center pt-2">
+                            {images.map((url, idx) => (
+                              <div key={idx} className="relative group">
+                                <img src={url} alt={`Explanation Preview ${idx + 1}`} className="h-14 rounded-lg border border-border object-contain bg-white" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = images.filter((_, i) => i !== idx);
+                                    if (setQExplanationImg) setQExplanationImg(updated.length > 0 ? JSON.stringify(updated) : null);
+                                  }}
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm cursor-pointer hover:bg-red-600 transition-colors"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {drawerError && (
@@ -1122,16 +1141,28 @@ export default function Step3Questions({
                     )}
 
                     {/* Explanation Preview */}
-                    <div className="pt-3 border-t border-border space-y-1.5">
-                      <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Explanation / Solution</p>
-                      <div className="p-3 bg-surface border border-border rounded-xl text-xs">
-                        {qExplanation ? (
-                          <MathRenderer text={qExplanation} className="text-text-main" />
-                        ) : (
-                          <span className="text-text-muted/60 italic text-xs">Explanation preview will appear here live...</span>
-                        )}
+                    {(qExplanation || qExplanationImg) && (
+                      <div className="pt-3 border-t border-border/60">
+                        <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Explanation / Solution</p>
+                        <div className="mt-1">
+                          {qExplanation ? (
+                            <MathRenderer text={qExplanation} className="text-text-main" />
+                          ) : null}
+                          
+                          {(() => {
+                            const images = qExplanationImg ? parseQuestionImages(qExplanationImg) : [];
+                            if (images.length === 0) return null;
+                            return (
+                              <div className="flex flex-col gap-2 mt-2">
+                                {images.map((url, idx) => (
+                                  <img key={idx} src={url} alt={`Explanation ${idx + 1}`} className="max-w-full rounded border border-border bg-white" />
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>

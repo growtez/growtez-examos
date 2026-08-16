@@ -399,6 +399,12 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     handleRemoveStudent,
     handleDuplicate,
     doDuplicate,
+    duplicateCourse,
+    setDuplicateCourse,
+    duplicateBatch,
+    setDuplicateBatch,
+    duplicateSession,
+    setDuplicateSession,
     handleCreateAndAssignTeacher,
     handleUnpublish,
     handleTrash,
@@ -2146,7 +2152,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                     }
                   }}
                   alt="Crop preview"
-                  className="max-h-[60vh] object-contain"
+                  style={{ maxHeight: '60vh', maxWidth: '100%' }}
+                  className="block"
                 />
               </ReactCrop>
             </div>
@@ -2235,16 +2242,69 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                 <span className="text-sm font-medium text-text-main group-hover:text-accent-primary transition-colors">Questions and Subjects</span>
               </label>
 
-              <label className="flex items-center gap-2.5 cursor-pointer group">
+              <label className={`flex items-center gap-2.5 cursor-pointer group ${!duplicateOptions.questions ? 'opacity-60 cursor-not-allowed' : ''}`}>
                 <input
                   type="checkbox"
-                  checked={duplicateOptions.teachers}
+                  checked={duplicateOptions.teachers && duplicateOptions.questions}
+                  disabled={!duplicateOptions.questions}
                   onChange={(e) => setDuplicateOptions(prev => ({ ...prev, teachers: e.target.checked }))}
-                  className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary/20 transition-colors"
+                  className="w-4 h-4 rounded border-border text-accent-primary focus:ring-accent-primary/20 transition-colors disabled:cursor-not-allowed"
                 />
-                <span className="text-sm font-medium text-text-main group-hover:text-accent-primary transition-colors">Assigned Teachers</span>
+                <span className={`text-sm font-medium transition-colors ${!duplicateOptions.questions ? 'text-text-muted' : 'text-text-main group-hover:text-accent-primary'}`}>
+                  Assigned Teachers { !duplicateOptions.questions && <span className="text-[10px] uppercase ml-1">(Requires Subjects)</span> }
+                </span>
               </label>
             </div>
+
+            {!duplicateOptions.details && (
+              <div className="mb-5 space-y-3 bg-red-50/50 dark:bg-red-900/10 p-3 rounded-xl border border-red-100 dark:border-red-900/30">
+                <p className="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-2">
+                  New Session Details Required
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase mb-1">Course *</label>
+                    <input
+                      list="dup-courses"
+                      value={duplicateCourse}
+                      onChange={e => setDuplicateCourse(e.target.value)}
+                      placeholder="e.g. JEE"
+                      className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs focus:ring-2 focus:ring-accent-primary/20 focus:border-accent-primary outline-none"
+                    />
+                    <datalist id="dup-courses">
+                      {uniqueCourses.map((c: any) => <option key={c} value={c} />)}
+                    </datalist>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase mb-1">Batch *</label>
+                    <input
+                      list="dup-batches"
+                      value={duplicateBatch}
+                      onChange={e => setDuplicateBatch(e.target.value)}
+                      placeholder="e.g. Morning"
+                      className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs focus:ring-2 focus:ring-accent-primary/20 focus:border-accent-primary outline-none"
+                    />
+                    <datalist id="dup-batches">
+                      {uniqueBatches.map((b: any) => <option key={b} value={b} />)}
+                    </datalist>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-text-muted uppercase mb-1">Session *</label>
+                    <input
+                      list="dup-sessions"
+                      value={duplicateSession}
+                      onChange={e => setDuplicateSession(e.target.value)}
+                      placeholder="e.g. 2025-26"
+                      className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-lg text-xs focus:ring-2 focus:ring-accent-primary/20 focus:border-accent-primary outline-none"
+                    />
+                    <datalist id="dup-sessions">
+                      {uniqueSessions.map((s: any) => <option key={s} value={s} />)}
+                    </datalist>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowDuplicateConfirm(false)}
@@ -2255,7 +2315,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               </button>
               <button
                 onClick={confirmDuplicateExam}
-                disabled={isDuplicating || !duplicateTitleInput.trim()}
+                disabled={isDuplicating || !duplicateTitleInput.trim() || (!duplicateOptions.details && (!duplicateCourse.trim() || !duplicateBatch.trim() || !duplicateSession.trim()))}
                 className="flex-1 py-2.5 rounded-xl bg-accent-primary text-white text-sm font-bold hover:bg-accent-primary/90 transition-all cursor-pointer disabled:opacity-50 shadow-sm flex items-center justify-center gap-2"
               >
                 {isDuplicating ? (

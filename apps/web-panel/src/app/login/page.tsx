@@ -377,13 +377,13 @@ function LoginContent() {
               )}
               
               {success && (
-                <div className="flex items-start gap-3 p-4 rounded-xl border border-green-500/20 bg-green-500/10">
+                <div className="flex items-start gap-3 p-4 rounded-xl border border-accent-primary/20 bg-accent-primary/10">
                   <div className="mt-0.5">
-                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <svg className="w-5 h-5 text-accent-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                   </div>
                   <div>
-                    <h4 className="text-green-700 dark:text-green-400 font-bold text-[13px] tracking-wide">Action Successful</h4>
-                    <p className="text-green-600 dark:text-green-500 text-xs mt-0.5 font-medium leading-relaxed">{success}</p>
+                    <h4 className="text-accent-primary font-bold text-[13px] tracking-wide">Action Successful</h4>
+                    <p className="text-accent-primary/90 text-xs mt-0.5 font-medium leading-relaxed">{success}</p>
                   </div>
                 </div>
               )}
@@ -498,7 +498,7 @@ function LoginContent() {
             )}
             
             {success && (
-              <div className="border border-green-500/20 bg-green-500/10 p-3.5 rounded-xl text-green-500 text-xs font-semibold">
+              <div className="border border-accent-primary/20 bg-accent-primary/10 p-3.5 rounded-xl text-accent-primary text-xs font-semibold">
                 ✓ {success}
               </div>
             )}
