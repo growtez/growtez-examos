@@ -42,10 +42,11 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
   const [questionText, setQuestionText] = useState('');
   const [questionImage, setQuestionImage] = useState<string | null>(null);
   const [explanation, setExplanation] = useState('');
+  const [explanationImg, setExplanationImg] = useState<string | null>(null);
   
   // Crop states
   const [rawImageToCrop, setRawImageToCrop] = useState<string | null>(null);
-  const [cropTarget, setCropTarget] = useState<'question' | 'A' | 'B' | 'C' | 'D' | null>(null);
+  const [cropTarget, setCropTarget] = useState<'question' | 'A' | 'B' | 'C' | 'D' | 'explanation' | null>(null);
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<any>(null);
   const [imageRef, setImageRef] = useState<HTMLImageElement | null>(null);
@@ -264,6 +265,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
         question_type: questionType,
         question_text: questionText,
         explanation: explanation || null,
+        explanation_image_url: explanationImg || null,
         ...(editingQuestionId ? {} : { question_number: questionNumber }),
         image_url: questionImage,
         marks: questionType === 'mcq' ? (markingScheme.mcq_correct || 4) : (markingScheme.nat_correct || 4),
@@ -300,6 +302,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
       setOptionB(''); setOptionBImage(null);
       setOptionC(''); setOptionCImage(null);
       setOptionD(''); setOptionDImage(null);
+      setExplanation(''); setExplanationImg(null);
       setCorrectAnswer(''); setNatAnswer(''); setShowForm(false); setEditingQuestionId(null);
       fetchQuestions();
     } catch (err: any) {
@@ -309,7 +312,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'question' | 'A' | 'B' | 'C' | 'D') => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'question' | 'A' | 'B' | 'C' | 'D' | 'explanation') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -323,12 +326,37 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
   };
 
   const handleCropAndSave = () => {
-    if (!completedCrop || !imageRef || !completedCrop.width || !completedCrop.height) {
-      // If no crop was drawn, just take the whole image
-      if (imageRef) {
-        setCrop({ unit: '%', width: 100, height: 100, x: 0, y: 0 });
-        setCompletedCrop({ width: imageRef.naturalWidth, height: imageRef.naturalHeight, x: 0, y: 0, unit: 'px' });
+    if (!imageRef) return;
+
+    if (!completedCrop || !completedCrop.width || !completedCrop.height) {
+      // If no crop was drawn, just take the whole image directly
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 800;
+      let finalWidth = imageRef.naturalWidth;
+      let finalHeight = imageRef.naturalHeight;
+      if (finalWidth > MAX_WIDTH) {
+        finalHeight = Math.round((finalHeight * MAX_WIDTH) / finalWidth);
+        finalWidth = MAX_WIDTH;
       }
+      canvas.width = finalWidth;
+      canvas.height = finalHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, finalWidth, finalHeight);
+        ctx.drawImage(imageRef, 0, 0, imageRef.naturalWidth, imageRef.naturalHeight, 0, 0, finalWidth, finalHeight);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        if (cropTarget === 'question') setQuestionImage(dataUrl);
+        else if (cropTarget === 'explanation') setExplanationImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
+        else if (cropTarget === 'A') setOptionAImage(dataUrl);
+        else if (cropTarget === 'B') setOptionBImage(dataUrl);
+        else if (cropTarget === 'C') setOptionCImage(dataUrl);
+        else if (cropTarget === 'D') setOptionDImage(dataUrl);
+      }
+      setRawImageToCrop(null);
+      setCropTarget(null);
+      setCrop(undefined);
+      setCompletedCrop(null);
       return;
     }
 
@@ -368,7 +396,18 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
       );
       // Compress to JPEG with 0.6 quality
       const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+      
+      const parseQuestionImages = (urlStr: string | null): string[] => {
+        if (!urlStr) return [];
+        const trimmed = urlStr.trim();
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+          try { return JSON.parse(trimmed); } catch (e) { return [trimmed]; }
+        }
+        return [trimmed];
+      };
+
       if (cropTarget === 'question') setQuestionImage(dataUrl);
+      else if (cropTarget === 'explanation') setExplanationImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
       else if (cropTarget === 'A') setOptionAImage(dataUrl);
       else if (cropTarget === 'B') setOptionBImage(dataUrl);
       else if (cropTarget === 'C') setOptionCImage(dataUrl);
@@ -401,6 +440,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
     setQuestionText(q.question_text || '');
     setQuestionImage(q.image_url || null);
     setExplanation(q.explanation || '');
+    setExplanationImg(q.explanation_image_url || null);
     if (q.question_type === 'mcq') {
       setOptionA(q.options?.A || '');
       setOptionAImage(q.options?.A_image || null);
@@ -582,14 +622,33 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                 {q.question_type === 'nat' && (
                   <div className="inline-flex px-4 py-2 bg-accent-primary/5 border border-accent-primary rounded-xl text-sm text-accent-primary font-bold mt-2">Answer: {q.correct_option}</div>
                 )}
-                {q.explanation && (
+                {(q.explanation || q.explanation_image_url) && (
                   <details className="group mt-3 bg-surface border border-border rounded-lg text-xs">
                     <summary className="px-3 py-2 font-bold text-text-main cursor-pointer flex items-center justify-between select-none hover:bg-surface-hover transition-colors [&::-webkit-details-marker]:hidden list-none">
                       <span>Explanation / Solution</span>
                       <ChevronDown size={14} className="transition-transform group-open:rotate-180 text-text-muted shrink-0" />
                     </summary>
-                    <div className="px-3 pb-3 pt-1 border-t border-border">
-                      <MathRenderer text={q.explanation} className="text-text-main" />
+                    <div className="px-3 pb-3 pt-1 border-t border-border flex flex-col gap-2">
+                      {q.explanation && (
+                        <MathRenderer text={q.explanation} className="text-text-main" />
+                      )}
+                      {q.explanation_image_url && (
+                        <div className="flex flex-col gap-2">
+                          {(() => {
+                            const parseQuestionImages = (urlStr: string | null): string[] => {
+                              if (!urlStr) return [];
+                              const trimmed = urlStr.trim();
+                              if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                                try { return JSON.parse(trimmed); } catch (e) { return [trimmed]; }
+                              }
+                              return [trimmed];
+                            };
+                            return parseQuestionImages(q.explanation_image_url).map((url, idx) => (
+                              <img key={idx} src={url} alt={`Explanation ${idx + 1}`} className="max-w-full max-h-[200px] object-contain rounded border border-border bg-white" />
+                            ));
+                          })()}
+                        </div>
+                      )}
                     </div>
                   </details>
                 )}
@@ -754,7 +813,8 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                                 });
                               }}
                               alt="Crop preview"
-                              className="max-h-[60vh] object-contain"
+                              style={{ maxHeight: '60vh', maxWidth: '100%' }}
+                              className="block"
                             />
                           </ReactCrop>
                         </div>
@@ -885,31 +945,13 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                         <input
                           type="file"
                           accept="image/*"
-                          id="expl-img-upload-qpage"
+                          id="expl-img-upload-page"
                           className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            const reader = new FileReader();
-                            reader.onload = (ev) => {
-                              const url = ev.target?.result as string;
-                              const imageTag = `![image](${url})`;
-                              const el = explRef.current;
-                              if (el) {
-                                const start = el.selectionStart ?? explanation.length;
-                                const end = el.selectionEnd ?? explanation.length;
-                                setExplanation(explanation.slice(0, start) + imageTag + explanation.slice(end));
-                              } else {
-                                setExplanation(explanation + imageTag);
-                              }
-                            };
-                            reader.readAsDataURL(file);
-                            e.target.value = '';
-                          }}
+                          onChange={(e) => handleImageUpload(e, 'explanation')}
                         />
                         <label
-                          htmlFor="expl-img-upload-qpage"
-                          className="cursor-pointer inline-flex items-center gap-1 px-2.5 py-1 bg-bg border border-border text-accent-primary font-bold text-[11px] rounded-lg hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors"
+                          htmlFor="expl-img-upload-page"
+                          className="cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 bg-bg border border-border text-accent-primary font-bold text-[11px] rounded-lg hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-colors"
                         >
                           + Image
                         </label>
@@ -944,15 +986,48 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                       rows={5}
                       value={explanation}
                       onChange={(e) => setExplanation(e.target.value)}
-                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium resize-y min-h-[120px]"
+                      className="w-full px-4 py-3 bg-bg border border-border rounded-xl text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 transition-all text-sm font-medium resize-y min-h-[150px] placeholder:text-gray-400 dark:placeholder:text-zinc-500"
                       placeholder="Enter explanation or step-by-step solution for students..."
                     />
                     {explanation && (
-                      <div className="lg:hidden px-3 py-2 bg-bg border border-dashed border-border rounded-lg mt-2">
+                      <div className="lg:hidden px-4 py-3 bg-bg border border-dashed border-border rounded-xl mt-3">
                         <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-1">Explanation Preview</p>
                         <MathRenderer text={explanation} className="text-xs text-text-main" />
                       </div>
                     )}
+                    
+                    {/* Explanation Image Preview List */}
+                    {(() => {
+                      const parseQuestionImages = (urlStr: string | null): string[] => {
+                        if (!urlStr) return [];
+                        const trimmed = urlStr.trim();
+                        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                          try { return JSON.parse(trimmed); } catch (e) { return [trimmed]; }
+                        }
+                        return [trimmed];
+                      };
+                      const images = explanationImg ? parseQuestionImages(explanationImg) : [];
+                      if (images.length === 0) return null;
+                      return (
+                        <div className="flex flex-wrap gap-2 items-center pt-2">
+                          {images.map((url, idx) => (
+                            <div key={idx} className="relative group">
+                              <img src={url} alt={`Explanation Preview ${idx + 1}`} className="h-14 rounded-lg border border-border object-contain bg-white" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = images.filter((_, i) => i !== idx);
+                                  setExplanationImg(updated.length > 0 ? JSON.stringify(updated) : null);
+                                }}
+                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm cursor-pointer hover:bg-red-600 transition-colors"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {error && <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 rounded-xl p-3 text-red-600 text-sm font-semibold">{error}</div>}
@@ -999,7 +1074,7 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                                 confirmColor: 'bg-red-500 hover:bg-red-600 shadow-red-500/20',
                                 onConfirm: () => {
                                   setConfirmDialog((prev: any) => ({ ...prev, isOpen: false }));
-                                  setQuestionText(''); setQuestionImage(null); setExplanation('');
+                                  setQuestionText(''); setQuestionImage(null); setExplanation(''); setExplanationImg(null);
                                   setOptionA(''); setOptionAImage(null); setOptionB(''); setOptionBImage(null);
                                   setOptionC(''); setOptionCImage(null); setOptionD(''); setOptionDImage(null);
                                   setCorrectAnswer(''); setNatAnswer('');
@@ -1125,16 +1200,36 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
                   )}
 
                   {/* Explanation Preview */}
-                  <div className="pt-3 border-t border-border space-y-1.5">
-                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Explanation / Solution</p>
-                    <div className="p-3 bg-surface border border-border rounded-xl text-xs">
-                      {explanation ? (
-                        <MathRenderer text={explanation} className="text-text-main" />
-                      ) : (
-                        <span className="text-text-muted/60 italic text-xs">Explanation preview will appear here live...</span>
-                      )}
+                  {(explanation || explanationImg) && (
+                    <div className="pt-4 border-t border-border/60">
+                      <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Explanation / Solution</p>
+                      <div className="mt-2">
+                        {explanation ? (
+                          <MathRenderer text={explanation} className="text-text-main" />
+                        ) : null}
+                        
+                        {(() => {
+                          const parseQuestionImages = (urlStr: string | null): string[] => {
+                            if (!urlStr) return [];
+                            const trimmed = urlStr.trim();
+                            if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                              try { return JSON.parse(trimmed); } catch (e) { return [trimmed]; }
+                            }
+                            return [trimmed];
+                          };
+                          const images = explanationImg ? parseQuestionImages(explanationImg) : [];
+                          if (images.length === 0) return null;
+                          return (
+                            <div className="flex flex-col gap-2 mt-2">
+                              {images.map((url, idx) => (
+                                <img key={idx} src={url} alt={`Explanation ${idx + 1}`} className="max-w-full rounded border border-border bg-white" />
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { createClient as createSupabaseDirectClient } from '@supabase/supabase-js';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, Eye, EyeOff } from 'lucide-react';
 
 // Create a standalone client with implicit flow — no PKCE, no cookies needed
 function getResetClient() {
@@ -26,6 +26,7 @@ function ResetPasswordContent() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [initializing, setInitializing] = useState(true);
@@ -198,32 +199,50 @@ function ResetPasswordContent() {
                 <label htmlFor="password" className="block text-[11px] font-bold text-text-muted mb-1.5 uppercase tracking-wider">
                   New Password
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-main placeholder-text-muted/40 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary-glow transition-all text-sm"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-main placeholder-text-muted/40 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary-glow transition-all text-sm pr-12"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main transition-colors p-1"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               
               <div>
                 <label htmlFor="confirmPassword" className="block text-[11px] font-bold text-text-muted mb-1.5 uppercase tracking-wider">
                   Confirm New Password
                 </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-main placeholder-text-muted/40 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary-glow transition-all text-sm"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input
+                    id="confirmPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="w-full px-4 py-3 bg-surface-hover border border-border rounded-xl text-text-main placeholder-text-muted/40 focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary-glow transition-all text-sm pr-12"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main transition-colors p-1"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
               {error && (
@@ -239,13 +258,13 @@ function ResetPasswordContent() {
               )}
               
               {success && (
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/5 border border-green-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-accent-primary/10 border border-accent-primary/20 shadow-[0_0_15px_rgba(var(--accent-primary-rgb),0.1)]">
                   <div className="mt-0.5">
-                    <svg className="w-5 h-5 text-green-500 drop-shadow-[0_0_5px_rgba(34,197,94,0.4)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <svg className="w-5 h-5 text-accent-primary drop-shadow-[0_0_5px_rgba(var(--accent-primary-rgb),0.4)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                   </div>
                   <div>
-                    <h4 className="text-green-400 font-bold text-[13px] tracking-wide">Password Updated</h4>
-                    <p className="text-green-500/90 text-xs mt-0.5 font-medium leading-relaxed">{success}</p>
+                    <h4 className="text-accent-primary font-bold text-[13px] tracking-wide">Password Updated</h4>
+                    <p className="text-accent-primary/90 text-xs mt-0.5 font-medium leading-relaxed">{success}</p>
                   </div>
                 </div>
               )}

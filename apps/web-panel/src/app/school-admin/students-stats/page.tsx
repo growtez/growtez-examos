@@ -85,8 +85,8 @@ export default function StudentStatsPage() {
       const studentIds = students.map((s: any) => s.id);
       const examIds = students.map((s: any) => s.exam_id);
 
-      // Fetch results and exams in parallel
-      const [resultsRes, examsRes] = await Promise.all([
+      // Fetch results, exams and questions in parallel
+      const [resultsRes, examsRes, questionsRes] = await Promise.all([
         supabase
           .from('results')
           .select('student_id, exam_id, total_marks, submitted_at')
@@ -95,11 +95,23 @@ export default function StudentStatsPage() {
           .from('exams')
           .select('id, title, total_marks, start_time')
           .in('id', examIds)
-          .order('start_time', { ascending: true })
+          .order('start_time', { ascending: true }),
+        supabase
+          .from('questions')
+          .select('exam_id, positive_marks, marks')
+          .in('exam_id', examIds)
       ]);
 
       const results = resultsRes.data || [];
       const exams = examsRes.data || [];
+      const questionsData = questionsRes.data || [];
+
+      // Calculate max marks per exam from questions if needed
+      const examMaxMarks: Record<string, number> = {};
+      questionsData.forEach((q: any) => {
+        if (!examMaxMarks[q.exam_id]) examMaxMarks[q.exam_id] = 0;
+        examMaxMarks[q.exam_id] += (q.positive_marks ?? q.marks ?? 0);
+      });
 
       // Map exam_id -> student object for the results join
       const examToStudentObj: Record<string, any> = {};
@@ -109,7 +121,6 @@ export default function StudentStatsPage() {
         const studentObj = examToStudentObj[exam.id];
         const studentId = studentObj?.id;
         const result = results.find((r: any) => r.student_id === studentId && r.exam_id === exam.id);
-
         const hasLoggedIn = !!(
           result ||
           (studentObj && (
@@ -122,8 +133,13 @@ export default function StudentStatsPage() {
         );
 
         const obtained = result?.total_marks ?? (hasLoggedIn ? 0 : null);
-        const max = exam.total_marks || 0;
-        const pct = (obtained !== null && max > 0) ? Math.round((obtained / max) * 100 * 10) / 10 : (hasLoggedIn ? 0 : null);
+
+        let max = exam.total_marks;
+        if (!max || max === 0) {
+          max = examMaxMarks[exam.id] || 0;
+        }
+
+        const pct = (obtained !== null && max > 0) ? Math.round((obtained / max) * 100 * 10) / 10 : (hasLoggedIn ? 0 : null); 
         return {
           examTitle: exam.title,
           date: exam.start_time ? new Date(exam.start_time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }) : '—',
@@ -177,44 +193,38 @@ export default function StudentStatsPage() {
 
           <div>
             <label className="block text-xs font-semibold text-text-muted mb-1.5">Session *</label>
-            <input
-              list="stats-sessions-list"
+            <select
               value={session}
               onChange={e => setSession(e.target.value)}
-              placeholder="e.g. 2025-26"
-              className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20"
-            />
-            <datalist id="stats-sessions-list">
-              {existingSessions.map(s => <option key={s} value={s} />)}
-            </datalist>
+              className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 appearance-none"
+            >
+              <option value="" disabled>Select Session</option>
+              {existingSessions.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-text-muted mb-1.5">Batch *</label>
-            <input
-              list="stats-batches-list"
+            <select
               value={batch}
               onChange={e => setBatch(e.target.value)}
-              placeholder="e.g. Morning"
-              className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20"
-            />
-            <datalist id="stats-batches-list">
-              {existingBatches.map(b => <option key={b} value={b} />)}
-            </datalist>
+              className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 appearance-none"
+            >
+              <option value="" disabled>Select Batch</option>
+              {existingBatches.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-text-muted mb-1.5">Course *</label>
-            <input
-              list="stats-courses-list"
+            <select
               value={course}
               onChange={e => setCourse(e.target.value)}
-              placeholder="e.g. JEE, NEET"
-              className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20"
-            />
-            <datalist id="stats-courses-list">
-              {existingCourses.map(c => <option key={c} value={c} />)}
-            </datalist>
+              className="w-full px-3 py-2.5 bg-bg border border-border rounded-lg text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 appearance-none"
+            >
+              <option value="" disabled>Select Course</option>
+              {existingCourses.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
         </div>
 

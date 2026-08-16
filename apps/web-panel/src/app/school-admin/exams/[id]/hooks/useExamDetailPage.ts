@@ -132,6 +132,18 @@ export function useExamDetailPage(paramsId: string) {
   const [drawerView, setDrawerView] = useState<'list' | 'editor'>('list');
   const [drawerQuestions, setDrawerQuestions] = useState<any[]>([]);
   const [drawerLoading, setDrawerLoading] = useState(false);
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
+  const [duplicateTitleInput, setDuplicateTitleInput] = useState('');
+  const [isDuplicating, setIsDuplicating] = useState(false);
+  const [duplicateCourse, setDuplicateCourse] = useState('');
+  const [duplicateBatch, setDuplicateBatch] = useState('');
+  const [duplicateSession, setDuplicateSession] = useState('');
+  const [duplicateOptions, setDuplicateOptions] = useState({
+    details: true,
+    calculator: true,
+    questions: true,
+    teachers: true
+  });
   const [drawerFormLoading, setDrawerFormLoading] = useState(false);
   const [drawerError, setDrawerError] = useState('');
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
@@ -140,9 +152,10 @@ export function useExamDetailPage(paramsId: string) {
   const [qText, setQText] = useState('');
   const [qImage, setQImage] = useState<string | null>(null);
   const [qExplanation, setQExplanation] = useState('');
+  const [qExplanationImg, setQExplanationImg] = useState<string | null>(null);
 
   const [rawImageToCrop, setRawImageToCrop] = useState<string | null>(null);
-  const [cropTarget, setCropTarget] = useState<'question' | 'A' | 'B' | 'C' | 'D' | null>(null);
+  const [cropTarget, setCropTarget] = useState<'question' | 'A' | 'B' | 'C' | 'D' | 'explanation' | null>(null);
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<any>(null);
   const [imageRef, setImageRef] = useState<HTMLImageElement | null>(null);
@@ -272,7 +285,7 @@ export function useExamDetailPage(paramsId: string) {
 
   const clearDraft = () => {
     setEditingQuestionId(null);
-    setQType('mcq'); setQText(''); setQImage(null); setQExplanation('');
+    setQType('mcq'); setQText(''); setQImage(null); setQExplanation(''); setQExplanationImg(null);
     setOptA(''); setOptAImg(null); setOptB(''); setOptBImg(null);
     setOptC(''); setOptCImg(null); setOptD(''); setOptDImg(null);
     setCorrectAnswer(''); setNatAnswer(''); setDrawerError('');
@@ -282,12 +295,6 @@ export function useExamDetailPage(paramsId: string) {
   };
 
   const handleDrawerCancel = () => {
-    // Closing/cancelling should NOT delete the autosaved draft.
-    // If we were editing an existing question, the form fields currently hold
-    // that question's data (not the "new question" draft), so restore whatever
-    // the real new-question draft was before leaving editingQuestionId mode —
-    // otherwise the autosave effect below would overwrite the draft with the
-    // edited question's data.
     if (editingQuestionId) {
       let restored = false;
       if (typeof window !== 'undefined' && drawerSubjectId) {
@@ -299,6 +306,8 @@ export function useExamDetailPage(paramsId: string) {
             setQType(draft.qType || 'mcq');
             setQText(draft.qText || '');
             setQImage(draft.qImage || null);
+            setQExplanation(draft.qExplanation || '');
+            setQExplanationImg(draft.qExplanationImg || null);
             setOptA(draft.optA || ''); setOptAImg(draft.optAImg || null);
             setOptB(draft.optB || ''); setOptBImg(draft.optBImg || null);
             setOptC(draft.optC || ''); setOptCImg(draft.optCImg || null);
@@ -312,7 +321,7 @@ export function useExamDetailPage(paramsId: string) {
         }
       }
       if (!restored) {
-        setQType('mcq'); setQText(''); setQImage(null);
+        setQType('mcq'); setQText(''); setQImage(null); setQExplanation(''); setQExplanationImg(null);
         setOptA(''); setOptAImg(null); setOptB(''); setOptBImg(null);
         setOptC(''); setOptCImg(null); setOptD(''); setOptDImg(null);
         setCorrectAnswer(''); setNatAnswer('');
@@ -338,6 +347,8 @@ export function useExamDetailPage(paramsId: string) {
           setQType(draft.qType || 'mcq');
           setQText(draft.qText || '');
           setQImage(draft.qImage || null);
+          setQExplanation(draft.qExplanation || '');
+          setQExplanationImg(draft.qExplanationImg || null);
           setOptA(draft.optA || '');
           setOptAImg(draft.optAImg || null);
           setOptB(draft.optB || '');
@@ -368,6 +379,8 @@ export function useExamDetailPage(paramsId: string) {
         qType,
         qText,
         qImage,
+        qExplanation,
+        qExplanationImg,
         optA,
         optAImg,
         optB,
@@ -380,7 +393,7 @@ export function useExamDetailPage(paramsId: string) {
         natAnswer,
       };
 
-      const isDefault = qType === 'mcq' && qText === '' && qImage === null &&
+      const isDefault = qType === 'mcq' && qText === '' && qImage === null && qExplanation === '' && qExplanationImg === null &&
         optA === '' && optAImg === null && optB === '' && optBImg === null &&
         optC === '' && optCImg === null && optD === '' && optDImg === null &&
         correctAnswer === '' && natAnswer === '';
@@ -399,6 +412,8 @@ export function useExamDetailPage(paramsId: string) {
     qType,
     qText,
     qImage,
+    qExplanation,
+    qExplanationImg,
     optA,
     optAImg,
     optB,
@@ -445,6 +460,7 @@ export function useExamDetailPage(paramsId: string) {
         question_type: qType,
         question_text: qText,
         explanation: qExplanation || null,
+        explanation_image_url: qExplanationImg || null,
         question_number: editingQuestionId ? undefined : (drawerQuestions.length > 0 ? Math.max(...drawerQuestions.map(q => q.question_number || 0)) + 1 : 1),
         image_url: qImage,
         marks: qType === 'nat' ? (markingScheme.nat_correct || 4) : (markingScheme[`${qType}_correct`] || markingScheme.mcq_correct || 4),
@@ -489,6 +505,7 @@ export function useExamDetailPage(paramsId: string) {
     setQText(q.question_text || '');
     setQImage(q.image_url || null);
     setQExplanation(q.explanation || '');
+    setQExplanationImg(q.explanation_image_url || null);
     if (q.question_type === 'mcq' || q.question_type === 'msq') {
       setOptA(q.options?.A || ''); setOptAImg(q.options?.A_image || null);
       setOptB(q.options?.B || ''); setOptBImg(q.options?.B_image || null);
@@ -517,7 +534,7 @@ export function useExamDetailPage(paramsId: string) {
     });
   };
 
-  const handleDrawerImageUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'question' | 'A' | 'B' | 'C' | 'D') => {
+  const handleDrawerImageUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'question' | 'A' | 'B' | 'C' | 'D' | 'explanation') => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -530,13 +547,42 @@ export function useExamDetailPage(paramsId: string) {
   };
 
   const handleCropAndSave = () => {
-    if (!completedCrop || !imageRef || !completedCrop.width || !completedCrop.height) {
-      if (imageRef) {
-        setCrop({ unit: '%', width: 100, height: 100, x: 0, y: 0 });
-        setCompletedCrop({ width: imageRef.naturalWidth, height: imageRef.naturalHeight, x: 0, y: 0, unit: 'px' });
+    if (!imageRef) return;
+
+    if (!completedCrop || !completedCrop.width || !completedCrop.height) {
+      // If no crop was drawn, just take the whole image directly
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 800;
+      let finalWidth = imageRef.naturalWidth;
+      let finalHeight = imageRef.naturalHeight;
+      if (finalWidth > MAX_WIDTH) {
+        finalHeight = Math.round((finalHeight * MAX_WIDTH) / finalWidth);
+        finalWidth = MAX_WIDTH;
       }
+      canvas.width = finalWidth;
+      canvas.height = finalHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, finalWidth, finalHeight);
+        ctx.drawImage(imageRef, 0, 0, imageRef.naturalWidth, imageRef.naturalHeight, 0, 0, finalWidth, finalHeight);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        if (cropTarget === 'question') {
+          setQImage(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
+        }
+        else if (cropTarget === 'explanation') setQExplanationImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
+        else if (cropTarget === 'A') setOptAImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
+        else if (cropTarget === 'B') setOptBImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
+        else if (cropTarget === 'C') setOptCImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
+        else if (cropTarget === 'D') setOptDImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
+      }
+      setRawImageToCrop(null);
+      setCropTarget(null);
+      setCrop(undefined);
+      setCompletedCrop(null);
       return;
     }
+
     const canvas = document.createElement('canvas');
     const scaleX = imageRef.naturalWidth / imageRef.width;
     const scaleY = imageRef.naturalHeight / imageRef.height;
@@ -561,6 +607,7 @@ export function useExamDetailPage(paramsId: string) {
       if (cropTarget === 'question') {
         setQImage(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
       }
+      else if (cropTarget === 'explanation') setQExplanationImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
       else if (cropTarget === 'A') setOptAImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
       else if (cropTarget === 'B') setOptBImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
       else if (cropTarget === 'C') setOptCImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
@@ -1434,7 +1481,10 @@ export function useExamDetailPage(paramsId: string) {
               full_name: row.name,
               roll_number: row.roll,
               date_of_birth: formattedDob,
-              exam_id: paramsId
+              exam_id: paramsId,
+              course: exam.course,
+              batch: exam.batch,
+              session: exam.session
             }),
           });
           if (res.ok) {
@@ -1506,12 +1556,12 @@ export function useExamDetailPage(paramsId: string) {
     });
   };
 
-  const handleDuplicate = async (newTitle: string) => {
+  const handleDuplicate = async (newTitle: string, options: any) => {
     if (!newTitle) return;
-    await doDuplicate(newTitle);
+    await doDuplicate(newTitle, options);
   };
 
-  const doDuplicate = async (newTitle: string) => {
+  const doDuplicate = async (newTitle: string, options: any) => {
     if (!newTitle.trim()) return;
     setLoading(true);
     try {
@@ -1528,71 +1578,105 @@ export function useExamDetailPage(paramsId: string) {
           total_marks: exam.total_marks,
           is_paid: false,
           exam_instructions: exam.exam_instructions,
-          created_by: exam.created_by
+          created_by: exam.created_by,
+          course: options.details ? exam.course : duplicateCourse || null,
+          batch: options.details ? exam.batch : duplicateBatch || null,
+          session: options.details ? exam.session : duplicateSession || null,
+          allow_calculator: options.calculator ? exam.allow_calculator : false
         })
         .select()
         .single();
 
       if (examError || !newExam) throw examError || new Error('Failed to create new exam');
 
-      // 2. Fetch old subjects
-      const { data: oldSubjects, error: subjectsError } = await supabase
-        .from('exam_subjects')
-        .select('*')
-        .eq('exam_id', paramsId);
-      
-      if (subjectsError) throw subjectsError;
-
-      // 3. Create new subjects and build a mapping
-      const oldToNewSubjectMap: Record<string, string> = {};
-      if (oldSubjects && oldSubjects.length > 0) {
-        for (const subj of oldSubjects) {
-          const { data: newSubj, error: subjInsertError } = await supabase
-            .from('exam_subjects')
-            .insert({
-              exam_id: newExam.id,
-              subject_name: subj.subject_name,
-              question_count: subj.question_count,
-              sort_order: subj.sort_order
-            })
-            .select()
-            .single();
-          
-          if (subjInsertError || !newSubj) throw subjInsertError || new Error('Failed to copy subject');
-          oldToNewSubjectMap[subj.id] = newSubj.id;
-        }
-      }
-
-      // 4. Fetch old questions
-      const { data: oldQuestions, error: questionsError } = await supabase
-        .from('questions')
-        .select('*')
-        .eq('exam_id', paramsId);
-
-      if (questionsError) throw questionsError;
-
-      // 5. Insert new questions
-      if (oldQuestions && oldQuestions.length > 0) {
-        const questionsToInsert = oldQuestions.map(q => ({
-          exam_id: newExam.id,
-          school_id: exam.school_id,
-          exam_subject_id: q.exam_subject_id ? oldToNewSubjectMap[q.exam_subject_id] : null,
-          question_text: q.question_text,
-          image_url: q.image_url,
-          question_type: q.question_type,
-          options: q.options,
-          correct_option: q.correct_option,
-          positive_marks: q.positive_marks,
-          negative_marks: q.negative_marks,
-          question_number: q.question_number,
-          marks: q.marks
-        }));
-
-        const { error: batchInsertError } = await supabase
-          .from('questions')
-          .insert(questionsToInsert);
+      if (options.questions) {
+        // 2. Fetch old subjects
+        const { data: oldSubjects, error: subjectsError } = await supabase
+          .from('exam_subjects')
+          .select('*')
+          .eq('exam_id', paramsId);
         
-        if (batchInsertError) throw batchInsertError;
+        if (subjectsError) throw subjectsError;
+
+        // 3. Create new subjects and build a mapping
+        const oldToNewSubjectMap: Record<string, string> = {};
+        if (oldSubjects && oldSubjects.length > 0) {
+          for (const subj of oldSubjects) {
+            const { data: newSubj, error: subjInsertError } = await supabase
+              .from('exam_subjects')
+              .insert({
+                exam_id: newExam.id,
+                subject_name: subj.subject_name,
+                question_count: subj.question_count,
+                sort_order: subj.sort_order
+              })
+              .select()
+              .single();
+            
+            if (subjInsertError || !newSubj) throw subjInsertError || new Error('Failed to copy subject');
+            oldToNewSubjectMap[subj.id] = newSubj.id;
+          }
+        }
+
+        // 4. Fetch old questions
+        const { data: oldQuestions, error: questionsError } = await supabase
+          .from('questions')
+          .select('*')
+          .eq('exam_id', paramsId);
+
+        if (questionsError) throw questionsError;
+
+        // 5. Insert new questions
+        if (oldQuestions && oldQuestions.length > 0) {
+          const questionsToInsert = oldQuestions.map(q => ({
+            exam_id: newExam.id,
+            school_id: exam.school_id,
+            exam_subject_id: q.exam_subject_id ? oldToNewSubjectMap[q.exam_subject_id] : null,
+            question_text: q.question_text,
+            image_url: q.image_url,
+            question_type: q.question_type,
+            options: q.options,
+            correct_option: q.correct_option,
+            positive_marks: q.positive_marks,
+            negative_marks: q.negative_marks,
+            question_number: q.question_number,
+            marks: q.marks
+          }));
+
+          const { error: batchInsertError } = await supabase
+            .from('questions')
+            .insert(questionsToInsert);
+          
+          if (batchInsertError) throw batchInsertError;
+        }
+
+        if (options.teachers) {
+          // Fetch old teachers via old subjects
+          if (oldSubjects && oldSubjects.length > 0) {
+            const oldSubjectIds = oldSubjects.map(s => s.id);
+            const { data: oldTeachers, error: teachersError } = await supabase
+              .from('exam_subject_teachers')
+              .select('*')
+              .in('exam_subject_id', oldSubjectIds);
+            
+            if (teachersError) throw teachersError;
+
+            if (oldTeachers && oldTeachers.length > 0) {
+              const teachersToInsert = oldTeachers.map(t => ({
+                exam_subject_id: oldToNewSubjectMap[t.exam_subject_id],
+                teacher_id: t.teacher_id
+              })).filter(t => t.exam_subject_id);
+
+              if (teachersToInsert.length > 0) {
+                const { error: batchInsertTeacherError } = await supabase
+                  .from('exam_subject_teachers')
+                  .insert(teachersToInsert);
+                
+                if (batchInsertTeacherError) throw batchInsertTeacherError;
+              }
+            }
+          }
+        }
       }
 
       // Redirect to the new exam page
@@ -1999,6 +2083,8 @@ export function useExamDetailPage(paramsId: string) {
     setQImage,
     qExplanation,
     setQExplanation,
+    qExplanationImg,
+    setQExplanationImg,
     rawImageToCrop,
     setRawImageToCrop,
     cropTarget,
@@ -2096,6 +2182,12 @@ export function useExamDetailPage(paramsId: string) {
     showStep1Errors,
     setShowStep1Errors,
     clearDraft,
+    duplicateCourse,
+    setDuplicateCourse,
+    duplicateBatch,
+    setDuplicateBatch,
+    duplicateSession,
+    setDuplicateSession,
     showCreditsPage,
   };
 }

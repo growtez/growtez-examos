@@ -449,7 +449,8 @@ export default function ProfilePage() {
                     ref={imageRef}
                     src={imgSrc}
                     alt="Upload"
-                    className="max-h-[42vh] sm:max-h-[50vh] w-auto object-contain"
+                    style={{ maxHeight: '50vh', maxWidth: '100%' }}
+                    className="block"
                   />
                 </ReactCrop>
               )}

@@ -211,12 +211,7 @@ export default async function SchoolAdminDashboard() {
             </div>
             <span className="font-bold text-xs text-text-main group-hover:text-accent-primary transition-colors">Manage Teachers</span>
           </Link>
-          <Link href="/students" className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border-2 border-border/60 bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-lg hover:shadow-accent-primary/10 hover:-translate-y-0.5 transition-all group text-center">
-            <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary group-hover:scale-110 group-hover:bg-accent-primary/20 transition-all duration-300">
-              <Users2 size={18} />
-            </div>
-            <span className="font-bold text-xs text-text-main group-hover:text-accent-primary transition-colors">Manage Students</span>
-          </Link>
+
           <Link href="/results" className="relative overflow-hidden flex flex-col items-center justify-center gap-2.5 p-4 rounded-xl border-2 border-border/60 bg-gradient-to-br from-surface to-surface-hover hover:border-accent-primary hover:shadow-lg hover:shadow-accent-primary/10 hover:-translate-y-0.5 transition-all group text-center">
             <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary group-hover:scale-110 group-hover:bg-accent-primary/20 transition-all duration-300">
               <CheckCircle size={18} />
