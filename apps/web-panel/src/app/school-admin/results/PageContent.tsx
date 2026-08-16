@@ -358,8 +358,8 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
           student_id: sid,
           exam_id: examId,
           total_marks: studentResult ? studentResult.total_marks : (hasLoggedIn ? 0 : null),
-          time_taken_seconds: studentResult?.time_taken_seconds ?? (hasLoggedIn ? (studentInfo.last_active_at && studentInfo.started_at ? Math.max(0, Math.floor((new Date(studentInfo.last_active_at).getTime() - new Date(studentInfo.started_at).getTime()) / 1000)) : 0) : null),
-          submitted_at: studentResult?.submitted_at || (hasLoggedIn ? (studentInfo.submitted_at || studentInfo.last_active_at || studentInfo.started_at) : null),
+          time_taken_seconds: studentResult?.time_taken_seconds ?? ((hasLoggedIn && studentInfo) ? (studentInfo.last_active_at && studentInfo.started_at ? Math.max(0, Math.floor((new Date(studentInfo.last_active_at).getTime() - new Date(studentInfo.started_at).getTime()) / 1000)) : 0) : null),
+          submitted_at: studentResult?.submitted_at || ((hasLoggedIn && studentInfo) ? (studentInfo.submitted_at || studentInfo.last_active_at || studentInfo.started_at) : null),
           answers: studentResult?.answers || (hasLoggedIn ? {} : null),
           // For logged-in students with no result or empty/invalid section_scores, generate 0-mark section scores
           section_scores: (Array.isArray(studentResult?.section_scores) && studentResult.section_scores.length > 0) 

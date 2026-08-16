@@ -346,6 +346,14 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
         ctx.fillRect(0, 0, finalWidth, finalHeight);
         ctx.drawImage(imageRef, 0, 0, imageRef.naturalWidth, imageRef.naturalHeight, 0, 0, finalWidth, finalHeight);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        const parseQuestionImages = (urlStr: string | null): string[] => {
+          if (!urlStr) return [];
+          const trimmed = urlStr.trim();
+          if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            try { return JSON.parse(trimmed); } catch (e) { return [trimmed]; }
+          }
+          return [trimmed];
+        };
         if (cropTarget === 'question') setQuestionImage(dataUrl);
         else if (cropTarget === 'explanation') setExplanationImg(prev => JSON.stringify([...(prev ? parseQuestionImages(prev) : []), dataUrl]));
         else if (cropTarget === 'A') setOptionAImage(dataUrl);

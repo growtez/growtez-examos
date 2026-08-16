@@ -994,7 +994,7 @@ export function useExamDetailPage(paramsId: string) {
         const hasLoggedIn = !!(s.status === 'in_progress' || s.status === 'submitted' || s.started_at || s.last_active_at || s.submitted_at);
         const actualResult = examResults?.find((r: any) => r.student_id === s.id);
         
-        let safeResult = actualResult || null;
+        let safeResult: any = actualResult || null;
         if (safeResult && safeResult.total_marks == null) {
           safeResult = { ...safeResult, total_marks: 0 };
         } else if (!safeResult && hasLoggedIn) {
