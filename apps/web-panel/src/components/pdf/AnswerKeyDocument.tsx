@@ -229,6 +229,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 5,
     padding: 4,
+    minHeight: 36,
   },
   optionLabel: {
     fontFamily: 'Helvetica-Bold',
@@ -237,6 +238,7 @@ const styles = StyleSheet.create({
   },
   optionContent: {
     flex: 1,
+    paddingRight: 6,
   },
   badge: {
     fontSize: 7,
@@ -403,6 +405,8 @@ export const AnswerKeyDocument = ({ data }: { data: any }) => {
                             <View style={styles.optionContent}>
                               {opt.text && <LatexParser content={opt.text} />}
                               {opt.image && <Image src={opt.image} style={styles.image} />}
+                            </View>
+                            <View>
                               {opt.isStudentAns && opt.isCorrect && <Text style={[styles.badge, { backgroundColor: '#22c55e' }]}>✓ Your Correct Ans</Text>}
                               {!opt.isStudentAns && opt.isCorrect && <Text style={[styles.badge, { backgroundColor: '#334155', color: '#ffffff' }]}>✓ Correct Answer</Text>}
                               {opt.isStudentAns && !opt.isCorrect && <Text style={[styles.badge, { backgroundColor: '#ef4444' }]}>✗ Your Wrong Ans</Text>}
