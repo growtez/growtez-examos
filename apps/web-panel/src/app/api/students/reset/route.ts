@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
 export async function POST(req: Request) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+    
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
     const { student_id, exam_id } = await req.json();
 
     if (!student_id || !exam_id) {
