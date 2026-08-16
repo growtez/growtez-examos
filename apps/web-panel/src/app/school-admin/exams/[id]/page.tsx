@@ -1885,7 +1885,6 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                         <input
                           type="file"
                           accept=".csv,.txt,.xlsx,.xls"
-                          required
                           onChange={(e) => handleCsvFileChange(e.target.files?.[0] || null)}
                           className="sr-only"
                         />
@@ -1942,7 +1941,7 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
                                   <td className="px-3 py-2.5">
                                     {row.status === 'pending' && <span className="text-text-muted font-medium">Ready</span>}
                                     {row.status === 'success' && <span className="text-emerald-600 font-bold flex items-center gap-1"><CheckCircle2 size={12} /> Success</span>}
-                                    {row.status === 'failed' && <span className="text-red-600 font-bold flex items-center gap-1 max-w-[150px] truncate" title={row.error}><AlertCircle size={12} /> {row.error}</span>}
+                                    {row.status === 'failed' && <span className="text-red-600 font-bold flex items-start gap-1 break-words whitespace-normal"><AlertCircle size={12} className="mt-0.5 shrink-0" /> <span className="flex-1">{row.error}</span></span>}
                                   </td>
                                 </tr>
                               ))}
