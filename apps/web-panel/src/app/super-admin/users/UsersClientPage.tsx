@@ -13,18 +13,23 @@ import {
     Mail, 
     ChevronLeft, 
     ChevronRight,
-    School as SchoolIcon 
+    School as SchoolIcon,
+    Edit2
 } from 'lucide-react';
 import { TableRowsSkeleton } from '@/components/ui/Skeleton';
+import EditSchoolAdminEmailModal from '@/components/super-admin/EditSchoolAdminEmailModal';
 
 export default function UsersClientPage({ users: initialUsers }: { users: any[] }) {
   const router = useRouter();
+  const [userList, setUserList] = useState(initialUsers);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(8);
   const [isRoleFilterOpen, setIsRoleFilterOpen] = useState(false);
+  const [selectedAdmin, setSelectedAdmin] = useState<{ id: string; name?: string; email: string } | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const roleOptions = [
     { value: 'all', label: 'All Roles' },
@@ -34,7 +39,7 @@ export default function UsersClientPage({ users: initialUsers }: { users: any[] 
     { value: 'student', label: 'Student' }
   ];
 
-  const filteredUsers = initialUsers
+  const filteredUsers = userList
     .filter(user => {
       const matchesSearch = user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.full_name?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -203,7 +208,7 @@ export default function UsersClientPage({ users: initialUsers }: { users: any[] 
           <table className="w-full text-left border-collapse whitespace-nowrap min-w-[900px]">
           <thead>
             <tr className="border-b border-border">
-              <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[30%]" onClick={() => toggleSort('name')}>
+              <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[25%]" onClick={() => toggleSort('name')}>
                 <div className="flex items-center gap-2">
                   User {getSortIcon('name')}
                 </div>
@@ -214,18 +219,19 @@ export default function UsersClientPage({ users: initialUsers }: { users: any[] 
                   Role {getSortIcon('role')}
                 </div>
               </th>
-              <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[20%]">School</th>
+              <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent w-[15%]">School</th>
               <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent cursor-pointer hover:bg-surface-hover transition-colors w-[10%]" onClick={() => toggleSort('newest')}>
                 <div className="flex items-center gap-2">
                   Joined {getSortIcon('newest')}
                 </div>
               </th>
+              <th className="py-3 px-4 text-[12px] font-bold text-text-main bg-transparent text-center w-[10%]">Action</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-10 text-text-muted text-[13px]">
+                <td colSpan={6} className="text-center py-10 text-text-muted text-[13px]">
                   No users found matching your criteria.
                 </td>
               </tr>
@@ -275,11 +281,28 @@ export default function UsersClientPage({ users: initialUsers }: { users: any[] 
                         {new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </span>
                     </td>
+                    <td className="py-2.5 px-4 align-middle text-center">
+                      {user.role === 'school_admin' ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedAdmin({ id: user.id, name: user.full_name, email: user.email });
+                            setIsEditModalOpen(true);
+                          }}
+                          title="Edit School Admin Email"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white transition-colors cursor-pointer border-none"
+                        >
+                          <Edit2 size={12} /> Edit Email
+                        </button>
+                      ) : (
+                        <span className="text-text-muted text-[12px] opacity-40">—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {perPage - pagedUsers.length > 0 && Array.from({ length: perPage - pagedUsers.length }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="border-b border-border/40 last:border-b-0 opacity-0 pointer-events-none">
-                    <td colSpan={5} className="py-2.5 px-4 align-middle">
+                    <td colSpan={6} className="py-2.5 px-4 align-middle">
                       <div className="h-8"></div>
                     </td>
                   </tr>
@@ -311,9 +334,24 @@ export default function UsersClientPage({ users: initialUsers }: { users: any[] 
                       {user.full_name || 'Anonymous User'}
                     </span>
                   </div>
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded bg-surface-hover border border-border/40 ${user.role === 'super_admin' ? 'text-green-500' : user.role === 'school_admin' ? 'text-violet-500' : user.role === 'teacher' ? 'text-blue-500' : 'text-text-muted'}`}>
-                    {(roleOptions.find(r => r.value === user.role)?.label || user.role).toUpperCase()}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded bg-surface-hover border border-border/40 ${user.role === 'super_admin' ? 'text-green-500' : user.role === 'school_admin' ? 'text-violet-500' : user.role === 'teacher' ? 'text-blue-500' : 'text-text-muted'}`}>
+                      {(roleOptions.find(r => r.value === user.role)?.label || user.role).toUpperCase()}
+                    </span>
+                    {user.role === 'school_admin' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedAdmin({ id: user.id, name: user.full_name, email: user.email });
+                          setIsEditModalOpen(true);
+                        }}
+                        title="Edit School Admin Email"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-bold bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white transition-colors cursor-pointer border-none"
+                      >
+                        <Edit2 size={12} /> Edit
+                      </button>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="flex flex-col gap-1.5 pl-11">
@@ -343,6 +381,22 @@ export default function UsersClientPage({ users: initialUsers }: { users: any[] 
           )}
         </div>
       </div>
+
+      {selectedAdmin && (
+        <EditSchoolAdminEmailModal
+          adminId={selectedAdmin.id}
+          adminName={selectedAdmin.name}
+          currentEmail={selectedAdmin.email}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedAdmin(null);
+          }}
+          onSuccess={(updatedEmail) => {
+            setUserList(prev => prev.map(u => u.id === selectedAdmin.id ? { ...u, email: updatedEmail } : u));
+          }}
+        />
+      )}
     </div>
   );
 }

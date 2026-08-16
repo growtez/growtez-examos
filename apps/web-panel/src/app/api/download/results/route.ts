@@ -26,20 +26,104 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Exam not found', { status: 404 });
   }
 
-  // 2. Fetch results
-  const { data: resultsData, error: resultsError } = await supabase
+  // 2. Fetch all students assigned to this exam
+  const { data: studentsData } = await supabase
+    .from('students')
+    .select('id, full_name, roll_number, course, batch, status, started_at, last_active_at, submitted_at')
+    .eq('exam_id', examId);
+
+  // 3. Fetch results
+  const { data: resultsRaw, error: resultsError } = await supabase
     .from('results')
     .select('*, students:student_id(full_name, roll_number, course, batch)')
     .eq('exam_id', examId)
     .order('total_marks', { ascending: false });
 
-  if (resultsError || !resultsData) {
+  if (resultsError || !resultsRaw) {
     return new NextResponse('Error fetching results', { status: 500 });
   }
 
-  let results = resultsData;
-  if (courseFilter) results = results.filter(r => r.students?.course === courseFilter);
-  if (batchFilter) results = results.filter(r => r.students?.batch === batchFilter);
+  // 4. Fetch exam subjects for synthetic section_scores
+  const { data: subjectsData } = await supabase
+    .from('exam_subjects')
+    .select('subject_name, total_marks')
+    .eq('exam_id', examId)
+    .order('sort_order', { ascending: true });
+  const examSubjects = subjectsData || [];
+
+  const buildZeroSectionScores = () =>
+    examSubjects.map((subj: any) => ({
+      subject_name: subj.subject_name,
+      marks: 0,
+      max_marks: subj.total_marks || 0,
+      correct: 0,
+      partial: 0,
+      wrong: 0
+    }));
+
+  // 5. Merge: for each student, find their result or create a 0-mark row
+  const resultMap = new Map((resultsRaw || []).map((r: any) => [r.student_id, r]));
+  const allStudents = (studentsData || []);
+
+  const allRows = allStudents.map((student: any) => {
+    const result = resultMap.get(student.id);
+    const hasLoggedIn = !!(
+      result ||
+      student.status === 'in_progress' ||
+      student.status === 'submitted' ||
+      student.started_at ||
+      student.last_active_at ||
+      student.submitted_at
+    );
+
+    if (result) {
+      return { ...result };
+    }
+    if (hasLoggedIn) {
+      return {
+        id: `no-res-${student.id}`,
+        student_id: student.id,
+        exam_id: examId,
+        total_marks: 0,
+        submitted_at: null,
+        section_scores: examSubjects.length > 0 ? buildZeroSectionScores() : null,
+        students: {
+          full_name: student.full_name,
+          roll_number: student.roll_number,
+          course: student.course,
+          batch: student.batch
+        },
+        isAbsent: false
+      };
+    }
+    // Never logged in → Not Attempted
+    return {
+      id: `absent-${student.id}`,
+      student_id: student.id,
+      exam_id: examId,
+      total_marks: null,
+      submitted_at: null,
+      section_scores: null,
+      students: {
+        full_name: student.full_name,
+        roll_number: student.roll_number,
+        course: student.course,
+        batch: student.batch
+      },
+      isAbsent: true
+    };
+  });
+
+  // Sort: attempted first (by marks desc), then not-attempted
+  allRows.sort((a: any, b: any) => {
+    if (a.isAbsent && !b.isAbsent) return 1;
+    if (!a.isAbsent && b.isAbsent) return -1;
+    return (b.total_marks ?? -Infinity) - (a.total_marks ?? -Infinity);
+  });
+
+  let results = allRows;
+  if (courseFilter) results = results.filter((r: any) => r.students?.course === courseFilter);
+  if (batchFilter) results = results.filter((r: any) => r.students?.batch === batchFilter);
 
   // Generate PDF using jsPDF
   try {
@@ -112,11 +196,13 @@ export async function GET(request: NextRequest) {
 
     // Collect all unique subjects from the results
     const subjectSet = new Set<string>();
-    results.forEach(r => {
+    results.forEach((r: any) => {
       if (Array.isArray(r.section_scores)) {
         r.section_scores.forEach((s: any) => subjectSet.add(s.subject_name));
       }
     });
+    // Also add from examSubjects in case some students have no section_scores
+    examSubjects.forEach((s: any) => subjectSet.add(s.subject_name));
     const subjects = Array.from(subjectSet);
 
     const tableColumn = [
@@ -125,17 +211,19 @@ export async function GET(request: NextRequest) {
     ];
     const tableRows: any[] = [];
 
-    results.forEach((res, index) => {
+    results.forEach((res: any, index: number) => {
       const rowData: any[] = [
         index + 1,
         res.students?.roll_number || 'N/A',
         res.students?.full_name || 'Unknown',
-        `${res.total_marks ?? 0} / ${totalExamMarks}`
+        res.isAbsent ? 'Not Attempted' : `${res.total_marks ?? 0} / ${totalExamMarks}`
       ];
 
       // Subject-wise: show marks scored and correct count
       subjects.forEach(sub => {
-        if (Array.isArray(res.section_scores)) {
+        if (res.isAbsent) {
+          rowData.push('Not Attempted');
+        } else if (Array.isArray(res.section_scores)) {
           const score = res.section_scores.find((s: any) => s.subject_name === sub);
           if (score) {
             const parts = [`${score.correct ?? 0}C`];
@@ -143,10 +231,10 @@ export async function GET(request: NextRequest) {
             if (score.wrong) parts.push(`${score.wrong}W`);
             rowData.push(`${score.marks ?? 0} (${parts.join('/')})`);
           } else {
-            rowData.push('—');
+            rowData.push('0 (0C)');
           }
         } else {
-          rowData.push('—');
+          rowData.push('0 (0C)');
         }
       });
 

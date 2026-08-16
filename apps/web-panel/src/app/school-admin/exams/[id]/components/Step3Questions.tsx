@@ -632,11 +632,11 @@ export default function Step3Questions({
                 <div className="flex items-center gap-3">
 
                   <div>
-                    <h3 className="text-sm font-bold m-0 text-text-main leading-tight">
-                      {editingQuestionId ? 'Edit Question' : 'Add New Question'}
-                    </h3>
-                    <p className="text-[11px] text-text-muted font-medium m-0">
+                    <h3 className="text-base sm:text-lg font-bold m-0 text-text-main leading-tight">
                       {subjects.find(s => s.id === drawerSubjectId)?.subject_name}
+                    </h3>
+                    <p className="text-xs text-text-muted font-medium m-0">
+                      {editingQuestionId ? 'Edit Question' : 'Add New Question'}
                     </p>
                   </div>
                 </div>

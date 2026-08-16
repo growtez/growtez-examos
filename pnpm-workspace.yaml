@@ -1,3 +1,9 @@
 packages:
   - "apps/*"
   - "packages/*"
+allowBuilds:
+  core-js: set this to true or false
+  esbuild: set this to true or false
+  unrs-resolver: set this to true or false
+patchedDependencies:
+  '@react-pdf/math@2.0.1': patches/@react-pdf__math@2.0.1.patch

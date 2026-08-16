@@ -69,7 +69,7 @@ export default function StudentStatsPage() {
       // Find all student rows matching roll_number + session + batch + course in this school
       const { data: students } = await supabase
         .from('students')
-        .select('id, full_name, exam_id')
+        .select('id, full_name, exam_id, status, started_at, last_active_at, submitted_at')
         .eq('school_id', schoolId)
         .eq('roll_number', rollNumber.trim())
         .eq('session', session.trim())
@@ -113,19 +113,33 @@ export default function StudentStatsPage() {
         examMaxMarks[q.exam_id] += (q.positive_marks ?? q.marks ?? 0);
       });
 
-      // Map exam_id -> student_id for the results join
-      const examToStudent: Record<string, string> = {};
-      students.forEach((s: any) => { examToStudent[s.exam_id] = s.id; });
+      // Map exam_id -> student object for the results join
+      const examToStudentObj: Record<string, any> = {};
+      students.forEach((s: any) => { examToStudentObj[s.exam_id] = s; });
 
       const rows = exams.map((exam: any) => {
-        const studentId = examToStudent[exam.id];
+        const studentObj = examToStudentObj[exam.id];
+        const studentId = studentObj?.id;
         const result = results.find((r: any) => r.student_id === studentId && r.exam_id === exam.id);
-        const obtained = result?.total_marks ?? null;
+        const hasLoggedIn = !!(
+          result ||
+          (studentObj && (
+            studentObj.status === 'in_progress' ||
+            studentObj.status === 'submitted' ||
+            studentObj.started_at ||
+            studentObj.last_active_at ||
+            studentObj.submitted_at
+          ))
+        );
+
+        const obtained = result?.total_marks ?? (hasLoggedIn ? 0 : null);
+
         let max = exam.total_marks;
         if (!max || max === 0) {
           max = examMaxMarks[exam.id] || 0;
         }
-        const pct = (obtained !== null && max > 0) ? Math.round((obtained / max) * 100 * 10) / 10 : null;
+
+        const pct = (obtained !== null && max > 0) ? Math.round((obtained / max) * 100 * 10) / 10 : (hasLoggedIn ? 0 : null); 
         return {
           examTitle: exam.title,
           date: exam.start_time ? new Date(exam.start_time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }) : '—',
@@ -133,7 +147,7 @@ export default function StudentStatsPage() {
           obtained,
           max,
           percentage: pct,
-          attempted: obtained !== null,
+          attempted: hasLoggedIn,
         };
       });
 

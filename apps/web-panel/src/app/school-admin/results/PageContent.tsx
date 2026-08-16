@@ -217,7 +217,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
 
       let query = supabase
         .from('exams')
-        .select(`*, results(id)`)
+        .select(`*, students(status, started_at, last_active_at, submitted_at)`)
         .eq('school_id', activeSchoolId)
         .in('status', ['completed', 'published', 'active'])
         .order('created_at', { ascending: false });
@@ -244,10 +244,13 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
 
       const { data } = await query;
 
-      const examsList = (data || []).map(e => ({
-        ...e,
-        submissionCount: e.results ? e.results.length : 0
-      }));
+      const examsList = (data || []).map(e => {
+        const attempts = (e.students || []).filter((s: any) => s.started_at || s.status === 'in_progress' || s.status === 'submitted');
+        return {
+          ...e,
+          submissionCount: attempts.length
+        };
+      });
       setExams(examsList);
       setLoadingExams(false);
     };
@@ -265,7 +268,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
     try {
       const { data: studentsData, error: sError } = await supabase
         .from('students')
-        .select('id, full_name, roll_number, course, batch')
+        .select('id, full_name, roll_number, course, batch, status, started_at, last_active_at, submitted_at')
         .eq('exam_id', examId);
       if (sError) throw sError;
 
@@ -274,6 +277,15 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
         .select('*, exams:exam_id(title, total_marks, start_time, marking_scheme)')
         .eq('exam_id', examId);
       if (resError) throw resError;
+
+      // Fetch exam subjects so we can generate synthetic section_scores (all 0)
+      // for students who logged in but have no result row
+      const { data: subjectsData } = await supabase
+        .from('exam_subjects')
+        .select('subject_name, total_marks')
+        .eq('exam_id', examId)
+        .order('sort_order', { ascending: true });
+      const examSubjects = subjectsData || [];
 
       let examDetails = exams.find(e => e.id === examId);
       if (!examDetails) {
@@ -285,55 +297,84 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
         examDetails = examData;
       }
 
+      const { data: qData } = await supabase
+        .from('questions')
+        .select('*, exam_subjects(subject_name)')
+        .eq('exam_id', examId)
+        .order('question_number', { ascending: true });
+      const questionsList = qData || [];
+      setQuestions(questionsList);
+
       const studentIds = (studentsData || []).map((s: any) => s.id);
 
-      let merged = [];
-      if (examDetails?.status === 'completed') {
-        merged = studentIds.map((sid: any) => {
-          const studentResult = (resData || []).find((r: any) => r.student_id === sid);
-          const studentInfo = studentsData.find((s: any) => s.id === sid);
-          return {
-            id: studentResult?.id || `no-res-${sid}`,
-            student_id: sid,
-            exam_id: examId,
-            total_marks: studentResult ? studentResult.total_marks : null,
-            time_taken_seconds: studentResult?.time_taken_seconds || null,
-            submitted_at: studentResult?.submitted_at || null,
-            answers: studentResult?.answers || null,
-            section_scores: studentResult?.section_scores || null,
-            students: studentInfo || null,
-            exams: studentResult?.exams || {
-              title: examDetails?.title || '',
-              total_marks: examDetails?.total_marks || 0,
-              start_time: examDetails?.start_time || null,
-              marking_scheme: examDetails?.marking_scheme || null
-            },
-            isAbsent: !studentResult
-          };
-        });
-      } else {
-        merged = (resData || []).map((studentResult: any) => {
-          const studentInfo = studentsData.find((s: any) => s.id === studentResult.student_id);
-          return {
-            id: studentResult.id,
-            student_id: studentResult.student_id,
-            exam_id: examId,
-            total_marks: studentResult.total_marks ?? null,
-            time_taken_seconds: studentResult.time_taken_seconds || null,
-            submitted_at: studentResult.submitted_at || null,
-            answers: studentResult.answers || null,
-            section_scores: studentResult.section_scores || null,
-            students: studentInfo || null,
-            exams: studentResult.exams || {
-              title: examDetails?.title || '',
-              total_marks: examDetails?.total_marks || 0,
-              start_time: examDetails?.start_time || null,
-              marking_scheme: examDetails?.marking_scheme || null
-            },
-            isAbsent: false
-          };
-        });
-      }
+      // Build synthetic section_scores (all 0) for logged-in students with no result
+      const buildZeroSectionScores = () => {
+        if (examSubjects.length > 0) {
+          return examSubjects.map((subj: any) => ({
+            subject_name: subj.subject_name,
+            marks: 0,
+            max_marks: subj.total_marks || 0
+          }));
+        }
+
+        if (questionsList.length > 0) {
+          const subjectSet = new Set<string>();
+          questionsList.forEach((q: any) => {
+            if (q.exam_subjects?.subject_name) {
+              subjectSet.add(q.exam_subjects.subject_name);
+            }
+          });
+          if (subjectSet.size > 0) {
+            return Array.from(subjectSet).map(subj => ({
+              subject_name: subj,
+              marks: 0,
+              max_marks: 0
+            }));
+          }
+        }
+
+        return [{
+          subject_name: 'Overall',
+          marks: 0,
+          max_marks: examDetails?.total_marks || 0
+        }];
+      };
+
+      let merged = studentIds.map((sid: any) => {
+        const studentResult = (resData || []).find((r: any) => r.student_id === sid);
+        const studentInfo = studentsData.find((s: any) => s.id === sid);
+        const hasLoggedIn = !!(
+          studentResult ||
+          (studentInfo && (
+            studentInfo.status === 'in_progress' ||
+            studentInfo.status === 'submitted' ||
+            studentInfo.started_at ||
+            studentInfo.last_active_at ||
+            studentInfo.submitted_at
+          ))
+        );
+        return {
+          id: studentResult?.id || `no-res-${sid}`,
+          student_id: sid,
+          exam_id: examId,
+          total_marks: studentResult ? studentResult.total_marks : (hasLoggedIn ? 0 : null),
+          time_taken_seconds: studentResult?.time_taken_seconds ?? (hasLoggedIn ? (studentInfo.last_active_at && studentInfo.started_at ? Math.max(0, Math.floor((new Date(studentInfo.last_active_at).getTime() - new Date(studentInfo.started_at).getTime()) / 1000)) : 0) : null),
+          submitted_at: studentResult?.submitted_at || (hasLoggedIn ? (studentInfo.submitted_at || studentInfo.last_active_at || studentInfo.started_at) : null),
+          answers: studentResult?.answers || (hasLoggedIn ? {} : null),
+          // For logged-in students with no result or empty/invalid section_scores, generate 0-mark section scores
+          section_scores: (Array.isArray(studentResult?.section_scores) && studentResult.section_scores.length > 0) 
+            ? studentResult.section_scores 
+            : (hasLoggedIn ? buildZeroSectionScores() : null),
+          students: studentInfo || null,
+          exams: studentResult?.exams || {
+            title: examDetails?.title || '',
+            total_marks: examDetails?.total_marks || 0,
+            start_time: examDetails?.start_time || null,
+            marking_scheme: examDetails?.marking_scheme || null
+          },
+          isAbsent: !hasLoggedIn
+        };
+      });
 
       merged.sort((a: any, b: any) => {
         if (a.isAbsent && !b.isAbsent) return 1;
@@ -342,13 +383,6 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
       });
 
       setResults(merged);
-
-      const { data: qData } = await supabase
-        .from('questions')
-        .select('*, exam_subjects(subject_name)')
-        .eq('exam_id', examId)
-        .order('question_number', { ascending: true });
-      setQuestions(qData || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -1080,7 +1114,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
                               Answer Key
                             </button>
                           ) : res.isAbsent ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">Absent</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">Not Attempted</span>
                           ) : (
                             <span className="text-text-muted text-[11px] font-medium">In Progress</span>
                           )}
@@ -1113,7 +1147,7 @@ export function ResultsListContent({ schoolIdProp, examIdProp }: { schoolIdProp?
                         </div>
                       </div>
                       {res.isAbsent ? (
-                        <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">Absent</span>
+                        <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wider">Not Attempted</span>
                       ) : res.total_marks === null && res.answers ? (
                         <Loader2 size={16} className="animate-spin text-accent-primary shrink-0" />
                       ) : (

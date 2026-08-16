@@ -673,7 +673,14 @@ export default function QuestionsPage({ params }: { params: { id: string } }) {
         <div className="fixed inset-0 bg-bg z-[1000] flex flex-col w-full h-[100dvh] animate-in fade-in duration-200" onClick={() => setShowForm(false)}>
           <div className="w-full h-full bg-bg flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="relative bg-accent-primary px-4 sm:px-6 py-3.5 flex items-center justify-between shrink-0 shadow-md">
-              <span className="text-white font-bold text-base sm:text-lg">{editingQuestionId ? 'Edit Question' : 'Add Question'} — {currentSubject?.subject_name}</span>
+              <div className="flex flex-col">
+                <span className="text-white font-bold text-base sm:text-lg leading-tight">
+                  {currentSubject?.subject_name}
+                </span>
+                <span className="text-white/80 font-medium text-xs">
+                  {editingQuestionId ? 'Edit Question' : 'Add Question'}
+                </span>
+              </div>
               
               {/* Question type toggle - centered horizontally */}
               <div className="hidden sm:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 bg-white/10 rounded-xl p-1 border border-white/20">
