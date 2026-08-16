@@ -2,6 +2,9 @@
 -- GROWTEZ EXAMOS — CONSOLIDATED SCHEMA SETUP
 -- ============================================================
 
+-- Enable citext for case-insensitive course, batch, session
+CREATE EXTENSION IF NOT EXISTS citext;
+
 -- ============================================================
 -- 1. Create Tables (Final State with all columns from alterations)
 -- ============================================================
@@ -78,9 +81,9 @@ CREATE TABLE IF NOT EXISTS public.students (
     email TEXT,
     roll_number TEXT NOT NULL,
     date_of_birth DATE NOT NULL,
-    course TEXT DEFAULT 'General',
-    batch TEXT DEFAULT 'Main',
-    session TEXT DEFAULT '2026-27',
+    course CITEXT DEFAULT 'General',
+    batch CITEXT DEFAULT 'Main',
+    session CITEXT DEFAULT '2026-27',
     status TEXT DEFAULT 'assigned' CHECK (status IN ('assigned', 'in_progress', 'submitted')),
     started_at TIMESTAMP WITH TIME ZONE,
     submitted_at TIMESTAMP WITH TIME ZONE,
@@ -411,9 +414,9 @@ DECLARE
   v_full_name TEXT;
   v_roll_number TEXT;
   v_date_of_birth DATE;
-  v_course TEXT;
-  v_batch TEXT;
-  v_session TEXT;
+  v_course CITEXT;
+  v_batch CITEXT;
+  v_session CITEXT;
   v_department TEXT;
 BEGIN
   -- Get metadata values
