@@ -74,9 +74,15 @@ export default function Step2Students({
       onConfirm: async () => {
         setConfirmDialog((prev: any) => ({ ...prev, isOpen: false }));
         setAssignedStudents(prev => prev.map(s => s.student_id === as.student_id ? { ...s, status: 'assigned', result: null } : s));
-        const { error } = await supabase.rpc('reset_student_exam', { p_exam_id: paramsId, p_student_id: as.student_id });
-        if (error) {
-          alert('Failed to reset: ' + error.message);
+        const res = await fetch('/api/students/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ exam_id: paramsId, student_id: as.student_id })
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          alert('Failed to reset: ' + (data.error || 'Unknown error'));
           setAssignedStudents(prev => prev.map(s => s.student_id === as.student_id ? { ...s, status: as.status, result: as.result } : s));
         }
       }
