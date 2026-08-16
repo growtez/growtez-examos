@@ -322,6 +322,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
     setQImage,
     qExplanation,
     setQExplanation,
+    qExplanationImg,
+    setQExplanationImg,
     rawImageToCrop,
     setRawImageToCrop,
     cropTarget,
@@ -990,6 +992,8 @@ export default function ExamDetailPage({ params }: { params: { id: string } }) {
               setQImage={setQImage}
               qExplanation={qExplanation}
               setQExplanation={setQExplanation}
+              qExplanationImg={qExplanationImg}
+              setQExplanationImg={setQExplanationImg}
               optA={optA}
               setOptA={setOptA}
               optAImg={optAImg}
