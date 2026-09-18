@@ -5,6 +5,8 @@ import { parseExamInstructions } from '../lib/instructions';
 import Calculator from './Calculator';
 import Numpad from './Numpad';
 import MathRenderer from './MathRenderer';
+import TextSizeControl, { FONT_SCALE_LEVELS, DEFAULT_FONT_SCALE, MIN_FONT_SCALE, MAX_FONT_SCALE } from './TextSizeControl';
+import ImageZoomModal from './ImageZoomModal';
 import parikshaLogo from '../../public/ParikshaOS_logo.png';
 
 // A simple, fast deterministic random number generator
@@ -162,6 +164,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showLegendModal, setShowLegendModal] = useState(false);
   const [showInstructionsModal, setShowInstructionsModal] = useState(false);
+  const [activeZoomImage, setActiveZoomImage] = useState<{ url: string; title: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -171,6 +174,69 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   const questionContentRef = useRef<HTMLDivElement>(null);
   // Directly-fetched exam instructions (guarantees data even if login response omitted it)
   const [examInstructions, setExamInstructions] = useState<string[]>([]);
+
+  // Text size scaling state (stored in localStorage)
+  const [fontScale, setFontScale] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('parikshaos_font_scale');
+      if (saved) {
+        const parsed = parseFloat(saved);
+        if (!isNaN(parsed) && parsed >= MIN_FONT_SCALE && parsed <= MAX_FONT_SCALE) {
+          return parsed;
+        }
+      }
+    } catch (_) {}
+    return DEFAULT_FONT_SCALE;
+  });
+
+  const handleIncreaseFontSize = () => {
+    setFontScale(prev => {
+      const idx = FONT_SCALE_LEVELS.findIndex(l => Math.abs(l - prev) < 0.01);
+      let nextScale = prev;
+      if (idx === -1) {
+        const next = FONT_SCALE_LEVELS.find(l => l > prev);
+        nextScale = next !== undefined ? next : MAX_FONT_SCALE;
+      } else if (idx < FONT_SCALE_LEVELS.length - 1) {
+        nextScale = FONT_SCALE_LEVELS[idx + 1];
+      }
+      try {
+        localStorage.setItem('parikshaos_font_scale', String(nextScale));
+      } catch (_) {}
+      return nextScale;
+    });
+  };
+
+  const handleDecreaseFontSize = () => {
+    setFontScale(prev => {
+      const idx = FONT_SCALE_LEVELS.findIndex(l => Math.abs(l - prev) < 0.01);
+      let nextScale = prev;
+      if (idx === -1) {
+        const prevLevels = FONT_SCALE_LEVELS.filter(l => l < prev);
+        nextScale = prevLevels.length > 0 ? prevLevels[prevLevels.length - 1] : MIN_FONT_SCALE;
+      } else if (idx > 0) {
+        nextScale = FONT_SCALE_LEVELS[idx - 1];
+      }
+      try {
+        localStorage.setItem('parikshaos_font_scale', String(nextScale));
+      } catch (_) {}
+      return nextScale;
+    });
+  };
+
+  const handleResetFontSize = () => {
+    setFontScale(DEFAULT_FONT_SCALE);
+    try {
+      localStorage.setItem('parikshaos_font_scale', String(DEFAULT_FONT_SCALE));
+    } catch (_) {}
+  };
+
+  // Synchronize root document font size so the whole page text scales with student preference
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontScale * 100}%`;
+    return () => {
+      document.documentElement.style.fontSize = '100%';
+    };
+  }, [fontScale]);
 
   // True when the student is re-entering an exam that was already in-progress
   const [isResuming] = useState(!!exam.student_started_at);
@@ -753,23 +819,23 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#FFFFFF] text-[#1D2939] font-sans text-[15px] select-none overflow-hidden">
+    <div className="flex flex-col min-h-screen h-auto md:h-screen bg-[#FFFFFF] text-[#1D2939] font-sans text-[15px] select-none overflow-y-auto overflow-x-hidden">
 
       {/* Top Header - White */}
-      <header className={`border-b border-[#008080] flex items-center justify-between bg-white px-6 transition-all duration-300 ease-in-out ${headerOpen ? 'h-[90px]' : 'h-[45px]'}`}>
+      <header className={`border-b border-[#008080] flex flex-wrap items-center justify-between bg-white px-6 transition-all duration-300 ease-in-out shrink-0 gap-4 ${headerOpen ? 'min-h-[85px] py-3' : 'min-h-[45px] py-1.5'}`}>
         {headerOpen ? (
           <>
             <div className="flex items-center gap-3">
-              <img src={school?.logo_url || parikshaLogo} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-14 h-14 rounded-full object-cover" />
+              <img src={school?.logo_url || parikshaLogo} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover shrink-0" />
               <div>
                 <h1 className="text-[#008080] text-[20px] font-extrabold tracking-widest m-0 leading-tight uppercase">{school?.name || 'ParikshaOS'}</h1>
                 <p className="text-[9px] text-[#667085] uppercase tracking-wider font-semibold">ParikshaOS by Growtez</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-sm">
-              <div className="w-14 h-14 border border-[#E4E7EC] bg-[#F9FAFB] flex items-center justify-center rounded-none shadow-sm">
-                <svg className="w-10 h-10 text-[#667085]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
+            <div className="flex flex-wrap items-center gap-4 text-sm ml-auto">
+              <div className="w-12 h-12 md:w-14 md:h-14 border border-[#E4E7EC] bg-[#F9FAFB] flex items-center justify-center rounded-none shadow-sm shrink-0">
+                <svg className="w-8 h-8 md:w-10 md:h-10 text-[#667085]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
               </div>
               <div className="flex flex-col text-right">
                 <div className="text-[#1D2939] text-xs font-medium"><span className="text-[#667085]">Candidate Name :</span> <span className="text-[#1D2939] font-bold">[{studentProfile.full_name}]</span></div>
@@ -781,7 +847,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
               </div>
               <button
                 onClick={() => setHeaderOpen(false)}
-                className="text-[#667085] hover:text-[#008080] hover:bg-gray-100 p-1.5 rounded-none transition-colors ml-1"
+                className="text-[#667085] hover:text-[#008080] hover:bg-gray-100 p-1.5 rounded-none transition-colors ml-1 cursor-pointer"
                 title="Collapse Header"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>
@@ -791,16 +857,16 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         ) : (
           <>
             <div className="flex items-center gap-2">
-              <img src={school?.logo_url || parikshaLogo} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-6 h-6 rounded-full object-cover" />
+              <img src={school?.logo_url || parikshaLogo} alt={`${school?.name || 'ParikshaOS'} Logo`} className="w-6 h-6 rounded-full object-cover shrink-0" />
               <h1 className="text-[#008080] text-[15px] font-extrabold tracking-wider m-0 uppercase">{school?.name || 'ParikshaOS'}</h1>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 ml-auto">
               <span className="text-sm text-[#667085] font-semibold">Remaining Time:</span>
               <span className={`px-4 py-1.5 font-bold text-xl text-white rounded-none leading-none ${getTimerClass()}`}>{formatTime(timeLeft)}</span>
               <button
                 onClick={() => setHeaderOpen(true)}
-                className="text-[#667085] hover:text-[#008080] hover:bg-gray-100 p-1.5 rounded-none transition-colors"
+                className="text-[#667085] hover:text-[#008080] hover:bg-gray-100 p-1.5 rounded-none transition-colors cursor-pointer"
                 title="Expand Header"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
@@ -810,23 +876,16 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
         )}
       </header>
 
-      {/* Low Time Warning Banner */}
-      {/* {timeLeft <= 300 && timeLeft > 0 && (
-        <div className={`text-white text-center text-xs font-bold py-1.5 uppercase tracking-widest ${timeLeft <= 60 ? 'bg-[#F04438] animate-pulse' : 'bg-[#F79009]'}`}>
-          ⚠ Less than {Math.ceil(timeLeft / 60)} minute{timeLeft > 60 ? 's' : ''} remaining — Exam will auto-submit when time runs out!
-        </div>
-      )} */}
-
       {/* Secondary Bar - Premium Teal */}
-      <div className="bg-[#008080] h-[50px] flex items-center justify-between px-6 text-white font-bold uppercase shadow-sm">
-        <div className="flex items-center gap-8 h-full">
+      <div className="bg-[#008080] min-h-[50px] py-2 flex flex-wrap items-center justify-between px-6 text-white font-bold uppercase shadow-sm shrink-0 gap-3">
+        <div className="flex flex-wrap items-center gap-4 md:gap-8">
           <span className="text-xs tracking-wider font-semibold text-white/80">{exam.title?.toUpperCase() || 'EXAMINATION'}</span>
-          <div className="flex gap-2 items-center h-full">
+          <div className="flex flex-wrap gap-2 items-center">
             {subjects.map((sub, idx) => (
               <button
                 key={sub.id}
                 onClick={() => { setCurrentSubjectIndex(idx); setCurrentQuestionIndex(0); }}
-                className={`px-4 py-3 rounded-none transition-all text-s font-bold ${
+                className={`px-4 py-2.5 rounded-none transition-all text-s font-bold cursor-pointer ${
                   currentSubjectIndex === idx ? 'bg-[#004d4d] text-white shadow-sm' : 'text-white hover:bg-[#006666]'
                 }`}
               >
@@ -836,11 +895,20 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0 ml-auto">
+          {/* Text Size Control */}
+          <TextSizeControl
+            scale={fontScale}
+            onIncrease={handleIncreaseFontSize}
+            onDecrease={handleDecreaseFontSize}
+            onReset={handleResetFontSize}
+            variant="teal"
+          />
+
           {/* Instructions Trigger Button */}
           <button
             onClick={() => setShowInstructionsModal(true)}
-            className="flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-none bg-[#195e5e] hover:bg-[#003333] active:bg-[#002222] text-white transition-all text-xs font-bold shadow-sm"
+            className="flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-none bg-[#195e5e] hover:bg-[#003333] active:bg-[#002222] text-white transition-all text-xs font-bold shadow-sm cursor-pointer"
             title="View Exam Instructions"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -853,7 +921,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           {exam.allow_calculator && (
             <button
               onClick={() => setShowCalculator(prev => !prev)}
-              className="flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-none bg-[#195e5e] hover:bg-[#003333] active:bg-[#002222] text-white transition-all text-xs font-bold shadow-sm"
+              className="flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-none bg-[#195e5e] hover:bg-[#003333] active:bg-[#002222] text-white transition-all text-xs font-bold shadow-sm cursor-pointer"
               title="Toggle Calculator"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -893,16 +961,19 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
               <div className="font-serif" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
                 <div className="flex items-center justify-between border-b border-[#E4E7EC] pb-3 mb-6">
                   <div className="flex items-center gap-3">
-                    <h2 className="text-lg font-bold text-[#1D2939]">Question {currentQuestionIndex + 1}:</h2>
+                    <h2 className="text-lg font-bold text-[#1D2939]" style={{ fontSize: `${Math.max(16, Math.round(18 * fontScale))}px` }}>Question {currentQuestionIndex + 1}:</h2>
                   </div>
                   {currentQuestion.question_type && (
-                    <span className="font-sans text-s font-bold text-[#008080] bg-[#EAF2F2] border border-[#008080] px-3 py-1 uppercase tracking-wider shadow-sm">
+                    <span className="font-sans text-xs font-bold text-[#008080] bg-[#EAF2F2] border border-[#008080] px-3 py-1 uppercase tracking-wider shadow-sm">
                       {currentQuestion.question_type.toUpperCase()}
                     </span>
                   )}
                 </div>
 
-                <div className="text-[16px] text-[#1D2939] leading-relaxed max-w-4xl font-serif">
+                <div
+                  className="text-[#1D2939] leading-relaxed max-w-4xl font-serif"
+                  style={{ fontSize: `${16 * fontScale}px`, lineHeight: 1.6 }}
+                >
                   {currentQuestion.question_text && (
                     <div className="mb-4 font-medium leading-relaxed">
                       <MathRenderer text={currentQuestion.question_text} />
@@ -914,12 +985,26 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                     return (
                       <div className="mb-6 flex flex-wrap gap-4">
                         {images.map((url, idx) => (
-                          <img
-                            key={idx}
-                            src={url}
-                            alt={`Question image ${idx + 1}`}
-                            className="max-w-full max-h-80 object-contain rounded-none border border-[#E4E7EC] shadow-sm"
-                          />
+                          <div key={idx} className="relative group inline-block">
+                            <img
+                              src={url}
+                              alt={`Question image ${idx + 1}`}
+                              onClick={() => setActiveZoomImage({ url, title: `Question ${currentQuestionIndex + 1} - Diagram ${idx + 1}` })}
+                              className="max-w-full max-h-80 object-contain rounded-none border border-[#E4E7EC] shadow-sm cursor-zoom-in hover:border-[#008080] hover:shadow-md transition-all"
+                              title="Click to view and zoom image"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setActiveZoomImage({ url, title: `Question ${currentQuestionIndex + 1} - Diagram ${idx + 1}` })}
+                              className="absolute bottom-2 right-2 bg-[#008080]/90 hover:bg-[#008080] text-white text-[11px] font-bold px-2 py-1 flex items-center gap-1 shadow-md opacity-85 group-hover:opacity-100 transition-all cursor-pointer"
+                              title="Click to zoom image"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                              </svg>
+                              Zoom
+                            </button>
+                          </div>
                         ))}
                       </div>
                     );
@@ -946,9 +1031,12 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                             name={`q_${currentQuestion.id}`}
                             checked={selected}
                             onChange={() => handleSelectOption(currentQuestion.id, opt)}
-                            className={`w-4 h-4 text-[#008080] border-[#E4E7EC] focus:ring-[#008080] cursor-pointer mt-1 ${isMsq ? 'rounded' : ''}`}
+                            className={`w-4 h-4 text-[#008080] border-[#E4E7EC] focus:ring-[#008080] cursor-pointer mt-1 shrink-0 ${isMsq ? 'rounded' : ''}`}
                           />
-                          <span className="flex items-start gap-3 font-serif text-[14px] w-full">
+                          <span
+                            className="flex items-start gap-3 font-serif w-full"
+                            style={{ fontSize: `${14 * fontScale}px`, lineHeight: 1.5 }}
+                          >
                             <span className="font-bold shrink-0 mt-0.5">({String.fromCharCode(65 + index)})</span>
                             <span className="flex flex-col gap-2 flex-1 min-w-0">
                               {currentQuestion.options[opt] && (
@@ -957,12 +1045,40 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                                 </span>
                               )}
                               {parseQuestionImages(currentQuestion.options[`${opt}_image`]).map((imgUrl, imgIdx) => (
-                                <img
-                                  key={imgIdx}
-                                  src={imgUrl}
-                                  alt={`Option ${opt} image ${imgIdx + 1}`}
-                                  className="max-w-[200px] max-h-[200px] object-contain rounded-none border border-[#E4E7EC]"
-                                />
+                                <div key={imgIdx} className="relative group inline-block mt-1">
+                                  <img
+                                    src={imgUrl}
+                                    alt={`Option ${opt} image ${imgIdx + 1}`}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setActiveZoomImage({
+                                        url: imgUrl,
+                                        title: `Question ${currentQuestionIndex + 1} - Option (${String.fromCharCode(65 + index)}) Image ${imgIdx + 1}`,
+                                      });
+                                    }}
+                                    className="max-w-[200px] max-h-[200px] object-contain rounded-none border border-[#E4E7EC] cursor-zoom-in hover:border-[#008080] hover:shadow-md transition-all"
+                                    title="Click to view and zoom option image"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setActiveZoomImage({
+                                        url: imgUrl,
+                                        title: `Question ${currentQuestionIndex + 1} - Option (${String.fromCharCode(65 + index)}) Image ${imgIdx + 1}`,
+                                      });
+                                    }}
+                                    className="absolute bottom-1 right-1 bg-[#008080]/90 hover:bg-[#008080] text-white text-[10px] font-bold px-1.5 py-0.5 flex items-center gap-1 shadow-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                                    title="Click to zoom image"
+                                  >
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                                    </svg>
+                                    Zoom
+                                  </button>
+                                </div>
                               ))}
                             </span>
                           </span>
@@ -975,7 +1091,8 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                     <label className="block text-xs font-bold text-[#667085] uppercase tracking-wider mb-2">Numeric Answer:</label>
                     {/* Read-only display — input only accepted via the on-screen Numpad below */}
                     <div
-                      className="border border-[#E4E7EC] rounded-none px-4 py-2.5 w-full font-mono text-sm bg-[#F9FAFB] text-[#1D2939] shadow-sm min-h-[42px] select-none cursor-default flex items-center"
+                      className="border border-[#E4E7EC] rounded-none px-4 py-2.5 w-full font-mono bg-[#F9FAFB] text-[#1D2939] shadow-sm min-h-[42px] select-none cursor-default flex items-center"
+                      style={{ fontSize: `${14 * fontScale}px` }}
                       aria-label="Numeric answer display"
                     >
                       {answers[currentQuestion.id]?.answer
@@ -996,29 +1113,29 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           </div>
 
           {/* Action Buttons Footer */}
-          <div className="border-t border-[#E4E7EC] py-2 px-4 bg-white">
-            <div className="flex items-center gap-1.5">
+          <div className="border-t border-[#E4E7EC] py-2.5 px-4 bg-white shrink-0">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handleClearResponse}
-                className="bg-[#F0F0F0] hover:bg-[#F9FAFB] text-[#667085] px-4 py-1.5 font-bold text-sm border border-[#008080] rounded-none transition-colors uppercase shadow-sm"
+                className="bg-[#F0F0F0] hover:bg-[#F9FAFB] text-[#667085] px-4 py-2 font-bold text-xs md:text-sm border border-[#008080] rounded-none transition-colors uppercase shadow-sm cursor-pointer whitespace-nowrap"
               >
                 CLEAR RESPONSE
               </button>
               <button
                 onClick={handleMarkForReviewAndNext}
-                className="bg-[#F59E0B] hover:bg-[#D97706] text-white px-4 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
+                className="bg-[#F59E0B] hover:bg-[#D97706] text-white px-4 py-2 rounded-none font-bold text-xs md:text-sm transition-colors uppercase shadow-sm cursor-pointer whitespace-nowrap"
               >
                 MARK FOR REVIEW &amp; NEXT
               </button>
               <button
                 onClick={handleSaveAndMarkForReview}
-                className="bg-[#4A4A4A] hover:bg-[#3A3A3A] text-white px-4 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
+                className="bg-[#4A4A4A] hover:bg-[#3A3A3A] text-white px-4 py-2 rounded-none font-bold text-xs md:text-sm transition-colors uppercase shadow-sm cursor-pointer whitespace-nowrap"
               >
                 SAVE &amp; MARK FOR REVIEW
               </button>
               <button
                 onClick={handleSaveAndNext}
-                className="bg-[#008080] hover:bg-[#006666] text-white px-4 py-1.5 rounded-none font-bold text-sm transition-colors uppercase shadow-sm"
+                className="bg-[#008080] hover:bg-[#006666] text-white px-4 py-2 rounded-none font-bold text-xs md:text-sm transition-colors uppercase shadow-sm cursor-pointer whitespace-nowrap"
               >
                 SAVE &amp; NEXT
               </button>
@@ -1026,19 +1143,19 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
           </div>
 
           {/* Navigation and Submission Footer Section */}
-          <div className="border-t border-[#E4E7EC] py-3 px-4 bg-[#EAF2F2] flex items-center justify-between">
+          <div className="border-t border-[#E4E7EC] py-3 px-4 bg-[#EAF2F2] flex flex-wrap items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3">
               <button
                 onClick={handleBack}
                 disabled={currentQuestionIndex === 0 && currentSubjectIndex === 0}
-                className="bg-white hover:bg-[#F9FAFB] text-[#667085] px-5 py-1.5 font-bold text-xs border border-[#D0D5DD] rounded-none transition-colors uppercase disabled:opacity-50 disabled:hover:bg-white"
+                className="bg-white hover:bg-[#F9FAFB] text-[#667085] px-5 py-2 font-bold text-xs border border-[#D0D5DD] rounded-none transition-colors uppercase disabled:opacity-50 disabled:hover:bg-white cursor-pointer"
               >
                 &lt;&lt; BACK
               </button>
               <button
                 onClick={moveToNext}
                 disabled={currentQuestionIndex === currentQuestions.length - 1 && currentSubjectIndex === subjects.length - 1}
-                className="bg-white hover:bg-[#F9FAFB] text-[#667085] px-5 py-1.5 font-bold text-xs border border-[#D0D5DD] rounded-none transition-colors uppercase disabled:opacity-50 disabled:hover:bg-white"
+                className="bg-white hover:bg-[#F9FAFB] text-[#667085] px-5 py-2 font-bold text-xs border border-[#D0D5DD] rounded-none transition-colors uppercase disabled:opacity-50 disabled:hover:bg-white cursor-pointer"
               >
                 NEXT &gt;&gt;
               </button>
@@ -1046,7 +1163,7 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
             
             <button
               onClick={() => setShowSubmitModal(true)}
-              className="bg-[#008080] hover:bg-[#006666] text-white px-6 py-1.5 rounded-none font-bold text-sm shadow-sm transition-all uppercase"
+              className="bg-[#008080] hover:bg-[#006666] text-white px-6 py-2 rounded-none font-bold text-sm shadow-sm transition-all uppercase cursor-pointer"
             >
               SUBMIT
             </button>
@@ -1370,16 +1487,25 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
                 </svg>
                 <h3 className="text-sm font-extrabold text-white uppercase tracking-widest">Exam Instructions</h3>
               </div>
-              <button
-                onClick={() => setShowInstructionsModal(false)}
-                className="text-white/80 hover:text-white text-lg font-bold p-1 leading-none focus:outline-none cursor-pointer"
-                aria-label="Close"
-              >
-                &times;
-              </button>
+              <div className="flex items-center gap-3">
+                <TextSizeControl
+                  scale={fontScale}
+                  onIncrease={handleIncreaseFontSize}
+                  onDecrease={handleDecreaseFontSize}
+                  onReset={handleResetFontSize}
+                  variant="teal"
+                />
+                <button
+                  onClick={() => setShowInstructionsModal(false)}
+                  className="text-white/80 hover:text-white text-lg font-bold p-1 leading-none focus:outline-none cursor-pointer"
+                  aria-label="Close"
+                >
+                  &times;
+                </button>
+              </div>
             </div>
 
-            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto" style={{ fontSize: `${14 * fontScale}px` }}>
               {/* General Instructions */}
               <div>
                 <h4 className="text-xs font-bold text-[#667085] uppercase tracking-wider mb-3">General Rules</h4>
@@ -1432,6 +1558,15 @@ export default function ExamInterface({ studentProfile, exam, onExamSubmitted, s
             </div>
           </div>
         </div>
+      )}
+
+      {/* Interactive Image Zoom Modal */}
+      {activeZoomImage && (
+        <ImageZoomModal
+          imageUrl={activeZoomImage.url}
+          title={activeZoomImage.title}
+          onClose={() => setActiveZoomImage(null)}
+        />
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { parseExamInstructions } from '../lib/instructions';
+import TextSizeControl, { FONT_SCALE_LEVELS, DEFAULT_FONT_SCALE, MIN_FONT_SCALE, MAX_FONT_SCALE } from './TextSizeControl';
 
 interface WaitingRoomProps {
   studentProfile: any;
@@ -16,6 +17,69 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
   const [starting, setStarting] = useState(false);
   // Directly fetched exam instructions (guaranteed to be up-to-date from DB)
   const [examInstructions, setExamInstructions] = useState<string[]>([]);
+
+  // Text size scaling state (stored in localStorage)
+  const [fontScale, setFontScale] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('parikshaos_font_scale');
+      if (saved) {
+        const parsed = parseFloat(saved);
+        if (!isNaN(parsed) && parsed >= MIN_FONT_SCALE && parsed <= MAX_FONT_SCALE) {
+          return parsed;
+        }
+      }
+    } catch (_) {}
+    return DEFAULT_FONT_SCALE;
+  });
+
+  const handleIncreaseFontSize = () => {
+    setFontScale(prev => {
+      const idx = FONT_SCALE_LEVELS.findIndex(l => Math.abs(l - prev) < 0.01);
+      let nextScale = prev;
+      if (idx === -1) {
+        const next = FONT_SCALE_LEVELS.find(l => l > prev);
+        nextScale = next !== undefined ? next : MAX_FONT_SCALE;
+      } else if (idx < FONT_SCALE_LEVELS.length - 1) {
+        nextScale = FONT_SCALE_LEVELS[idx + 1];
+      }
+      try {
+        localStorage.setItem('parikshaos_font_scale', String(nextScale));
+      } catch (_) {}
+      return nextScale;
+    });
+  };
+
+  const handleDecreaseFontSize = () => {
+    setFontScale(prev => {
+      const idx = FONT_SCALE_LEVELS.findIndex(l => Math.abs(l - prev) < 0.01);
+      let nextScale = prev;
+      if (idx === -1) {
+        const prevLevels = FONT_SCALE_LEVELS.filter(l => l < prev);
+        nextScale = prevLevels.length > 0 ? prevLevels[prevLevels.length - 1] : MIN_FONT_SCALE;
+      } else if (idx > 0) {
+        nextScale = FONT_SCALE_LEVELS[idx - 1];
+      }
+      try {
+        localStorage.setItem('parikshaos_font_scale', String(nextScale));
+      } catch (_) {}
+      return nextScale;
+    });
+  };
+
+  const handleResetFontSize = () => {
+    setFontScale(DEFAULT_FONT_SCALE);
+    try {
+      localStorage.setItem('parikshaos_font_scale', String(DEFAULT_FONT_SCALE));
+    } catch (_) {}
+  };
+
+  // Synchronize root document font size so the whole page text scales with student preference
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontScale * 100}%`;
+    return () => {
+      document.documentElement.style.fontSize = '100%';
+    };
+  }, [fontScale]);
 
   // Direct fetch of exam_instructions from DB using student's JWT session.
   // This is necessary because the login API join response may not always include
@@ -94,20 +158,20 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-[#F9FAFB] flex flex-col font-sans text-[#1D2939]">
+    <div className="min-h-screen h-auto md:h-screen overflow-y-auto bg-[#F9FAFB] flex flex-col font-sans text-[#1D2939]">
       {/* Top Header - White */}
-      <header className="border-b border-[#008080] flex items-center justify-between bg-white px-6 h-[90px] shrink-0">
+      <header className="border-b border-[#008080] flex flex-wrap items-center justify-between bg-white px-6 min-h-[85px] py-3 shrink-0 gap-4">
         <div className="flex items-center gap-3">
-          <img src="/ParikshaOS_logo.png" alt="ParikshaOS Logo" className="w-12 h-12 object-contain" />
+          <img src="/ParikshaOS_logo.png" alt="ParikshaOS Logo" className="w-12 h-12 object-contain shrink-0" />
           <div>
             <h1 className="text-[#008080] text-[20px] font-extrabold tracking-widest m-0 leading-tight uppercase">ParikshaOS</h1>
             <p className="text-[9px] text-[#667085] uppercase tracking-wider font-semibold">Powered by Growtez</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-sm">
-          <div className="w-14 h-14 border border-[#E4E7EC] bg-[#F9FAFB] flex items-center justify-center rounded-none shadow-sm">
-            <svg className="w-10 h-10 text-[#667085]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
+        <div className="flex flex-wrap items-center gap-4 text-sm ml-auto">
+          <div className="w-12 h-12 md:w-14 md:h-14 border border-[#E4E7EC] bg-[#F9FAFB] flex items-center justify-center rounded-none shadow-sm shrink-0">
+            <svg className="w-8 h-8 md:w-10 md:h-10 text-[#667085]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
           </div>
           <div className="flex flex-col text-right">
             <div className="text-[#1D2939] text-xs font-medium"><span className="text-[#667085]">Candidate Name :</span> <span className="text-[#1D2939] font-bold">[{studentProfile?.full_name}]</span></div>
@@ -129,8 +193,15 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
         <div className="shrink-0 h-[2vh] md:h-[4vh] min-h-[10px]"></div>
         <div className="w-full max-w-2xl mx-auto bg-white border border-[#E4E7EC] rounded-none shadow-xl overflow-hidden shrink-0 mb-6">
           {/* Card Title Bar */}
-          <div className="bg-[#008080] py-4 px-6 text-center">
+          <div className="bg-[#008080] py-3.5 px-6 flex items-center justify-between">
             <span className="text-white font-extrabold text-sm uppercase tracking-widest">WAITING ROOM</span>
+            <TextSizeControl
+              scale={fontScale}
+              onIncrease={handleIncreaseFontSize}
+              onDecrease={handleDecreaseFontSize}
+              onReset={handleResetFontSize}
+              variant="teal"
+            />
           </div>
 
           <div className="p-8">
@@ -194,21 +265,21 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
                 </div>
                 <ul className="space-y-3">
                   {/* General Instructions */}
-                  <li className="flex gap-3 text-sm text-[#667085] font-medium">
-                    <span className="text-[#008080] font-bold mt-0.5">▸</span>
-                    Do not refresh the page or close the application once the exam has started.
+                  <li className="flex gap-3 text-[#667085] font-medium" style={{ fontSize: `${14 * fontScale}px` }}>
+                    <span className="text-[#008080] font-bold mt-0.5 shrink-0">▸</span>
+                    <span>Do not refresh the page or close the application once the exam has started.</span>
                   </li>
-                  <li className="flex gap-3 text-sm text-[#667085] font-medium">
-                    <span className="text-[#008080] font-bold mt-0.5">▸</span>
-                    The timer will run continuously. If you get disconnected, your time will keep running on the server.
+                  <li className="flex gap-3 text-[#667085] font-medium" style={{ fontSize: `${14 * fontScale}px` }}>
+                    <span className="text-[#008080] font-bold mt-0.5 shrink-0">▸</span>
+                    <span>The timer will run continuously. If you get disconnected, your time will keep running on the server.</span>
                   </li>
-                  <li className="flex gap-3 text-sm text-[#667085] font-medium">
-                    <span className="text-[#008080] font-bold mt-0.5">▸</span>
-                    Your answers are automatically saved as you select them.
+                  <li className="flex gap-3 text-[#667085] font-medium" style={{ fontSize: `${14 * fontScale}px` }}>
+                    <span className="text-[#008080] font-bold mt-0.5 shrink-0">▸</span>
+                    <span>Your answers are automatically saved as you select them.</span>
                   </li>
-                  <li className="flex gap-3 text-sm text-[#667085] font-medium">
-                    <span className="text-[#008080] font-bold mt-0.5">▸</span>
-                    Once the exam end time is reached, it will be automatically submitted regardless of your progress.
+                  <li className="flex gap-3 text-[#667085] font-medium" style={{ fontSize: `${14 * fontScale}px` }}>
+                    <span className="text-[#008080] font-bold mt-0.5 shrink-0">▸</span>
+                    <span>Once the exam end time is reached, it will be automatically submitted regardless of your progress.</span>
                   </li>
                 </ul>
               </div>
@@ -221,9 +292,9 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
                   </div>
                   <ul className="space-y-2.5 bg-[#008080]/5 p-4 border border-[#008080]/20">
                     {examInstructions.map((inst: string, idx: number) => (
-                      <li key={idx} className="flex gap-3 text-sm text-[#1D2939] font-medium">
-                        <span className="text-[#008080] font-bold mt-0.5">▸</span>
-                        {inst}
+                      <li key={idx} className="flex gap-3 text-[#1D2939] font-medium" style={{ fontSize: `${14 * fontScale}px` }}>
+                        <span className="text-[#008080] font-bold mt-0.5 shrink-0">▸</span>
+                        <span>{inst}</span>
                       </li>
                     ))}
                   </ul>
