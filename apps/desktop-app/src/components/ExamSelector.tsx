@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { APP_VERSION } from '../version';
 
 interface StudentAssignment {
   student_id: string;
@@ -247,7 +248,7 @@ export default function ExamSelector({ assignments, onExamSelected, loading }: E
       </div>
 
       <footer className="text-center py-4 text-[#667085] text-xs border-t border-[#E4E7EC] bg-white uppercase tracking-widest font-semibold shrink-0">
-        v1.0.0 · ParikshaOS · Growtez
+        v{APP_VERSION} · ParikshaOS · Growtez
       </footer>
     </div>
   );
