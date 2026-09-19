@@ -475,13 +475,35 @@ export default function SchoolAdminLayout({
             </div>
           </button>
           {role && role !== 'teacher' && (
-            <Link
-              href="/profile"
-              className={`w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg border transition-colors group ${
-                isActive('/profile') 
-                  ? "bg-accent-primary/20 text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border-accent-primary font-bold" 
-                  : "text-white/90 hover:bg-sidebar-hover hover:text-white border-transparent"
-              }`}
+            <>
+              <button 
+                onClick={async () => {
+                   const supabase = createClient();
+                   const { data } = await supabase.from('app_versions').select('download_url').eq('is_active', true).eq('platform', 'windows').order('created_at', { ascending: false }).limit(1).single();
+                   if (data?.download_url) {
+                      window.open(data.download_url, '_blank');
+                   } else {
+                      alert('No active desktop app version found.');
+                   }
+                }}
+                className={`w-full flex items-center px-2.5 py-2 text-[13px] font-bold rounded-lg mb-2 border border-accent-primary/30 text-accent-primary bg-accent-primary/5 hover:bg-accent-primary hover:text-white transition-colors group ${!sidebarOpen ? 'justify-center' : ''}`}
+                title="Download Desktop App"
+              >
+                <div className={`flex items-center justify-center shrink-0 grow-0 w-[20px] h-[20px] transition-transform duration-200 group-hover:scale-110`}>
+                  <div className="scale-90 flex"><Download className="w-5 h-5" /></div>
+                </div>
+                <div className={`ml-2.5 h-full flex items-center overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-200 ease-in-out ${!sidebarOpen ? 'max-w-0 opacity-0 hidden' : 'max-w-[140px] opacity-100'}`}>
+                  <span className="truncate">Download App</span>
+                </div>
+              </button>
+              
+              <Link
+                href="/profile"
+                className={`w-full flex items-center px-2.5 py-2 text-[13px] font-medium rounded-lg border transition-colors group ${
+                  isActive('/profile') 
+                    ? "bg-accent-primary/20 text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border-accent-primary font-bold" 
+                    : "text-white/90 hover:bg-sidebar-hover hover:text-white border-transparent"
+                }`}
               onClick={() => {
                 if (typeof window !== 'undefined' && window.innerWidth < 768) {
                   setSidebarOpen(false);
@@ -495,6 +517,7 @@ export default function SchoolAdminLayout({
                 <span className="truncate">Profile</span>
               </div>
             </Link>
+            </>
           )}
           {role === 'teacher' && (
             <button
@@ -570,25 +593,6 @@ export default function SchoolAdminLayout({
               </span>
             )}
 
-            {role !== 'teacher' && (
-              <button 
-                onClick={async () => {
-                   const supabase = createClient();
-                   const { data } = await supabase.from('app_versions').select('download_url').eq('is_active', true).eq('platform', 'windows').order('created_at', { ascending: false }).limit(1).single();
-                   if (data?.download_url) {
-                      window.open(data.download_url, '_blank');
-                   } else {
-                      alert('No active desktop app version found.');
-                   }
-                }}
-                title="Download Desktop App"
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white rounded-lg transition-colors font-semibold text-sm border border-accent-primary/20 hover:border-accent-primary"
-              >
-                <Download className="w-4 h-4" />
-                <span className="hidden lg:inline">Get App</span>
-              </button>
-            )}
-            
             {role !== 'teacher' && (
               <div className="relative" ref={notifDropdownRef}>
                 <button 
