@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 import Link from 'next/link';
-import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight, Layers, Moon, Sun, Check, Trash2, Coins, Bell, Clock, CreditCard, CheckCircle, X, BarChart2 } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, GraduationCap, LogOut, Menu, AlertCircle, User, MessageSquare, BookOpen, ChevronLeft, ChevronRight, Layers, Moon, Sun, Check, Trash2, Coins, Bell, Clock, CreditCard, CheckCircle, X, BarChart2, Download } from 'lucide-react';
 
 const navItems = [
   {
@@ -568,6 +568,25 @@ export default function SchoolAdminLayout({
               <span className="text-base font-bold text-text-main hidden sm:block truncate max-w-[50vw]" title={schoolName}>
                 {schoolName}
               </span>
+            )}
+
+            {role !== 'teacher' && (
+              <button 
+                onClick={async () => {
+                   const supabase = createClient();
+                   const { data } = await supabase.from('app_versions').select('download_url').eq('is_active', true).eq('platform', 'windows').order('created_at', { ascending: false }).limit(1).single();
+                   if (data?.download_url) {
+                      window.open(data.download_url, '_blank');
+                   } else {
+                      alert('No active desktop app version found.');
+                   }
+                }}
+                title="Download Desktop App"
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-white rounded-lg transition-colors font-semibold text-sm border border-accent-primary/20 hover:border-accent-primary"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden lg:inline">Get App</span>
+              </button>
             )}
             
             {role !== 'teacher' && (
