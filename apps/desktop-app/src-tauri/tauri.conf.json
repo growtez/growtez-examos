@@ -19,6 +19,7 @@
       "window": {
         "all": false,
         "close": true,
+        "minimize": true,
         "setDecorations": true,
         "setAlwaysOnTop": true,
         "setFullscreen": true

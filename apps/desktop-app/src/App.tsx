@@ -3,8 +3,10 @@ import Login, { StudentAssignment } from './components/Login';
 import ExamSelector from './components/ExamSelector';
 import ExamInterface from './components/ExamInterface';
 import WaitingRoom from './components/WaitingRoom';
+import UpdateModal, { AppVersionRecord } from './components/UpdateModal';
 import { supabase, setStudentToken } from './lib/supabase';
 import { getDeviceId } from './lib/deviceId';
+import { APP_VERSION, compareVersions } from './version';
 import parikshaLogo from '../public/ParikshaOS_logo.png';
 
 type Step = 'login' | 'exam_select' | 'waiting_room' | 'exam' | 'submitted';
@@ -50,6 +52,46 @@ function App() {
   const [pendingAssignments, setPendingAssignments] = useState<StudentAssignment[]>([]);
   const [examSelectLoading, setExamSelectLoading] = useState(false);
   const [examSelectError, setExamSelectError] = useState('');
+
+  // App version check state
+  const [updateInfo, setUpdateInfo] = useState<AppVersionRecord | null>(null);
+  const [isMandatoryUpdate, setIsMandatoryUpdate] = useState(false);
+
+  // ── Version Check on Launch ────────────────────────────────────────────────
+  useEffect(() => {
+    const checkAppVersion = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('app_versions')
+          .select('*')
+          .eq('platform', 'windows')
+          .eq('is_active', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error || !data) return;
+
+        const record = data as AppVersionRecord;
+        const hasNewerVersion = compareVersions(APP_VERSION, record.latest_version) < 0;
+
+        if (hasNewerVersion) {
+          // If min_supported_version is specified, update is only mandatory if current version is below it.
+          // Otherwise, fall back to is_mandatory flag.
+          const mandatory = record.min_supported_version
+            ? compareVersions(APP_VERSION, record.min_supported_version) < 0
+            : Boolean(record.is_mandatory);
+
+          setUpdateInfo(record);
+          setIsMandatoryUpdate(mandatory);
+        }
+      } catch (err) {
+        console.warn('[VersionCheck] Could not verify app version:', err);
+      }
+    };
+
+    checkAppVersion();
+  }, []);
 
   // ── Global JS keyboard blocker ─────────────────────────────────────────────
   // Runs as a second layer on top of the Rust WH_KEYBOARD_LL hook.
@@ -206,113 +248,128 @@ function App() {
   };
 
 
-  if (step === 'login') {
-    return (
-      <Login
-        onLoginSuccess={handleLoginSuccess}
-        onMultipleExams={handleMultipleExams}
-        serverTimeOffset={serverTimeOffset}
-      />
-    );
-  }
-
-  if (step === 'exam_select') {
-    return (
-      <div className="relative">
-        {examSelectError && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#F04438] text-white text-sm font-bold px-5 py-3 shadow-lg">
-            {examSelectError}
-          </div>
-        )}
-        <ExamSelector
-          assignments={pendingAssignments}
-          onExamSelected={handleExamConfirmed}
-          loading={examSelectLoading}
+  const renderScreen = () => {
+    if (step === 'login') {
+      return (
+        <Login
+          onLoginSuccess={handleLoginSuccess}
+          onMultipleExams={handleMultipleExams}
+          serverTimeOffset={serverTimeOffset}
         />
-      </div>
-    );
-  }
+      );
+    }
 
-  if (step === 'waiting_room') {
-    return (
-      <WaitingRoom 
-        studentProfile={studentProfile} 
-        exam={selectedExam} 
-        onStartExam={handleStartFromWaitingRoom}
-        serverTimeOffset={serverTimeOffset}
-      />
-    );
-  }
-
-  if (step === 'exam') {
-    return (
-      <ExamInterface
-        studentProfile={studentProfile}
-        exam={selectedExam}
-        onExamSubmitted={handleExamSubmitted}
-        serverTimeOffset={serverTimeOffset}
-      />
-    );
-  }
-
-  // ── Submission Complete Screen ─────────────────────────────────────────────
-  return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center font-sans overflow-hidden relative bg-white">
-      {/* Decorative background circles */}
-      <div className="absolute top-[-80px] left-[-80px] w-64 h-64 rounded-full bg-[#008080]/5" />
-      <div className="absolute bottom-[-60px] right-[-60px] w-80 h-80 rounded-full bg-[#008080]/5" />
-      <div className="absolute top-1/2 left-[-120px] w-48 h-48 rounded-full bg-[#008080]/5" />
-
-      {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center text-center px-8 max-w-lg">
-
-        {/* Logo at the top (bigger, w-36 h-36) */}
-        <div className="mb-6">
-          <img src={parikshaLogo} alt="ParikshaOS Logo" className="w-36 h-36 object-contain" />
+    if (step === 'exam_select') {
+      return (
+        <div className="relative">
+          {examSelectError && (
+            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#F04438] text-white text-sm font-bold px-5 py-3 shadow-lg">
+              {examSelectError}
+            </div>
+          )}
+          <ExamSelector
+            assignments={pendingAssignments}
+            onExamSelected={handleExamConfirmed}
+            loading={examSelectLoading}
+          />
         </div>
+      );
+    }
 
-        {/* Success icon */}
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#008080]/10 border-2 border-[#008080]/30 mb-6 shadow-sm">
-          <svg className="w-10 h-10 text-[#008080]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
+    if (step === 'waiting_room') {
+      return (
+        <WaitingRoom 
+          studentProfile={studentProfile} 
+          exam={selectedExam} 
+          onStartExam={handleStartFromWaitingRoom}
+          serverTimeOffset={serverTimeOffset}
+        />
+      );
+    }
 
-        {/* Heading */}
-        <h2 className="text-[#1D2939] text-2xl font-extrabold uppercase tracking-wider mb-3">Exam Submitted!</h2>
+    if (step === 'exam') {
+      return (
+        <ExamInterface
+          studentProfile={studentProfile}
+          exam={selectedExam}
+          onExamSubmitted={handleExamSubmitted}
+          serverTimeOffset={serverTimeOffset}
+        />
+      );
+    }
 
-        {/* Thank you message */}
-        <p className="text-[#344054] text-base font-medium mb-2 leading-relaxed">
-          Thank you for using <span className="font-bold text-[#008080]">ParikshaOS</span>.
-        </p>
-        <p className="text-[#667085] text-sm mb-8 leading-relaxed">
-          Your answers have been securely saved and uploaded.<br />
-          You may now close this application.
-        </p>
+    // ── Submission Complete Screen ─────────────────────────────────────────────
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center font-sans overflow-hidden relative bg-white">
+        {/* Decorative background circles */}
+        <div className="absolute top-[-80px] left-[-80px] w-64 h-64 rounded-full bg-[#008080]/5" />
+        <div className="absolute bottom-[-60px] right-[-60px] w-80 h-80 rounded-full bg-[#008080]/5" />
+        <div className="absolute top-1/2 left-[-120px] w-48 h-48 rounded-full bg-[#008080]/5" />
 
-        {/* Close button */}
-        <button
-          id="close-application-btn"
-          onClick={handleCloseApp}
-          className="flex items-center gap-2 px-10 py-3 bg-[#008080] hover:bg-[#006666] text-white font-extrabold text-sm uppercase tracking-widest rounded-none shadow-lg active:scale-95 transition-all mb-10"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-          Close Application
-        </button>
+        {/* Main content */}
+        <div className="relative z-10 flex flex-col items-center text-center px-8 max-w-lg">
 
-        {/* Footer with Text Logo */}
-        <div className="flex flex-col items-center gap-1 mt-4">
-          <h1 className="text-[#008080] text-lg font-black tracking-widest uppercase leading-none">ParikshaOS</h1>
-          <p className="text-[#667085] text-[10px] uppercase tracking-widest font-semibold leading-none">Powered by Growtez</p>
-          <p className="text-[#98A2B3] text-[9px] uppercase tracking-widest mt-2 font-semibold">
-            &copy; {new Date().getFullYear()} Growtez · All Rights Reserved
+          {/* Logo at the top (bigger, w-36 h-36) */}
+          <div className="mb-6">
+            <img src={parikshaLogo} alt="ParikshaOS Logo" className="w-36 h-36 object-contain" />
+          </div>
+
+          {/* Success icon */}
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#008080]/10 border-2 border-[#008080]/30 mb-6 shadow-sm">
+            <svg className="w-10 h-10 text-[#008080]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+
+          {/* Heading */}
+          <h2 className="text-[#1D2939] text-2xl font-extrabold uppercase tracking-wider mb-3">Exam Submitted!</h2>
+
+          {/* Thank you message */}
+          <p className="text-[#344054] text-base font-medium mb-2 leading-relaxed">
+            Thank you for using <span className="font-bold text-[#008080]">ParikshaOS</span>.
           </p>
-        </div>
+          <p className="text-[#667085] text-sm mb-8 leading-relaxed">
+            Your answers have been securely saved and uploaded.<br />
+            You may now close this application.
+          </p>
 
+          {/* Close button */}
+          <button
+            id="close-application-btn"
+            onClick={handleCloseApp}
+            className="flex items-center gap-2 px-10 py-3 bg-[#008080] hover:bg-[#006666] text-white font-extrabold text-sm uppercase tracking-widest rounded-none shadow-lg active:scale-95 transition-all mb-10"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Close Application
+          </button>
+
+          {/* Footer with Text Logo */}
+          <div className="flex flex-col items-center gap-1 mt-4">
+            <h1 className="text-[#008080] text-lg font-black tracking-widest uppercase leading-none">ParikshaOS</h1>
+            <p className="text-[#667085] text-[10px] uppercase tracking-widest font-semibold leading-none">Powered by Growtez</p>
+            <p className="text-[#98A2B3] text-[9px] uppercase tracking-widest mt-2 font-semibold">
+              &copy; {new Date().getFullYear()} Growtez · All Rights Reserved
+            </p>
+          </div>
+
+        </div>
       </div>
-    </div>
+    );
+  };
+
+  return (
+    <>
+      {updateInfo && (
+        <UpdateModal
+          updateInfo={updateInfo}
+          isMandatory={isMandatoryUpdate}
+          onDismiss={isMandatoryUpdate ? undefined : () => setUpdateInfo(null)}
+        />
+      )}
+      {renderScreen()}
+    </>
   );
 }
 
