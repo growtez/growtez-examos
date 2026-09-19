@@ -772,3 +772,43 @@ END $$;
 ALTER TABLE public.students
 ADD CONSTRAINT unique_exam_roll_dob UNIQUE (exam_id, roll_number, date_of_birth);
 
+-- ============================================================
+-- 8. App Versions Table & RLS Policies
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.app_versions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    platform TEXT NOT NULL DEFAULT 'windows',
+    latest_version TEXT NOT NULL,
+    min_supported_version TEXT DEFAULT '0.1.0',
+    download_url TEXT NOT NULL,
+    release_notes TEXT,
+    is_mandatory BOOLEAN NOT NULL DEFAULT true,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE public.app_versions ENABLE ROW LEVEL SECURITY;
+
+-- Allow Desktop App to read version info BEFORE student logs in
+DROP POLICY IF EXISTS "Allow public read access to app versions" ON public.app_versions;
+CREATE POLICY "Allow public read access to app versions"
+    ON public.app_versions
+    FOR SELECT
+    TO anon, authenticated
+    USING (is_active = true);
+
+-- Seed initial version 0.1.0
+INSERT INTO public.app_versions (platform, latest_version, min_supported_version, download_url, release_notes, is_mandatory, is_active)
+VALUES (
+    'windows',
+    '0.1.0',
+    '0.1.0',
+    'https://github.com/growtez/growtez-examos/releases/download/v0.1.0/ParikshaOS_0.1.0_x64-setup.exe',
+    'Initial release with text size zoom, diagram inspector, and secure exam lockdown.',
+    true,
+    true
+);
+

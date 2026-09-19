@@ -18,19 +18,8 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
   // Directly fetched exam instructions (guaranteed to be up-to-date from DB)
   const [examInstructions, setExamInstructions] = useState<string[]>([]);
 
-  // Text size scaling state (stored in localStorage)
-  const [fontScale, setFontScale] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('parikshaos_font_scale');
-      if (saved) {
-        const parsed = parseFloat(saved);
-        if (!isNaN(parsed) && parsed >= MIN_FONT_SCALE && parsed <= MAX_FONT_SCALE) {
-          return parsed;
-        }
-      }
-    } catch (_) {}
-    return DEFAULT_FONT_SCALE;
-  });
+  // Text size scaling state (always starts at 100% by default)
+  const [fontScale, setFontScale] = useState<number>(DEFAULT_FONT_SCALE);
 
   const handleIncreaseFontSize = () => {
     setFontScale(prev => {
@@ -42,9 +31,6 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
       } else if (idx < FONT_SCALE_LEVELS.length - 1) {
         nextScale = FONT_SCALE_LEVELS[idx + 1];
       }
-      try {
-        localStorage.setItem('parikshaos_font_scale', String(nextScale));
-      } catch (_) {}
       return nextScale;
     });
   };
@@ -59,18 +45,12 @@ export default function WaitingRoom({ studentProfile, exam, onStartExam, serverT
       } else if (idx > 0) {
         nextScale = FONT_SCALE_LEVELS[idx - 1];
       }
-      try {
-        localStorage.setItem('parikshaos_font_scale', String(nextScale));
-      } catch (_) {}
       return nextScale;
     });
   };
 
   const handleResetFontSize = () => {
     setFontScale(DEFAULT_FONT_SCALE);
-    try {
-      localStorage.setItem('parikshaos_font_scale', String(DEFAULT_FONT_SCALE));
-    } catch (_) {}
   };
 
   // Synchronize root document font size so the whole page text scales with student preference

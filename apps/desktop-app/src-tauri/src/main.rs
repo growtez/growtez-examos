@@ -190,6 +190,27 @@ fn disable_kiosk_mode() {
     }
 }
 
+/// Opens an update URL in the system's default browser and temporarily unpins/minimizes
+/// the kiosk window so the student can see their browser and downloaded installer.
+#[tauri::command]
+fn open_browser_url(window: tauri::Window, url: String) -> Result<(), String> {
+    let _ = window.set_always_on_top(false);
+    let _ = window.minimize();
+
+    #[cfg(windows)]
+    {
+        std::process::Command::new("cmd")
+            .args(["/C", "start", "", &url])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(())
+    }
+}
+
 fn main() {
     // Install the hook at startup; it sits idle until enable_kiosk_mode() is called.
     #[cfg(windows)]
@@ -199,7 +220,7 @@ fn main() {
     }
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![enable_kiosk_mode, disable_kiosk_mode])
+        .invoke_handler(tauri::generate_handler![enable_kiosk_mode, disable_kiosk_mode, open_browser_url])
         .setup(|_app| {
             println!("[App] ParikshaOS started.");
             Ok(())
