@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase, setStudentToken } from '../lib/supabase';
 import { getDeviceId } from '../lib/deviceId';
 import VirtualKeyboard from './VirtualKeyboard';
+import { APP_VERSION } from '../version';
 
 type Step = 'login' | 'exam_select' | 'waiting_room' | 'exam' | 'submitted';
 
@@ -534,7 +535,7 @@ export default function Login({ onLoginSuccess, onMultipleExams }: LoginProps) {
       </div>
 
       <footer className="text-center py-4 text-[#667085] text-xs border-t border-[#E4E7EC] bg-white uppercase tracking-widest font-semibold shrink-0">
-        v1.0.0 · ParikshaOS · Growtez
+        v{APP_VERSION} · ParikshaOS · Growtez
       </footer>
     </div>
   );
